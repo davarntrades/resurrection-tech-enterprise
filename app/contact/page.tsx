@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/components/PageShell";
 import { ContactSection } from "@/components/ContactSection";
+import { ConsultationSection } from "@/components/ConsultationSection";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -21,6 +22,8 @@ export default function Page() {
   return (
     <PageShell>
       <ContactSection />
+      <hr className="divider" />
+      <ConsultationSection />
     </PageShell>
   );
 }

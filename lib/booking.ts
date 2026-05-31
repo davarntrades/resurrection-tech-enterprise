@@ -1,38 +1,46 @@
 /**
  * Booking + contact configuration for the enterprise meeting workflow.
  *
- * Calendly URLs come from public env vars so they are configurable per
- * environment and never hardcoded. When a URL is not set, the UI shows a
- * "Calendly link pending configuration." state instead of a dead link.
+ * Calendly URLs are configurable per environment via NEXT_PUBLIC_* vars and
+ * fall back to the live production booking links, so the CTAs always work.
  */
 
-export type BookingType = "discovery" | "audit" | "enterprise";
+export type BookingType = "discovery" | "assessment" | "strategy";
 
 export interface BookingSession {
   id: BookingType;
-  /** Hash target used to deep-link / focus a card (e.g. /book#enterprise). */
+  /** Hash target used to deep-link / focus a card (e.g. /book#strategy). */
   anchor: BookingType;
   title: string;
   duration: string;
+  /** One-line summary of the session. */
+  description: string;
   /** Lead-in for the audience list. */
   audienceLabel: string;
   audience: string[];
   cta: string;
-  /** Resolved Calendly URL; "" when not configured. */
+  /** Resolved Calendly URL. */
   calendlyUrl: string;
 }
 
-/** Message shown wherever a Calendly URL has not been configured yet. */
+/** Message shown wherever a Calendly URL has not been configured. */
 export const CALENDLY_PENDING = "Calendly link pending configuration.";
 
 /**
- * NEXT_PUBLIC_* vars are statically inlined by Next at build time, so this
- * resolves correctly in both server and client components.
+ * NEXT_PUBLIC_* vars are statically inlined by Next at build time. Each falls
+ * back to the live Calendly link so booking works out of the box, while still
+ * being overridable per environment.
  */
 export const CALENDLY_URLS: Record<BookingType, string> = {
-  discovery: process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ?? "",
-  audit: process.env.NEXT_PUBLIC_CALENDLY_AUDIT ?? "",
-  enterprise: process.env.NEXT_PUBLIC_CALENDLY_ENTERPRISE ?? "",
+  discovery:
+    process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ??
+    "https://calendly.com/davarn-resurrection-tech/30min",
+  assessment:
+    process.env.NEXT_PUBLIC_CALENDLY_ASSESSMENT ??
+    "https://calendly.com/davarn-resurrection-tech/runtime-safety-assessment",
+  strategy:
+    process.env.NEXT_PUBLIC_CALENDLY_STRATEGY ??
+    "https://calendly.com/davarn-resurrection-tech/enterprise-ai-governance-strategy-session",
 };
 
 export const BOOKING_SESSIONS: BookingSession[] = [
@@ -41,16 +49,20 @@ export const BOOKING_SESSIONS: BookingSession[] = [
     anchor: "discovery",
     title: "Discovery Call",
     duration: "30 minutes",
+    description:
+      "A short introductory call to discuss your AI governance needs and determine whether Resurrection Tech is a good fit.",
     audienceLabel: "For",
     audience: ["Researchers", "Investors", "Collaborators", "Media"],
-    cta: "Schedule Discovery Call",
+    cta: "Book Discovery Call",
     calendlyUrl: CALENDLY_URLS.discovery,
   },
   {
-    id: "audit",
-    anchor: "audit",
-    title: "Runtime Governance Audit Consultation",
-    duration: "45 minutes",
+    id: "assessment",
+    anchor: "assessment",
+    title: "Runtime Safety Assessment",
+    duration: "60 minutes",
+    description:
+      "A structured assessment for organisations exploring runtime safety, AI governance, agent risk, and reachability-based control.",
     audienceLabel: "For organisations evaluating",
     audience: [
       "Autonomous systems",
@@ -58,24 +70,25 @@ export const BOOKING_SESSIONS: BookingSession[] = [
       "Agentic workflows",
       "High-trust deployments",
     ],
-    cta: "Schedule Audit Consultation",
-    calendlyUrl: CALENDLY_URLS.audit,
+    cta: "Book Safety Assessment",
+    calendlyUrl: CALENDLY_URLS.assessment,
   },
   {
-    id: "enterprise",
-    anchor: "enterprise",
-    title: "Enterprise Pilot Discussion",
-    duration: "60 minutes",
+    id: "strategy",
+    anchor: "strategy",
+    title: "Enterprise AI Governance Strategy Session",
+    duration: "90 minutes",
+    description:
+      "A deeper strategy session for leadership teams, AI program managers, and technical stakeholders exploring enterprise AI governance and pilot opportunities.",
     audienceLabel: "For",
     audience: [
-      "Banks",
-      "Healthcare",
-      "Cybersecurity",
-      "Enterprise AI teams",
-      "Government",
+      "Leadership teams",
+      "AI program managers",
+      "Technical stakeholders",
+      "Enterprise & government",
     ],
-    cta: "Schedule Enterprise Discussion",
-    calendlyUrl: CALENDLY_URLS.enterprise,
+    cta: "Book Strategy Session",
+    calendlyUrl: CALENDLY_URLS.strategy,
   },
 ];
 

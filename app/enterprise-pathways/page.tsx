@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { ConsultationSection } from "@/components/ConsultationSection";
 
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
@@ -147,8 +148,8 @@ export default function Page() {
             </div>
           </div>
           <div className="hero-actions reveal" style={{ marginTop: 44 }}>
-            <Link href="/book#audit" className="btn btn--primary">Book Audit Discussion <span className="arr">→</span></Link>
-            <Link href="/book#enterprise" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/book#strategy" className="btn btn--ghost">Book Strategy Session</Link>
           </div>
         </div>
       </section>
@@ -219,6 +220,12 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      <ConsultationSection
+        eyebrow="Schedule a call"
+        heading="Book a consultation."
+        blurb="Move from pathways to a conversation. Pick the session that matches where you are — discovery, a runtime safety assessment, or an enterprise governance strategy session."
+      />
     </PageShell>
   );
 }
