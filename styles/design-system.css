@@ -48,6 +48,13 @@
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Trust bar */
+  --trust-bar-h: 34px;
+}
+
+@media (max-width: 640px) {
+  :root { --trust-bar-h: 0px; }
 }
 
 * { box-sizing: border-box; }
@@ -173,8 +180,8 @@ p { margin: 0; }
 }
 .brand-logo { height: 23px; width: auto; flex: none; display: block; }
 .brand .tm { font-size: 9px; color: var(--ink-3); vertical-align: super; }
-/* Hide wordmark on mobile so logo and text never collide */
-@media (max-width: 500px) {
+/* Hide wordmark on mobile so logo and CTA never collide */
+@media (max-width: 640px) {
   .brand-name { display: none; }
   .brand .mark svg { height: 19px; width: 45.6px; }
 }
