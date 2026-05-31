@@ -1,25 +1,100 @@
-# CODING AGENTS: READ THIS FIRST
+# Resurrection Tech™ — Runtime Governance Platform
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Production Next.js 16 website for **Resurrection Tech™** — Runtime Governance for Autonomous Systems.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+## Tech Stack
 
-## What you should do — IMPORTANT
+- **Next.js 16** (App Router, TypeScript strict)
+- **Tailwind CSS** (layout utilities; design system owns all tokens)
+- **Supabase** — audit request persistence
+- **Resend** — transactional email
+- **Zod** — API validation
+- **Vercel** — deployment target
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+## Quick Start
 
-**Read `project/Resurrection Tech (offline).html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+```bash
+npm install
+cp .env.example .env.local   # fill in Supabase + Resend keys
+npm run dev                   # http://localhost:3000
+```
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+The app runs **without environment keys** — submissions log to console and email is skipped, so you can develop UI offline.
 
-## About the design files
+## Environment Variables
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+See `.env.example` for all required keys. Set the same keys in Vercel Project Settings → Environment Variables.
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | Yes | Canonical site URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | For submissions | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | For submissions | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | For submissions | Supabase service role key (server-only) |
+| `RESEND_API_KEY` | For email | Resend API key |
+| `EMAIL_FROM` | For email | Verified sending address |
+| `AUDIT_NOTIFY_TO` | For email | Internal notification address |
 
-## Bundle contents
+## Database Setup (Supabase)
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Resurrection Tech Enterprise Site` project files (HTML prototypes, assets, components)
+Paste `supabase/schema.sql` into the Supabase SQL Editor. This creates the `audit_requests` table with RLS enabled and a service-role-only insert policy.
+
+## Deploy to Vercel
+
+```bash
+# 1. Push to GitHub
+git remote add origin https://github.com/YOUR_USERNAME/resurrection-tech.git
+git push -u origin main
+
+# 2. Import the repo in Vercel dashboard: https://vercel.com/new
+# 3. Set all environment variables from .env.example in Vercel settings
+# 4. Deploy
+```
+
+See `docs/DEPLOYMENT.md` for the full step-by-step guide.
+
+## Project Structure
+
+```
+app/
+  layout.tsx              # Root layout with SEO metadata
+  page.tsx                # Home page
+  request-audit/          # Audit intake form
+  enterprise-pathways/    # Pathways & pricing
+  licensing/              # Licensing framework
+  partners/               # Partner framework
+  api/audit/route.ts      # Form submission API
+  sitemap.ts / robots.ts  # SEO files
+components/
+  HomeClient.tsx          # Full home page (canvas, sections, motion)
+  AuditForm.tsx           # 4-step adaptive audit intake
+  Nav.tsx / Footer.tsx    # Shared navigation
+  CanvasScript.tsx        # Canvas animation injector
+  Logo.tsx                # ℛ(t) SVG mark
+  useSiteMotion.ts        # Scroll reveals, count-up, flow sequencing
+styles/
+  design-system.css       # Full approved design system (verbatim)
+  upgrade.css             # Premium upgrade styles + Engagement Model
+  audit.css               # Audit intake styles
+  audit-upgrade.css       # Audit recommendation/exec styles
+lib/
+  industries.ts           # Industry intelligence + risk scoring
+  validation.ts           # Zod schema for audit API
+  supabase.ts / email.ts  # Backend integrations
+  site.ts                 # SITE constants, NAV_LINKS
+public/
+  canvas/hero.js          # Hero trajectory animation
+  canvas/reach.js         # Ω reachability diagram animation
+  assets/logo/            # ℛ(t) logo assets + favicons
+supabase/schema.sql       # Database schema
+```
+
+## Scripts
+
+```bash
+npm run dev        # Development server
+npm run build      # Production build
+npm run start      # Start production server
+npm run typecheck  # TypeScript check
+npm run lint       # ESLint
+```
