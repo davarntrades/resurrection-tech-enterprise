@@ -1,0 +1,49 @@
+/* ============================================================
+   Audit upgrade — recommendation, executive assessment,
+   and confirmation next-steps. Layered on top of audit.css,
+   reusing the same tokens and visual language.
+   ============================================================ */
+
+/* live recommendation summary */
+.reco {
+  border: 1px solid var(--line); border-radius: 14px; padding: 22px; background: var(--panel);
+  margin-bottom: 16px;
+}
+.reco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+@media (max-width: 520px) { .reco-grid { grid-template-columns: 1fr; } }
+.reco-row { background: var(--panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
+.reco-row .rk { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.reco-row .rv { color: var(--ink); font-size: 16px; font-weight: 540; letter-spacing: -0.01em; transition: color .4s var(--ease); }
+.reco-exposures { margin-top: 18px; }
+.reco-exposures .lab { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; }
+.reco-exposures ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+@media (max-width: 520px) { .reco-exposures ul { grid-template-columns: 1fr; } }
+.reco-exposures li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
+.reco-exposures li .ck { color: var(--accent-bright); flex: none; }
+
+/* executive assessment card */
+.exec-card {
+  border: 1px solid rgba(76,125,255,0.3); border-radius: 14px; padding: 24px; margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(76,125,255,0.08), rgba(109,92,255,0.04) 60%, transparent);
+  position: relative; overflow: hidden;
+}
+.exec-card .exec-h { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 12px; }
+.exec-card p { color: var(--ink); font-size: 14.5px; line-height: 1.6; text-wrap: pretty; }
+
+/* confirmation next-steps */
+.nextsteps { margin-top: 30px; text-align: left; max-width: 420px; margin-inline: auto; }
+.nextsteps .ns-h { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; text-align: center; }
+.nextsteps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.nextsteps li { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--panel); color: var(--ink); font-size: 15px; }
+.nextsteps .ns-n { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent-bright); display: grid; place-items: center; font-family: var(--mono); font-size: 12px; flex: none; }
+
+/* collapsible "what you receive" */
+.disclosure { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden; }
+.disclosure summary { cursor: pointer; padding: 18px 22px; font-size: 15px; color: var(--ink); list-style: none; display: flex; align-items: center; justify-content: space-between; font-weight: 500; }
+.disclosure summary::-webkit-details-marker { display: none; }
+.disclosure summary .chev { transition: transform .3s var(--ease); color: var(--ink-3); }
+.disclosure[open] summary .chev { transform: rotate(180deg); }
+.disclosure .disc-body { padding: 0 22px 22px; }
+.disclosure .disc-body ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+.disclosure .disc-body li { display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-size: 14.5px; }
+.disclosure .disc-body li .ck { color: var(--accent-bright); flex: none; }

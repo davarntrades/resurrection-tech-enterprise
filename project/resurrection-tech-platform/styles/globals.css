@@ -1,0 +1,15 @@
+/* ============================================================
+   Resurrection Tech™ — global stylesheet entry
+   The approved design system is reused verbatim (do not edit here).
+   Tailwind utilities are layered on top for incidental layout.
+   Preflight is disabled in tailwind.config.ts so the design
+   system fully owns base/reset styling.
+   ============================================================ */
+
+@import "./design-system.css";
+@import "./upgrade.css";
+@import "./audit.css";
+@import "./audit-upgrade.css";
+
+@tailwind components;
+@tailwind utilities;
