@@ -1,8 +1,46 @@
 /* ============================================================
    Resurrection Tech™ — Booking & lead-capture workflow
-   /book page, booking cards, contact routing, lead form, and the
-   floating "Book Meeting" bar. Uses the approved design tokens only.
+   /book page, booking cards, contact routing, lead form, the floating
+   "Book Meeting" bar, and the Advisory Retainer note. Approved tokens only.
    ============================================================ */
+
+/* ---------- Advisory Retainer note (Ω governance) ---------- */
+.retainer-note {
+  margin-top: 24px;
+  padding: clamp(22px, 3.5vw, 34px) clamp(24px, 4vw, 40px);
+  border: 1px solid rgba(76, 125, 255, 0.28);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(76, 125, 255, 0.07), rgba(109, 92, 255, 0.035) 60%, transparent),
+    var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.retainer-note .rn-k {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+.retainer-note .rn-eq {
+  font-family: var(--mono);
+  font-size: clamp(20px, 3vw, 30px);
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  margin: 2px 0 4px;
+}
+.retainer-note .rn-eq b { color: var(--accent-bright); font-weight: 600; }
+.retainer-note .rn-t {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 78ch;
+  text-wrap: pretty;
+  margin: 0;
+}
+.retainer-note .rn-t b { color: var(--ink); font-weight: 540; }
 
 /* ---------- Page header ---------- */
 .book-hero { padding-top: clamp(48px, 8vw, 88px); }
