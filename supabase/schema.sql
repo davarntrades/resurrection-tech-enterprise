@@ -54,6 +54,35 @@ alter table public.audit_requests enable row level security;
 -- (Intentionally no anon policies. Manage rows via the service role
 --  or the Supabase dashboard / an authenticated internal app.)
 
+-- ============================================================
+-- Enterprise leads (booking / contact form). Optional sink — the
+-- /api/lead route also supports Formspree forwarding and Resend.
+-- ============================================================
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  reference text unique not null,
+  created_at timestamptz not null default now(),
+
+  name text not null,
+  organisation text default '',
+  email text not null,
+  role text default '',
+  use_case text default '',
+  message text default '',
+  source text default '',
+
+  status text not null default 'new',  -- new | contacted | scheduled | closed
+  source_ip text default '',
+  user_agent text default ''
+);
+
+create index if not exists leads_created_at_idx on public.leads (created_at desc);
+create index if not exists leads_status_idx on public.leads (status);
+
+-- Same posture as audit_requests: RLS on, no anon policies. The service
+-- role (API route) bypasses RLS; the browser anon key cannot read/write.
+alter table public.leads enable row level security;
+
 -- Optional: updated_at trigger for status changes.
 create or replace function public.touch_updated_at()
 returns trigger language plpgsql as $$

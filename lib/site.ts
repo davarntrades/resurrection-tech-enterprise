@@ -31,6 +31,6 @@ export const NAV_LINKS = [
 
 export const CALENDLY = {
   discovery: process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ?? "",
-  review: process.env.NEXT_PUBLIC_CALENDLY_REVIEW ?? "",
-  scoping: process.env.NEXT_PUBLIC_CALENDLY_SCOPING ?? "",
+  audit: process.env.NEXT_PUBLIC_CALENDLY_AUDIT ?? "",
+  enterprise: process.env.NEXT_PUBLIC_CALENDLY_ENTERPRISE ?? "",
 } as const;

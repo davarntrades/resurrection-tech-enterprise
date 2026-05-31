@@ -71,11 +71,11 @@ export function HomeClient() {
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
-                  href="/request-audit"
+                  href="/book#audit"
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero" })}
                 >
-                  Request 48-Hour Runtime Governance Audit <span className="arr">→</span>
+                  Book Audit Discussion <span className="arr">→</span>
                 </Link>
                 <Link href="/enterprise-pathways" className="btn btn--ghost">
                   View Enterprise Pathways
@@ -638,8 +638,8 @@ export function HomeClient() {
                 states must be identified before they execute.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
-                <Link href="/request-audit" className="btn btn--primary">Request Audit <span className="arr">→</span></Link>
-                <Link href="/enterprise-pathways" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
+                <Link href="/book#audit" className="btn btn--primary">Book Audit Discussion <span className="arr">→</span></Link>
+                <Link href="/book#enterprise" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
                 <Link href="/licensing" className="btn btn--ghost">View Licensing Framework</Link>
               </div>
             </div>
