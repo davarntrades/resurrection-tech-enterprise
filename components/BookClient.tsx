@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { CalendlyButton } from "@/components/CalendlyButton";
 import { LeadForm } from "@/components/LeadForm";
+import { ContactSection } from "@/components/ContactSection";
 import {
   BOOKING_SESSIONS,
   WHY_BOOK,
-  CONTACT_ROUTES,
-  CONTACT_EMAILS_LIVE,
   CALENDLY_URLS,
   type BookingType,
 } from "@/lib/booking";
@@ -141,36 +140,7 @@ export function BookClient() {
       </section>
 
       {/* ===== CONTACT ROUTING ===== */}
-      <section className="section section--tight" id="contact">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Contact</span>
-            <h2>Direct routing.</h2>
-            <p>
-              Prefer email? Reach the right team directly.
-              {!CONTACT_EMAILS_LIVE && " Addresses are being provisioned — booking above is live now."}
-            </p>
-          </div>
-          <div className="contact-grid">
-            {CONTACT_ROUTES.map((c) => (
-              <div className={`contact-card card reveal${CONTACT_EMAILS_LIVE ? "" : " is-pending"}`} key={c.email}>
-                <div className="contact-label">{c.label}</div>
-                <div className="contact-desc">{c.description}</div>
-                {CONTACT_EMAILS_LIVE ? (
-                  <a className="contact-email" href={`mailto:${c.email}`}>
-                    {c.email}
-                  </a>
-                ) : (
-                  <span className="contact-email is-placeholder" title="Email provisioning in progress">
-                    <span className="contact-dot" aria-hidden="true" />
-                    {c.email}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ContactSection id="contact" />
 
       {/* ===== LEAD FORM ===== */}
       <section className="section section--tight" id="enquire">

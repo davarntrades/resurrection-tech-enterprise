@@ -42,6 +42,20 @@
 }
 .retainer-note .rn-t b { color: var(--ink); font-weight: 540; }
 
+/* ---------- Footer company block ---------- */
+.fcontact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.fcontact span { color: var(--ink-2); }
+.fcontact a { color: var(--ink-3); text-decoration: none; transition: color 0.25s var(--ease); }
+.fcontact a:hover { color: var(--accent-bright); }
+
 /* ---------- Page header ---------- */
 .book-hero { padding-top: clamp(48px, 8vw, 88px); }
 .book-hero h1 {
@@ -199,38 +213,46 @@
   gap: 14px;
   margin-top: 8px;
 }
+.contact-grid--six { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 940px) { .contact-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .contact-grid { grid-template-columns: 1fr; } }
-.contact-card { padding: 22px; display: flex; flex-direction: column; gap: 6px; }
+a.contact-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  transition: transform 0.35s var(--ease), border-color 0.35s var(--ease),
+    box-shadow 0.35s var(--ease), background 0.35s var(--ease);
+}
+a.contact-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(76, 125, 255, 0.4);
+  box-shadow: 0 0 40px -16px var(--accent-glow);
+}
+a.contact-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
 .contact-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
-.contact-desc { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; margin-bottom: 8px; flex: 1; }
+.contact-desc { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; margin-bottom: 10px; flex: 1; }
 .contact-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 12.5px;
   color: var(--accent-bright);
   word-break: break-all;
-  text-decoration: none;
   transition: color 0.25s var(--ease);
 }
-a.contact-email:hover { color: var(--ink); text-decoration: underline; }
-.contact-email.is-placeholder {
-  color: var(--ink-3);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.contact-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ink-4);
-  flex: none;
-}
-.contact-card.is-pending { border-style: dashed; }
+.contact-email-ic { display: inline-flex; flex: none; color: var(--accent); transition: color 0.25s var(--ease); }
+a.contact-card:hover .contact-email { color: var(--ink); }
+a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
 
 /* ---------- Lead form ---------- */
 .book-enquire {
