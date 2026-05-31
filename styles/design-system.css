@@ -168,12 +168,19 @@ p { margin: 0; }
 .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 11px; font-weight: 560; letter-spacing: -0.02em; font-size: 16px; }
 .brand .mark {
-  width: 26px; height: 26px; flex: none;
-  display: grid; place-items: center;
+  flex: none;
+  display: flex; align-items: center;
 }
 .brand-logo { height: 23px; width: auto; flex: none; display: block; }
-@media (max-width: 420px) { .brand .wordmark { display: none; } }
 .brand .tm { font-size: 9px; color: var(--ink-3); vertical-align: super; }
+/* Hide wordmark on mobile so logo and text never collide */
+@media (max-width: 500px) {
+  .brand-name { display: none; }
+  .brand .mark svg { height: 19px; width: 45.6px; }
+}
+@media (max-width: 360px) {
+  .brand .mark svg { height: 17px; width: 40.8px; }
+}
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-links a {
   position: relative;
