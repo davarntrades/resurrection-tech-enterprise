@@ -87,9 +87,10 @@ export function BookClient() {
               >
                 <div className="book-card-top">
                   <span className="book-dur">{s.duration}</span>
-                  {s.id === "enterprise" && <span className="book-flag">Enterprise</span>}
+                  {s.id === "strategy" && <span className="book-flag">Enterprise</span>}
                 </div>
                 <h3 className="book-card-title">{s.title}</h3>
+                <p className="book-desc">{s.description}</p>
                 <div className="book-aud">
                   <span className="book-aud-lab">{s.audienceLabel}</span>
                   <ul>

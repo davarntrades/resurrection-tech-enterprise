@@ -39,18 +39,26 @@ export function CalendlyButton({
     );
   }
 
-  function open() {
+  function onClick(e: React.MouseEvent<HTMLAnchorElement>) {
     track("calendly_open", { source });
-    if (typeof window !== "undefined" && window.Calendly?.initPopupWidget) {
+    // If the Calendly widget is loaded, open the in-page popup instead of
+    // navigating. Otherwise the anchor's default behaviour opens a new tab —
+    // so the link always works, with or without JS.
+    if (window.Calendly?.initPopupWidget) {
+      e.preventDefault();
       window.Calendly.initPopupWidget({ url });
-    } else if (typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
     }
   }
 
   return (
-    <button type="button" className={className} onClick={open}>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+      onClick={onClick}
+    >
       {label} <span className="arr" aria-hidden="true">→</span>
-    </button>
+    </a>
   );
 }

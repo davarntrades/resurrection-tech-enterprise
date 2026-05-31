@@ -5,6 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
+import { ConsultationSection } from "@/components/ConsultationSection";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
@@ -71,11 +72,11 @@ export function HomeClient() {
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
-                  href="/book#audit"
+                  href="/book#assessment"
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero" })}
                 >
-                  Book Audit Discussion <span className="arr">→</span>
+                  Book a Consultation <span className="arr">→</span>
                 </Link>
                 <Link href="/enterprise-pathways" className="btn btn--ghost">
                   View Enterprise Pathways
@@ -626,6 +627,15 @@ export function HomeClient() {
           </div>
         </section>
 
+        {/* ===== BOOK A CONSULTATION ===== */}
+        <ConsultationSection
+          eyebrow="Book a consultation"
+          heading="Schedule a call with Resurrection Tech."
+          blurb="Talk to us about runtime safety, AI governance, agent risk, and reachability-based control — from a 30-minute introduction to a 90-minute enterprise strategy session."
+        />
+
+        <hr className="divider" />
+
         {/* ===== FINAL CTA ===== */}
         <section className="section cta-final" id="contact" data-screen-label="Contact">
           <div className="wrap">
@@ -638,8 +648,8 @@ export function HomeClient() {
                 states must be identified before they execute.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
-                <Link href="/book#audit" className="btn btn--primary">Book Audit Discussion <span className="arr">→</span></Link>
-                <Link href="/book#enterprise" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
+                <Link href="/book#assessment" className="btn btn--primary">Book Safety Assessment <span className="arr">→</span></Link>
+                <Link href="/book#strategy" className="btn btn--ghost">Book Strategy Session</Link>
                 <Link href="/licensing" className="btn btn--ghost">View Licensing Framework</Link>
               </div>
             </div>

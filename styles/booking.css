@@ -113,6 +113,13 @@
   line-height: 1.2;
   margin: 0;
 }
+.book-desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+  flex: 1;
+}
 .book-aud { display: flex; flex-direction: column; gap: 10px; flex: 1; }
 .book-aud-lab {
   font-size: 12px;
