@@ -37,3 +37,7 @@ yarn-error.log*
 # editor
 .idea
 .vscode
+
+# git bundles
+*.bundle.git
+resurrection-tech-bundle.git
