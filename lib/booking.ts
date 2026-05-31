@@ -96,31 +96,33 @@ export interface ContactRoute {
 
 export const CONTACT_ROUTES: ContactRoute[] = [
   {
-    label: "General",
-    description: "Enquiries, briefings & media",
-    email: "hello@resurrectiontech.ai",
+    label: "General Contact",
+    description: "Enquiries & briefings",
+    email: "hello@resurrection-tech.com",
+  },
+  {
+    label: "Pilot Programmes",
+    description: "Enterprise pilots & deployments",
+    email: "pilots@resurrection-tech.com",
+  },
+  {
+    label: "Research & Publications",
+    description: "Research collaboration & academia",
+    email: "research@resurrection-tech.com",
   },
   {
     label: "Partnerships",
     description: "Strategic & commercial partnerships",
-    email: "partnerships@resurrectiontech.ai",
+    email: "partnerships@resurrection-tech.com",
   },
   {
-    label: "Pilots",
-    description: "Enterprise pilots & deployments",
-    email: "pilots@resurrectiontech.ai",
+    label: "Media & Press",
+    description: "Interviews & press enquiries",
+    email: "media@resurrection-tech.com",
   },
   {
-    label: "Research",
-    description: "Research collaboration & academia",
-    email: "research@resurrectiontech.ai",
+    label: "General Information",
+    description: "Anything else — we'll route it",
+    email: "info@resurrection-tech.com",
   },
 ];
-
-/**
- * Domain email is provisioned separately. Until it is live, addresses render
- * as non-actionable placeholders. Flip NEXT_PUBLIC_CONTACT_EMAILS_LIVE=true
- * once MX/sending is configured to enable mailto: links.
- */
-export const CONTACT_EMAILS_LIVE =
-  process.env.NEXT_PUBLIC_CONTACT_EMAILS_LIVE === "true";

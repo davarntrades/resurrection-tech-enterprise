@@ -16,6 +16,11 @@ export function Footer() {
             </span>
           </Link>
           <p className="fbrand">Safety as Geometry. Intelligence as Reachability.</p>
+          <div className="fcontact">
+            <span>{SITE.legalName}</span>
+            <a href={SITE.url}>{SITE.domain}</a>
+            <a href="mailto:hello@resurrection-tech.com">hello@resurrection-tech.com</a>
+          </div>
         </div>
         <div>
           <h4>Platform</h4>
@@ -31,6 +36,7 @@ export function Footer() {
           <Link href="/partners">Partners</Link>
           <Link href="/licensing">Licensing framework</Link>
           <Link href="/book">Book a meeting</Link>
+          <Link href="/contact">Contact</Link>
           <Link href="/request-audit">Request audit</Link>
         </div>
       </div>

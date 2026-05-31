@@ -25,7 +25,7 @@ Use the Supabase **Table editor** (`audit_requests`), or build an internal authe
 1. Create an account at [resend.com](https://resend.com) and **verify your sending domain** (DNS records).
 2. Create an API key → `RESEND_API_KEY`.
 3. Set:
-   - `EMAIL_FROM` — must use the verified domain, e.g. `Resurrection Tech <audit@resurrectiontech.ai>`
+   - `EMAIL_FROM` — must use the verified domain, e.g. `Resurrection Tech <hello@resurrection-tech.com>`
    - `AUDIT_NOTIFY_TO` — internal inbox for new-request notifications.
 
 Two emails are sent per submission: an internal notification (reply-to = prospect) and a prospect confirmation. If `RESEND_API_KEY` is unset, email is skipped gracefully and the submission still persists.

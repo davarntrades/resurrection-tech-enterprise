@@ -14,8 +14,8 @@ function getResend(): Resend | null {
   return new Resend(key);
 }
 
-const FROM = process.env.EMAIL_FROM ?? "Resurrection Tech <audit@resurrectiontech.ai>";
-const NOTIFY_TO = process.env.AUDIT_NOTIFY_TO ?? "audit@resurrectiontech.ai";
+const FROM = process.env.EMAIL_FROM ?? "Resurrection Tech <hello@resurrection-tech.com>";
+const NOTIFY_TO = process.env.AUDIT_NOTIFY_TO ?? "hello@resurrection-tech.com";
 const LEAD_NOTIFY_TO = process.env.LEAD_NOTIFY_TO ?? NOTIFY_TO;
 
 const shell = (inner: string) => `

@@ -3,8 +3,8 @@
 export const SITE = {
   name: "Resurrection Tech™",
   legalName: "Resurrection Tech Ltd",
-  domain: "resurrectiontech.ai",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrectiontech.ai",
+  domain: "resurrection-tech.com",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com",
   tagline: "Runtime Governance for Autonomous Systems",
   description:
     "Resurrection Tech identifies, constrains, embeds, and monitors runtime governance boundaries for autonomous systems — preventing catastrophic reachable states before execution.",
@@ -24,9 +24,9 @@ export const NAV_LINKS = [
   { href: "/#reachability", label: "Reachability" },
   { href: "/enterprise-pathways", label: "Pathways" },
   { href: "/#engagement", label: "Engagement" },
-  { href: "/#domains", label: "Domains" },
   { href: "/licensing", label: "Licensing" },
   { href: "/partners", label: "Partners" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 export const CALENDLY = {
