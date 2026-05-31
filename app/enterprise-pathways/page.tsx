@@ -9,6 +9,61 @@ export const metadata: Metadata = {
   alternates: { canonical: "/enterprise-pathways" },
 };
 
+const Cross = () => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path d="M3 3 L11 11 M11 3 L3 11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+);
+const Check = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M3 8.5 L6.5 12 L13 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+type Verdict = {
+  id: string;
+  request: string;
+  state: "blocked" | "allowed";
+  verdict: string;
+  reason: string;
+  layer: string;
+};
+
+const VERDICTS: Verdict[] = [
+  {
+    id: "001",
+    request: "Transfer £25,000 to external account",
+    state: "blocked",
+    verdict: "BLOCKED",
+    reason: "Reachable trajectory intersects Ω",
+    layer: "V3 Reachability Projection",
+  },
+  {
+    id: "002",
+    request: "Export customer database",
+    state: "blocked",
+    verdict: "BLOCKED",
+    reason: "Data-exfiltration path reaches forbidden state",
+    layer: "V5 Runtime Governance",
+  },
+  {
+    id: "003",
+    request: "Generate monthly compliance report",
+    state: "allowed",
+    verdict: "ALLOWED",
+    reason: "Trajectory remains within admissible set",
+    layer: "A_safe",
+  },
+  {
+    id: "004",
+    request: "Read internal policy document",
+    state: "allowed",
+    verdict: "ALLOWED",
+    reason: "No reachable path to Ω detected",
+    layer: "A_safe",
+  },
+];
+
 const PATHWAYS = [
   ["48-Hour Runtime Governance Audit", "Catastrophic trajectory exposure assessment", "48 hours", "£40K–£75K"],
   ["Structural Safety Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
@@ -94,6 +149,73 @@ export default function Page() {
           <div className="hero-actions reveal" style={{ marginTop: 44 }}>
             <Link href="/book#audit" className="btn btn--primary">Book Audit Discussion <span className="arr">→</span></Link>
             <Link href="/book#enterprise" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== RUNTIME GOVERNANCE IN ACTION (operational console) ===== */}
+      <section className="section section--tight" id="governance-in-action" data-screen-label="Governance in action">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="rgc-status"><span className="d" aria-hidden="true" /> Morrison Runtime Governance · live evaluation</span>
+            <span className="eyebrow">Runtime governance in action</span>
+            <h2>See the decision before the action.</h2>
+            <p>
+              The governance layer evaluates executable trajectories before tool execution.
+              Unsafe futures are blocked before they occur. Safe workflows continue uninterrupted.
+            </p>
+          </div>
+
+          <div className="rgc-grid">
+            {VERDICTS.map((v) => (
+              <div className={`rgc-card ${v.state}`} key={v.id}>
+                <div className="rgc-top">
+                  <span className="rgc-dot" aria-hidden="true" />
+                  <span className="rgc-tt">Runtime verdict</span>
+                  <span className="rgc-id">#{v.id}</span>
+                </div>
+                <div className="rgc-body">
+                  <div className="rgc-line reveal" data-d="1">
+                    <span className="rgc-k">Request</span>
+                    <span className="rgc-v">{v.request}</span>
+                  </div>
+                  <div className="rgc-line reveal" data-d="2">
+                    <span className="rgc-k">Verdict</span>
+                    <span className="rgc-verdict">
+                      {v.state === "blocked" ? <Cross /> : <Check />} {v.verdict}
+                    </span>
+                  </div>
+                  <div className="rgc-line reveal" data-d="3">
+                    <span className="rgc-k">Reason</span>
+                    <span className="rgc-v">{v.reason}</span>
+                  </div>
+                  <div className="rgc-line reveal" data-d="4">
+                    <span className="rgc-k">Layer</span>
+                    <span className="rgc-layer">{v.layer}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rgc-result reveal">
+            <div>
+              <div className="rgc-result-k">Result</div>
+              <ul className="rgc-rows">
+                {[
+                  "Safe workflows continue",
+                  "Unsafe trajectories intercepted",
+                  "Governance occurs before execution",
+                ].map((r) => (
+                  <li key={r}><span className="ck"><Check /></span>{r}</li>
+                ))}
+                <li><span className="ck"><Check /></span>Objective maintained</li>
+              </ul>
+            </div>
+            <div className="rgc-eq" aria-label="R of t intersect Omega equals the empty set">
+              <span className="lab">Invariant</span>
+              ℛ(t) ∩ <b>Ω</b> = ∅
+            </div>
           </div>
         </div>
       </section>
