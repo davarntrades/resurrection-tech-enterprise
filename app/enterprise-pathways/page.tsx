@@ -77,7 +77,8 @@ export default function Page() {
             </div>
           </div>
           <div className="hero-actions reveal" style={{ marginTop: 44 }}>
-            <Link href="/request-audit" className="btn btn--primary">Request 48-Hour Audit <span className="arr">→</span></Link>
+            <Link href="/book#audit" className="btn btn--primary">Book Audit Discussion <span className="arr">→</span></Link>
+            <Link href="/book#enterprise" className="btn btn--ghost">Discuss Enterprise Pilot</Link>
           </div>
         </div>
       </section>

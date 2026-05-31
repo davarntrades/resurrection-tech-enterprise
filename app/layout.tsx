@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
 import { Analytics } from "@/components/Analytics";
+import { StickyBookBar } from "@/components/StickyBookBar";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <StickyBookBar />
         <Analytics />
       </body>
     </html>

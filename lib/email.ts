@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { AuditRequestInput } from "./validation";
+import type { LeadInput } from "./leadValidation";
 
 /**
  * Transactional email via Resend.
@@ -15,6 +16,7 @@ function getResend(): Resend | null {
 
 const FROM = process.env.EMAIL_FROM ?? "Resurrection Tech <audit@resurrectiontech.ai>";
 const NOTIFY_TO = process.env.AUDIT_NOTIFY_TO ?? "audit@resurrectiontech.ai";
+const LEAD_NOTIFY_TO = process.env.LEAD_NOTIFY_TO ?? NOTIFY_TO;
 
 const shell = (inner: string) => `
   <div style="background:#08090b;padding:32px;font-family:'Geist Mono',ui-monospace,monospace;color:#aab2bd">
@@ -97,4 +99,44 @@ export async function sendAuditEmails(data: AuditRequestInput, reference: string
     internal: internalRes.status,
     confirm: confirmRes.status,
   };
+}
+
+/**
+ * Notify the team of a new enterprise lead. Skipped gracefully when
+ * RESEND_API_KEY is unset, so the submission still succeeds.
+ */
+export async function sendLeadEmail(data: LeadInput, reference: string) {
+  const resend = getResend();
+  if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
+
+  const stamp = new Date().toUTCString();
+  const internal = shell(`
+    <div style="color:#6f97ff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px">New enterprise lead &middot; ${reference}</div>
+    <table style="width:100%;border-collapse:collapse">
+      ${row("Name", data.name)}
+      ${row("Organisation", data.organisation ?? "")}
+      ${row("Email", data.email)}
+      ${row("Role", data.role ?? "")}
+      ${row("Use case", data.use_case ?? "")}
+      ${row("Source", data.source ?? "")}
+      ${row("Submitted", stamp)}
+    </table>
+    ${
+      data.message
+        ? `<div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+             <div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Message</div>
+             <p style="font-size:14px;line-height:1.6;color:#f3f5f7;margin:0;white-space:pre-wrap">${data.message}</p>
+           </div>`
+        : ""
+    }`);
+
+  const res = await resend.emails.send({
+    from: FROM,
+    to: LEAD_NOTIFY_TO,
+    subject: `New Lead — ${data.name}${data.organisation ? ` · ${data.organisation}` : ""} (${reference})`,
+    html: internal,
+    replyTo: data.email,
+  });
+
+  return { sent: !res.error, id: res.data?.id };
 }

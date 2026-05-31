@@ -41,11 +41,11 @@ export function Nav() {
             Enterprise Pathways
           </Link>
           <Link
-            href="/request-audit"
+            href="/book"
             className="btn btn--primary btn--sm"
             onClick={() => track(Events.CTA_CLICK, { location: "nav" })}
           >
-            Request Audit <span className="arr">→</span>
+            Book Meeting <span className="arr">→</span>
           </Link>
         </div>
       </div>

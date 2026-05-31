@@ -31,3 +31,10 @@ export interface AuditSubmitResponse {
   error?: string;
   fieldErrors?: Record<string, string>;
 }
+
+export interface LeadSubmitResponse {
+  ok: boolean;
+  reference?: string;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
