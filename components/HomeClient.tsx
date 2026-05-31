@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
+import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
@@ -365,11 +365,12 @@ export function HomeClient() {
               <span className="eyebrow">Interactive demo</span>
               <h2>See governance intercept in real time.</h2>
               <p>
-                Select a trajectory below. Runtime Governance evaluates each transition
-                before execution — safe paths proceed, Ω-bound paths are blocked pre-action.
+                Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed
+                trajectory before execution — safe paths flow through to execution, while
+                Ω-bound paths are intercepted at the governance layer, pre-action.
               </p>
             </div>
-            <GovernanceDemo />
+            <RuntimeGovernanceDemo />
           </div>
         </section>
 
@@ -663,78 +664,6 @@ function TrustBar() {
           <span className="tb-sep" aria-hidden="true" />
           <span className="tb-item"><span className="tb-dot" aria-hidden="true" />Cross-Model Validated</span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function GovernanceDemo() {
-  const [mode, setMode] = useState<"idle" | "safe" | "unsafe">("idle");
-  const [phase, setPhase] = useState(0);
-
-  function run(m: "safe" | "unsafe") {
-    setMode("idle");
-    setPhase(0);
-    setTimeout(() => {
-      setMode(m);
-      setPhase(1);
-      setTimeout(() => setPhase(2), 700);
-      setTimeout(() => setPhase(3), 1400);
-    }, 60);
-  }
-
-  const blocked = mode === "unsafe" && phase >= 2;
-  const reached = mode === "safe" && phase >= 3;
-
-  return (
-    <div className="gdemo reveal">
-      <div className="gdemo-graph" role="img" aria-label="Trajectory evaluation diagram">
-        <div className={`gdemo-start${phase >= 1 ? " active" : ""}`}>
-          <span className="gn-label">Start state</span>
-        </div>
-        <div className="gdemo-connector" aria-hidden="true" />
-        <div className="gdemo-paths">
-          <div className="gdemo-path">
-            <div className={`gdemo-edge${mode === "safe" && phase >= 2 ? " lit-safe" : ""}`} aria-hidden="true" />
-            <div className={`gdemo-dest gdemo-dest--safe${reached ? " reached" : ""}`}>
-              <span className="gn-icon" aria-hidden="true">{reached ? "✓" : "→"}</span>
-              <span className="gn-label">Safe destination</span>
-              <span className="gn-sub">Execution proceeds</span>
-            </div>
-          </div>
-          <div className="gdemo-path">
-            <div className={`gdemo-edge${mode === "unsafe" && phase >= 2 ? " lit-unsafe" : ""}`} aria-hidden="true" />
-            <div className={`gdemo-dest gdemo-dest--omega${blocked ? " blocked" : ""}`}>
-              <span className="gn-icon" aria-hidden="true">{blocked ? "⛔" : "Ω"}</span>
-              <span className="gn-label">{blocked ? "Blocked" : "Forbidden region"}</span>
-              <span className="gn-sub">{blocked ? "Pre-execution intercept" : "Ω-bound trajectory"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="gdemo-status" aria-live="polite" aria-atomic="true">
-        {mode === "idle" && <span className="gds-idle">Select a trajectory below to see runtime governance in action.</span>}
-        {mode !== "idle" && phase < 2 && <span className="gds-eval">↻ Evaluating trajectory...</span>}
-        {reached && <span className="gds-safe">✓ No Ω-bound states on trajectory. Execution allowed.</span>}
-        {blocked && <span className="gds-blocked">⛔ Ω-bound state detected on trajectory. Execution blocked pre-action.</span>}
-      </div>
-      <div className="gdemo-controls">
-        <button
-          className="btn btn--ghost btn--sm"
-          onClick={() => run("safe")}
-          type="button"
-          aria-label="Simulate a safe trajectory"
-        >
-          Simulate safe trajectory
-        </button>
-        <button
-          className="btn btn--omega btn--sm"
-          onClick={() => run("unsafe")}
-          type="button"
-          aria-label="Simulate an Omega-bound unsafe trajectory"
-        >
-          Simulate Ω-bound trajectory
-        </button>
       </div>
     </div>
   );

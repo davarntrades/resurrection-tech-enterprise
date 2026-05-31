@@ -10,6 +10,7 @@
 @import "./upgrade.css";
 @import "./audit.css";
 @import "./audit-upgrade.css";
+@import "./runtime-governance.css";
 
 @tailwind components;
 @tailwind utilities;
