@@ -303,7 +303,7 @@ export function HomeClient() {
                   ["STAGE 01", "Audit", "Identify reachable Ω exposure before deployment.", "// 48-hour catastrophic trajectory exposure assessment. Entry point, not deliverable."],
                   ["STAGE 02", "Pilot", "Validate runtime constraints under realistic operational conditions.", "// Staging deployment. Validation, not theatre."],
                   ["STAGE 03", "Integration", "Embed runtime governance into the client environment.", "// Operational embedment, not a slide deck."],
-                  ["STAGE 04", "Retainer", "Maintain Ω evolution, threat-surface monitoring, incident review, and model/planner revalidation.", "// Ongoing assurance, not a renewal fee."],
+                  ["STAGE 04", "Retainer", "Ongoing Ω governance, threat-surface monitoring, incident review, and model/planner revalidation — keeping forbidden states aligned as systems, tools, models, and regulations change.", "// Ongoing assurance, not a renewal fee."],
                 ].map(([idx, h, p, more], i, arr) => (
                   <Section key={h as string} idx={idx as string} h={h as string} p={p as string} more={more as string} last={i === arr.length - 1} />
                 ))}
@@ -505,7 +505,7 @@ export function HomeClient() {
                 exposure is identified, the next step is typically a <b>Structural Safety Pilot</b>.
                 Successful pilots transition into deployment and operational <b>integration</b>.
                 After deployment, governance remains an ongoing process — <b>retainer</b> engagements
-                provide continuous revalidation, Ω evolution, threat-surface monitoring, and
+                provide continuous revalidation, Ω governance, threat-surface monitoring, and
                 operational assurance as systems, models, and environments change.
               </p>
             </div>

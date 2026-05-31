@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const PATHWAYS = [
   ["48-Hour Runtime Governance Audit", "Catastrophic trajectory exposure assessment", "48 hours", "£40K–£75K"],
   ["Structural Safety Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
-  ["Advisory Retainer", "Ongoing Ω evolution, threat-surface monitoring, incident review & model/planner revalidation", "Monthly", "£35K–£100K/mo"],
+  ["Advisory Retainer", "Ongoing Ω governance, threat-surface monitoring, runtime governance maintenance, incident review & model/planner revalidation", "Monthly", "£35K–£100K/mo"],
 ];
 
 export default function Page() {
@@ -41,6 +41,21 @@ export default function Page() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="retainer-note reveal" data-d="1">
+            <span className="rn-k">Why the retainer exists — Ω is not static</span>
+            <p className="rn-eq"><b>ℛ(t) ∩ Ω = ∅</b></p>
+            <p className="rn-t">
+              The objective remains unchanged. But Ω must remain aligned with the
+              client&rsquo;s evolving environment — as systems, tools, models,
+              regulations, and attack surfaces change. <b>Ω governance</b> is the
+              continuous work of reviewing and updating the definition of forbidden
+              states, validating that runtime constraints still reflect operational
+              reality, and ensuring no new reachable trajectories have emerged through
+              system updates, new tools, model changes, workflow changes, or regulatory
+              requirements.
+            </p>
           </div>
         </div>
       </section>
