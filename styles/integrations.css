@@ -32,6 +32,79 @@
 .ig-banner-strong { margin: 0; font-size: clamp(16px, 2.4vw, 20px); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .ig-banner-sub { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 
+/* ── Brand legend (ℛ(t) = Morrison RG checkpoint) ── */
+.ig-brandlegend {
+  display: flex; align-items: center; gap: 14px;
+  margin: 0 0 26px; padding: 14px 18px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel);
+}
+.ig-brandlegend .ig-bl-mark { color: var(--ink); flex: none; display: inline-flex; }
+.ig-brandlegend span:last-child { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.ig-brandlegend b { color: var(--ink); font-weight: 600; }
+
+/* ── Business Impact card ── */
+.ig-impact {
+  margin-top: 22px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(63,178,127,0.06), transparent 45%), var(--panel);
+  overflow: hidden;
+}
+.ig-impact-h {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 20px; border-bottom: 1px solid var(--line); background: var(--bg);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2);
+}
+.ig-impact-tag { font-size: 10px; letter-spacing: 0.08em; color: var(--ink-4); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; }
+.ig-impact-grid { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .ig-impact-grid { grid-template-columns: 1fr; } }
+.ig-impact-cell { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.ig-impact-cell:nth-child(odd) { border-right: 1px solid var(--line); }
+@media (max-width: 640px) { .ig-impact-cell:nth-child(odd) { border-right: 0; } }
+.ig-impact-k {
+  display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ok); margin-bottom: 6px;
+}
+.ig-impact-v { display: block; font-size: 14px; line-height: 1.45; color: var(--ink); }
+
+/* ── Generic governance dashboard mockup ── */
+.ig-dash {
+  margin: 8px 0 18px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+  max-width: 760px;
+}
+.ig-dash-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px; border-bottom: 1px solid var(--line); background: var(--bg);
+}
+.ig-dash-dots { display: inline-flex; gap: 6px; }
+.ig-dash-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
+.ig-dash-title { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; color: var(--ink-2); }
+.ig-dash-rt { margin-left: auto; color: var(--ink-3); display: inline-flex; opacity: 0.8; }
+.ig-dash-body { padding: 16px; display: grid; gap: 14px; }
+.ig-dash-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ig-dash-tile { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); padding: 13px 14px; }
+.ig-dash-tile .v { display: block; font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink); line-height: 1; }
+.ig-dash-tile .l { display: block; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.ig-dash-tile.danger .v { color: var(--omega); }
+.ig-dash-feed { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); overflow: hidden; }
+.ig-dash-feed-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.ig-dash-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  font-family: var(--mono); font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--line);
+}
+.ig-dash-row:last-child { border-bottom: 0; }
+.ig-dash-row .d { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.ig-dash-row .m { font-weight: 400; letter-spacing: 0; color: var(--ink-3); margin-left: auto; font-size: 11.5px; }
+.ig-dash-row.block { color: var(--omega); } .ig-dash-row.block .d { background: var(--omega); }
+.ig-dash-row.escalate { color: #e0a93f; } .ig-dash-row.escalate .d { background: #e0a93f; }
+.ig-dash-row.allow { color: var(--ok); } .ig-dash-row.allow .d { background: var(--ok); }
+.ig-dash-cap { font-size: 11px; color: var(--ink-4); padding: 0 16px 14px; line-height: 1.4; }
+
 /* ── SVG workflow diagrams ── */
 .ig-svg-wrap {
   overflow-x: auto;
