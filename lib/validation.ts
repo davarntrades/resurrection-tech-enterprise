@@ -36,3 +36,25 @@ export const auditRequestSchema = z.object({
 });
 
 export type AuditRequestInput = z.infer<typeof auditRequestSchema>;
+
+/**
+ * Validation for the public "Test a Trajectory" demo.
+ * A trajectory is a short sequence of proposed tool calls. We bound the count
+ * and field sizes to prevent abuse. Tool calls are NEVER executed — only the
+ * JSON shape is evaluated.
+ */
+export const MAX_TRAJECTORY_STEPS = 25;
+
+export const toolCallSchema = z.object({
+  tool: z.string().trim().min(1, "Each step needs a tool name").max(80),
+  args: z.record(z.unknown()).optional(),
+});
+
+export const trajectoryRequestSchema = z.object({
+  trajectory: z
+    .array(toolCallSchema)
+    .min(1, "Provide at least one tool-call step")
+    .max(MAX_TRAJECTORY_STEPS, `Trajectory is limited to ${MAX_TRAJECTORY_STEPS} steps in this demo`),
+});
+
+export type TrajectoryRequestInput = z.infer<typeof trajectoryRequestSchema>;
