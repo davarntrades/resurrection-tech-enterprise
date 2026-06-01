@@ -101,21 +101,20 @@ export function FinancialComparison() {
           <span className="eyebrow">Risk comparison</span>
           <h2>The financial asymmetry of one unsafe execution.</h2>
           <p>
-            Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
-            priced against the cost of <span className="om">Ω</span> becoming reachable — not the
-            complexity of the software.
+            Governance cost is bounded. Catastrophic exposure is not. The figures below weigh
+            the cost of a Runtime Governance engagement against the documented cost of{" "}
+            <span className="om">Ω</span> becoming reachable.
           </p>
         </div>
 
-        {/* 1 — Risk-multiplier chips */}
+        {/* 1 — Risk-multiplier chips (multiplier leads the eye) */}
         <div className="fc-mults reveal" aria-label="Exposure multiples versus a £75K audit baseline">
           {MULTIPLIERS.map((m) => (
             <div className="fc-mult-card" key={m.event}>
-              <div className="fc-mult-sector">{m.sector}</div>
               <div className="fc-mult-num">
                 <Counter to={m.to} format={mult} />
               </div>
-              <div className="fc-mult-cap">exposure multiple</div>
+              <div className="fc-mult-cap">exposure multiple · {m.sector}</div>
               <div className="fc-mult-vs">
                 <span className="gov">£75K audit</span>
                 <span className="fc-mult-arrow" aria-hidden="true">vs</span>
@@ -133,31 +132,44 @@ export function FinancialComparison() {
           </div>
           <div className="fc-exec-rows">
             <div className="fc-exec-row">
-              <span className="fc-exec-k">Audit cost</span>
+              <span className="fc-exec-k">Audit Cost</span>
               <span className="fc-exec-v gov">£75,000</span>
             </div>
             <div className="fc-exec-row">
-              <span className="fc-exec-k">Largest documented loss</span>
+              <span className="fc-exec-k">Reachable Financial Exposure</span>
               <span className="fc-exec-v risk">£2,000,000,000+</span>
             </div>
             <div className="fc-exec-row">
-              <span className="fc-exec-k">Cost ratio</span>
+              <span className="fc-exec-k">Risk Multiple</span>
               <span className="fc-exec-v risk fc-exec-ratio">
                 <Counter to={26666} format={mult} />
               </span>
             </div>
             <div className="fc-exec-row">
-              <span className="fc-exec-k">Potential outcome</span>
-              <span className="fc-exec-v">Prevented before execution</span>
+              <span className="fc-exec-k">Potential Outcome</span>
+              <span className="fc-exec-v">Prevented Before Execution</span>
             </div>
             <div className="fc-exec-row">
               <span className="fc-exec-k">Status</span>
               <span className="fc-exec-status">Structurally governed</span>
             </div>
           </div>
+          <div className="fc-exec-roi">
+            <span className="fc-exec-roi-k">ROI Framing</span>
+            <p className="fc-exec-roi-v">
+              If one catastrophic execution is prevented, governance pays for itself many
+              times over — eliminating exposure thousands of times larger than deployment cost.
+            </p>
+          </div>
         </div>
 
-        {/* 3 — Bar chart */}
+        {/* 3 — Anchor pull-quote */}
+        <blockquote className="fc-quote reveal">
+          We do not price according to software complexity. We price according to the cost of{" "}
+          <span className="om">Ω</span> becoming reachable.
+        </blockquote>
+
+        {/* 4 — Bar chart */}
         <div className="fc-chart reveal" role="img" aria-label="Logarithmic comparison of governance investment versus illustrative catastrophic exposure">
           <div className="fc-legend" aria-hidden="true">
             <span className="fc-leg"><span className="fc-swatch gov" /> Governance investment</span>
@@ -183,7 +195,7 @@ export function FinancialComparison() {
           </ul>
         </div>
 
-        {/* 4 — Exposure table */}
+        {/* 5 — Exposure table */}
         <div className="tbl-wrap reveal" data-rowreveal>
           <table className="tbl fc-table">
             <thead>
@@ -207,13 +219,13 @@ export function FinancialComparison() {
           £75K audit baseline.
         </p>
 
-        {/* 5 — Conversion CTA */}
+        {/* 6 — Conversion CTA */}
         <div className="fc-cta reveal">
           <div className="fc-cta-body">
             <h3 className="fc-cta-h">One prevented event can pay for years of governance.</h3>
             <p className="fc-cta-sub">
-              Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
-              reachable — not the complexity of the software.
+              The audit identifies which catastrophic states are reachable in your system today —
+              and moves <span className="om">Ω</span> out of reach before it executes.
             </p>
           </div>
           <Link href="/book#assessment" className="btn btn--primary fc-cta-btn">
