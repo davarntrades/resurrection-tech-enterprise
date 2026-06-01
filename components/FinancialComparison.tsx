@@ -1,23 +1,69 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import Link from "next/link";
+import { animate, motion, useInView, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Board-level financial exposure comparison. Horizontal bars on a logarithmic
- * scale so governance investment and catastrophic exposure are visible on one
- * axis. Governance items render in the brand accent; catastrophic exposures in
- * the Ω/omega tone. Bars animate from zero on scroll-in (reduced-motion safe).
+ * Board-level financial exposure dashboard for the ROI argument.
  *
- * All figures are illustrative risk-comparison figures — not guaranteed savings.
+ * Reads top-to-bottom as an executive decision arc:
+ *   1. Risk-multiplier chips — the financial asymmetry, as animated counters.
+ *   2. Executive decision dashboard — Bloomberg/Palantir-style verdict card.
+ *   3. Log-scale bar chart — governance investment vs catastrophic exposure.
+ *   4. Exposure table — scenario / exposure / comparison.
+ *   5. Conversion CTA — the natural conclusion of the argument.
+ *
+ * Governance items render in the brand accent; catastrophic exposure in the
+ * Ω/omega tone. All figures are illustrative risk-comparison figures — not
+ * guaranteed savings. Counters and bars animate from zero on scroll-in and
+ * are disabled under prefers-reduced-motion.
  */
 
-type Row = {
-  label: string;
-  display: string;
-  value: number;
-  kind: "gov" | "risk";
-};
+/* ---------- animated count-up ---------- */
+function Counter({
+  to,
+  format,
+  duration = 1.6,
+}: {
+  to: number;
+  format: (n: number) => string;
+  duration?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const reduce = useReducedMotion();
+  const [val, setVal] = useState(0);
 
+  useEffect(() => {
+    if (reduce) {
+      setVal(to);
+      return;
+    }
+    if (!inView) return;
+    const controls = animate(0, to, {
+      duration,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setVal(v),
+    });
+    return () => controls.stop();
+  }, [inView, reduce, to, duration]);
+
+  return <span ref={ref}>{format(val)}</span>;
+}
+
+const mult = (n: number) => `${Math.round(n).toLocaleString("en-GB")}×`;
+
+/* ---------- data ---------- */
+type Mult = { event: string; eventValue: string; to: number; sector: string };
+const MULTIPLIERS: Mult[] = [
+  { sector: "Healthcare", event: "PHI breach", eventValue: "£7.7M", to: 103 },
+  { sector: "Cybersecurity", event: "Credential breach", eventValue: "£10.22M", to: 136 },
+  { sector: "Data privacy", event: "GDPR fine", eventValue: "£530M", to: 7067 },
+  { sector: "Finance", event: "Funds transfer", eventValue: "£2B+", to: 26666 },
+];
+
+type Row = { label: string; display: string; value: number; kind: "gov" | "risk" };
 const ROWS: Row[] = [
   { label: "48-Hour Runtime Governance Audit", display: "£75K", value: 75_000, kind: "gov" },
   { label: "Annual Retainer", display: "£1.2M", value: 1_200_000, kind: "gov" },
@@ -39,10 +85,10 @@ function widthPct(value: number) {
 const EXPOSURE_TABLE: [string, string, string, "gov" | "risk"][] = [
   ["48-Hour Audit", "£40K–£75K", "Entry assessment", "gov"],
   ["Annual Retainer", "£420K–£1.2M/yr", "Continuous assurance", "gov"],
-  ["Healthcare breach", "£7.7M", "~100× audit cost", "risk"],
+  ["Healthcare breach", "£7.7M", "~103× audit cost", "risk"],
   ["Credential exposure", "£10.22M", "~136× audit cost", "risk"],
-  ["GDPR fine", "£530M", "~7,000× audit cost", "risk"],
-  ["Major funds transfer", "£2B+", "~26,000× audit cost", "risk"],
+  ["GDPR fine", "£530M", "~7,067× audit cost", "risk"],
+  ["Major funds transfer", "£2B+", "~26,666× audit cost", "risk"],
 ];
 
 export function FinancialComparison() {
@@ -53,16 +99,65 @@ export function FinancialComparison() {
       <div className="wrap">
         <div className="section-head reveal">
           <span className="eyebrow">Risk comparison</span>
-          <h2>One prevented event can pay for years of governance.</h2>
+          <h2>The financial asymmetry of one unsafe execution.</h2>
           <p>
-            The question is not whether governance costs money. The question is whether
-            catastrophic states remain reachable. Runtime Governance is priced against the
-            cost of <span className="om">Ω</span> becoming reachable — not the complexity of
-            the software.
+            Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
+            priced against the cost of <span className="om">Ω</span> becoming reachable — not the
+            complexity of the software.
           </p>
         </div>
 
-        {/* Bar chart */}
+        {/* 1 — Risk-multiplier chips */}
+        <div className="fc-mults reveal" aria-label="Exposure multiples versus a £75K audit baseline">
+          {MULTIPLIERS.map((m) => (
+            <div className="fc-mult-card" key={m.event}>
+              <div className="fc-mult-sector">{m.sector}</div>
+              <div className="fc-mult-num">
+                <Counter to={m.to} format={mult} />
+              </div>
+              <div className="fc-mult-cap">exposure multiple</div>
+              <div className="fc-mult-vs">
+                <span className="gov">£75K audit</span>
+                <span className="fc-mult-arrow" aria-hidden="true">vs</span>
+                <span className="risk">{m.eventValue} {m.event}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 2 — Executive decision dashboard */}
+        <div className="fc-exec reveal" role="group" aria-label="Risk exposure summary">
+          <div className="fc-exec-head">
+            <span className="fc-exec-title">Risk Exposure Summary</span>
+            <span className="fc-exec-live"><span className="fc-exec-dot" aria-hidden="true" />Runtime governed</span>
+          </div>
+          <div className="fc-exec-rows">
+            <div className="fc-exec-row">
+              <span className="fc-exec-k">Audit cost</span>
+              <span className="fc-exec-v gov">£75,000</span>
+            </div>
+            <div className="fc-exec-row">
+              <span className="fc-exec-k">Largest documented loss</span>
+              <span className="fc-exec-v risk">£2,000,000,000+</span>
+            </div>
+            <div className="fc-exec-row">
+              <span className="fc-exec-k">Cost ratio</span>
+              <span className="fc-exec-v risk fc-exec-ratio">
+                <Counter to={26666} format={mult} />
+              </span>
+            </div>
+            <div className="fc-exec-row">
+              <span className="fc-exec-k">Potential outcome</span>
+              <span className="fc-exec-v">Prevented before execution</span>
+            </div>
+            <div className="fc-exec-row">
+              <span className="fc-exec-k">Status</span>
+              <span className="fc-exec-status">Structurally governed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3 — Bar chart */}
         <div className="fc-chart reveal" role="img" aria-label="Logarithmic comparison of governance investment versus illustrative catastrophic exposure">
           <div className="fc-legend" aria-hidden="true">
             <span className="fc-leg"><span className="fc-swatch gov" /> Governance investment</span>
@@ -88,7 +183,7 @@ export function FinancialComparison() {
           </ul>
         </div>
 
-        {/* Exposure table */}
+        {/* 4 — Exposure table */}
         <div className="tbl-wrap reveal" data-rowreveal>
           <table className="tbl fc-table">
             <thead>
@@ -99,7 +194,7 @@ export function FinancialComparison() {
                 <tr key={scenario}>
                   <td data-l="Scenario" className="t-main">{scenario}</td>
                   <td data-l="Potential exposure" className={kind === "risk" ? "t-cost" : "t-price"}>{exposure}</td>
-                  <td data-l="Governance comparison" className={kind === "risk" ? "fc-mult" : "fc-gov"}>{compare}</td>
+                  <td data-l="Governance comparison" className={kind === "risk" ? "fc-mult-cell" : "fc-gov-cell"}>{compare}</td>
                 </tr>
               ))}
             </tbody>
@@ -109,8 +204,22 @@ export function FinancialComparison() {
         <p className="fc-foot reveal">
           Illustrative risk-comparison figures — not guaranteed savings. Exposure values
           reference documented industry incidents and regulatory maxima; comparisons use a
-          £75K audit baseline. One prevented event can justify years of governance.
+          £75K audit baseline.
         </p>
+
+        {/* 5 — Conversion CTA */}
+        <div className="fc-cta reveal">
+          <div className="fc-cta-body">
+            <h3 className="fc-cta-h">One prevented event can pay for years of governance.</h3>
+            <p className="fc-cta-sub">
+              Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
+              reachable — not the complexity of the software.
+            </p>
+          </div>
+          <Link href="/book#assessment" className="btn btn--primary fc-cta-btn">
+            Book Runtime Safety Assessment <span className="arr">→</span>
+          </Link>
+        </div>
       </div>
     </section>
   );
