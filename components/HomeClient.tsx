@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 import { ConsultationSection } from "@/components/ConsultationSection";
+import { FinancialComparison } from "@/components/FinancialComparison";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
@@ -229,6 +230,81 @@ export function HomeClient() {
             </div>
           </div>
         </section>
+
+        <hr className="divider" />
+
+        {/* ===== ROI — COST OF ONE UNSAFE EXECUTION ===== */}
+        <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Return on governance</span>
+              <h2>The Cost of One Unsafe Execution</h2>
+            </div>
+            <p className="roi-lede reveal">
+              Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
+              reachable — not the complexity of the software. <b>One prevented catastrophic execution
+              event exceeds the cost of deployment.</b>
+            </p>
+
+            <div className="tbl-wrap reveal" data-rowreveal>
+              <table className="tbl">
+                <thead>
+                  <tr><th>Sector</th><th>Incident type</th><th>Documented cost</th></tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Banking / Finance", "Unauthorised wire transfer", "$2B+ single historical losses"],
+                    ["Healthcare", "PHI exposure", "$9.77M average per breach (IBM 2024)"],
+                    ["Cybersecurity", "Credential exfiltration", "$10.22M average per breach (IBM 2024)"],
+                    ["Data Privacy", "GDPR automated processing violation", "€290M–€530M single regulatory fines"],
+                    ["Enterprise", "Unauthorised data access", "$4.88M global average (IBM 2024)"],
+                  ].map(([sector, incident, cost]) => (
+                    <tr key={sector}>
+                      <td data-l="Sector" className="t-main">{sector}</td>
+                      <td data-l="Incident type">{incident}</td>
+                      <td data-l="Documented cost" className="t-cost">{cost}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="callout roi-multi reveal">
+              <div>
+                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
+                <p>
+                  A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
+                  any human intervenes. Runtime Governance evaluates every trajectory at every execution
+                  boundary — not just the first agent, not just the final output.
+                </p>
+              </div>
+              <div className="roi-verds">
+                <div className="roi-verd">
+                  <span className="vdot" aria-hidden="true" />
+                  <span className="vk">Multi-agent evaluations</span>
+                  <span className="vv">16/16 passed</span>
+                </div>
+                <div className="roi-verd">
+                  <span className="vdot" aria-hidden="true" />
+                  <span className="vk">Collusion detection</span>
+                  <span className="vv">Verified</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="roi-close reveal">
+              The audit identifies which catastrophic states are currently reachable in your system —
+              before they become a business event.
+            </p>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
+        {/* ===== FINANCIAL RISK COMPARISON ===== */}
+        <FinancialComparison />
+
+        <hr className="divider" />
 
         {/* ===== MODEL-AGNOSTIC MIDDLEWARE ===== */}
         <section className="section section--tight" id="middleware" aria-label="Model-agnostic middleware">
@@ -473,74 +549,6 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== ROI — COST OF ONE UNSAFE EXECUTION ===== */}
-        <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Return on governance</span>
-              <h2>The Cost of One Unsafe Execution</h2>
-            </div>
-            <p className="roi-lede reveal">
-              Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
-              reachable — not the complexity of the software. <b>One prevented catastrophic execution
-              event exceeds the cost of deployment.</b>
-            </p>
-
-            <div className="tbl-wrap reveal" data-rowreveal>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Sector</th><th>Incident type</th><th>Documented cost</th></tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Banking / Finance", "Unauthorised wire transfer", "$2B+ single historical losses"],
-                    ["Healthcare", "PHI exposure", "$9.77M average per breach (IBM 2024)"],
-                    ["Cybersecurity", "Credential exfiltration", "$10.22M average per breach (IBM 2024)"],
-                    ["Data Privacy", "GDPR automated processing violation", "€290M–€530M single regulatory fines"],
-                    ["Enterprise", "Unauthorised data access", "$4.88M global average (IBM 2024)"],
-                  ].map(([sector, incident, cost]) => (
-                    <tr key={sector}>
-                      <td data-l="Sector" className="t-main">{sector}</td>
-                      <td data-l="Incident type">{incident}</td>
-                      <td data-l="Documented cost" className="t-cost">{cost}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="callout roi-multi reveal">
-              <div>
-                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
-                <p>
-                  A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
-                  any human intervenes. Runtime Governance evaluates every trajectory at every execution
-                  boundary — not just the first agent, not just the final output.
-                </p>
-              </div>
-              <div className="roi-verds">
-                <div className="roi-verd">
-                  <span className="vdot" aria-hidden="true" />
-                  <span className="vk">Multi-agent evaluations</span>
-                  <span className="vv">16/16 passed</span>
-                </div>
-                <div className="roi-verd">
-                  <span className="vdot" aria-hidden="true" />
-                  <span className="vk">Collusion detection</span>
-                  <span className="vv">Verified</span>
-                </div>
-              </div>
-            </div>
-
-            <p className="roi-close reveal">
-              The audit identifies which catastrophic states are currently reachable in your system —
-              before they become a business event.
-            </p>
-          </div>
-        </section>
-
-        <hr className="divider" />
-
         {/* ===== ENGAGEMENT MODEL ===== */}
         <section className="section section--tight" id="engagement" data-screen-label="Engagement model">
           <div className="wrap">
@@ -618,79 +626,6 @@ export function HomeClient() {
             <div className="note-strip reveal">
               <div><div className="k">ARR target / client</div><div className="v"><b>£500K–£2M+</b> annually</div></div>
               <div><div className="k">Sovereign / defence retainers</div><div className="v"><b>£1M–£5M+</b> / yr</div></div>
-            </div>
-          </div>
-        </section>
-
-        {/* ===== COMMERCIAL POSITIONING ===== */}
-        <section className="section section--tight" id="positioning" data-screen-label="Positioning">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Commercial positioning</span>
-              <h2>Operational assurance infrastructure — not a one-off audit vendor.</h2>
-              <p>
-                The offering is to find, constrain, embed, and monitor runtime governance boundaries
-                for autonomous systems: a continuous operational role rather than a single-report delivery.
-              </p>
-            </div>
-            <div className="callout reveal" style={{ marginBottom: 26 }}>
-              <div className="clines">
-                {[
-                  ["01", "The audit identifies the ", "trajectory", "."],
-                  ["02", "The pilot ", "constrains", " it."],
-                  ["03", "The integration ", "embeds", " governance."],
-                  ["04", "The retainer ", "maintains", " protection as the environment evolves."],
-                ].map(([idx, pre, v, post]) => (
-                  <div className="cl" key={idx}>
-                    <span className="idx">{idx}</span>
-                    <span className="ck">{pre}<span className="v">{v}</span>{post}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="pos-grid reveal">
-              {[
-                ["The audit is the entry point", "the", "deliverable"],
-                ["The pilot is validation", "", "theatre"],
-                ["The integration is operational embedment", "a", "slide deck"],
-                ["The retainer is ongoing assurance", "a", "renewal fee"],
-              ].map(([is, pre, struck]) => (
-                <div className="pos-cell" key={is}>
-                  <div className="is">{is}</div>
-                  <div className="isnt">not {pre ? `${pre} ` : ""}<s>{struck}</s></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <hr className="divider" />
-
-        {/* ===== ENTERPRISE ENGAGEMENT PROCESS ===== */}
-        <section className="section section--tight" id="process" data-screen-label="Engagement process">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Enterprise engagement process</span>
-              <h2>From first contact to standing protection.</h2>
-              <p>
-                A controlled, auditable path into operational governance — structured for procurement,
-                security review, and institutional sign-off.
-              </p>
-            </div>
-            <div className="proc">
-              {[
-                ["01", "Scoping", "// Define Ω, blast radius, and regulatory exposure."],
-                ["02", "Audit", "// 48-hour reachable-state exposure assessment."],
-                ["03", "Pilot", "// Staging validation under operational conditions."],
-                ["04", "Integration", "// Governance embedded in the client environment."],
-                ["05", "Retainer", "// Continuous revalidation as the environment evolves."],
-              ].map(([n, h, p], i) => (
-                <div className="proc-step reveal" key={h} data-d={i > 0 ? String(i) : undefined}>
-                  <div className="pn">{n}</div>
-                  <h4>{h}</h4>
-                  <p>{p}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
