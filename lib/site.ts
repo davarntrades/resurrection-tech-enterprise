@@ -21,9 +21,9 @@ export const SITE = {
 
 export const NAV_LINKS = [
   { href: "/#what", label: "Platform" },
+  { href: "/#roi", label: "ROI" },
   { href: "/#reachability", label: "Reachability" },
   { href: "/enterprise-pathways", label: "Pathways" },
-  { href: "/#engagement", label: "Engagement" },
   { href: "/licensing", label: "Licensing" },
   { href: "/partners", label: "Partners" },
   { href: "/contact", label: "Contact" },
