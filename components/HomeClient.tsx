@@ -242,8 +242,10 @@ export function HomeClient() {
             </div>
             <p className="roi-lede reveal">
               Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
-              reachable — not the complexity of the software. <b>One prevented catastrophic execution
-              event exceeds the cost of deployment.</b>
+              reachable — not the complexity of the software.
+            </p>
+            <p className="roi-statement reveal">
+              One prevented event can pay for <span className="num">26,666</span> audits.
             </p>
 
             <div className="tbl-wrap reveal" data-rowreveal>
