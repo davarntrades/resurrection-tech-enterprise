@@ -1,0 +1,106 @@
+/* ============================================================
+   Resurrection Tech™ — ROI / "Cost of One Unsafe Execution"
+   Reuses existing tokens, table, and reveal animations. Only adds
+   light emphasis styling specific to this section. No new palette.
+   ============================================================ */
+
+/* Opening statement callout — reuses .callout visual language at a
+   calmer, copy-readable scale. */
+.roi-lede {
+  margin-bottom: 26px;
+  font-size: clamp(16px, 2.2vw, 19px);
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 70ch;
+  text-wrap: pretty;
+}
+.roi-lede b { color: var(--ink); font-weight: 540; }
+.roi-lede .om { color: var(--accent-bright); font-weight: 600; }
+
+/* Documented-cost column emphasis inside the shared .tbl */
+.tbl .t-cost {
+  font-family: var(--mono);
+  color: var(--omega);
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+@media (max-width: 720px) {
+  .tbl .t-cost { white-space: normal; }
+}
+
+/* Multi-agent verdict panel — built on the existing .callout surface */
+.roi-multi {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: clamp(20px, 3vw, 36px);
+  align-items: center;
+  padding: clamp(26px, 4vw, 40px);
+}
+@media (max-width: 760px) { .roi-multi { grid-template-columns: 1fr; } }
+.roi-multi-h {
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 12px;
+}
+.roi-multi p {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  text-wrap: pretty;
+}
+.roi-multi p b { color: var(--ink); font-weight: 540; }
+.roi-multi .om { color: var(--accent-bright); font-weight: 600; }
+
+.roi-verds {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.roi-verd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+}
+.roi-verd .vk {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.roi-verd .vv {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ok);
+}
+.roi-verd .vdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px rgba(63, 178, 127, 0.45);
+  flex: none;
+}
+
+/* Closing line */
+.roi-close {
+  margin-top: 26px;
+  text-align: center;
+  font-size: clamp(15px, 2.2vw, 18px);
+  line-height: 1.55;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.roi-close .om { color: var(--accent-bright); font-weight: 600; }
