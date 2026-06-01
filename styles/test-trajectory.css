@@ -215,22 +215,44 @@
 }
 .tt-badge-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
 
-/* ── Executive Summary ── */
+/* ── Executive Summary (primary zone) ── */
 .tt-exec {
   border: 1px solid var(--line-2);
-  border-radius: var(--radius-sm);
-  padding: 18px 18px 8px;
-  margin-bottom: 22px;
+  border-radius: var(--radius);
+  padding: 18px 20px 16px;
+  margin-bottom: 16px;
 }
-.is-block .tt-exec { border-color: rgba(229,72,77,0.35); background: rgba(229,72,77,0.05); }
-.is-permit .tt-exec { border-color: rgba(63,178,127,0.35); background: rgba(63,178,127,0.05); }
+.is-block .tt-exec {
+  border-color: rgba(229,72,77,0.4);
+  background: linear-gradient(180deg, rgba(229,72,77,0.08), transparent 45%), var(--panel);
+}
+.is-permit .tt-exec {
+  border-color: rgba(63,178,127,0.4);
+  background: linear-gradient(180deg, rgba(63,178,127,0.08), transparent 45%), var(--panel);
+}
+.tt-exec-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
 .tt-exec-label {
   font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: 14px;
+  color: var(--ink-2);
+}
+.tt-exec-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
 }
 .tt-exec .tt-badge { margin-bottom: 6px; }
 .tt-exec-fields { margin: 14px 0 0; }
@@ -255,6 +277,7 @@
 }
 .tt-exec-fields dd.neg { color: var(--omega); font-family: var(--mono); font-weight: 600; }
 .tt-exec-fields dd.pos { color: var(--ok); font-family: var(--mono); font-weight: 600; }
+.tt-exec-fields dd.neg-soft { color: #f0888c; }
 .tt-assets { display: flex; flex-wrap: wrap; gap: 7px; }
 .tt-asset {
   font-family: var(--mono);
@@ -266,21 +289,76 @@
   background: var(--panel-2);
 }
 
-/* ── Technical Analysis label ── */
-.tt-tech-label {
+/* Why-Ω / why-verdict plain-English lines (executive) */
+.tt-why {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tt-why-k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.is-block .tt-why-k { color: var(--omega); }
+.is-permit .tt-why-k { color: var(--ok); }
+.tt-why-row p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.tt-exec-foot {
+  margin: 16px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-4);
+}
+
+/* ── Technical Analysis (secondary, de-emphasized zone) ── */
+.tt-tech {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 0 16px 16px;
+}
+.tt-tech-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -16px 4px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.tt-tech-title {
   font-family: var(--mono);
   font-size: 10.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-3);
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line-2);
-  margin-bottom: 4px;
+}
+.tt-tech-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.tt-tech .tt-eb-text {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
 }
 
 .tt-fields {
   margin: 0;
-  border-top: 1px solid var(--line);
+  border-top: 0;
 }
 .tt-fields > div {
   display: grid;
