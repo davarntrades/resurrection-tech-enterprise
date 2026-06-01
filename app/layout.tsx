@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
 import { Analytics } from "@/components/Analytics";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { StickyBookBar } from "@/components/StickyBookBar";
 import "@/styles/globals.css";
 
@@ -88,6 +90,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <StickyBookBar />
         <Analytics />
+        <VercelAnalytics />
+        <SpeedInsights />
       </body>
     </html>
   );
