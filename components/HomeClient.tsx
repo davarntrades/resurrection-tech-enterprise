@@ -308,23 +308,38 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== MODEL-AGNOSTIC MIDDLEWARE ===== */}
-        <section className="section section--tight" id="middleware" aria-label="Model-agnostic middleware">
+        {/* ===== UNIVERSAL RUNTIME GOVERNANCE LAYER ===== */}
+        <section className="section section--tight" id="middleware" aria-label="Universal runtime governance layer">
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">Model-agnostic middleware</span>
-              <h2>Governance that works regardless of which model you run.</h2>
+              <span className="eyebrow">Governance beyond the model</span>
+              <h2>Governance for every AI system you already run.</h2>
               <p>
-                Runtime Governance operates at the execution boundary — not inside any model.
-                It intercepts transitions before they execute, independently of model architecture,
-                provider, or deployment topology.
+                You do not rebuild your AI stack. Runtime Governance sits at the execution
+                boundary and governs actions regardless of where they originate — one layer
+                across every provider, model, agent framework, and deployment environment
+                already operating inside your business.
               </p>
             </div>
+
+            <div className="mw-agnostic reveal" aria-label="Agnostic across the stack">
+              {[
+                "Provider-agnostic",
+                "Model-agnostic",
+                "Agent-framework agnostic",
+                "Deployment-agnostic",
+                "Third-party compatible",
+                "Future-model compatible",
+              ].map((t) => (
+                <span key={t} className="mw-ag"><span className="mw-ag-dot" aria-hidden="true" />{t}</span>
+              ))}
+            </div>
+
             <div className="mw-arch reveal">
               <div className="mw-layer mw-models">
-                <div className="mw-layer-label">Your AI model layer</div>
+                <div className="mw-layer-label">Any provider · model · agent · system</div>
                 <div className="mw-model-chips">
-                  {["GPT-4o", "Claude 3.5", "Gemini 1.5", "Llama 3", "Mistral", "Custom LLM"].map((m) => (
+                  {["OpenAI", "Anthropic", "Google", "Meta", "Mistral", "DeepSeek", "Qwen", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
                     <span key={m} className="mw-chip">{m}</span>
                   ))}
                 </div>
@@ -344,20 +359,34 @@ export function HomeClient() {
               </div>
               <div className="mw-arrow" aria-hidden="true">
                 <div className="mw-arrow-line" />
-                <div className="mw-arrow-cap">↓ safe trajectories only</div>
+                <div className="mw-arrow-cap">↓ only safe actions reach your systems</div>
               </div>
               <div className="mw-layer mw-system">
-                <div className="mw-layer-label">Your system · tools · external actions</div>
+                <div className="mw-layer-label">Protected enterprise systems &amp; data</div>
+                <div className="mw-model-chips">
+                  {["Customer Data", "CRM Systems", "Banking APIs", "Email Systems", "Cloud Infrastructure", "Internal Tools", "Databases", "Autonomous Workflows"].map((a) => (
+                    <span key={a} className="mw-chip mw-asset">{a}</span>
+                  ))}
+                </div>
               </div>
             </div>
+
+            <div className="mw-evolve reveal">
+              <p className="mw-evolve-lede">AI providers will change. Models will improve. Agent frameworks will evolve.</p>
+              <p className="mw-evolve-strong">
+                Runtime Governance remains at the execution boundary — enforcing the same safety
+                constraints regardless of the intelligence generating the action.
+              </p>
+            </div>
+
             <div className="mw-note reveal">
               <div className="mwn-row">
                 <span className="mwn-dot safe" />
-                <span>Safe trajectories pass through to execution</span>
+                <span>Safe actions pass through to your systems, unchanged</span>
               </div>
               <div className="mwn-row">
                 <span className="mwn-dot blocked" />
-                <span>Ω-bound trajectories are blocked pre-execution, regardless of model or provider</span>
+                <span>Ω-bound actions are blocked pre-execution — regardless of model, agent, or where they originated</span>
               </div>
             </div>
           </div>
