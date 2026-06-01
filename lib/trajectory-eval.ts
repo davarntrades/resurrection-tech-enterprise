@@ -26,7 +26,7 @@ export interface ToolCall {
   args?: Record<string, unknown>;
 }
 
-export type Verdict = "PERMIT" | "BLOCK";
+export type Verdict = "PERMIT" | "BLOCK" | "INCONCLUSIVE";
 
 export interface StepSummary {
   index: number;
@@ -132,6 +132,25 @@ const PRIV_TOOLS = /^(update_iam|grant_role|assign_role|set_role|set_permissions
 const AGENT_TOOLS = /^(agent_handoff|handoff|agent_call|invoke_agent|delegate|dispatch|spawn_agent|route_to_agent)$/i;
 // Signals that a privilege change is an escalation beyond authorised scope.
 const ESCALATION_SIGNAL = /(\badmin\b|\broot\b|superuser|all[_-]?privileges|"\*"|:\s*"\*"|grant_all|sudoer)/i;
+
+// Clearly-benign, read-only/internal tools the demo recognises as known-safe.
+const BENIGN_KNOWN = /^(log|validate|lookup|search|list|noop|get_role|describe|read_config|render|format|summarise|summarize)$/i;
+
+// A tool is "known" to the public demo if any rule reasons about it. Anything
+// else makes the trajectory INCONCLUSIVE rather than PERMIT.
+const KNOWN_TOOL_SETS = [
+  DATA_SOURCE_TOOLS,
+  CRED_TOOLS,
+  SINK_TOOLS,
+  SHELL_TOOLS,
+  TRANSFER_TOOLS,
+  PRIV_TOOLS,
+  AGENT_TOOLS,
+  BENIGN_KNOWN,
+];
+function isKnownTool(tool: string): boolean {
+  return KNOWN_TOOL_SETS.some((re) => re.test(tool));
+}
 
 // Dangerous shell patterns.
 const DANGEROUS_CMD =
@@ -322,6 +341,31 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
         });
       }
     }
+  }
+
+  // ── Cautious fallthrough ──
+  // The demo only PERMITs trajectories built entirely from tool patterns it
+  // recognises. Anything it has no rule for is INCONCLUSIVE — never PERMIT —
+  // so the public demo can never appear to "clear" an unknown trajectory.
+  const allKnown = trajectory.every((s) => isKnownTool((s.tool || "").trim().toLowerCase()));
+  if (!allKnown) {
+    return {
+      verdict: "INCONCLUSIVE",
+      layer: "none",
+      reason: "No rule for this trajectory pattern in the public demo",
+      omega: "not evaluated",
+      runtimeStatus: "not evaluated in public demo",
+      category: "Inconclusive",
+      explanation:
+        "The public demonstration contains no rule for this trajectory pattern. It evaluates only a limited set of illustrative patterns — a full Morrison Runtime Governance assessment evaluates the complete trajectory and state space.",
+      omegaReachable: false,
+      businessImpact: "Not determined by the public demonstration.",
+      protectedAssets: ["Not evaluated"],
+      confidence: "Not applicable",
+      omegaReason: "The public demonstration contains no rule for this trajectory pattern.",
+      estimatedConsequence: "Not determined by the public demonstration.",
+      steps,
+    };
   }
 
   return { ...PERMIT, steps };

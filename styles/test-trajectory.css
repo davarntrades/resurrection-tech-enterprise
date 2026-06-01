@@ -32,6 +32,33 @@
   max-width: 70ch;
 }
 
+/* ── Scope disclaimer banner ── */
+.tt-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--ink-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.tt-scope-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 3px 10px;
+  flex: none;
+  margin-top: 1px;
+}
+.tt-scope p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-3); }
+.tt-scope b { color: var(--ink-2); }
+
 /* ── Intro callout ── */
 .tt-intro {
   display: flex;
@@ -213,6 +240,12 @@
   background: rgba(63,178,127,0.10);
   text-shadow: 0 0 24px rgba(63,178,127,0.4);
 }
+.is-inconclusive .tt-badge {
+  color: #e0a93f;
+  border-color: rgba(214,158,46,0.5);
+  background: rgba(214,158,46,0.10);
+  font-size: clamp(20px, 3vw, 26px);
+}
 .tt-badge-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
 
 /* ── Executive Summary (primary zone) ── */
@@ -229,6 +262,10 @@
 .is-permit .tt-exec {
   border-color: rgba(63,178,127,0.4);
   background: linear-gradient(180deg, rgba(63,178,127,0.08), transparent 45%), var(--panel);
+}
+.is-inconclusive .tt-exec {
+  border-color: rgba(214,158,46,0.45);
+  background: linear-gradient(180deg, rgba(214,158,46,0.08), transparent 45%), var(--panel);
 }
 .tt-exec-top {
   display: flex;
@@ -278,6 +315,7 @@
 .tt-exec-fields dd.neg { color: var(--omega); font-family: var(--mono); font-weight: 600; }
 .tt-exec-fields dd.pos { color: var(--ok); font-family: var(--mono); font-weight: 600; }
 .tt-exec-fields dd.neg-soft { color: #f0888c; }
+.tt-exec-fields dd.neutral { color: #e0a93f; font-family: var(--mono); font-weight: 600; }
 .tt-assets { display: flex; flex-wrap: wrap; gap: 7px; }
 .tt-asset {
   font-family: var(--mono);
@@ -309,6 +347,7 @@
 }
 .is-block .tt-why-k { color: var(--omega); }
 .is-permit .tt-why-k { color: var(--ok); }
+.is-inconclusive .tt-why-k { color: #e0a93f; }
 .tt-why-row p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
 .tt-exec-foot {
   margin: 16px 0 0;
