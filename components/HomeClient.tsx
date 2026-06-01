@@ -473,6 +473,74 @@ export function HomeClient() {
 
         <hr className="divider" />
 
+        {/* ===== ROI — COST OF ONE UNSAFE EXECUTION ===== */}
+        <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Return on governance</span>
+              <h2>The Cost of One Unsafe Execution</h2>
+            </div>
+            <p className="roi-lede reveal">
+              Runtime Governance is priced against the cost of <span className="om">Ω</span> becoming
+              reachable — not the complexity of the software. <b>One prevented catastrophic execution
+              event exceeds the cost of deployment.</b>
+            </p>
+
+            <div className="tbl-wrap reveal" data-rowreveal>
+              <table className="tbl">
+                <thead>
+                  <tr><th>Sector</th><th>Incident type</th><th>Documented cost</th></tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Banking / Finance", "Unauthorised wire transfer", "$2B+ single historical losses"],
+                    ["Healthcare", "PHI exposure", "$9.77M average per breach (IBM 2024)"],
+                    ["Cybersecurity", "Credential exfiltration", "$10.22M average per breach (IBM 2024)"],
+                    ["Data Privacy", "GDPR automated processing violation", "€290M–€530M single regulatory fines"],
+                    ["Enterprise", "Unauthorised data access", "$4.88M global average (IBM 2024)"],
+                  ].map(([sector, incident, cost]) => (
+                    <tr key={sector}>
+                      <td data-l="Sector" className="t-main">{sector}</td>
+                      <td data-l="Incident type">{incident}</td>
+                      <td data-l="Documented cost" className="t-cost">{cost}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="callout roi-multi reveal">
+              <div>
+                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
+                <p>
+                  A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
+                  any human intervenes. Runtime Governance evaluates every trajectory at every execution
+                  boundary — not just the first agent, not just the final output.
+                </p>
+              </div>
+              <div className="roi-verds">
+                <div className="roi-verd">
+                  <span className="vdot" aria-hidden="true" />
+                  <span className="vk">Multi-agent evaluations</span>
+                  <span className="vv">16/16 passed</span>
+                </div>
+                <div className="roi-verd">
+                  <span className="vdot" aria-hidden="true" />
+                  <span className="vk">Collusion detection</span>
+                  <span className="vv">Verified</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="roi-close reveal">
+              The audit identifies which catastrophic states are currently reachable in your system —
+              before they become a business event.
+            </p>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
         {/* ===== ENGAGEMENT MODEL ===== */}
         <section className="section section--tight" id="engagement" data-screen-label="Engagement model">
           <div className="wrap">
