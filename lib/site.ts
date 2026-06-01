@@ -23,6 +23,7 @@ export const NAV_LINKS = [
   { href: "/#what", label: "Platform" },
   { href: "/#roi", label: "ROI" },
   { href: "/#reachability", label: "Reachability" },
+  { href: "/test-trajectory", label: "Runtime Demo" },
   { href: "/enterprise-pathways", label: "Pathways" },
   { href: "/licensing", label: "Licensing" },
   { href: "/partners", label: "Partners" },

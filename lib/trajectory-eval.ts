@@ -42,6 +42,12 @@ export interface EvalResult {
   /** Forbidden-state identifier reached, or "not reached". */
   omega: string;
   runtimeStatus: string;
+  /** Human-readable risk category triggered (or "None" for a permit). */
+  category: string;
+  /** Plain-English explanation of why the verdict was reached and whether Ω became reachable. */
+  explanation: string;
+  /** Whether a forbidden state Ω became reachable along the trajectory. */
+  omegaReachable: boolean;
   steps: StepSummary[];
 }
 
@@ -56,6 +62,11 @@ const CRED_TOOLS = /^(read_secret|get_secret|get_credentials|read_env|get_env|re
 const SINK_TOOLS = /^(http_request|http|https|fetch|request|upload|post|put|webhook|send|curl|send_email|email|sftp|s3_put)$/i;
 const SHELL_TOOLS = /^(shell|exec|bash|sh|run|run_command|command|spawn|system|subprocess|os_system)$/i;
 const TRANSFER_TOOLS = /^(transfer|wire|wire_transfer|payment|pay|send_funds|move_funds|ach|swift)$/i;
+const PRIV_TOOLS = /^(update_iam|grant_role|assign_role|set_role|set_permissions|modify_acl|add_admin|escalate|setuid|update_policy|attach_policy)$/i;
+// Cross-agent delegation steps — used to label multi-agent leakage.
+const AGENT_TOOLS = /^(agent_handoff|handoff|agent_call|invoke_agent|delegate|dispatch|spawn_agent|route_to_agent)$/i;
+// Signals that a privilege change is an escalation beyond authorised scope.
+const ESCALATION_SIGNAL = /(\badmin\b|\broot\b|superuser|all[_-]?privileges|"\*"|:\s*"\*"|grant_all|sudoer)/i;
 
 // Dangerous shell patterns.
 const DANGEROUS_CMD =
@@ -120,6 +131,10 @@ const PERMIT: Omit<EvalResult, "steps"> = {
   reason: "Internal workflow remains inside approved boundary",
   omega: "not reached",
   runtimeStatus: "eligible for execution",
+  category: "None",
+  omegaReachable: false,
+  explanation:
+    "No step reaches a forbidden state. Every action stays inside the approved boundary, so Ω never becomes reachable and the trajectory is eligible for execution.",
 };
 
 export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
@@ -131,10 +146,18 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
 
   let sawDataSource = false;
   let sawCredSource = false;
+  let sawAgentHandoff = false;
 
-  const block = (over: Omit<EvalResult, "steps" | "verdict" | "runtimeStatus">): EvalResult => ({
+  const block = (over: {
+    layer: string;
+    reason: string;
+    omega: string;
+    category: string;
+    explanation: string;
+  }): EvalResult => ({
     verdict: "BLOCK",
     runtimeStatus: "denied before execution",
+    omegaReachable: true,
     steps,
     ...over,
   });
@@ -144,15 +167,48 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
     const args = (step.args && typeof step.args === "object" ? step.args : {}) as Record<string, unknown>;
     const text = argText(args);
 
+    if (AGENT_TOOLS.test(tool)) sawAgentHandoff = true;
+
     // ── Single-step forbidden actions (Layer V1) ──
     if (SHELL_TOOLS.test(tool) && DANGEROUS_CMD.test(text)) {
-      return block({ layer: "V1", reason: "Unsafe shell command execution", omega: "arbitrary_code_execution" });
+      return block({
+        layer: "V1",
+        reason: "Unsafe shell command execution",
+        omega: "arbitrary_code_execution",
+        category: "Dangerous shell execution",
+        explanation:
+          "A shell command matches a destructive pattern. The trajectory reaches Ω: arbitrary code execution, so it is denied before any command runs.",
+      });
     }
     if (PATH_TRAVERSAL.test(text)) {
-      return block({ layer: "V1", reason: "Path traversal outside approved boundary", omega: "path_traversal" });
+      return block({
+        layer: "V1",
+        reason: "Path traversal outside approved boundary",
+        omega: "path_traversal",
+        category: "Path traversal",
+        explanation:
+          "A path escapes the approved boundary (directory traversal or a sensitive system path). The trajectory reaches Ω: unauthorised file access.",
+      });
+    }
+    if (PRIV_TOOLS.test(tool) && ESCALATION_SIGNAL.test(text)) {
+      return block({
+        layer: "V1",
+        reason: "Privilege grant beyond authorised scope",
+        omega: "privilege_escalation",
+        category: "Privilege escalation",
+        explanation:
+          "An action grants elevated privileges (admin/root/wildcard) beyond the agent's authorised scope. The trajectory reaches Ω: privilege escalation.",
+      });
     }
     if (TRANSFER_TOOLS.test(tool) && isUnauthorisedRecipient(args)) {
-      return block({ layer: "V2", reason: "Funds movement to unauthorised recipient", omega: "unauthorized_transfer" });
+      return block({
+        layer: "V2",
+        reason: "Funds movement to unauthorised recipient",
+        omega: "unauthorized_transfer",
+        category: "Unauthorised funds transfer",
+        explanation:
+          "Funds are moved to an unverified or unauthorised recipient. The trajectory reaches Ω: irreversible financial loss, so it is denied before execution.",
+      });
     }
 
     // ── Source → external sink chains (Layer V2) ──
@@ -164,10 +220,26 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
 
     if (isExternalSink(tool, args)) {
       if (sawCredSource) {
-        return block({ layer: "V2", reason: "Credential source → external sink", omega: "credential_exfiltration" });
+        return block({
+          layer: "V2",
+          reason: "Credential source → external sink",
+          omega: "credential_exfiltration",
+          category: "Credential exfiltration",
+          explanation:
+            "A secret or credential is read and then transmitted to an external destination. The trajectory reaches Ω: credential exposure.",
+        });
       }
       if (sawDataSource) {
-        return block({ layer: "V2", reason: "Source → external sink", omega: "data_exfiltration" });
+        const multi = sawAgentHandoff;
+        return block({
+          layer: "V2",
+          reason: multi ? "Cross-agent source → external sink" : "Source → external sink",
+          omega: "data_exfiltration",
+          category: multi ? "Multi-agent data leakage" : "Data exfiltration",
+          explanation: multi
+            ? "One agent reads sensitive data and a downstream agent sends it to an external destination. The cross-agent trajectory reaches Ω: data can leave the approved boundary before any human review."
+            : "A data source is read and then sent to an external destination. The trajectory reaches Ω: data can leave the approved boundary before any human review.",
+        });
       }
     }
   }

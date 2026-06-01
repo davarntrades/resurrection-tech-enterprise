@@ -19,7 +19,9 @@ type Resp = (EvalResult & { ok: true }) | { ok: false; error: string; fieldError
  */
 export async function POST(req: Request): Promise<NextResponse<Resp>> {
   // ── Rate limit ────────────────────────────────────────────
-  const rl = rateLimit(clientIp(req.headers));
+  // Pure evaluation (no DB/email/cost), and the demo is click-through, so use
+  // a dedicated, more generous bucket than the audit form's default.
+  const rl = rateLimit(clientIp(req.headers), { bucket: "traj", max: 30 });
   if (!rl.ok) {
     return NextResponse.json(
       { ok: false, error: "Too many requests. Please try again shortly." },
