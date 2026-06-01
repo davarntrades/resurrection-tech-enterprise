@@ -22,7 +22,7 @@ export const SITE = {
 export const NAV_LINKS = [
   { href: "/#what", label: "Platform" },
   { href: "/#roi", label: "ROI" },
-  { href: "/#reachability", label: "Reachability" },
+  { href: "/integrations", label: "Integrations" },
   { href: "/test-trajectory", label: "Runtime Demo" },
   { href: "/enterprise-pathways", label: "Pathways" },
   { href: "/licensing", label: "Licensing" },
