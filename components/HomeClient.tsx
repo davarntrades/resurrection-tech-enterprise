@@ -390,6 +390,12 @@ export function HomeClient() {
                 <span>Ω-bound actions are blocked pre-execution — regardless of model, agent, or where they originated</span>
               </div>
             </div>
+            <div className="demo-cta reveal">
+              <span>See how it plugs into the platforms you already run</span>
+              <Link href="/integrations" className="btn btn--ghost btn--sm">
+                How it integrates <span className="arr">→</span>
+              </Link>
+            </div>
           </div>
         </section>
 
