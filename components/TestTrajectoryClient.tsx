@@ -247,9 +247,12 @@ export function TestTrajectoryClient() {
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                   className={`tt-verdict ${blocked ? "is-block" : "is-permit"}`}
                 >
-                  {/* ── Executive Summary ── */}
+                  {/* ══ EXECUTIVE SUMMARY — ~10-second read ══ */}
                   <div className="tt-exec">
-                    <div className="tt-exec-label">Executive Summary</div>
+                    <div className="tt-exec-top">
+                      <span className="tt-exec-label">Executive Summary</span>
+                      <span className="tt-exec-hint">~10-second read</span>
+                    </div>
                     <div className="tt-badge">
                       <span className="tt-badge-dot" aria-hidden="true" />
                       {result.verdict}
@@ -258,10 +261,8 @@ export function TestTrajectoryClient() {
                       <div><dt>Risk category</dt><dd>{result.category}</dd></div>
                       <div><dt>Business impact</dt><dd>{result.businessImpact}</dd></div>
                       <div>
-                        <dt>Ω reachable</dt>
-                        <dd className={result.omegaReachable ? "neg" : "pos"}>
-                          {result.omegaReachable ? "YES" : "NO"}
-                        </dd>
+                        <dt>Estimated consequence</dt>
+                        <dd className={blocked ? "neg-soft" : ""}>{result.estimatedConsequence}</dd>
                       </div>
                       <div>
                         <dt>Protected assets</dt>
@@ -273,55 +274,71 @@ export function TestTrajectoryClient() {
                           </span>
                         </dd>
                       </div>
+                      <div>
+                        <dt>Ω reachable</dt>
+                        <dd className={result.omegaReachable ? "neg" : "pos"}>
+                          {result.omegaReachable ? "YES" : "NO"}
+                        </dd>
+                      </div>
                       <div><dt>Confidence</dt><dd>{result.confidence}</dd></div>
                     </dl>
+
+                    <div className="tt-why">
+                      <div className="tt-why-row">
+                        <span className="tt-why-k">{blocked ? "Why Ω became reachable" : "Why Ω stays unreachable"}</span>
+                        <p>{result.omegaReason}</p>
+                      </div>
+                      <div className="tt-why-row">
+                        <span className="tt-why-k">{blocked ? "Why it was blocked" : "Why it was admitted"}</span>
+                        <p>
+                          {blocked
+                            ? "Denied before execution because the action chain reaches a forbidden state — the unsafe step never runs."
+                            : "Admitted because every action stays inside the approved boundary; no forbidden state is reachable."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="tt-exec-foot">Estimated consequence is illustrative, not a guarantee.</p>
                   </div>
 
-                  {/* ── Technical Analysis ── */}
-                  <div className="tt-tech-label">Technical Analysis</div>
-                  <dl className="tt-fields">
-                    <div><dt>Verdict</dt><dd>{result.verdict}</dd></div>
-                    <div><dt>Layer</dt><dd>{result.layer}</dd></div>
-                    <div><dt>Reason</dt><dd>{result.reason}</dd></div>
-                    <div>
-                      <dt>Forbidden state</dt>
-                      <dd>{blocked ? `Ω reached — ${result.omega}` : "Ω not reached"}</dd>
+                  {/* ══ TECHNICAL ANALYSIS — engineering detail ══ */}
+                  <div className="tt-tech">
+                    <div className="tt-tech-head">
+                      <span className="tt-tech-title">Technical Analysis</span>
+                      <span className="tt-tech-tag">engineering detail</span>
                     </div>
-                    <div><dt>Runtime status</dt><dd>{result.runtimeStatus}</dd></div>
-                  </dl>
+                    <dl className="tt-fields">
+                      <div><dt>Verdict</dt><dd>{result.verdict}</dd></div>
+                      <div><dt>Layer</dt><dd>{result.layer}</dd></div>
+                      <div><dt>Reason</dt><dd>{result.reason}</dd></div>
+                      <div>
+                        <dt>Forbidden state</dt>
+                        <dd>{blocked ? `Ω reached — ${result.omega}` : "Ω not reached"}</dd>
+                      </div>
+                      <div><dt>Runtime status</dt><dd>{result.runtimeStatus}</dd></div>
+                    </dl>
 
-                  <div className="tt-explain-block">
-                    <div className="tt-eb-row">
-                      <span className="tt-eb-k">Risk category</span>
-                      <span className="tt-eb-v">{result.category}</span>
-                    </div>
-                    <div className="tt-eb-row">
-                      <span className="tt-eb-k">Ω reachable</span>
-                      <span className={`tt-eb-v ${result.omegaReachable ? "neg" : "pos"}`}>
-                        {result.omegaReachable ? "Yes — forbidden state reachable" : "No — forbidden state not reachable"}
-                      </span>
-                    </div>
                     <p className="tt-eb-text">
                       {blocked ? "Why this was blocked: " : "Why this remained admissible: "}
                       {result.explanation}
                     </p>
-                  </div>
 
-                  <div className="tt-summary">
-                    <div className="tt-summary-h">Trajectory summary</div>
-                    <ol>
-                      {result.steps.map((s) => (
-                        <li key={s.index}>
-                          <span className="tt-step-n">Step {s.index}</span>
-                          <span className="tt-step-tool">{s.tool}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
+                    <div className="tt-summary">
+                      <div className="tt-summary-h">Trajectory summary</div>
+                      <ol>
+                        {result.steps.map((s) => (
+                          <li key={s.index}>
+                            <span className="tt-step-n">Step {s.index}</span>
+                            <span className="tt-step-tool">{s.tool}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
 
-                  <p className="tt-note">
-                    The demo evaluates the trajectory before execution. No tools are actually executed.
-                  </p>
+                    <p className="tt-note">
+                      The demo evaluates the trajectory before execution. No tools are actually executed.
+                    </p>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

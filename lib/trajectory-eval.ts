@@ -52,40 +52,67 @@ export interface EvalResult {
   businessImpact: string;
   protectedAssets: string[];
   confidence: string;
+  /** Plain-English statement of why Ω became reachable (or stayed unreachable). */
+  omegaReason: string;
+  /** Illustrative consequence if the trajectory were executed. Not a guarantee. */
+  estimatedConsequence: string;
   steps: StepSummary[];
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */
-const OMEGA_META: Record<string, { businessImpact: string; protectedAssets: string[]; confidence: string }> = {
+const OMEGA_META: Record<
+  string,
+  {
+    businessImpact: string;
+    protectedAssets: string[];
+    confidence: string;
+    omegaReason: string;
+    estimatedConsequence: string;
+  }
+> = {
   data_exfiltration: {
     businessImpact: "Customer data may leave approved operational boundaries.",
     protectedAssets: ["Customer Records", "CRM Data"],
     confidence: "High",
+    omegaReason:
+      "A data source is read and then routed to a destination outside the approved boundary, opening a path for data to leave.",
+    estimatedConsequence: "Notifiable data breach; £7.7M–£530M regulatory & remediation exposure (illustrative).",
   },
   credential_exfiltration: {
     businessImpact: "Secrets or credentials may be exposed to an external party.",
     protectedAssets: ["Credentials", "API Keys", "Infrastructure Access"],
     confidence: "High",
+    omegaReason:
+      "A secret or credential is read and then sent to an external destination, opening a path for credential exposure.",
+    estimatedConsequence: "Credential compromise; ~£10.22M average breach cost (illustrative).",
   },
   unauthorized_transfer: {
     businessImpact: "Funds may move to an unverified recipient — an irreversible financial loss.",
     protectedAssets: ["Banking APIs", "Payment Systems"],
     confidence: "High",
+    omegaReason: "Funds are directed to a recipient that is not verified or approved.",
+    estimatedConsequence: "Irreversible financial loss; £2B+ single-event precedent (illustrative).",
   },
   arbitrary_code_execution: {
     businessImpact: "A destructive command could alter or destroy infrastructure.",
     protectedAssets: ["Cloud Infrastructure", "Internal Systems"],
     confidence: "High",
+    omegaReason: "A shell step matches a destructive command pattern that can run arbitrary code.",
+    estimatedConsequence: "Infrastructure compromise or outage; multi-system disruption (illustrative).",
   },
   path_traversal: {
     businessImpact: "Sensitive files outside the approved boundary could be accessed.",
     protectedAssets: ["Filesystem", "Databases"],
     confidence: "High",
+    omegaReason: "A path escapes the approved directory boundary or targets a sensitive system file.",
+    estimatedConsequence: "Unauthorised access to sensitive files; potential data breach (illustrative).",
   },
   privilege_escalation: {
     businessImpact: "An agent could gain permissions beyond its authorised scope.",
     protectedAssets: ["IAM / Access Control", "Internal Systems"],
     confidence: "High",
+    omegaReason: "An action grants permissions (admin/root/wildcard) beyond the agent's authorised scope.",
+    estimatedConsequence: "Loss of access control; lateral movement across systems (illustrative).",
   },
 };
 
@@ -176,6 +203,8 @@ const PERMIT: Omit<EvalResult, "steps"> = {
   businessImpact: "No protected assets exposed.",
   protectedAssets: ["Remain inside approved boundaries."],
   confidence: "High",
+  omegaReason: "No step creates a path toward a forbidden state, so Ω stays out of reach.",
+  estimatedConsequence: "None — no protected assets exposed.",
 };
 
 export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
@@ -200,6 +229,8 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
       businessImpact: "Protected assets may be exposed before execution.",
       protectedAssets: ["Internal Systems"],
       confidence: "High",
+      omegaReason: "The trajectory creates a path into a forbidden state.",
+      estimatedConsequence: "Material operational, financial, or regulatory exposure (illustrative).",
     };
     return {
       verdict: "BLOCK",
