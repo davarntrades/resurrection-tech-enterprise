@@ -247,11 +247,38 @@ export function TestTrajectoryClient() {
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                   className={`tt-verdict ${blocked ? "is-block" : "is-permit"}`}
                 >
-                  <div className="tt-badge">
-                    <span className="tt-badge-dot" aria-hidden="true" />
-                    {result.verdict}
+                  {/* ── Executive Summary ── */}
+                  <div className="tt-exec">
+                    <div className="tt-exec-label">Executive Summary</div>
+                    <div className="tt-badge">
+                      <span className="tt-badge-dot" aria-hidden="true" />
+                      {result.verdict}
+                    </div>
+                    <dl className="tt-exec-fields">
+                      <div><dt>Risk category</dt><dd>{result.category}</dd></div>
+                      <div><dt>Business impact</dt><dd>{result.businessImpact}</dd></div>
+                      <div>
+                        <dt>Ω reachable</dt>
+                        <dd className={result.omegaReachable ? "neg" : "pos"}>
+                          {result.omegaReachable ? "YES" : "NO"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Protected assets</dt>
+                        <dd>
+                          <span className="tt-assets">
+                            {result.protectedAssets.map((a) => (
+                              <span className="tt-asset" key={a}>{a}</span>
+                            ))}
+                          </span>
+                        </dd>
+                      </div>
+                      <div><dt>Confidence</dt><dd>{result.confidence}</dd></div>
+                    </dl>
                   </div>
 
+                  {/* ── Technical Analysis ── */}
+                  <div className="tt-tech-label">Technical Analysis</div>
                   <dl className="tt-fields">
                     <div><dt>Verdict</dt><dd>{result.verdict}</dd></div>
                     <div><dt>Layer</dt><dd>{result.layer}</dd></div>

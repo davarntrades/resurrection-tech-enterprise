@@ -48,8 +48,46 @@ export interface EvalResult {
   explanation: string;
   /** Whether a forbidden state Ω became reachable along the trajectory. */
   omegaReachable: boolean;
+  /** Executive-summary fields. */
+  businessImpact: string;
+  protectedAssets: string[];
+  confidence: string;
   steps: StepSummary[];
 }
+
+/** Executive-summary metadata per forbidden state, for non-technical readers. */
+const OMEGA_META: Record<string, { businessImpact: string; protectedAssets: string[]; confidence: string }> = {
+  data_exfiltration: {
+    businessImpact: "Customer data may leave approved operational boundaries.",
+    protectedAssets: ["Customer Records", "CRM Data"],
+    confidence: "High",
+  },
+  credential_exfiltration: {
+    businessImpact: "Secrets or credentials may be exposed to an external party.",
+    protectedAssets: ["Credentials", "API Keys", "Infrastructure Access"],
+    confidence: "High",
+  },
+  unauthorized_transfer: {
+    businessImpact: "Funds may move to an unverified recipient — an irreversible financial loss.",
+    protectedAssets: ["Banking APIs", "Payment Systems"],
+    confidence: "High",
+  },
+  arbitrary_code_execution: {
+    businessImpact: "A destructive command could alter or destroy infrastructure.",
+    protectedAssets: ["Cloud Infrastructure", "Internal Systems"],
+    confidence: "High",
+  },
+  path_traversal: {
+    businessImpact: "Sensitive files outside the approved boundary could be accessed.",
+    protectedAssets: ["Filesystem", "Databases"],
+    confidence: "High",
+  },
+  privilege_escalation: {
+    businessImpact: "An agent could gain permissions beyond its authorised scope.",
+    protectedAssets: ["IAM / Access Control", "Internal Systems"],
+    confidence: "High",
+  },
+};
 
 /* ── Heuristics ─────────────────────────────────────────────────────────── */
 
@@ -135,6 +173,9 @@ const PERMIT: Omit<EvalResult, "steps"> = {
   omegaReachable: false,
   explanation:
     "No step reaches a forbidden state. Every action stays inside the approved boundary, so Ω never becomes reachable and the trajectory is eligible for execution.",
+  businessImpact: "No protected assets exposed.",
+  protectedAssets: ["Remain inside approved boundaries."],
+  confidence: "High",
 };
 
 export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
@@ -154,13 +195,21 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
     omega: string;
     category: string;
     explanation: string;
-  }): EvalResult => ({
-    verdict: "BLOCK",
-    runtimeStatus: "denied before execution",
-    omegaReachable: true,
-    steps,
-    ...over,
-  });
+  }): EvalResult => {
+    const meta = OMEGA_META[over.omega] ?? {
+      businessImpact: "Protected assets may be exposed before execution.",
+      protectedAssets: ["Internal Systems"],
+      confidence: "High",
+    };
+    return {
+      verdict: "BLOCK",
+      runtimeStatus: "denied before execution",
+      omegaReachable: true,
+      steps,
+      ...meta,
+      ...over,
+    };
+  };
 
   for (const step of trajectory) {
     const tool = (step.tool || "").trim().toLowerCase();
