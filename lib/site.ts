@@ -19,15 +19,47 @@ export const SITE = {
   ],
 } as const;
 
+// Curated links shown inline in the desktop navbar.
 export const NAV_LINKS = [
   { href: "/#what", label: "Platform" },
-  { href: "/#roi", label: "ROI" },
   { href: "/integrations", label: "Integrations" },
   { href: "/test-trajectory", label: "Runtime Demo" },
+  { href: "/evidence", label: "Evidence" },
   { href: "/enterprise-pathways", label: "Pathways" },
-  { href: "/licensing", label: "Licensing" },
-  { href: "/partners", label: "Partners" },
-  { href: "/contact", label: "Contact" },
+] as const;
+
+// Full, grouped index — rendered in the menu panel (the complete site map,
+// available on both desktop and mobile via the menu button).
+export const NAV_MENU = [
+  {
+    group: "Platform",
+    links: [
+      { href: "/#what", label: "What we do" },
+      { href: "/integrations", label: "How it integrates" },
+      { href: "/#reachability", label: "Ω Reachability" },
+      { href: "/test-trajectory", label: "Runtime demo" },
+      { href: "/#roi", label: "ROI / cost of failure" },
+    ],
+  },
+  {
+    group: "Evidence & trust",
+    links: [
+      { href: "/evidence", label: "Evidence & methodology" },
+      { href: "/security", label: "Security & deployment" },
+      { href: "/sample-audit", label: "Sample audit report" },
+    ],
+  },
+  {
+    group: "Engage",
+    links: [
+      { href: "/enterprise-pathways", label: "Enterprise pathways" },
+      { href: "/company", label: "Company" },
+      { href: "/partners", label: "Partners" },
+      { href: "/licensing", label: "Licensing" },
+      { href: "/contact", label: "Contact" },
+      { href: "/book", label: "Book a meeting" },
+    ],
+  },
 ] as const;
 
 export const CALENDLY = {
