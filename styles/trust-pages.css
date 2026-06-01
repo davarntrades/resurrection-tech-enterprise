@@ -1,0 +1,160 @@
+/* ============================================================
+   Trust / due-diligence pages — Evidence, Security, Sample Audit,
+   Company. Document-grade, no animation. Reuses design tokens.
+   ============================================================ */
+.tp h1 {
+  font-size: clamp(30px, 5vw, 50px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 14px 0 0;
+}
+.tp-lede {
+  margin-top: 16px;
+  font-size: clamp(15px, 2vw, 18px);
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 72ch;
+}
+.tp .om { color: var(--accent-bright); font-weight: 600; }
+
+/* Section block */
+.tp-block { margin-top: 40px; }
+.tp-block > h2 {
+  font-size: clamp(19px, 2.6vw, 24px);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+.tp-block > .tp-sub {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-3);
+  margin: 0 0 18px;
+  max-width: 74ch;
+}
+.tp-prose p { font-size: 14.5px; line-height: 1.65; color: var(--ink-2); max-width: 74ch; margin: 0 0 12px; }
+.tp-prose b { color: var(--ink); font-weight: 560; }
+
+/* Card grid */
+.tp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.tp-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 18px 20px;
+}
+.tp-card h3 {
+  font-size: 15px;
+  color: var(--ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.tp-card p { font-size: 13.5px; line-height: 1.55; color: var(--ink-2); margin: 0; }
+.tp-card .k {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Stat row */
+.tp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.tp-stat { background: var(--panel); padding: 18px 20px; }
+.tp-stat .v { font-family: var(--mono); font-size: clamp(22px, 3vw, 30px); color: var(--ink); font-weight: 600; letter-spacing: -0.01em; }
+.tp-stat .l { font-size: 12px; color: var(--ink-3); margin-top: 6px; line-height: 1.4; }
+
+/* Definition list (key/value facts) */
+.tp-facts { border-top: 1px solid var(--line); }
+.tp-facts > div {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tp-facts dt { font-size: 13px; color: var(--ink-3); }
+.tp-facts dd { margin: 0; font-size: 14px; color: var(--ink); font-family: var(--mono); }
+@media (max-width: 620px) { .tp-facts > div, .tp-grid, .tp-block > h2 { grid-template-columns: 1fr; } }
+
+/* Status pills */
+.tp-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  border-radius: 999px; padding: 4px 11px; border: 1px solid;
+}
+.tp-pill.ok { color: var(--ok); border-color: rgba(63,178,127,0.4); background: rgba(63,178,127,0.08); }
+.tp-pill.warn { color: #e0a93f; border-color: rgba(214,158,46,0.4); background: rgba(214,158,46,0.08); }
+.tp-pill.info { color: var(--accent-bright); border-color: rgba(76,125,255,0.4); background: rgba(76,125,255,0.08); }
+
+/* Honest limitations / "what it does NOT mean" */
+.tp-note {
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--ink-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 16px 20px;
+  margin-top: 14px;
+}
+.tp-note .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
+.tp-note ul { margin: 0; padding-left: 18px; }
+.tp-note li { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); margin-bottom: 6px; }
+
+/* Owner-action flag (visible, easy to find & replace before go-live) */
+.tp-todo {
+  border: 1px dashed rgba(214,158,46,0.5);
+  background: rgba(214,158,46,0.06);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #e0a93f;
+}
+.tp-todo b { color: #f0c465; }
+
+/* Sample-audit "document" framing */
+.tp-doc {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+  margin-top: 18px;
+}
+.tp-doc-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--bg);
+}
+.tp-doc-head .t { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.tp-doc-body { padding: 22px; }
+.tp-doc-section { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.tp-doc-section:last-child { border-bottom: 0; }
+.tp-doc-section h4 {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-bright); margin: 0 0 10px;
+}
+.tp-doc-section p { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); margin: 0 0 8px; }
+.tp-redact {
+  background: var(--panel-3); color: var(--panel-3);
+  border-radius: 3px; padding: 0 6px; user-select: none;
+}
+.tp-cta { margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Footer gains a 4th column (Trust & due diligence) */
+.footer .wrap { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+@media (max-width: 900px) { .footer .wrap { grid-template-columns: 1fr 1fr; } }

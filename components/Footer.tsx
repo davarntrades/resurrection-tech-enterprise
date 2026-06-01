@@ -39,6 +39,14 @@ export function Footer() {
           <Link href="/contact">Contact</Link>
           <Link href="/request-audit">Request audit</Link>
         </div>
+        <div>
+          <h4>Trust &amp; due diligence</h4>
+          <Link href="/evidence">Evidence &amp; methodology</Link>
+          <Link href="/security">Security &amp; deployment</Link>
+          <Link href="/sample-audit">Sample audit report</Link>
+          <Link href="/company">Company</Link>
+          <Link href="/test-trajectory">Runtime demo</Link>
+        </div>
       </div>
       <div className="wrap">
         <div className="footer-base">

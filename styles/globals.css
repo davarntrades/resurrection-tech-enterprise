@@ -15,6 +15,7 @@
 @import "./booking.css";
 @import "./roi.css";
 @import "./test-trajectory.css";
+@import "./trust-pages.css";
 
 @tailwind components;
 @tailwind utilities;
