@@ -66,10 +66,6 @@ export function HomeClient() {
                 We identify, constrain, embed, and monitor runtime governance boundaries —
                 preventing catastrophic reachable states before execution.
               </p>
-              <p className="hero-position reveal in" data-d="2">
-                <b>No dashboard replacement required.</b> Morrison Runtime Governance sits between
-                existing AI agents and enterprise systems.
-              </p>
               <div className="hero-chips reveal in" data-d="3">
                 <span>Safety as Geometry</span>
                 <span>Intelligence as Reachability</span>
