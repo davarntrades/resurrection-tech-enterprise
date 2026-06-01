@@ -150,6 +150,8 @@ export function TestTrajectoryClient() {
   }
 
   const blocked = result?.verdict === "BLOCK";
+  const inconclusive = result?.verdict === "INCONCLUSIVE";
+  const statusClass = blocked ? "is-block" : inconclusive ? "is-inconclusive" : "is-permit";
 
   return (
     <section className="section section--tight tt" aria-label="Test a trajectory">
@@ -173,6 +175,16 @@ export function TestTrajectoryClient() {
             This demo evaluates executable trajectories before execution. No tools are executed.
             The evaluator only inspects the proposed trajectory and determines whether a forbidden
             state (Ω) becomes reachable.
+          </p>
+        </div>
+
+        <div className="tt-scope reveal" role="note">
+          <span className="tt-scope-tag">Scope</span>
+          <p>
+            This public demonstration evaluates a limited set of illustrative trajectory patterns.
+            It is <b>not</b> the complete Morrison Runtime Governance evaluation system used in
+            internal benchmarking and enterprise assessments. Trajectories it has no rule for return{" "}
+            <b>INCONCLUSIVE</b>, not a verdict.
           </p>
         </div>
 
@@ -245,7 +257,7 @@ export function TestTrajectoryClient() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={reduce ? undefined : { opacity: 0 }}
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className={`tt-verdict ${blocked ? "is-block" : "is-permit"}`}
+                  className={`tt-verdict ${statusClass}`}
                 >
                   {/* ══ EXECUTIVE SUMMARY — ~10-second read ══ */}
                   <div className="tt-exec">
@@ -276,8 +288,8 @@ export function TestTrajectoryClient() {
                       </div>
                       <div>
                         <dt>Ω reachable</dt>
-                        <dd className={result.omegaReachable ? "neg" : "pos"}>
-                          {result.omegaReachable ? "YES" : "NO"}
+                        <dd className={inconclusive ? "neutral" : result.omegaReachable ? "neg" : "pos"}>
+                          {inconclusive ? "NOT DETERMINED" : result.omegaReachable ? "YES" : "NO"}
                         </dd>
                       </div>
                       <div><dt>Confidence</dt><dd>{result.confidence}</dd></div>
@@ -285,15 +297,21 @@ export function TestTrajectoryClient() {
 
                     <div className="tt-why">
                       <div className="tt-why-row">
-                        <span className="tt-why-k">{blocked ? "Why Ω became reachable" : "Why Ω stays unreachable"}</span>
+                        <span className="tt-why-k">
+                          {blocked ? "Why Ω became reachable" : inconclusive ? "Ω status" : "Why Ω stays unreachable"}
+                        </span>
                         <p>{result.omegaReason}</p>
                       </div>
                       <div className="tt-why-row">
-                        <span className="tt-why-k">{blocked ? "Why it was blocked" : "Why it was admitted"}</span>
+                        <span className="tt-why-k">
+                          {blocked ? "Why it was blocked" : inconclusive ? "Why inconclusive" : "Why it was admitted"}
+                        </span>
                         <p>
                           {blocked
                             ? "Denied before execution because the action chain reaches a forbidden state — the unsafe step never runs."
-                            : "Admitted because every action stays inside the approved boundary; no forbidden state is reachable."}
+                            : inconclusive
+                              ? "The public demo has no rule for this trajectory pattern, so it does not return a verdict. A full Morrison Runtime Governance assessment evaluates the complete trajectory."
+                              : "Admitted because every action stays inside the approved boundary; no forbidden state is reachable."}
                         </p>
                       </div>
                     </div>
@@ -313,13 +331,13 @@ export function TestTrajectoryClient() {
                       <div><dt>Reason</dt><dd>{result.reason}</dd></div>
                       <div>
                         <dt>Forbidden state</dt>
-                        <dd>{blocked ? `Ω reached — ${result.omega}` : "Ω not reached"}</dd>
+                        <dd>{blocked ? `Ω reached — ${result.omega}` : inconclusive ? "Ω not evaluated" : "Ω not reached"}</dd>
                       </div>
                       <div><dt>Runtime status</dt><dd>{result.runtimeStatus}</dd></div>
                     </dl>
 
                     <p className="tt-eb-text">
-                      {blocked ? "Why this was blocked: " : "Why this remained admissible: "}
+                      {blocked ? "Why this was blocked: " : inconclusive ? "Why inconclusive: " : "Why this remained admissible: "}
                       {result.explanation}
                     </p>
 
