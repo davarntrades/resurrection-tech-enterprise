@@ -82,6 +82,13 @@ export function HomeClient() {
                 <Link href="/enterprise-pathways" className="btn btn--ghost">
                   View Enterprise Pathways
                 </Link>
+                <Link
+                  href="/integrations"
+                  className="btn btn--ghost"
+                  onClick={() => track(Events.CTA_CLICK, { location: "hero-integrations" })}
+                >
+                  See How It Integrates <span className="arr">→</span>
+                </Link>
               </div>
               <div className="hero-meta reveal in" data-d="5">
                 <span className="line" />
