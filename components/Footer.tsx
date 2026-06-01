@@ -25,6 +25,7 @@ export function Footer() {
         <div>
           <h4>Platform</h4>
           <Link href="/#what">What we do</Link>
+          <Link href="/integrations">How it integrates</Link>
           <Link href="/#model">Operating model</Link>
           <Link href="/#reachability">Ω Reachability</Link>
           <Link href="/enterprise-pathways">Why pricing scales</Link>
@@ -38,6 +39,14 @@ export function Footer() {
           <Link href="/book">Book a meeting</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/request-audit">Request audit</Link>
+        </div>
+        <div>
+          <h4>Trust &amp; due diligence</h4>
+          <Link href="/evidence">Evidence &amp; methodology</Link>
+          <Link href="/security">Security &amp; deployment</Link>
+          <Link href="/sample-audit">Sample audit report</Link>
+          <Link href="/company">Company</Link>
+          <Link href="/test-trajectory">Runtime demo</Link>
         </div>
       </div>
       <div className="wrap">
