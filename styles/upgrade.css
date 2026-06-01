@@ -852,3 +852,19 @@
   line-height: 1.65;
   text-wrap: pretty;
 }
+
+/* Hero positioning line — the one sentence that reframes the offering */
+.hero-position {
+  margin-top: 20px;
+  max-width: 560px;
+  padding: 13px 18px;
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(76,125,255,0.08), transparent 60%), var(--panel);
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.hero-position b { color: var(--ink); font-weight: 600; }
