@@ -16,6 +16,8 @@
 @import "./roi.css";
 @import "./test-trajectory.css";
 @import "./integrations.css";
+@import "./trust-pages.css";
+@import "./nav-menu.css";
 
 @tailwind components;
 @tailwind utilities;
