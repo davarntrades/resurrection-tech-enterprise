@@ -352,7 +352,8 @@ export function HomeClient() {
                 <div className="mw-gov-inner">
                   <span className="mw-omega">Ω</span>
                   <div>
-                    <div className="mw-gov-title">Runtime Governance Layer</div>
+                    <div className="mw-gov-kicker">Runtime Governance Layer</div>
+                    <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
                     <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
                   </div>
                 </div>
