@@ -1,0 +1,242 @@
+/* ============================================================
+   Test a Trajectory — public Runtime Governance console
+   ============================================================ */
+
+/* Homepage CTA linking to the public demo */
+.demo-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.tt .section-head h1 {
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 14px 0 0;
+}
+.tt .om { color: var(--omega); font-weight: 600; }
+.tt .tm { font-size: 0.55em; vertical-align: super; color: var(--ink-3); }
+.tt-explain {
+  margin-top: 12px;
+  color: var(--ink-3);
+  font-size: 14.5px;
+  line-height: 1.6;
+  max-width: 70ch;
+}
+
+.tt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 14px;
+}
+@media (max-width: 880px) { .tt-grid { grid-template-columns: 1fr; } }
+
+/* ── Panels ── */
+.tt-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tt-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.tt-panel-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.tt-panel-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+/* ── Input ── */
+.tt-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 280px;
+  border: 0;
+  background: var(--bg-1);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 18px;
+  tab-size: 2;
+  outline: none;
+}
+.tt-input:focus { box-shadow: inset 0 0 0 1px rgba(76,125,255,0.4); }
+.tt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 18px;
+  border-top: 1px solid var(--line);
+}
+.tt-error {
+  margin: 0 18px 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(229,72,77,0.4);
+  background: rgba(229,72,77,0.07);
+  border-radius: var(--radius-sm);
+  color: var(--omega);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Result: empty state ── */
+.tt-empty {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 30px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.tt-omega-watermark {
+  font-size: 96px;
+  line-height: 1;
+  color: var(--ink-4);
+  opacity: 0.25;
+  font-weight: 560;
+}
+
+/* ── Result: verdict ── */
+.tt-verdict { padding: 22px 22px 24px; }
+.tt-verdict.is-block { background: linear-gradient(180deg, rgba(229,72,77,0.07), transparent 40%); }
+.tt-verdict.is-permit { background: linear-gradient(180deg, rgba(63,178,127,0.07), transparent 40%); }
+
+.tt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-family: var(--mono);
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+.is-block .tt-badge {
+  color: var(--omega);
+  border-color: rgba(229,72,77,0.45);
+  background: rgba(229,72,77,0.10);
+  text-shadow: 0 0 24px rgba(229,72,77,0.4);
+}
+.is-permit .tt-badge {
+  color: var(--ok);
+  border-color: rgba(63,178,127,0.45);
+  background: rgba(63,178,127,0.10);
+  text-shadow: 0 0 24px rgba(63,178,127,0.4);
+}
+.tt-badge-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+
+.tt-fields {
+  margin: 20px 0 0;
+  border-top: 1px solid var(--line);
+}
+.tt-fields > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tt-fields dt {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+.tt-fields dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.is-block .tt-fields dd { color: var(--ink); }
+
+.tt-summary { margin-top: 18px; }
+.tt-summary-h {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+.tt-summary ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.tt-summary li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+}
+.tt-step-n { color: var(--accent-bright); white-space: nowrap; }
+.tt-step-tool { color: var(--ink); }
+.tt-note {
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-4);
+}
+
+/* ── Footer disclaimers + CTA ── */
+.tt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 22px;
+  padding: clamp(22px, 3vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(130% 180% at 0% 0%, rgba(76,125,255,0.08), transparent 55%),
+    var(--panel);
+}
+.tt-disclaimers { flex: 1 1 420px; min-width: 0; }
+.tt-disclaimers p { margin: 0 0 7px; font-size: 13px; line-height: 1.55; color: var(--ink-3); }
+.tt-disclaimers p:last-child { margin-bottom: 0; }
+.tt-disclaimers-strong { color: var(--ink) !important; font-size: 14.5px !important; }
+@media (max-width: 640px) {
+  .tt-footer { flex-direction: column; align-items: flex-start; }
+  .tt-footer .btn { width: 100%; justify-content: center; }
+}

@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { trajectoryRequestSchema } from "@/lib/validation";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { evaluateTrajectory, type EvalResult } from "@/lib/trajectory-eval";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Resp = (EvalResult & { ok: true }) | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+/**
+ * Public demo endpoint: evaluates a proposed tool-call trajectory for reachable
+ * forbidden states (Ω) before execution. It NEVER executes any submitted tool
+ * call — it only inspects the JSON shape.
+ *
+ * TODO: Replace `evaluateTrajectory` with a call to the Morrison Runtime
+ * Governance service. Core repo:
+ * https://github.com/davarntrades/Morrison-Runtime-Governance
+ */
+export async function POST(req: Request): Promise<NextResponse<Resp>> {
+  // ── Rate limit ────────────────────────────────────────────
+  const rl = rateLimit(clientIp(req.headers));
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } },
+    );
+  }
+
+  // ── Parse ─────────────────────────────────────────────────
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Malformed JSON. Paste a valid tool-call array or { \"trajectory\": [...] }." },
+      { status: 400 },
+    );
+  }
+
+  // Accept either a bare array or { trajectory: [...] }.
+  const candidate = Array.isArray(json) ? { trajectory: json } : json;
+
+  // ── Validate shape (bounds length, rejects junk) ──────────
+  const parsed = trajectoryRequestSchema.safeParse(candidate);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path.join(".") || "trajectory";
+      if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    const first = parsed.error.issues[0]?.message ?? "Invalid trajectory.";
+    return NextResponse.json({ ok: false, error: first, fieldErrors }, { status: 422 });
+  }
+
+  // ── Evaluate (pure; never executes anything) ──────────────
+  const result = evaluateTrajectory(parsed.data.trajectory);
+  return NextResponse.json({ ok: true, ...result });
+}

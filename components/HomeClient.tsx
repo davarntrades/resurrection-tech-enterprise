@@ -480,6 +480,12 @@ export function HomeClient() {
               </p>
             </div>
             <RuntimeGovernanceDemo />
+            <div className="demo-cta reveal">
+              <span>Want to test your own action chain?</span>
+              <Link href="/test-trajectory" className="btn btn--ghost btn--sm">
+                Try the trajectory demo <span className="arr">→</span>
+              </Link>
+            </div>
           </div>
         </section>
 
