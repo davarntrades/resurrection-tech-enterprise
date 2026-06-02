@@ -48,7 +48,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const p = getProvider(provider);
   if (!p || !p.isConfigured()) {
-    return NextResponse.json({ ok: false, error: "Online payment is not configured. Please request an invoice." }, { status: 503 });
+    return NextResponse.json({ ok: false, error: "Online payment is temporarily unavailable. Please request an invoice." }, { status: 503 });
   }
 
   try {

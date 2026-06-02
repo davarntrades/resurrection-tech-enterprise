@@ -15,7 +15,7 @@ export type ProviderId = "stripe" | "gocardless";
 export interface ServiceDef {
   id: string;
   name: string;
-  /** Amount in minor units (pence). null = no fixed online amount (invoice / mandate setup). */
+  /** Amount in minor units (pence) actually charged online. null = no fixed online amount (invoice / mandate setup). */
   amountMinor: number | null;
   currency: "gbp";
   /** How this service is normally transacted. */
@@ -24,6 +24,16 @@ export interface ServiceDef {
   online: boolean;
   /** Online providers allowed for this service (empty = invoice only). */
   providers: ProviderId[];
+  /** Recurring (Direct Debit mandate) rather than a one-off charge. */
+  recurring?: boolean;
+  /** True for deposit products — surfaces "credited against final engagement fee". */
+  isDeposit?: boolean;
+  /** Display: full engagement value, e.g. "£40,000–£75,000". */
+  engagementValue?: string;
+  /** Display: headline price/deposit shown on the card, e.g. "£10,000" or "Custom". */
+  priceLabel: string;
+  /** Display: status line, e.g. "Online payment enabled". */
+  statusLabel: string;
   blurb: string;
 }
 

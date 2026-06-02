@@ -3,59 +3,84 @@ import type { ServiceDef } from "./types";
 /**
  * Server-side catalogue of what can be paid for. Amounts are authoritative
  * here — the client never sends an amount. Enterprise engagements default to
- * invoice; online payment is offered only for approved deposits / retainers /
- * pre-agreed payments.
+ * invoice; online deposits reserve capacity and accelerate onboarding.
+ *
+ * Future-proofing: add a new deposit product by appending an entry below.
+ * The /pay page renders every entry generically — no page redesign required.
+ * Deposit ranges are reserved online at the entry (lower-bound) amount; the
+ * full range is shown to the buyer and credited against the final fee.
  */
 export const SERVICES: ServiceDef[] = [
   {
-    id: "assessment-deposit",
-    name: "Runtime Safety Assessment — Deposit",
-    amountMinor: 10_000_00, // £10,000
+    id: "discovery-workshop",
+    name: "Discovery Workshop",
+    amountMinor: 5_000_00, // £5,000 reservation deposit (range £5,000–£15,000)
     currency: "gbp",
     kind: "deposit",
     online: true,
     providers: ["stripe", "gocardless"],
-    blurb: "Secures a scheduled 48-hour Runtime Safety Assessment slot. Applied against the engagement fee.",
+    isDeposit: true,
+    priceLabel: "£5,000–£15,000 deposit",
+    statusLabel: "Online payment enabled",
+    blurb:
+      "Reserve an Enterprise Discovery Workshop to review architecture, governance requirements, deployment pathways, and organisational risk exposure. Deposit is credited against future engagements.",
   },
   {
-    id: "assessment",
+    id: "assessment-deposit",
     name: "Runtime Safety Assessment",
-    amountMinor: null,
+    amountMinor: 10_000_00, // £10,000 deposit
     currency: "gbp",
-    kind: "invoice",
-    online: false,
-    providers: [],
-    blurb: "£40K–£75K. Normally contracted and invoiced. A deposit may be paid online to reserve a slot.",
+    kind: "deposit",
+    online: true,
+    providers: ["stripe", "gocardless"],
+    isDeposit: true,
+    engagementValue: "£40,000–£75,000",
+    priceLabel: "£10,000 deposit",
+    statusLabel: "Online payment enabled",
+    blurb:
+      "Reserve a 48-hour Runtime Safety Assessment engagement slot. Deposit is credited against the final engagement fee.",
   },
   {
-    id: "pilot",
+    id: "pilot-deposit",
     name: "Structural Safety Pilot",
-    amountMinor: null,
+    amountMinor: 25_000_00, // £25,000 reservation deposit (range £25,000–£50,000)
     currency: "gbp",
-    kind: "invoice",
-    online: false,
-    providers: [],
-    blurb: "£250K–£750K+. Contracted and invoiced.",
+    kind: "deposit",
+    online: true,
+    providers: ["stripe", "gocardless"],
+    isDeposit: true,
+    engagementValue: "£250,000–£750,000+",
+    priceLabel: "£25,000–£50,000 deposit",
+    statusLabel: "Online payment enabled",
+    blurb:
+      "Reserve a Structural Safety Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
   },
   {
-    id: "integration",
+    id: "enterprise-integration",
     name: "Enterprise Integration",
     amountMinor: null,
     currency: "gbp",
     kind: "invoice",
     online: false,
     providers: [],
-    blurb: "Scoped deployment. Contracted and invoiced.",
+    priceLabel: "Custom",
+    statusLabel: "Invoice workflow only",
+    blurb:
+      "Custom-scoped deployment of Morrison Runtime Governance™ within enterprise environments. Pricing determined after architecture review, governance mapping, integration requirements, and deployment scope.",
   },
   {
-    id: "retainer",
+    id: "advisory-retainer",
     name: "Advisory Retainer",
-    amountMinor: null,
+    amountMinor: null, // recurring mandate setup; billed monthly on agreed terms
     currency: "gbp",
     kind: "retainer",
     online: true,
     providers: ["gocardless"],
-    blurb: "£35K–£100K/mo. Bank Debit via GoCardless for approved retainers, or invoiced.",
+    recurring: true,
+    priceLabel: "£35,000–£100,000 / mo",
+    statusLabel: "Recurring payments enabled",
+    blurb:
+      "Ongoing strategic advisory, deployment support, governance reviews, executive guidance, architecture oversight, and runtime safety consultation.",
   },
 ];
 

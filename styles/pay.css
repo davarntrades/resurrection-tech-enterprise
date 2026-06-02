@@ -42,7 +42,23 @@
 .pay-card-top h3 { font-size: 15.5px; color: var(--ink); margin: 0; letter-spacing: -0.01em; }
 .pay-amount { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent-bright); white-space: nowrap; }
 .is-invoice .pay-amount { color: var(--ink-3); font-weight: 500; }
-.pay-card-blurb { font-size: 13px; line-height: 1.5; color: var(--ink-3); margin: 10px 0 16px; flex: 1; }
+.pay-engagement {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--ink-3); margin-top: 6px;
+}
+.pay-status {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  margin-top: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-2);
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3);
+}
+.pay-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-4); flex: none; }
+.pay-status.is-online { color: var(--ok); border-color: rgba(63,178,127,0.4); }
+.pay-status.is-online .pay-status-dot { background: var(--ok); box-shadow: 0 0 8px rgba(63,178,127,0.5); }
+.pay-status.is-recurring { color: var(--accent-bright); border-color: rgba(76,125,255,0.4); }
+.pay-status.is-recurring .pay-status-dot { background: var(--accent-bright); box-shadow: 0 0 8px var(--accent-glow); }
+.pay-card-blurb { font-size: 13px; line-height: 1.5; color: var(--ink-3); margin: 12px 0 10px; flex: 1; }
+.pay-deposit-note {
+  font-family: var(--mono); font-size: 11px; color: var(--accent-bright); margin: 0 0 14px; letter-spacing: 0.02em;
+}
 .pay-card-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .pay-card-actions .btn { flex: 1 1 auto; justify-content: center; }
 
@@ -52,7 +68,15 @@
   border-radius: var(--radius-sm); padding: 12px 16px; color: var(--omega); font-size: 13.5px; line-height: 1.5;
 }
 
-.pay-fineprint { margin-top: 22px; font-size: 12px; line-height: 1.55; color: var(--ink-4); max-width: 80ch; }
+/* Explanation beneath the cards */
+.pay-explain {
+  margin-top: 22px; padding: 18px 22px;
+  border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: var(--radius-sm);
+  background: radial-gradient(130% 180% at 0% 0%, rgba(76,125,255,0.06), transparent 55%), var(--panel);
+}
+.pay-explain p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-2); max-width: 76ch; }
+
+.pay-fineprint { margin-top: 18px; font-size: 12px; line-height: 1.55; color: var(--ink-4); max-width: 80ch; }
 
 /* Success / cancel outcomes */
 .pay-outcome {

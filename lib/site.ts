@@ -56,6 +56,7 @@ export const NAV_MENU = [
       { href: "/company", label: "Company" },
       { href: "/partners", label: "Partners" },
       { href: "/licensing", label: "Licensing" },
+      { href: "/pay", label: "Payments & invoicing" },
       { href: "/contact", label: "Contact" },
       { href: "/book", label: "Book a meeting" },
     ],
