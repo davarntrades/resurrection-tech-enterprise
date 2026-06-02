@@ -19,49 +19,64 @@ export const SITE = {
   ],
 } as const;
 
-// Curated links shown inline in the desktop navbar.
+// Curated links shown inline in the desktop navbar — conversion-focused, no jargon.
 export const NAV_LINKS = [
-  { href: "/#what", label: "Platform" },
+  { href: "/why-runtime-governance", label: "Why us" },
   { href: "/integrations", label: "Integrations" },
-  { href: "/test-trajectory", label: "Runtime Demo" },
   { href: "/evidence", label: "Evidence" },
-  { href: "/enterprise-pathways", label: "Pathways" },
-  { href: "/pay", label: "Pay" },
+  { href: "/enterprise-pathways", label: "Pricing" },
 ] as const;
 
-// Full, grouped index — rendered in the menu panel (the complete site map,
-// available on both desktop and mobile via the menu button).
+// Full enterprise IA — rendered in the menu panel (desktop + mobile), in
+// mobile priority order. Technical concepts live under "Technology" only.
 export const NAV_MENU = [
   {
-    group: "Platform",
+    group: "Solutions",
     links: [
-      { href: "/#what", label: "What we do" },
+      { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/integrations", label: "How it integrates" },
-      { href: "/#reachability", label: "Ω Reachability" },
-      { href: "/test-trajectory", label: "Runtime demo" },
-      { href: "/#roi", label: "ROI / cost of failure" },
+      { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
+      { href: "/pay", label: "Pricing & engagements" },
     ],
   },
   {
-    group: "Evidence & trust",
+    group: "Who it's for",
     links: [
+      { href: "/why-runtime-governance", label: "Executives — CEO / CFO / CRO" },
+      { href: "/integrations", label: "Technical leaders — CTO / CISO" },
+      { href: "/security", label: "Risk & compliance" },
+      { href: "/test-trajectory", label: "AI & engineering teams" },
+      { href: "/#domains", label: "Target sectors" },
+    ],
+  },
+  {
+    group: "Evidence",
+    links: [
+      { href: "/evidence", label: "Validation results" },
       { href: "/case-studies", label: "Case studies" },
-      { href: "/evidence", label: "Evidence & methodology" },
       { href: "/security", label: "Security & deployment" },
       { href: "/sample-audit", label: "Sample audit report" },
+      { href: "/test-trajectory", label: "Interactive demo" },
     ],
   },
   {
-    group: "Engage",
+    group: "Technology",
     links: [
-      { href: "/enterprise-pathways", label: "Enterprise pathways" },
-      { href: "/company", label: "Company" },
+      { href: "/#middleware", label: "Runtime Governance architecture" },
+      { href: "/#reachability", label: "Reachability & Ω" },
+      { href: "/#reachability", label: "Safety as Geometry™" },
+      { href: "/#threats", label: "Threat coverage" },
+      { href: "/#model", label: "Morrison Framework™" },
+    ],
+  },
+  {
+    group: "Company",
+    links: [
+      { href: "/company", label: "About Resurrection Tech™" },
       { href: "/partners", label: "Partners" },
       { href: "/licensing", label: "Licensing" },
-      { href: "/pay", label: "Payments & invoicing" },
       { href: "/contact", label: "Contact" },
-      { href: "/book", label: "Book a meeting" },
     ],
   },
 ] as const;
