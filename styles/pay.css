@@ -104,6 +104,15 @@
 
 .pay-fineprint { margin-top: 18px; font-size: 12px; line-height: 1.55; color: var(--ink-4); max-width: 80ch; }
 
+/* Who typically buys this */
+.pay-buyers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.pay-buyer { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); padding: 18px 20px; }
+.pay-buyer-h { font-size: 14.5px; color: var(--ink); font-weight: 540; letter-spacing: -0.01em; }
+.pay-buyer-k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 12px 0 9px; }
+.pay-buyer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pay-buyer li { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-2); }
+.pay-buyer li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-bright); flex: none; }
+
 /* Success / cancel outcomes */
 .pay-outcome {
   border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel);

@@ -25,6 +25,7 @@ export function Footer() {
         <div>
           <h4>Platform</h4>
           <Link href="/#what">What we do</Link>
+          <Link href="/why-runtime-governance">Why Runtime Governance</Link>
           <Link href="/integrations">How it integrates</Link>
           <Link href="/#model">Operating model</Link>
           <Link href="/#reachability">Ω Reachability</Link>

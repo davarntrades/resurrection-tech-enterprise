@@ -71,6 +71,23 @@ export default function Page() {
             </p>
           </div>
 
+          {/* Who typically buys this */}
+          <div className="section-head reveal" style={{ marginTop: 40 }}>
+            <span className="eyebrow">Buyer fit</span>
+            <h2>Who typically buys this?</h2>
+          </div>
+          <div className="pay-buyers reveal">
+            {SERVICES.map((s) => (
+              <div className="pay-buyer" key={s.id}>
+                <div className="pay-buyer-h">{s.name}</div>
+                <div className="pay-buyer-k">Typical buyer</div>
+                <ul>
+                  {s.buyers.map((b) => <li key={b}>{b}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+
           {/* Payment Options — accepted methods */}
           <div className="section-head reveal" style={{ marginTop: 40 }}>
             <span className="eyebrow">Payment options</span>
