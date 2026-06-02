@@ -214,6 +214,108 @@ export function HomeClient() {
           </div>
         </section>
 
+        {/* ===== THREAT COVERAGE (TIERED, BUYER-FIRST) ===== */}
+        <section className="section section--tight tcov" id="threats" aria-label="Threat coverage">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Threat coverage</span>
+              <h2>The business risks Runtime Governance prevents.</h2>
+              <p>
+                Traditional security evaluates individual events. Runtime Governance evaluates the
+                trajectory those events create — and denies it before execution.
+              </p>
+            </div>
+
+            {/* Tier 1 — Enterprise critical */}
+            <div className="tcov-tier reveal">
+              <div className="tcov-tier-h"><span className="tcov-dot crit" aria-hidden="true" />Enterprise critical risks</div>
+              <div className="tcov-grid">
+                {([
+                  ["Unauthorized Financial Execution", "An agent moves money — a transfer, payment, or refund — outside approved limits or to an unverified destination.", "The transfer is denied before it executes, preventing irreversible financial loss."],
+                  ["Credential & Secret Exfiltration", "An agent reads API keys, tokens, or secrets and routes them toward an external destination.", "The credential-to-external path is blocked before any secret leaves the boundary."],
+                  ["Data Leakage (PII / PHI / customer data)", "Customer or regulated data is read and then sent beyond the approved boundary.", "The exfiltration trajectory is stopped before a notifiable breach can occur."],
+                  ["Privilege Escalation", "An agent acquires permissions — for itself or another agent — beyond its authorised scope.", "Escalation is denied before elevated access is ever granted."],
+                ] as [string, string, string][]).map(([t, what, prevent]) => (
+                  <div className="tcov-card crit" key={t}>
+                    <div className="tcov-card-h">{t}</div>
+                    <p className="tcov-what">{what}</p>
+                    <p className="tcov-prevent"><span>Prevented</span>{prevent}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tier 2 — Autonomous agent risks */}
+            <div className="tcov-tier reveal">
+              <div className="tcov-tier-h"><span className="tcov-dot auto" aria-hidden="true" />Autonomous agent risks</div>
+              <p className="tcov-tier-sub">Failure modes that point-in-time monitoring cannot see, because the danger only exists across the full trajectory.</p>
+              <div className="tcov-grid">
+                {([
+                  ["Chained Multi-Step Attacks", "Each step looks benign in isolation; the risk only appears across the full sequence. Event-level monitoring never sees the chain."],
+                  ["Cross-Agent Delayed Intent", "Intent formed by one agent executes through another, later — breaking the cause-and-effect link monitoring relies on."],
+                  ["Silent Trajectory Collapse", "The system drifts toward an unsafe state with no single alerting event. Nothing trips a threshold until it is too late."],
+                  ["Long-Horizon Agent Drift", "Over many steps an agent migrates outside its original mandate — gradually, below the radar of point-in-time checks."],
+                ] as [string, string][]).map(([t, d]) => (
+                  <div className="tcov-card auto" key={t}>
+                    <div className="tcov-card-h">{t}</div>
+                    <p className="tcov-what">{d}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tier 3 — Advanced multi-agent catastrophic */}
+            <div className="tcov-tier reveal">
+              <div className="tcov-tier-h"><span className="tcov-dot adv" aria-hidden="true" />Advanced multi-agent catastrophic risks</div>
+
+              <div className="tcov-featured">
+                <div className="tcov-featured-tag">Featured · T05</div>
+                <h3>Cascading Failures Across Agent Pipelines</h3>
+                <p>Multiple individually safe agents can combine into an unsafe system.</p>
+                <div className="tcov-chain" aria-hidden="true">
+                  <span className="tcov-chain-node ok">Agent A — safe</span>
+                  <span className="tcov-chain-plus">+</span>
+                  <span className="tcov-chain-node ok">Agent B — safe</span>
+                  <span className="tcov-chain-plus">+</span>
+                  <span className="tcov-chain-node ok">Agent C — safe</span>
+                  <span className="tcov-chain-eq">=</span>
+                  <span className="tcov-chain-node bad">Combined trajectory — unsafe</span>
+                </div>
+                <p className="tcov-featured-close">Runtime Governance evaluates the full trajectory across the pipeline — not each agent in isolation — and denies the combined unsafe path before any agent acts.</p>
+              </div>
+
+              <div className="tcov-grid tcov-grid--adv">
+                {([
+                  ["Multi-Agent Collusion", "Agents coordinate to achieve together what none could alone.", ["Collusive exfiltration", "Role-split credential theft", "Split unauthorized transfer", "Tool delegation chains"]],
+                  ["Composite Cross-Domain Risk", "Separate risk categories combine into one unsafe trajectory.", ["Financial execution + data exfiltration", "Credential theft + privilege escalation", "Multiple risk categories in one trajectory"]],
+                ] as [string, string, string[]][]).map(([t, d, subs]) => (
+                  <div className="tcov-card adv" key={t}>
+                    <div className="tcov-card-h">{t}</div>
+                    <p className="tcov-what">{d}</p>
+                    <ul className="tcov-sub">{subs.map((s) => <li key={s}>{s}</li>)}</ul>
+                  </div>
+                ))}
+                {([
+                  ["Hidden-Trajectory Catastrophic Risk", "An unsafe path that never surfaces as an obvious unsafe step."],
+                  ["Multi-Representation Forbidden-State Reachability", "The same forbidden outcome reached through different encodings or tools."],
+                  ["Memory Contamination Between Agents", "Unsafe state passed between agents through shared memory or context."],
+                ] as [string, string][]).map(([t, d]) => (
+                  <div className="tcov-card adv" key={t}>
+                    <div className="tcov-card-h">{t}</div>
+                    <p className="tcov-what">{d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="tcov-keymsg reveal">
+                <span className="tcov-keymsg-dot" aria-hidden="true" />
+                Existing controls watch individual events. Multi-agent systems fail across the whole
+                trajectory — which is exactly what Runtime Governance evaluates, before execution.
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ===== EVIDENCE / TRUST METRICS ===== */}
         <section className="section section--tight" id="evidence" aria-label="Evidence and trust">
           <div className="wrap">
@@ -469,10 +571,10 @@ export function HomeClient() {
               <span className="eyebrow">Governance beyond the model</span>
               <h2>Governance for every AI system you already run.</h2>
               <p>
-                You do not rebuild your AI stack. Runtime Governance sits at the execution
-                boundary and governs actions regardless of where they originate — one layer
-                across every provider, model, agent framework, and deployment environment
-                already operating inside your business.
+                Runtime Governance does not depend on model weights, architectures, providers, or
+                training methods. The governance layer operates at the execution boundary, so the
+                same safety controls govern actions regardless of where they originate. You do not
+                rebuild your AI stack.
               </p>
             </div>
 
@@ -493,7 +595,7 @@ export function HomeClient() {
               <div className="mw-layer mw-models">
                 <div className="mw-layer-label">Any provider · model · agent · system</div>
                 <div className="mw-model-chips">
-                  {["OpenAI", "Anthropic", "Google", "Meta", "Mistral", "DeepSeek", "Qwen", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
+                  {["OpenAI", "Anthropic", "Google", "Meta", "DeepSeek", "Qwen", "Microsoft Phi", "Mistral", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
                     <span key={m} className="mw-chip">{m}</span>
                   ))}
                 </div>
@@ -532,6 +634,32 @@ export function HomeClient() {
                 Runtime Governance remains at the execution boundary — enforcing the same safety
                 constraints regardless of the intelligence generating the action.
               </p>
+            </div>
+
+            <p className="mw-examples reveal">
+              These providers are examples, not limits. As new models emerge, Runtime Governance
+              remains unchanged — the model can change; the governance layer does not.
+            </p>
+
+            <div className="mw-callouts reveal">
+              <div className="mw-callout">
+                <div className="mw-callout-k">Future model compatible</div>
+                <p>
+                  New frontier models, open-weight systems, agent frameworks, and enterprise AI
+                  stacks can be governed without redesigning the governance architecture. Governance
+                  is attached to execution, not to a specific model.
+                </p>
+              </div>
+              <div className="mw-callout mw-callout--compare">
+                <div className="mw-compare-row is-legacy">
+                  <span className="mw-compare-k">Traditional AI safety</span>
+                  <span className="mw-compare-v">&ldquo;Every new model requires a new safety strategy.&rdquo;</span>
+                </div>
+                <div className="mw-compare-row is-gov">
+                  <span className="mw-compare-k">Runtime Governance</span>
+                  <span className="mw-compare-v">&ldquo;The same governance layer evaluates actions regardless of which model proposed them.&rdquo;</span>
+                </div>
+              </div>
             </div>
 
             <div className="mw-note reveal">
@@ -674,38 +802,6 @@ export function HomeClient() {
                 <div className="inv-card card reveal" key={term}>
                   <div className="inv-term">{term}</div>
                   <div className="inv-plain">{plain}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <hr className="divider" />
-
-        {/* ===== THREAT COVERAGE ===== */}
-        <section className="section section--tight" id="threats" aria-label="Threat coverage">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Threat coverage</span>
-              <h2>What Runtime Governance protects against.</h2>
-              <p>
-                Autonomous systems fail in specific, predictable ways. Runtime Governance
-                addresses the threat classes that cause catastrophic, irreversible outcomes.
-              </p>
-            </div>
-            <div className="threat-grid">
-              {([
-                ["T01", "Unauthorised Autonomous Action", "Agent executes transactions, modifies systems, or triggers workflows outside its defined authorisation scope — without human approval."],
-                ["T02", "Data Exfiltration via Tool Use", "Agent uses permitted tools to extract sensitive data across a boundary — PII, credentials, proprietary data — beyond the tool's intended scope."],
-                ["T03", "Privilege Escalation in Multi-Agent Systems", "An agent acquires permissions or capabilities not explicitly granted, exploiting coordination gaps in multi-agent pipeline architectures."],
-                ["T04", "Regulatory Boundary Violation", "Agent takes an action that is operationally possible but legally prohibited — breaching payment limits, exposing PHI, or bypassing FCA controls."],
-                ["T05", "Cascading Failures Across Agent Pipelines", "A single unsafe decision propagates through downstream agents or tools, amplifying the blast radius before any human-in-the-loop can intervene."],
-                ["T06", "Hallucination-Driven Catastrophic Action", "Model generates a confident but incorrect output that drives the system into an irreversible action — wire transfer, system shutdown, or credential change."],
-              ] as [string, string, string][]).map(([n, title, desc], i) => (
-                <div className="threat-card card reveal" key={n} data-d={i > 0 ? String(Math.min(i, 5)) : undefined}>
-                  <div className="threat-n">{n}</div>
-                  <div className="threat-title">{title}</div>
-                  <div className="threat-desc">{desc}</div>
                 </div>
               ))}
             </div>
