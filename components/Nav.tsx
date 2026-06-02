@@ -54,7 +54,7 @@ export function Nav() {
             className="btn btn--primary btn--sm"
             onClick={() => track(Events.CTA_CLICK, { location: "nav" })}
           >
-            Book Meeting <span className="arr">→</span>
+            Book a Consultation <span className="arr">→</span>
           </Link>
           <button
             type="button"
@@ -78,6 +78,19 @@ export function Nav() {
       />
       <div id="nav-menu-panel" className={`nav-menu-panel${menuOpen ? " is-open" : ""}`} role="dialog" aria-label="Site menu" aria-modal="true" hidden={!menuOpen}>
         <div className="wrap">
+          {/* Conversion actions first — top on mobile */}
+          <div className="nav-menu-cta">
+            <Link
+              href="/book"
+              className="btn btn--primary"
+              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu" }); setMenuOpen(false); }}
+            >
+              Book a Consultation <span className="arr">→</span>
+            </Link>
+            <Link href="/enterprise-pathways" className="btn btn--ghost" onClick={() => setMenuOpen(false)}>
+              Runtime Safety Assessment
+            </Link>
+          </div>
           <div className="nav-menu-grid">
             {NAV_MENU.map((g) => (
               <div className="nav-menu-col" key={g.group}>
@@ -89,18 +102,6 @@ export function Nav() {
                 ))}
               </div>
             ))}
-          </div>
-          <div className="nav-menu-foot">
-            <Link href="/enterprise-pathways" className="btn btn--ghost btn--sm" onClick={() => setMenuOpen(false)}>
-              Enterprise Pathways
-            </Link>
-            <Link
-              href="/book"
-              className="btn btn--primary btn--sm"
-              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu" }); setMenuOpen(false); }}
-            >
-              Book a Runtime Safety Assessment <span className="arr">→</span>
-            </Link>
           </div>
         </div>
       </div>
