@@ -18,8 +18,11 @@ export default function Page() {
     blurb: s.blurb,
     online: s.online,
     providers: [...s.providers],
-    amount: s.amountMinor != null ? `£${(s.amountMinor / 100).toLocaleString("en-GB")}` : null,
-    kind: s.kind,
+    priceLabel: s.priceLabel,
+    statusLabel: s.statusLabel,
+    engagementValue: s.engagementValue ?? null,
+    isDeposit: Boolean(s.isDeposit),
+    recurring: Boolean(s.recurring),
   }));
 
   return (
@@ -59,6 +62,13 @@ export default function Page() {
           </div>
 
           <PayClient services={services} />
+
+          <div className="pay-explain reveal">
+            <p>
+              Enterprise engagements are typically contracted and invoiced. Online deposits are used
+              to reserve capacity, accelerate onboarding, and secure project availability.
+            </p>
+          </div>
 
           <p className="pay-fineprint reveal">
             Card payments (including Apple Pay / Google Pay where available) are processed by Stripe.

@@ -11,13 +11,16 @@ interface PayService {
   blurb: string;
   online: boolean;
   providers: ProviderId[];
-  amount: string | null;
-  kind: string;
+  priceLabel: string;
+  statusLabel: string;
+  engagementValue: string | null;
+  isDeposit: boolean;
+  recurring: boolean;
 }
 
 const PROVIDER_LABEL: Record<ProviderId, string> = {
-  stripe: "Pay by Card",
-  gocardless: "Pay by Bank Debit",
+  stripe: "Pay by Card · Stripe",
+  gocardless: "Bank Debit · GoCardless",
 };
 
 export function PayClient({ services }: { services: PayService[] }) {
@@ -38,7 +41,7 @@ export function PayClient({ services }: { services: PayService[] }) {
       if (data.ok && data.url) {
         window.location.href = data.url; // hosted provider checkout
       } else {
-        setError(data.error ?? "Could not start checkout. Please request an invoice.");
+        setError(data.error ?? "Online payment is temporarily unavailable. Please request an invoice.");
         setBusy(null);
       }
     } catch {
@@ -53,9 +56,17 @@ export function PayClient({ services }: { services: PayService[] }) {
         <div className={`pay-card${s.online ? "" : " is-invoice"}`} key={s.id}>
           <div className="pay-card-top">
             <h3>{s.name}</h3>
-            <span className="pay-amount">{s.amount ?? "Invoice"}</span>
+            <span className="pay-amount">{s.priceLabel}</span>
           </div>
+          {s.engagementValue && (
+            <div className="pay-engagement">Engagement value · {s.engagementValue}</div>
+          )}
+          <span className={`pay-status${s.online ? (s.recurring ? " is-recurring" : " is-online") : " is-invoiceonly"}`}>
+            <span className="pay-status-dot" aria-hidden="true" />
+            {s.statusLabel}
+          </span>
           <p className="pay-card-blurb">{s.blurb}</p>
+          {s.isDeposit && <p className="pay-deposit-note">Deposit credited against final engagement fee.</p>}
           <div className="pay-card-actions">
             {s.online ? (
               s.providers.map((p) => (
@@ -65,8 +76,7 @@ export function PayClient({ services }: { services: PayService[] }) {
                   onClick={() => pay(s.id, p)}
                   disabled={busy !== null}
                 >
-                  {busy === `${s.id}:${p}` ? "Starting…" : `${PROVIDER_LABEL[p]}`}
-                  {p === "stripe" ? " · Stripe" : " · GoCardless"} <span className="arr">→</span>
+                  {busy === `${s.id}:${p}` ? "Starting…" : PROVIDER_LABEL[p]} <span className="arr">→</span>
                 </button>
               ))
             ) : (
