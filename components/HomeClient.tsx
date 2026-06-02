@@ -315,6 +315,43 @@ export function HomeClient() {
 
         <hr className="divider" />
 
+        {/* ===== COST OF FAILURE (QUALITATIVE) ===== */}
+        <section className="section section--tight cof" id="cost-of-failure-overview" aria-label="The cost of failure">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Cost of failure</span>
+              <h2>What happens if an autonomous system makes a bad decision in production?</h2>
+              <p>
+                When an AI agent acts on its own, a single wrong action can become a business event
+                in seconds. Runtime Governance reduces this exposure before execution — and gives
+                teams the confidence to deploy more automation, not less.
+              </p>
+            </div>
+            <div className="cof-grid reveal">
+              {[
+                ["Regulatory investigations", "Enforcement, audits, and reporting obligations."],
+                ["Financial losses", "Funds moved, payments made, value destroyed."],
+                ["Data breach exposure", "Customer and proprietary data leaving the boundary."],
+                ["Compliance failures", "FCA / AML / GDPR controls bypassed by an agent."],
+                ["Operational disruption", "Systems changed, workflows broken, downtime."],
+                ["Reputational damage", "Public incidents that outlast the fix."],
+                ["Customer trust erosion", "Confidence lost across the customer base."],
+                ["Confidence to deploy", "Removed exposure means more automation, safely."],
+              ].map(([h, p], i) => (
+                <div className={`cof-card${i === 7 ? " is-positive" : ""}`} key={h}>
+                  <span className="cof-dot" aria-hidden="true" />
+                  <div>
+                    <div className="cof-h">{h}</div>
+                    <div className="cof-p">{p}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
         {/* ===== ROI — COST OF ONE UNSAFE EXECUTION ===== */}
         <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
           <div className="wrap">
@@ -387,6 +424,41 @@ export function HomeClient() {
 
         {/* ===== FINANCIAL RISK COMPARISON ===== */}
         <FinancialComparison />
+
+        <hr className="divider" />
+
+        {/* ===== WHY RUNTIME GOVERNANCE EXISTS (BRIDGE) ===== */}
+        <section className="section section--tight" id="why-fails" data-screen-label="Why Runtime Governance">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Why Runtime Governance exists</span>
+              <h2>Most safety reacts. Governance prevents.</h2>
+              <p>
+                Traditional AI safety inspects outputs after the system has already acted. Runtime
+                Governance evaluates the action before execution. Here is how it works.
+              </p>
+            </div>
+            <div className="versus">
+              <div className="vs-col legacy reveal">
+                <div className="vs-tag"><span className="pip" /> Traditional safety</div>
+                <div className="vs-step"><span className="si">01</span> Output generated</div>
+                <div className="vs-arrow-v"><ArrowDown /></div>
+                <div className="vs-step"><span className="si">02</span> Action taken</div>
+                <div className="vs-arrow-v"><ArrowDown /></div>
+                <div className="vs-step"><span className="si">03</span> Issue discovered later</div>
+              </div>
+              <div className="vs-mid"><div className="vbar" /><span>VS</span><div className="vbar" /></div>
+              <div className="vs-col gov reveal" data-d="1">
+                <div className="vs-tag"><span className="pip" /> Runtime Governance</div>
+                <div className="vs-step"><span className="si">01</span> Trajectory evaluated</div>
+                <div className="vs-arrow-v"><ArrowDown /></div>
+                <div className="vs-step"><span className="si">02</span> Unsafe path detected</div>
+                <div className="vs-arrow-v"><ArrowDown /></div>
+                <div className="vs-step"><span className="si">03</span> Execution prevented</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <hr className="divider" />
 
@@ -609,39 +681,6 @@ export function HomeClient() {
         </section>
 
         <hr className="divider" />
-
-        {/* ===== WHY TRADITIONAL FAILS ===== */}
-        <section className="section section--tight" id="why-fails" data-screen-label="Why traditional fails">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Why traditional AI safety fails</span>
-              <h2>Most safety reacts. Governance prevents.</h2>
-              <p>
-                Conventional safety inspects outputs after the system has already acted. Runtime
-                Governance evaluates the trajectory and denies unsafe execution before it happens.
-              </p>
-            </div>
-            <div className="versus">
-              <div className="vs-col legacy reveal">
-                <div className="vs-tag"><span className="pip" /> Traditional safety</div>
-                <div className="vs-step"><span className="si">01</span> Output generated</div>
-                <div className="vs-arrow-v"><ArrowDown /></div>
-                <div className="vs-step"><span className="si">02</span> Action taken</div>
-                <div className="vs-arrow-v"><ArrowDown /></div>
-                <div className="vs-step"><span className="si">03</span> Issue discovered later</div>
-              </div>
-              <div className="vs-mid"><div className="vbar" /><span>VS</span><div className="vbar" /></div>
-              <div className="vs-col gov reveal" data-d="1">
-                <div className="vs-tag"><span className="pip" /> Runtime Governance</div>
-                <div className="vs-step"><span className="si">01</span> Trajectory evaluated</div>
-                <div className="vs-arrow-v"><ArrowDown /></div>
-                <div className="vs-step"><span className="si">02</span> Unsafe path detected</div>
-                <div className="vs-arrow-v"><ArrowDown /></div>
-                <div className="vs-step"><span className="si">03</span> Execution prevented</div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* ===== THREAT COVERAGE ===== */}
         <section className="section section--tight" id="threats" aria-label="Threat coverage">
