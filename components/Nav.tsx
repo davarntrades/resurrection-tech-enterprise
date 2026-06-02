@@ -50,11 +50,11 @@ export function Nav() {
 
         <div className="nav-cta">
           <Link
-            href="/book"
+            href="/book#assessment"
             className="btn btn--primary btn--sm"
             onClick={() => track(Events.CTA_CLICK, { location: "nav" })}
           >
-            Book a Consultation <span className="arr">→</span>
+            Book Assessment <span className="arr">→</span>
           </Link>
           <button
             type="button"
@@ -81,14 +81,14 @@ export function Nav() {
           {/* Conversion actions first — top on mobile */}
           <div className="nav-menu-cta">
             <Link
-              href="/book"
+              href="/book#assessment"
               className="btn btn--primary"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu" }); setMenuOpen(false); }}
             >
-              Book a Consultation <span className="arr">→</span>
+              Book a Runtime Safety Assessment <span className="arr">→</span>
             </Link>
             <Link href="/enterprise-pathways" className="btn btn--ghost" onClick={() => setMenuOpen(false)}>
-              Runtime Safety Assessment
+              Enterprise pathways
             </Link>
           </div>
           <div className="nav-menu-grid">

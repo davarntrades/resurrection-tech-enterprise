@@ -59,7 +59,10 @@ export default function Page() {
 
           <div className="why-omega reveal">
             <span className="om" aria-hidden="true">Ω</span>
-            <p className="why-omega-q">What is the cost if <span className="om">Ω</span> becomes reachable?</p>
+            <div>
+              <p className="why-omega-q">What happens when unsafe states become reachable?</p>
+              <p className="why-omega-note">In the Morrison Framework™, unsafe states are represented as <span className="om">Ω</span>.</p>
+            </div>
           </div>
 
           <div className="why-cta reveal">

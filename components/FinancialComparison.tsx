@@ -229,7 +229,7 @@ export function FinancialComparison() {
             </p>
           </div>
           <Link href="/book#assessment" className="btn btn--primary fc-cta-btn">
-            Book Runtime Safety Assessment <span className="arr">→</span>
+            Book a Runtime Safety Assessment <span className="arr">→</span>
           </Link>
         </div>
       </div>
