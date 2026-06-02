@@ -19,6 +19,7 @@
 @import "./trust-pages.css";
 @import "./nav-menu.css";
 @import "./pay.css";
+@import "./case-studies.css";
 
 @tailwind components;
 @tailwind utilities;

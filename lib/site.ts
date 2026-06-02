@@ -44,6 +44,7 @@ export const NAV_MENU = [
   {
     group: "Evidence & trust",
     links: [
+      { href: "/case-studies", label: "Case studies" },
       { href: "/evidence", label: "Evidence & methodology" },
       { href: "/security", label: "Security & deployment" },
       { href: "/sample-audit", label: "Sample audit report" },

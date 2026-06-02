@@ -43,6 +43,7 @@ export function Footer() {
         </div>
         <div>
           <h4>Evidence &amp; trust</h4>
+          <Link href="/case-studies">Case studies</Link>
           <Link href="/evidence">Evidence &amp; methodology</Link>
           <Link href="/security">Security &amp; deployment</Link>
           <Link href="/sample-audit">Sample audit report</Link>
