@@ -63,13 +63,14 @@ export function HomeClient() {
                 for <span className="grad">Autonomous Systems</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                We identify, constrain, embed, and monitor runtime governance boundaries —
-                preventing catastrophic reachable states before execution.
+                Stop autonomous AI agents from taking catastrophic actions — unauthorised transfers,
+                data exfiltration, privilege escalation — before they execute. Deploy AI with
+                governance built in.
               </p>
               <div className="hero-chips reveal in" data-d="3">
-                <span>Safety as Geometry</span>
-                <span>Intelligence as Reachability</span>
-                <span>Deployment-Ready Governance</span>
+                <span>Prevents unsafe actions before execution</span>
+                <span>Works across your existing stack</span>
+                <span>Audit-ready governance</span>
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
@@ -135,6 +136,52 @@ export function HomeClient() {
                 <div className="mval" style={{ fontSize: "clamp(20px,2vw,26px)" }}>Cross-Model</div>
                 <div className="mlabel">Validation coverage</div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== WHAT IT PREVENTS / WHAT YOU GET ===== */}
+        <section className="section section--tight outcomes" id="outcomes" aria-label="What it prevents and what you get">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">The bottom line</span>
+              <h2>What it prevents, and what you get.</h2>
+              <p>
+                Runtime Governance sits between your AI agents and your live systems, blocking the
+                action chains that lead to catastrophic outcomes — before they execute.
+              </p>
+            </div>
+            <div className="outcomes-grid">
+              <div className="outcomes-col reveal is-prevents">
+                <div className="outcomes-h"><span className="outcomes-dot block" aria-hidden="true" />What it prevents</div>
+                <ul>
+                  {[
+                    "Unauthorised funds transfers",
+                    "Customer-data exfiltration",
+                    "Privilege escalation across internal tools",
+                    "Regulatory-boundary violations (FCA / AML / GDPR)",
+                    "Cascading failures across multi-agent pipelines",
+                    "Hallucination-driven irreversible actions",
+                  ].map((t) => <li key={t}>{t}</li>)}
+                </ul>
+              </div>
+              <div className="outcomes-col reveal is-get">
+                <div className="outcomes-h"><span className="outcomes-dot ok" aria-hidden="true" />What you get</div>
+                <ul>
+                  {[
+                    "Fewer catastrophic incidents — risk removed before execution",
+                    "Reduced regulatory and financial exposure",
+                    "Faster, safer AI adoption — deploy with governance built in",
+                    "Audit-ready evidence for every governed decision",
+                    "One governance layer across every model, agent, and vendor",
+                    "No rebuild — it works inside your existing stack",
+                  ].map((t) => <li key={t}>{t}</li>)}
+                </ul>
+              </div>
+            </div>
+            <div className="outcomes-cta reveal">
+              <Link href="/why-runtime-governance" className="btn btn--ghost btn--sm">Why this matters <span className="arr">→</span></Link>
+              <Link href="/integrations" className="btn btn--ghost btn--sm">How it integrates <span className="arr">→</span></Link>
             </div>
           </div>
         </section>
