@@ -53,12 +53,16 @@ export default function Page() {
             <h2>Legal entity</h2>
             <div className="tp-facts">
               <div><dt>Registered name</dt><dd>{SITE.legalName}</dd></div>
+              <div><dt>Company registration no.</dt><dd>16613178</dd></div>
               <div><dt>Jurisdiction</dt><dd>United Kingdom</dd></div>
-              <div><dt>Company registration no.</dt><dd><span className="tp-pill warn">Owner to add</span></dd></div>
-              <div><dt>Registered office</dt><dd><span className="tp-pill warn">Owner to add</span></dd></div>
+              <div><dt>Status</dt><dd><span className="tp-pill ok">Active</span></dd></div>
+              <div><dt>Incorporated</dt><dd>29 July 2025</dd></div>
+              <div>
+                <dt>Registered office</dt>
+                <dd>Carneys Community Centre, 30 Petworth Street, London, England, SW11 4QW</dd>
+              </div>
               <div><dt>Patent</dt><dd>{SITE.patent} (UKIPO) — see <Link href="/evidence">Evidence</Link> for status</dd></div>
             </div>
-            <div className="tp-todo"><b>Owner action — required for procurement:</b> add the Companies House registration number and registered office address. Procurement cannot onboard a supplier without a verifiable legal entity.</div>
           </div>
 
           <div className="tp-block">
