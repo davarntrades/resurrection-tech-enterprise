@@ -5,7 +5,6 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
-import { ConsultationSection } from "@/components/ConsultationSection";
 import { FinancialComparison } from "@/components/FinancialComparison";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
@@ -78,7 +77,7 @@ export function HomeClient() {
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero" })}
                 >
-                  Book a Consultation <span className="arr">→</span>
+                  Book a Runtime Safety Assessment <span className="arr">→</span>
                 </Link>
                 <Link href="/enterprise-pathways" className="btn btn--ghost">
                   View Enterprise Pathways
@@ -182,6 +181,35 @@ export function HomeClient() {
             <div className="outcomes-cta reveal">
               <Link href="/why-runtime-governance" className="btn btn--ghost btn--sm">Why this matters <span className="arr">→</span></Link>
               <Link href="/integrations" className="btn btn--ghost btn--sm">How it integrates <span className="arr">→</span></Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== BEFORE EXECUTION — TWO-PATH DIAGRAM ===== */}
+        <section className="section section--tight twopath" id="before-execution" aria-label="Runtime Governance before execution">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Runtime Governance — before execution</span>
+              <h2>Every action is checked before it runs.</h2>
+              <p>Unsafe action chains are intercepted at the governance layer. Approved actions execute normally.</p>
+            </div>
+            <div className="tp2-grid reveal">
+              <div className="tp2-path is-block">
+                {["AI Agent", "Unsafe action chain", "Runtime Governance", "BLOCKED"].map((n, i, a) => (
+                  <div className="tp2-step" key={n}>
+                    <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCKED" ? " verdict block" : ""}`}>{n}</div>
+                    {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
+                  </div>
+                ))}
+              </div>
+              <div className="tp2-path is-allow">
+                {["AI Agent", "Approved action", "Runtime Governance", "Execution"].map((n, i, a) => (
+                  <div className="tp2-step" key={n}>
+                    <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "Execution" ? " verdict ok" : ""}`}>{n}</div>
+                    {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -728,30 +756,20 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== BOOK A CONSULTATION ===== */}
-        <ConsultationSection
-          eyebrow="Book a consultation"
-          heading="Schedule a call with Resurrection Tech."
-          blurb="Talk to us about runtime safety, AI governance, agent risk, and reachability-based control — from a 30-minute introduction to a 90-minute enterprise strategy session."
-        />
-
-        <hr className="divider" />
-
         {/* ===== FINAL CTA ===== */}
         <section className="section cta-final" id="contact" data-screen-label="Contact">
           <div className="wrap">
             <div className="inner reveal">
-              <span className="eyebrow" style={{ justifyContent: "center" }}>Request a Runtime Governance Assessment</span>
-              <h2 style={{ marginTop: 20 }}>Identify catastrophic reachable states before execution.</h2>
+              <span className="eyebrow" style={{ justifyContent: "center" }}>The next step</span>
+              <h2 style={{ marginTop: 20 }}>Find out which unsafe states are reachable in your systems.</h2>
               <p>
-                For autonomous systems, agentic workflows, AI tool-use pipelines, high-risk
-                automation, and enterprise deployment environments where catastrophic reachable
-                states must be identified before they execute.
+                A 48-hour Runtime Safety Assessment identifies the catastrophic states reachable in
+                your autonomous systems — before they execute. Consultation, strategy session, and
+                pilot are the steps that follow.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
-                <Link href="/book#assessment" className="btn btn--primary">Book Safety Assessment <span className="arr">→</span></Link>
-                <Link href="/book#strategy" className="btn btn--ghost">Book Strategy Session</Link>
-                <Link href="/licensing" className="btn btn--ghost">View Licensing Framework</Link>
+                <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+                <Link href="/enterprise-pathways" className="btn btn--ghost">See enterprise pathways</Link>
               </div>
             </div>
           </div>

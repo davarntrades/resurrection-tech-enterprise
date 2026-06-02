@@ -39,3 +39,6 @@
 
 .why-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
 @media (max-width: 520px) { .why-cta .btn { width: 100%; justify-content: center; } }
+
+.why-omega-note { margin: 8px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-3); }
+.why-omega-note .om { color: var(--accent-bright); font-weight: 600; }

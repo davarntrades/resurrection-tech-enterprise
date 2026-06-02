@@ -19,14 +19,14 @@ export function StickyBookBar() {
 
   return (
     <Link
-      href="/book"
+      href="/book#assessment"
       className="sticky-book"
-      aria-label="Book a meeting"
+      aria-label="Book a Runtime Safety Assessment"
       onClick={() => track("cta_click", { location: "sticky_bar" })}
     >
       <span className="sticky-book-glow" aria-hidden="true" />
       <span className="sticky-book-dot" aria-hidden="true" />
-      <span className="sticky-book-label">Book Meeting</span>
+      <span className="sticky-book-label">Book Assessment</span>
       <span className="arr" aria-hidden="true">→</span>
     </Link>
   );

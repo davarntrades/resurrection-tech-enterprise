@@ -65,11 +65,11 @@ export function BookClient() {
       <section className="section book-hero" id="book">
         <div className="wrap">
           <div className="section-head reveal in">
-            <span className="eyebrow">Book a meeting</span>
-            <h1>Book a Runtime Governance Discussion</h1>
+            <span className="eyebrow">The next step</span>
+            <h1>Book a Runtime Safety Assessment</h1>
             <p>
-              Discuss Runtime Governance, enterprise pilots, licensing, audits, research
-              collaboration, and deployment pathways.
+              Start with a Runtime Safety Assessment. A consultation, enterprise strategy session,
+              and pilot are the steps that follow — choose the conversation that fits below.
             </p>
           </div>
 

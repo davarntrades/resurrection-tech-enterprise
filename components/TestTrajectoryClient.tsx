@@ -378,7 +378,7 @@ export function TestTrajectoryClient() {
             className="btn btn--primary"
             onClick={() => track(Events.CTA_CLICK, { location: "test-trajectory" })}
           >
-            Book Runtime Governance Audit <span className="arr">→</span>
+            Book a Runtime Safety Assessment <span className="arr">→</span>
           </Link>
         </div>
       </div>
