@@ -16,6 +16,7 @@ interface PayService {
   engagementValue: string | null;
   isDeposit: boolean;
   recurring: boolean;
+  gateNote: string;
 }
 
 const PROVIDER_LABEL: Record<ProviderId, string> = {
@@ -83,6 +84,7 @@ export function PayClient({ services }: { services: PayService[] }) {
               <Link href="/contact" className="btn btn--ghost btn--sm">Request Invoice</Link>
             )}
           </div>
+          <p className="pay-gate"><span className="pay-gate-lock" aria-hidden="true" />{s.gateNote}</p>
         </div>
       ))}
       {error && <div className="pay-error" role="alert">{error}</div>}

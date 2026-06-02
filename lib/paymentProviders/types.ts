@@ -34,6 +34,8 @@ export interface ServiceDef {
   priceLabel: string;
   /** Display: status line, e.g. "Online payment enabled". */
   statusLabel: string;
+  /** Gating note shown beneath the pay/invoice actions, e.g. "Approved engagements only." */
+  gateNote: string;
   blurb: string;
 }
 
