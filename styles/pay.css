@@ -1,0 +1,74 @@
+/* ============================================================
+   /pay — invoicing & online payment. Enterprise, not consumer.
+   ============================================================ */
+.pay-h1 {
+  font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 1.06; letter-spacing: -0.025em; color: var(--ink); margin: 14px 0 0;
+}
+.pay-lede { margin: 16px 0 30px; font-size: clamp(15px, 2vw, 18px); line-height: 1.6; color: var(--ink-2); max-width: 72ch; }
+
+/* Primary: request invoice */
+.pay-primary {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  background: radial-gradient(130% 180% at 0% 0%, rgba(76,125,255,0.10), transparent 55%), var(--panel-2);
+  padding: clamp(22px, 3.5vw, 32px);
+}
+.pay-primary-main { flex: 1 1 360px; min-width: 0; }
+.pay-primary-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); }
+.pay-primary-main h2 { font-size: clamp(20px, 2.6vw, 26px); color: var(--ink); margin: 8px 0 8px; letter-spacing: -0.015em; }
+.pay-primary-main p { font-size: 14px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 62ch; }
+.pay-primary-cta { display: flex; flex-direction: column; gap: 10px; flex: none; }
+@media (max-width: 640px) { .pay-primary-cta { width: 100%; } .pay-primary-cta .btn { width: 100%; justify-content: center; } }
+
+/* Warning */
+.pay-warn {
+  display: flex; align-items: center; gap: 11px;
+  margin: 18px 0 6px; padding: 13px 18px;
+  border: 1px solid rgba(214,158,46,0.4); border-radius: var(--radius-sm);
+  background: rgba(214,158,46,0.07);
+  font-size: 13.5px; color: #e0b34f; line-height: 1.45;
+}
+.pay-warn-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0a93f; flex: none; box-shadow: 0 0 8px rgba(214,158,46,0.6); }
+
+/* Service cards */
+.pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
+.pay-card {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 20px 22px;
+}
+.pay-card.is-invoice { background: var(--bg); }
+.pay-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pay-card-top h3 { font-size: 15.5px; color: var(--ink); margin: 0; letter-spacing: -0.01em; }
+.pay-amount { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent-bright); white-space: nowrap; }
+.is-invoice .pay-amount { color: var(--ink-3); font-weight: 500; }
+.pay-card-blurb { font-size: 13px; line-height: 1.5; color: var(--ink-3); margin: 10px 0 16px; flex: 1; }
+.pay-card-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.pay-card-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+.pay-error {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(229,72,77,0.4); background: rgba(229,72,77,0.07);
+  border-radius: var(--radius-sm); padding: 12px 16px; color: var(--omega); font-size: 13.5px; line-height: 1.5;
+}
+
+.pay-fineprint { margin-top: 22px; font-size: 12px; line-height: 1.55; color: var(--ink-4); max-width: 80ch; }
+
+/* Success / cancel outcomes */
+.pay-outcome {
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel);
+  padding: clamp(30px, 5vw, 56px); max-width: 720px; margin: 20px auto 0; text-align: center;
+}
+.pay-outcome.is-ok { border-color: rgba(63,178,127,0.4); background: linear-gradient(180deg, rgba(63,178,127,0.07), transparent 45%), var(--panel); }
+.pay-outcome.is-cancel { border-color: rgba(214,158,46,0.4); background: linear-gradient(180deg, rgba(214,158,46,0.07), transparent 45%), var(--panel); }
+.pay-outcome-badge {
+  display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); margin-bottom: 18px;
+}
+.is-ok .pay-outcome-badge { color: var(--ok); border-color: rgba(63,178,127,0.45); background: rgba(63,178,127,0.1); }
+.is-cancel .pay-outcome-badge { color: #e0a93f; border-color: rgba(214,158,46,0.45); background: rgba(214,158,46,0.1); }
+.pay-outcome h1 { font-size: clamp(22px, 3vw, 32px); color: var(--ink); letter-spacing: -0.02em; margin: 0 0 14px; }
+.pay-outcome p { font-size: 15px; line-height: 1.6; color: var(--ink-2); margin: 0 auto 10px; max-width: 56ch; }
+.pay-outcome-note { font-size: 13px !important; color: var(--ink-4) !important; }
+.pay-outcome-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+@media (max-width: 520px) { .pay-outcome-cta .btn { width: 100%; justify-content: center; } }

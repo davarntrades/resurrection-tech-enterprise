@@ -37,6 +37,7 @@ export function Footer() {
           <Link href="/partners">Partners</Link>
           <Link href="/licensing">Licensing framework</Link>
           <Link href="/book">Book a meeting</Link>
+          <Link href="/pay">Payments &amp; invoicing</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/request-audit">Request audit</Link>
         </div>
