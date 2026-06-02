@@ -13,7 +13,7 @@ import type { ServiceDef } from "./types";
 export const SERVICES: ServiceDef[] = [
   {
     id: "discovery-workshop",
-    name: "Discovery Workshop",
+    name: "Enterprise Discovery Workshop",
     amountMinor: 5_000_00, // £5,000 reservation deposit (range £5,000–£15,000)
     currency: "gbp",
     kind: "deposit",
@@ -24,7 +24,7 @@ export const SERVICES: ServiceDef[] = [
     statusLabel: "Online payment enabled",
     gateNote: "Schedule required before payment.",
     blurb:
-      "Reserve an Enterprise Discovery Workshop to review architecture, governance requirements, deployment pathways, and organisational risk exposure. Deposit is credited against future engagements.",
+      "A paid architecture and governance review for organisations evaluating Morrison Runtime Governance™. Includes executive briefing, risk mapping, deployment pathways, pilot recommendations, and implementation planning.",
   },
   {
     id: "assessment-deposit",
