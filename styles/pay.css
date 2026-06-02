@@ -76,6 +76,24 @@
 }
 .pay-explain p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-2); max-width: 76ch; }
 
+/* Payment Options — accepted methods */
+.pay-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.pay-method {
+  display: flex; align-items: flex-start; gap: 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); padding: 16px 18px;
+}
+.pay-method-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); flex: none; margin-top: 6px; }
+.pay-method-h { font-size: 14.5px; color: var(--ink); font-weight: 540; letter-spacing: -0.01em; }
+.pay-method-p { font-size: 12.5px; line-height: 1.5; color: var(--ink-3); margin-top: 4px; }
+.pay-trust { margin-top: 18px; font-size: 14px; line-height: 1.6; color: var(--ink-2); max-width: 76ch; }
+.pay-po {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  margin-top: 14px; padding: 16px 20px;
+  border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--panel-2);
+  font-size: 14px; color: var(--ink-2);
+}
+@media (max-width: 560px) { .pay-po .btn { width: 100%; justify-content: center; } }
+
 .pay-fineprint { margin-top: 18px; font-size: 12px; line-height: 1.55; color: var(--ink-4); max-width: 80ch; }
 
 /* Success / cancel outcomes */
