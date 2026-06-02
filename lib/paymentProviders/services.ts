@@ -13,7 +13,7 @@ import type { ServiceDef } from "./types";
 export const SERVICES: ServiceDef[] = [
   {
     id: "discovery-workshop",
-    name: "Discovery Workshop",
+    name: "Enterprise Discovery Workshop",
     amountMinor: 5_000_00, // £5,000 reservation deposit (range £5,000–£15,000)
     currency: "gbp",
     kind: "deposit",
@@ -22,8 +22,9 @@ export const SERVICES: ServiceDef[] = [
     isDeposit: true,
     priceLabel: "£5,000–£15,000 deposit",
     statusLabel: "Online payment enabled",
+    gateNote: "Schedule required before payment.",
     blurb:
-      "Reserve an Enterprise Discovery Workshop to review architecture, governance requirements, deployment pathways, and organisational risk exposure. Deposit is credited against future engagements.",
+      "A paid architecture and governance review for organisations evaluating Morrison Runtime Governance™. Includes executive briefing, risk mapping, deployment pathways, pilot recommendations, and implementation planning.",
   },
   {
     id: "assessment-deposit",
@@ -37,6 +38,7 @@ export const SERVICES: ServiceDef[] = [
     engagementValue: "£40,000–£75,000",
     priceLabel: "£10,000 deposit",
     statusLabel: "Online payment enabled",
+    gateNote: "Schedule required before payment.",
     blurb:
       "Reserve a 48-hour Runtime Safety Assessment engagement slot. Deposit is credited against the final engagement fee.",
   },
@@ -52,6 +54,7 @@ export const SERVICES: ServiceDef[] = [
     engagementValue: "£250,000–£750,000+",
     priceLabel: "£25,000–£50,000 deposit",
     statusLabel: "Online payment enabled",
+    gateNote: "Pilot capacity reserved following architecture review and approval.",
     blurb:
       "Reserve a Structural Safety Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
   },
@@ -65,6 +68,7 @@ export const SERVICES: ServiceDef[] = [
     providers: [],
     priceLabel: "Custom",
     statusLabel: "Invoice workflow only",
+    gateNote: "Approved engagements only.",
     blurb:
       "Custom-scoped deployment of Morrison Runtime Governance™ within enterprise environments. Pricing determined after architecture review, governance mapping, integration requirements, and deployment scope.",
   },
@@ -79,6 +83,7 @@ export const SERVICES: ServiceDef[] = [
     recurring: true,
     priceLabel: "£35,000–£100,000 / mo",
     statusLabel: "Recurring payments enabled",
+    gateNote: "Available for approved clients only.",
     blurb:
       "Ongoing strategic advisory, deployment support, governance reviews, executive guidance, architecture oversight, and runtime safety consultation.",
   },

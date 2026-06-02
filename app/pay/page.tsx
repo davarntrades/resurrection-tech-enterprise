@@ -23,6 +23,7 @@ export default function Page() {
     engagementValue: s.engagementValue ?? null,
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
+    gateNote: s.gateNote,
   }));
 
   return (

@@ -26,6 +26,7 @@ export const NAV_LINKS = [
   { href: "/test-trajectory", label: "Runtime Demo" },
   { href: "/evidence", label: "Evidence" },
   { href: "/enterprise-pathways", label: "Pathways" },
+  { href: "/pay", label: "Pay" },
 ] as const;
 
 // Full, grouped index — rendered in the menu panel (the complete site map,
