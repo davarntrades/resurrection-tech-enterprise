@@ -20,6 +20,7 @@
 @import "./nav-menu.css";
 @import "./pay.css";
 @import "./case-studies.css";
+@import "./why.css";
 
 @tailwind components;
 @tailwind utilities;

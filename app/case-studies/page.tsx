@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { ConsultingCaseStudy } from "@/components/ConsultingCaseStudy";
 
 export const metadata: Metadata = {
   title: "Evidence & Case Studies",
@@ -200,6 +201,37 @@ export default function Page() {
             tagLabel="Models"
             tags={["Qwen 2.5-7B", "TinyLlama", "Phi"]}
             results={["Live GPU execution", "Real planner outputs", "Runtime enforcement active", "Cross-model consistency observed"]}
+          />
+        </div>
+      </section>
+
+      <section className="section section--tight cs" aria-label="Structured case-study format">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Engagement format</span>
+            <h2>Structured Case-Study Format</h2>
+            <p>The format used to document customer engagements — enterprise consulting style. The example below is illustrative.</p>
+          </div>
+          <ConsultingCaseStudy
+            illustrative
+            organisation="Tier-1 European Bank"
+            industry="Banking & Capital Markets"
+            systems={["Treasury-operations agent", "Reconciliation agent", "Customer-service agent"]}
+            problem="Autonomous agents executed payments and data operations without a human in the loop. Existing controls — RBAC, post-hoc transaction monitoring, and human sampling — reduced likelihood but left catastrophic states reachable."
+            assessment="Runtime Governance evaluated each agent's proposed trajectories at the execution boundary, projecting the reachable future states of every action chain across treasury, reconciliation, and customer-data workflows."
+            findings={[
+              "Unverified-destination transfers were reachable from normal operation (Ω: unauthorized_transfer).",
+              "Limit breaches without approval were admissible (Ω: limit_breach).",
+              "Customer-data reads could egress to external sinks (Ω: data_exfiltration).",
+            ]}
+            governanceActions={[
+              "Defined Ω for treasury operations.",
+              "Placed runtime governance at each agent's tool-call boundary.",
+              "Enforced verified-destination and approval invariants on all transfers.",
+              "Restricted customer-data reads to internal sinks; denied external egress.",
+            ]}
+            outcome="The three reachable catastrophic states were made unreachable by construction. Legitimate operations executed unchanged; only Ω-bound trajectories were intercepted, each producing a regulator-ready audit record."
+            executiveSummary="Had the unverified-transfer path remained undiscovered, a single unauthorised transfer carried multi-billion-pound exposure and FCA / AML liability. The engagement removed that reachable path before it could become a business event."
           />
         </div>
       </section>

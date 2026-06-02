@@ -86,3 +86,23 @@
 .cs-why-strong { color: var(--ink) !important; font-weight: 600; letter-spacing: -0.01em; }
 .cs-foot-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
 @media (max-width: 520px) { .cs-foot-cta .btn { width: 100%; justify-content: center; } }
+
+/* Reusable consulting case-study format */
+.ccs { border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
+.ccs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.ccs-meta { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 22px; flex: 1; }
+@media (max-width: 760px) { .ccs-meta { grid-template-columns: 1fr; gap: 14px; } }
+.ccs-k { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 7px; }
+.ccs-v { font-size: 15px; color: var(--ink); font-weight: 540; }
+.ccs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ccs-tag { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 9px; background: var(--panel-2); }
+.ccs-illus { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #e0a93f; border: 1px solid rgba(214,158,46,0.4); background: rgba(214,158,46,0.08); border-radius: 999px; padding: 4px 11px; flex: none; }
+.ccs-body { padding: 8px 24px 22px; }
+.ccs-sec { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.ccs-sec:last-child { border-bottom: 0; }
+.ccs-sec h4 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 6px; }
+.ccs-q { font-size: 12.5px; color: var(--ink-4); font-style: italic; margin: 0 0 10px; }
+.ccs-sec > p:last-child { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); margin: 0; max-width: 84ch; }
+.ccs-sec ul { margin: 0; padding-left: 18px; }
+.ccs-sec li { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin-bottom: 5px; }
+.ccs-exec { background: linear-gradient(180deg, rgba(76,125,255,0.05), transparent 60%); margin: 0 -24px -22px; padding: 18px 24px 22px; border-top: 1px solid var(--line-2); }

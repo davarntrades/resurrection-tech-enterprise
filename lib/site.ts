@@ -36,6 +36,7 @@ export const NAV_MENU = [
     group: "Platform",
     links: [
       { href: "/#what", label: "What we do" },
+      { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/integrations", label: "How it integrates" },
       { href: "/#reachability", label: "Ω Reachability" },
       { href: "/test-trajectory", label: "Runtime demo" },

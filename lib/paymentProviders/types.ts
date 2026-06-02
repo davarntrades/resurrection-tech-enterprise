@@ -36,6 +36,8 @@ export interface ServiceDef {
   statusLabel: string;
   /** Gating note shown beneath the pay/invoice actions, e.g. "Approved engagements only." */
   gateNote: string;
+  /** Typical buyers / decision-makers for this engagement. */
+  buyers: string[];
   blurb: string;
 }
 
