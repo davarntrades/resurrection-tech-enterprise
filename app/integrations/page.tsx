@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { Logo } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "How It Integrates",
   description:
-    "Where Morrison Runtime Governance sits, how it plugs into the platforms you already run (governance dashboards, CRMs, Copilot, internal tools), and what it prevents — before execution.",
+    "Where Morrison Runtime Governance sits, how it plugs into the platforms you already run (governance dashboards, CRMs, internal assistants, internal tools), and the business risk it prevents — before execution.",
   alternates: { canonical: "/integrations" },
 };
 
@@ -18,6 +19,9 @@ const NODE_W = 158;
 const NODE_H = 64;
 const GAP = 50;
 const PAD = 16;
+
+// The governance checkpoint, branded consistently across every flow.
+const GOV: FlowNode = { label: "ℛ(t)", sub: "Morrison RG™", tone: "gov" };
 
 function SvgFlow({ nodes, label }: { nodes: FlowNode[]; label: string }) {
   const n = nodes.length;
@@ -38,14 +42,7 @@ function SvgFlow({ nodes, label }: { nodes: FlowNode[]; label: string }) {
           return (
             <g key={node.label + i}>
               {next && (
-                <line
-                  className="ig-svg-conn"
-                  x1={x + NODE_W}
-                  y1={cy + NODE_H / 2}
-                  x2={x + NODE_W + GAP}
-                  y2={cy + NODE_H / 2}
-                  markerEnd="url(#igArrow)"
-                />
+                <line className="ig-svg-conn" x1={x + NODE_W} y1={cy + NODE_H / 2} x2={x + NODE_W + GAP} y2={cy + NODE_H / 2} markerEnd="url(#igArrow)" />
               )}
               <rect className={`ig-svg-node tone-${node.tone}`} x={x} y={cy} width={NODE_W} height={NODE_H} rx="11" />
               <text className={`ig-svg-label tone-${node.tone}`} x={x + NODE_W / 2} y={node.sub ? cy + NODE_H / 2 - 4 : cy + NODE_H / 2 + 4} textAnchor="middle">
@@ -79,6 +76,53 @@ function BeforeAfter({ before, after }: { before: string[]; after: string[] }) {
   );
 }
 
+/* Business-impact card — what the reader (CEO/CRO/COO/CISO) takes away. */
+function ImpactCard({ items }: { items: [string, string][] }) {
+  return (
+    <div className="ig-impact reveal">
+      <div className="ig-impact-h">
+        <span>Business Impact</span>
+        <span className="ig-impact-tag">illustrative</span>
+      </div>
+      <div className="ig-impact-grid">
+        {items.map(([k, v]) => (
+          <div className="ig-impact-cell" key={k}>
+            <span className="ig-impact-k">{k}</span>
+            <span className="ig-impact-v">{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Generic enterprise governance dashboard — neutral, no vendor branding. */
+function DashboardMock() {
+  return (
+    <div className="ig-dash reveal" role="img" aria-label="Illustrative governance dashboard with verdicts surfaced">
+      <div className="ig-dash-bar">
+        <span className="ig-dash-dots" aria-hidden="true"><i /><i /><i /></span>
+        <span className="ig-dash-title">Governance Dashboard</span>
+        <span className="ig-dash-rt" aria-hidden="true"><Logo height={13} /></span>
+      </div>
+      <div className="ig-dash-body">
+        <div className="ig-dash-tiles">
+          <div className="ig-dash-tile"><span className="v">142</span><span className="l">Agents monitored</span></div>
+          <div className="ig-dash-tile"><span className="v">3,418</span><span className="l">Actions today</span></div>
+          <div className="ig-dash-tile danger"><span className="v">7</span><span className="l">Blocked pre-execution</span></div>
+        </div>
+        <div className="ig-dash-feed">
+          <div className="ig-dash-feed-h">Recent verdicts · ℛ(t)</div>
+          <div className="ig-dash-row block"><span className="d" aria-hidden="true" />BLOCK<span className="m">data exfiltration · agent-7</span></div>
+          <div className="ig-dash-row escalate"><span className="d" aria-hidden="true" />ESCALATE<span className="m">refund &gt; policy · agent-2</span></div>
+          <div className="ig-dash-row allow"><span className="d" aria-hidden="true" />ALLOW<span className="m">internal report · agent-3</span></div>
+        </div>
+      </div>
+      <div className="ig-dash-cap">Illustrative governance dashboard — generic enterprise category, not a specific product.</div>
+    </div>
+  );
+}
+
 export default function Page() {
   return (
     <PageShell>
@@ -98,52 +142,66 @@ export default function Page() {
             <p className="ig-banner-sub">Morrison Runtime Governance sits between existing AI agents and enterprise systems.</p>
           </div>
 
+          <div className="ig-brandlegend reveal">
+            <span className="ig-bl-mark" aria-hidden="true"><Logo height={20} /></span>
+            <span>
+              <b>ℛ(t)</b> marks the <b>Morrison Runtime Governance™</b> checkpoint in every flow below —
+              the active decision engine between AI agents and your systems.
+            </span>
+          </div>
+
           <SvgFlow
-            label="Existing platform to AI agent to Runtime Governance to verdict to enterprise systems"
+            label="Existing platform to AI agent to Morrison Runtime Governance checkpoint to verdict to enterprise systems"
             nodes={[
               { label: "Existing Platform", sub: "dashboard · CRM · tools", tone: "platform" },
               { label: "AI Agent", sub: "proposes action", tone: "agent" },
-              { label: "Runtime Governance", sub: "pre-execution", tone: "gov" },
+              GOV,
               { label: "Verdict", sub: "ALLOW · BLOCK · ESCALATE", tone: "step" },
               { label: "Enterprise Systems", sub: "permitted only", tone: "system" },
             ]}
           />
 
           <p className="ig-fineprint">
-            Product names on this page are used to illustrate common integration patterns and do not
-            imply partnership or endorsement.
+            Platform names are neutral category placeholders used to illustrate common integration
+            patterns. They do not imply partnership, certification, endorsement, or any commercial
+            relationship, and no third-party branding is reproduced.
           </p>
         </div>
       </section>
 
       <hr className="divider" />
 
-      {/* ── SECTION 2 — VerifyWise ── */}
+      {/* ── SECTION 2 — Governance dashboard ── */}
       <section className="section section--tight ig" aria-label="Governance dashboard integration example">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Governance dashboard · VerifyWise-style</span>
+            <span className="eyebrow">Illustrative Integration Example</span>
             <h2>Governance Dashboard Integration</h2>
-            <p>Verdicts surface inside the governance dashboard your risk team already uses — illustrated with a VerifyWise-style platform.</p>
+            <p>Verdicts surface inside the governance dashboard your risk team already uses — shown with a generic <b>Enterprise Risk Portal</b>.</p>
           </div>
+          <DashboardMock />
           <SvgFlow
-            label="Governance dashboard to agent to Runtime Governance to risk evaluation to dashboard result"
+            label="Governance dashboard to agent to Morrison Runtime Governance to risk evaluation to dashboard result"
             nodes={[
-              { label: "Gov. Dashboard", sub: "VerifyWise-style", tone: "platform" },
+              { label: "Governance Dashboard", tone: "platform" },
               { label: "AI Agent", tone: "agent" },
-              { label: "Runtime Governance", tone: "gov" },
+              GOV,
               { label: "Risk Evaluation", tone: "step" },
               { label: "Result In Dashboard", tone: "system" },
             ]}
           />
           <BeforeAfter
             before={["Agent creates action.", "No runtime governance.", "Unsafe action reaches production."]}
-            after={["Agent creates action.", "Runtime Governance evaluates the trajectory.", "Unsafe trajectory blocked.", "Risk surfaced inside the dashboard."]}
+            after={["Agent creates action.", "ℛ(t) evaluates the trajectory.", "Unsafe trajectory blocked.", "Risk surfaced inside the dashboard."]}
           />
-          <div className="ig-result reveal">
-            <span className="ig-result-k">Result</span>
-            <p>No production incident. No regulatory exposure. No rollback required.</p>
-          </div>
+          <ImpactCard
+            items={[
+              ["Incident prevented", "Unsafe autonomous action reaching production."],
+              ["Operational consequence avoided", "Emergency rollback and incident response."],
+              ["Regulatory exposure avoided", "A reportable control failure."],
+              ["Financial loss avoided", "Downtime and remediation costs."],
+            ]}
+          />
         </div>
       </section>
 
@@ -153,17 +211,17 @@ export default function Page() {
       <section className="section section--tight ig" aria-label="CRM integration example">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">CRM · Salesforce-style</span>
+            <span className="eyebrow">Illustrative Integration Example</span>
             <h2>CRM Workflow Integration</h2>
-            <p>A customer requests a refund. The agent proposes a plan; governance evaluates it before anything executes — illustrated with a Salesforce-style CRM.</p>
+            <p>A customer requests a refund. The agent proposes a plan; governance evaluates it before anything executes — shown with a generic <b>CRM Platform</b>.</p>
           </div>
           <SvgFlow
-            label="CRM to agent to proposed plan to Runtime Governance to block"
+            label="CRM to agent to proposed plan to Morrison Runtime Governance to block"
             nodes={[
-              { label: "CRM Platform", sub: "Salesforce-style", tone: "platform" },
+              { label: "CRM Platform", tone: "platform" },
               { label: "AI Agent", sub: "refund request", tone: "agent" },
               { label: "Proposed Plan", sub: "read · refund · pay", tone: "step" },
-              { label: "Runtime Governance", tone: "gov" },
+              GOV,
               { label: "BLOCK", sub: "unauthorised refund", tone: "block" },
             ]}
           />
@@ -171,6 +229,14 @@ export default function Page() {
             <span className="ig-result-k">Outcome</span>
             <p>The unauthorised refund trajectory is denied before execution — the payment never runs.</p>
           </div>
+          <ImpactCard
+            items={[
+              ["Incident prevented", "An unauthorised refund or payment."],
+              ["Operational consequence avoided", "Manual clawback and reconciliation."],
+              ["Regulatory exposure avoided", "Payment-controls / AML breach."],
+              ["Financial loss avoided", "Direct funds loss (industry single-event precedent: £2B+)."],
+            ]}
+          />
         </div>
       </section>
 
@@ -180,52 +246,64 @@ export default function Page() {
       <section className="section section--tight ig" aria-label="Customer support agent example">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Customer support agent</span>
+            <span className="eyebrow">Illustrative Integration Example</span>
             <h2>Customer Support Agent Integration</h2>
-            <p>An agent accesses customer records, then attempts external transmission.</p>
+            <p>A support agent accesses customer records, then attempts external transmission.</p>
           </div>
           <SvgFlow
-            label="Support agent to read records to external send to Runtime Governance to block"
+            label="Support agent to read records to external send to Morrison Runtime Governance to block"
             nodes={[
               { label: "Support Agent", tone: "agent" },
               { label: "Read Records", sub: "customer data", tone: "step" },
               { label: "External Send", sub: "egress attempt", tone: "step" },
-              { label: "Runtime Governance", tone: "gov" },
+              GOV,
               { label: "BLOCK", sub: "data exfiltration", tone: "block" },
             ]}
           />
           <BeforeAfter
             before={["Agent reads customer records.", "Agent attempts external transmission.", "Customer data leaves the boundary."]}
-            after={["Agent reads customer records.", "Agent attempts external transmission.", "Governance detects a data-exfiltration risk.", "Trajectory blocked before execution."]}
+            after={["Agent reads customer records.", "Agent attempts external transmission.", "ℛ(t) detects a data-exfiltration risk.", "Trajectory blocked before execution."]}
           />
-          <div className="ig-result reveal is-block">
-            <span className="ig-result-k">Outcome</span>
-            <p><b>BLOCKED BEFORE EXECUTION</b> — customer data never leaves the approved boundary.</p>
-          </div>
+          <ImpactCard
+            items={[
+              ["Incident prevented", "Customer-data exfiltration."],
+              ["Operational consequence avoided", "Breach notification and customer remediation."],
+              ["Regulatory exposure avoided", "GDPR / data-protection penalties."],
+              ["Financial loss avoided", "Breach cost (industry average: £7.7M+)."],
+            ]}
+          />
         </div>
       </section>
 
       <hr className="divider" />
 
-      {/* ── SECTION 5 — Copilot ── */}
-      <section className="section section--tight ig" aria-label="Copilot and internal agent integration">
+      {/* ── SECTION 5 — Internal Copilot ── */}
+      <section className="section section--tight ig" aria-label="Internal assistant integration">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Copilot &amp; internal agents</span>
-            <h2>Copilot / Internal Agent Integration</h2>
-            <p>Governance sits between any assistant and the enterprise tools it can act on — independent of the underlying model.</p>
+            <span className="eyebrow">Illustrative Integration Example</span>
+            <h2>Internal Copilot Integration</h2>
+            <p>Governance sits between any internal assistant and the enterprise tools it can act on — independent of the underlying model.</p>
           </div>
           <SvgFlow
-            label="Copilot to Runtime Governance to enterprise tools"
+            label="Internal Copilot to Morrison Runtime Governance to enterprise tools"
             nodes={[
-              { label: "Copilot", sub: "internal agent", tone: "agent" },
-              { label: "Runtime Governance", tone: "gov" },
-              { label: "Enterprise Tools", sub: "SharePoint · Outlook · CRM · DBs", tone: "system" },
+              { label: "Internal Copilot", sub: "internal assistant", tone: "agent" },
+              GOV,
+              { label: "Enterprise Tools", sub: "Docs · Email · CRM · Records", tone: "system" },
             ]}
           />
           <p className="ig-modelagnostic reveal">
             <span className="ig-ma-dot" aria-hidden="true" /> Model-agnostic — works across GPT, Claude, Gemini, Llama, and Mistral, because governance is enforced at the execution boundary, not inside the model.
           </p>
+          <ImpactCard
+            items={[
+              ["Incident prevented", "An over-privileged action across internal tools."],
+              ["Operational consequence avoided", "Unauthorised changes to documents, mail, and records."],
+              ["Regulatory exposure avoided", "Access-control and privacy violations."],
+              ["Financial loss avoided", "Insider-risk and cleanup costs."],
+            ]}
+          />
         </div>
       </section>
 
@@ -243,7 +321,7 @@ export default function Page() {
             {[
               ["Discovery", "Map where agents act and what could go wrong."],
               ["Ω Definition", "Define the forbidden states for your domain."],
-              ["Integration", "Place governance at the agent's execution boundary."],
+              ["Integration", "Place ℛ(t) at the agent's execution boundary."],
               ["Validation", "Confirm interception on your own traffic."],
               ["Production", "Run with ALLOW / BLOCK / ESCALATE, fully audited."],
             ].map(([h, p], i) => (
