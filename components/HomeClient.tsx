@@ -269,7 +269,7 @@ export function HomeClient() {
               <div className="tcov-tier-h"><span className="tcov-dot adv" aria-hidden="true" />Advanced multi-agent catastrophic risks</div>
 
               <div className="tcov-featured">
-                <div className="tcov-featured-tag">Featured · T05</div>
+                <div className="tcov-featured-tag">Featured risk</div>
                 <h3>Cascading Failures Across Agent Pipelines</h3>
                 <p>Multiple individually safe agents can combine into an unsafe system.</p>
                 <div className="tcov-chain" aria-hidden="true">
