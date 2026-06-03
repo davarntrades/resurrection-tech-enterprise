@@ -53,11 +53,12 @@ export const NAV_MENU = [
   {
     group: "Evidence",
     links: [
+      { href: "/live-demo", label: "Live Demo" },
       { href: "/evidence", label: "Validation results" },
       { href: "/case-studies", label: "Case studies" },
       { href: "/security", label: "Security & deployment" },
       { href: "/sample-audit", label: "Sample audit report" },
-      { href: "/test-trajectory", label: "Interactive demo" },
+      { href: "/test-trajectory", label: "Test a trajectory" },
     ],
   },
   {
