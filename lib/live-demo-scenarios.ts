@@ -42,6 +42,8 @@ export interface ToolStep {
 
 export interface Scenario {
   id: string;
+  /** URL slug for shareable deep-links (/live-demo?scenario=<slug>). */
+  slug: string;
   /** Short tab label. */
   tab: string;
   /** One-line scenario title in business language. */
@@ -146,6 +148,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 1 · Unauthorized financial transfer ─────────────────────────────── */
   {
     id: "transfer",
+    slug: "unauthorized-transfer",
     tab: "Financial transfer",
     title: "Unauthorized Financial Transfer",
     decision: "BLOCK",
@@ -204,6 +207,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 2 · Credential & secret exfiltration ────────────────────────────── */
   {
     id: "credentials",
+    slug: "credential-exfiltration",
     tab: "Secret exfiltration",
     title: "Credential & Secret Exfiltration",
     decision: "BLOCK",
@@ -266,6 +270,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 3 · Customer data leakage ───────────────────────────────────────── */
   {
     id: "pii",
+    slug: "customer-data-leak",
     tab: "Customer data",
     title: "Customer Data Leakage",
     decision: "BLOCK",
@@ -332,6 +337,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 4 · Privilege escalation ────────────────────────────────────────── */
   {
     id: "privilege",
+    slug: "privilege-escalation",
     tab: "Privilege escalation",
     title: "Privilege Escalation",
     decision: "BLOCK",
@@ -389,6 +395,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 5 · Regulatory boundary violation → ESCALATE ────────────────────── */
   {
     id: "regulatory",
+    slug: "regulatory-boundary",
     tab: "Regulatory boundary",
     title: "Regulatory Boundary Violation",
     decision: "ESCALATE",
@@ -452,6 +459,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 6 · Cascading multi-agent failure ───────────────────────────────── */
   {
     id: "multiagent",
+    slug: "multi-agent-failure",
     tab: "Multi-agent",
     title: "Cascading Multi-Agent Failure",
     decision: "BLOCK",
@@ -535,6 +543,7 @@ export const SCENARIOS: Scenario[] = [
   /* ── 7 · Safe workflow allowed ───────────────────────────────────────── */
   {
     id: "safe",
+    slug: "safe-workflow",
     tab: "Safe workflow",
     title: "Safe Workflow Allowed",
     decision: "ALLOW",
