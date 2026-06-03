@@ -52,17 +52,13 @@ export function HomeClient() {
           <div className="hero-veil" aria-hidden="true" />
           <div className="wrap">
             <div className="hero-inner">
-              <div className="hero-tag reveal in">
-                <span className="dot pulse-dot" /> Morrison Runtime Governance™ · Live boundary
-                enforcement
-              </div>
               <h1 className="reveal in" data-d="1">
-                Preventing Catastrophic Outcomes
+                Preventing <span className="hero-cat">Catastrophic</span> Outcomes
                 <br />
                 in <span className="grad">Autonomous Systems</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                <b>Your AI can cost millions before anyone realises something has gone wrong.</b>
+                <b>Your AI can cost millions before traditional controls detect it.</b>
               </p>
               <p className="hero-sub2 reveal in" data-d="2">
                 Autonomous systems now have access to money, customer data, critical infrastructure,

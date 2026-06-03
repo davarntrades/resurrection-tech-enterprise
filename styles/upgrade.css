@@ -972,3 +972,17 @@
   max-width: 600px; margin-top: 14px;
   font-size: clamp(14px, 1.5vw, 16px); line-height: 1.6; color: var(--ink-3); text-wrap: pretty;
 }
+
+/* ---------- Hero: raise content to reveal more of the Ω animation ---------- */
+.hero { align-items: flex-start; }
+.hero .wrap { padding-top: clamp(84px, 12vh, 128px); padding-bottom: clamp(56px, 12vh, 110px); }
+
+/* Pulsing red emphasis on "Catastrophic" */
+.hero h1 .hero-cat { color: var(--omega); white-space: nowrap; animation: heroCatPulse 2.6s var(--ease) infinite; }
+@keyframes heroCatPulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(229,72,77,0.25); }
+  50% { text-shadow: 0 0 32px rgba(229,72,77,0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero h1 .hero-cat { animation: none; text-shadow: 0 0 18px rgba(229,72,77,0.4); }
+}
