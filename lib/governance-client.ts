@@ -28,6 +28,9 @@ interface GovernanceResponse {
 
 const TIMEOUT_MS = Number(process.env.GOVERNANCE_TIMEOUT_MS ?? "4000");
 
+/** Live Morrison governance service (Railway). Overridable via GOVERNANCE_URL. */
+const DEFAULT_GOVERNANCE_URL = "https://resurrection-tech-enterprise-production.up.railway.app";
+
 /** Engine rule / domain names → the demo's OMEGA_META presentation keys. */
 const META_KEY: Record<string, keyof typeof OMEGA_META> = {
   unauthorized_transfer: "unauthorized_transfer",
@@ -134,8 +137,11 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
  * fall back to the heuristic evaluator. Never executes a tool call.
  */
 export async function evaluateViaGovernance(trajectory: ToolCall[]): Promise<EvalResult> {
-  const base = process.env.GOVERNANCE_URL;
-  if (!base) throw new Error("GOVERNANCE_URL not configured");
+  // Default to the live Railway deployment; override with GOVERNANCE_URL (e.g.
+  // Vercel production env) to point at a different backend. Empty string ⇒
+  // disabled (caller falls back to the heuristic).
+  const base = (process.env.GOVERNANCE_URL ?? DEFAULT_GOVERNANCE_URL).trim();
+  if (!base) throw new Error("GOVERNANCE_URL disabled");
 
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (process.env.GOVERNANCE_TOKEN) headers.authorization = `Bearer ${process.env.GOVERNANCE_TOKEN}`;
