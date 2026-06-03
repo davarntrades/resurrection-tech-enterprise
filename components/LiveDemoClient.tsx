@@ -1,11 +1,15 @@
 "use client";
 
 /* ============================================================
-   Resurrection Tech™ — Live Runtime Governance console (/live-demo)
-   An enterprise governance console that lets a CEO / CTO / CISO see
-   Morrison Runtime Governance block unsafe AI-agent actions before
-   execution. Built on the approved design tokens. Scenarios are
-   derived from the public Morrison-Runtime-Governance repository.
+   Resurrection Tech™ — Runtime Governance Console (/live-demo)
+   A deployable-feeling enterprise governance console: scenario
+   library → live scenario definition → simulate trajectory check →
+   animated reachability map → governance verdict → live audit log →
+   evidence drawer. CEO / Technical mode toggle.
+
+   Scenarios, taxonomy, trajectories, layer attribution and the
+   verdict vocabulary are derived from the public Morrison Runtime
+   Governance repository. Nothing is ever executed.
    ============================================================ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,652 +20,568 @@ import {
   SCENARIOS,
   DECISION_META,
   EVIDENCE,
+  INTEGRATION_SNIPPET,
   type Scenario,
   type Decision,
 } from "@/lib/live-demo-scenarios";
 
-/* Phase timeline (ms) for the evaluation sequence. */
-const TIMELINE = {
-  plan: 360,
-  trajectory: 900,
-  evaluating: 1500,
-  decision: 2600,
-  audit: 3100,
-} as const;
+type Phase = 0 | 1 | 2 | 3;
+type Mode = "ceo" | "tech";
 
-type Phase = 0 | 1 | 2 | 3 | 4 | 5;
-
-interface AuditEntry {
+interface AuditEvent {
   id: string;
-  timestamp: string;
-  scenario: string;
-  action: string;
-  decision: Decision;
-  reason: string;
-  riskCategory: string;
-  layer: string;
+  time: string;
+  event: string;
+  detail: string;
+  tone?: "block" | "allow" | "escalate" | "info";
 }
 
-function formatTimestamp(d: Date) {
-  const pad = (n: number, l = 2) => String(n).padStart(l, "0");
-  return (
-    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`
-  );
+function clock(d = new Date()) {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
 }
+
+let _evt = 0;
+const evtId = () => `e${Date.now().toString(36)}${(_evt++).toString(36)}`;
 
 export function LiveDemoClient() {
   const [active, setActive] = useState(0);
   const [phase, setPhase] = useState<Phase>(0);
-  const [techView, setTechView] = useState(false);
-  const [drillOpen, setDrillOpen] = useState(false);
-  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [mode, setMode] = useState<Mode>("ceo");
+  const [audit, setAudit] = useState<AuditEvent[]>([]);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const startedRef = useRef(false);
   const reduce = useReducedMotion();
 
   const scenario = useMemo<Scenario>(() => SCENARIOS[active], [active]);
   const meta = DECISION_META[scenario.decision];
+  const resolved = phase >= 3;
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
   }, []);
 
-  const logAudit = useCallback((s: Scenario) => {
-    setAudit((prev) => {
-      const entry: AuditEntry = {
-        id: `EVT-${s.id.slice(0, 4).toUpperCase()}-${String(
-          Date.now() % 100000,
-        ).padStart(5, "0")}`,
-        timestamp: formatTimestamp(new Date()),
-        scenario: s.title,
-        action: s.trajectory.map((t) => t.tool).join(" → "),
-        decision: s.decision,
-        reason: s.reason,
-        riskCategory: s.tech.riskCategory,
-        layer: s.tech.layer,
-      };
-      return [entry, ...prev].slice(0, 12);
-    });
+  const log = useCallback((event: string, detail: string, tone: AuditEvent["tone"] = "info") => {
+    setAudit((prev) =>
+      [{ id: evtId(), time: clock(), event, detail, tone }, ...prev].slice(0, 14),
+    );
   }, []);
 
-  const run = useCallback(
-    (index: number) => {
+  const simulate = useCallback(
+    (s: Scenario) => {
       clearTimers();
-      const s = SCENARIOS[index];
-      setActive(index);
-      setDrillOpen(false);
+      const m = DECISION_META[s.decision];
+      track("live_demo_simulate", { scenario: s.id, decision: s.decision });
+
+      const reach = () => {
+        if (s.decision === "BLOCK") log("Ω reachability detected", s.omega, "block");
+        else if (s.decision === "ESCALATE") log("Regulatory boundary classified", s.omega, "escalate");
+        else log("Safe path found", "ℛ(t) ∩ Ω = ∅", "allow");
+      };
+      const verdict = () => log(`${m.label} issued`, s.reason, m.tone);
 
       if (reduce) {
-        setPhase(5);
-        logAudit(s);
+        setPhase(3);
+        log("Trajectory generated", s.toolCalls.join("  ·  "));
+        reach();
+        verdict();
         return;
       }
 
-      setPhase(0);
-      const at = (p: Phase, ms: number) =>
-        timers.current.push(setTimeout(() => setPhase(p), ms));
-      at(1, TIMELINE.plan);
-      at(2, TIMELINE.trajectory);
-      at(3, TIMELINE.evaluating);
-      at(4, TIMELINE.decision);
-      timers.current.push(
-        setTimeout(() => {
-          setPhase(5);
-          logAudit(s);
-        }, TIMELINE.audit),
-      );
+      setPhase(1);
+      log("Trajectory generated", s.toolCalls.join("  ·  "));
+      timers.current.push(setTimeout(() => {
+        setPhase(2);
+        log("Reachability evaluated", "Reachable-set ℛ(t) vs forbidden region Ω");
+      }, 900));
+      timers.current.push(setTimeout(() => reach(), 1900));
+      timers.current.push(setTimeout(() => {
+        setPhase(3);
+        verdict();
+      }, 2300));
     },
-    [clearTimers, reduce, logAudit],
+    [clearTimers, reduce, log],
   );
 
   const select = useCallback(
     (index: number) => {
-      track("live_demo_scenario", {
-        scenario: SCENARIOS[index].id,
-        decision: SCENARIOS[index].decision,
-      });
-      run(index);
+      clearTimers();
+      const s = SCENARIOS[index];
+      setActive(index);
+      setPhase(0);
+      track("live_demo_scenario", { scenario: s.id, decision: s.decision });
+      log("Scenario selected", s.title);
     },
-    [run],
+    [clearTimers, log],
   );
 
-  // Auto-play the first scenario shortly after mount.
+  // Auto-run the first scenario once on mount so a passive visitor sees the
+  // mechanism — subsequent selections wait for the Simulate CTA.
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    const t = setTimeout(() => run(0), 420);
+    log("Scenario selected", SCENARIOS[0].title);
+    const t = setTimeout(() => simulate(SCENARIOS[0]), 700);
     return () => clearTimeout(t);
-  }, [run]);
+  }, [simulate, log]);
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  const evaluating = phase >= 3 && phase < 4;
-  const resolved = phase >= 4;
-  const showTech = techView || drillOpen;
+  // Lock scroll when the evidence drawer is open.
+  useEffect(() => {
+    document.body.style.overflow = evidenceOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [evidenceOpen]);
 
   return (
-    <div className="ld">
-      {/* ───────────────── Hero ───────────────── */}
-      <header className="ld-hero">
-        <span className="eyebrow">Live demo · Runtime Governance™</span>
-        <h1 className="ld-title">
-          Watch unsafe AI-agent actions get stopped{" "}
-          <span className="ld-title-accent">before they execute.</span>
-        </h1>
-        <p className="ld-lede">
-          This is the governance layer that sits between an AI agent's plan and
-          your tools. Pick a scenario and see exactly what the agent proposed,
-          what Runtime Governance decided, and the business consequence it
-          avoided — in plain language, with the technical evidence one click
-          away.
-        </p>
-
-        <div className="ld-cta">
-          <Link
-            href="/book#assessment"
-            className="btn btn--primary"
-            onClick={() => track("cta_click", { location: "live-demo-hero", cta: "assessment" })}
-          >
-            Book a Runtime Safety Assessment <span className="arr">→</span>
-          </Link>
-          <a
-            href={EVIDENCE.repo}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn--ghost"
-            onClick={() => track("cta_click", { location: "live-demo-hero", cta: "github" })}
-          >
-            View GitHub evidence
-          </a>
-          <Link
-            href="/integrations"
-            className="btn btn--ghost"
-            onClick={() => track("cta_click", { location: "live-demo-hero", cta: "integrations" })}
-          >
-            See integrations
-          </Link>
+    <div className={`rgx rgx--${mode}`} data-decision={resolved ? scenario.decision : undefined}>
+      {/* ───────────────── Header ───────────────── */}
+      <header className="rgx-head">
+        <div className="rgx-head-l">
+          <span className="eyebrow">Runtime Governance™ · Live console</span>
+          <h1 className="rgx-title">
+            Unsafe AI-agent actions, stopped{" "}
+            <span className="rgx-title-accent">before they execute.</span>
+          </h1>
+          <p className="rgx-lede">
+            A pre-execution governance layer that sits between an AI agent's plan
+            and your tools. Pick a scenario, run the trajectory check, and see
+            exactly what the agent tried, what was decided, and the damage
+            avoided.
+          </p>
         </div>
-
-        <div className="ld-legend" aria-hidden="true">
-          <span className="ld-legend-item ld-legend--allow">
-            <i /> ALLOW — safe workflow permitted
-          </span>
-          <span className="ld-legend-item ld-legend--escalate">
-            <i /> ESCALATE — human review required
-          </span>
-          <span className="ld-legend-item ld-legend--block">
-            <i /> BLOCK — unsafe action stopped
-          </span>
+        <div className="rgx-head-r">
+          <div className="rgx-modeswitch" role="tablist" aria-label="View mode">
+            <button
+              role="tab"
+              aria-selected={mode === "ceo"}
+              className={`rgx-mode${mode === "ceo" ? " is-on" : ""}`}
+              onClick={() => { setMode("ceo"); track("live_demo_mode", { mode: "ceo" }); }}
+            >
+              CEO mode
+            </button>
+            <button
+              role="tab"
+              aria-selected={mode === "tech"}
+              className={`rgx-mode${mode === "tech" ? " is-on" : ""}`}
+              onClick={() => { setMode("tech"); track("live_demo_mode", { mode: "tech" }); }}
+            >
+              Technical mode
+            </button>
+          </div>
+          <button className="rgx-evidence-btn" onClick={() => setEvidenceOpen(true)}>
+            <span className="rgx-ev-dot" aria-hidden="true" /> View evidence
+          </button>
         </div>
       </header>
 
-      {/* ───────────────── Console ───────────────── */}
-      <section className="ld-console" aria-label="Runtime Governance console">
-        {/* Console header bar */}
-        <div className="ld-console-bar">
-          <span className="ld-dot ld-dot--a" aria-hidden="true" />
-          <span className="ld-dot ld-dot--b" aria-hidden="true" />
-          <span className="ld-dot ld-dot--c" aria-hidden="true" />
-          <span className="ld-console-name">
-            morrison · runtime-governance · pre-execution console
-          </span>
-          <label className="ld-toggle">
-            <input
-              type="checkbox"
-              checked={techView}
-              onChange={(e) => {
-                setTechView(e.target.checked);
-                track("live_demo_techview", { on: e.target.checked });
-              }}
-            />
-            <span className="ld-toggle-track" aria-hidden="true">
-              <span className="ld-toggle-thumb" />
-            </span>
-            Technical view
-          </label>
+      {/* ───────────────── Panel 1 · Scenario library ───────────────── */}
+      <section className="rgx-section" aria-label="Scenario library">
+        <PanelHead n="01" title="Scenario library" sub="Real governance scenarios from the Morrison repository." />
+        <div className="rgx-cards">
+          {SCENARIOS.map((s, i) => {
+            const m = DECISION_META[s.decision];
+            return (
+              <button
+                key={s.id}
+                className={`rgx-card rgx-card--${m.tone}${active === i ? " is-active" : ""}`}
+                aria-pressed={active === i}
+                onClick={() => select(i)}
+              >
+                <span className="rgx-card-top">
+                  <span className="rgx-card-dot" aria-hidden="true" />
+                  {s.multiAgent && <span className="rgx-card-multi">MULTI-AGENT</span>}
+                  <span className={`rgx-badge rgx-badge--${m.tone}`}>{m.label}</span>
+                </span>
+                <span className="rgx-card-title">{s.title}</span>
+                <span className="rgx-card-omega">{s.omega}</span>
+              </button>
+            );
+          })}
         </div>
+      </section>
 
-        <div className="ld-grid">
-          {/* ── Scenario selector ── */}
-          <nav className="ld-scenarios" aria-label="Scenarios">
-            <div className="ld-scenarios-h">Scenarios</div>
-            {SCENARIOS.map((s, i) => {
-              const m = DECISION_META[s.decision];
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`ld-scn ld-scn--${m.tone}${active === i ? " is-active" : ""}`}
-                  aria-pressed={active === i}
-                  onClick={() => select(i)}
-                >
-                  <span className="ld-scn-dot" aria-hidden="true" />
-                  <span className="ld-scn-body">
-                    <span className="ld-scn-title">{s.title}</span>
-                    <span className="ld-scn-tag">{m.label}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
+      {/* ───────────────── The console (def + simulate) ───────────────── */}
+      <div className="rgx-console">
+        {/* Panel 2 · Live scenario definition */}
+        <section className="rgx-section rgx-def" aria-label="Scenario definition">
+          <PanelHead n="02" title="Scenario definition" sub="Everything the agent proposed — visible before evaluation." />
 
-          {/* ── Stage ── */}
-          <div className="ld-stage" data-decision={resolved ? scenario.decision : undefined}>
-            {/* User request */}
-            <Block label="User request" step="01" lit={phase >= 0}>
-              <p className="ld-request">{scenario.request}</p>
-            </Block>
+          <div className="rgx-def-block">
+            <span className="rgx-k">User request</span>
+            <p className="rgx-request">{scenario.request}</p>
+          </div>
 
-            {/* AI agent proposed plan */}
-            <Block label="AI agent · proposed plan" step="02" lit={phase >= 1}>
-              <ol className="ld-plan">
-                {scenario.plan.map((p, i) => (
-                  <li key={i}>{p}</li>
-                ))}
+          <div className="rgx-def-grid">
+            <div className="rgx-def-block">
+              <span className="rgx-k">Agent plan</span>
+              <ol className="rgx-plan">
+                {scenario.plan.map((p, i) => <li key={i}>{p}</li>)}
               </ol>
-            </Block>
+            </div>
+            <div className="rgx-def-block">
+              <span className="rgx-k">Proposed tool calls</span>
+              <ul className="rgx-calls">
+                {scenario.toolCalls.map((c, i) => (
+                  <li key={i}><code>{c}</code></li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
-            {/* Proposed tool/action trajectory */}
-            <Block label="Proposed tool action" step="03" lit={phase >= 2}>
-              <ul className="ld-traj">
+          {mode === "tech" && (
+            <div className="rgx-def-block rgx-rawtraj">
+              <span className="rgx-k">Raw trajectory (evaluated)</span>
+              <ul className="rgx-traj">
                 {scenario.trajectory.map((t, i) => (
-                  <li key={i} className="ld-traj-step">
-                    {t.agent && (
-                      <span className="ld-traj-agent">
-                        Agent {t.agent}
-                        {t.role ? ` · ${t.role}` : ""}
-                      </span>
-                    )}
-                    <code className="ld-traj-call">
-                      <span className="ld-traj-tool">{t.tool}</span>
-                      <span className="ld-traj-args">{t.args}</span>
+                  <li key={i}>
+                    {t.agent && <span className="rgx-traj-agent">Agent {t.agent} · {t.role}</span>}
+                    <code className="rgx-traj-call">
+                      <b>{t.tool}</b>{t.args}
                     </code>
-                    {t.note && <span className="ld-traj-note">{t.note}</span>}
                   </li>
                 ))}
               </ul>
-            </Block>
+            </div>
+          )}
+        </section>
 
-            {/* Trajectory visual */}
-            <TrajectoryVisual scenario={scenario} phase={phase} />
+        {/* Panel 3 · Simulate + reachability */}
+        <section className="rgx-section rgx-sim" aria-label="Trajectory check">
+          <PanelHead n="03" title="Trajectory check" sub="Evaluate the reachable future states before execution." />
 
-            {/* Governance evaluation + decision */}
-            <Block
-              label="Runtime Governance evaluation"
-              step="04"
-              lit={phase >= 3}
-              tone={resolved ? meta.tone : undefined}
-            >
-              {!resolved && (
-                <p className="ld-evaluating">
-                  {evaluating ? (
-                    <>
-                      <span className="ld-spin" aria-hidden="true" />
-                      Evaluating reachable future states — does the trajectory
-                      reach a forbidden state Ω?
-                    </>
-                  ) : (
-                    "Awaiting trajectory…"
-                  )}
-                </p>
-              )}
-
-              {resolved && (
-                <div className={`ld-decision ld-decision--${meta.tone}`}>
-                  <div className="ld-decision-head">
-                    <span className="ld-decision-word">{meta.label}</span>
-                    <span className="ld-decision-verb">{meta.verb}</span>
-                  </div>
-                  <p className="ld-decision-reason">{scenario.reason}</p>
-                  <div className="ld-decision-omega">
-                    <span className="ld-omega-k">Ω boundary</span>
-                    <span className="ld-omega-v">{scenario.omega}</span>
-                    <span className="ld-omega-k">Reachability</span>
-                    <span className="ld-omega-v">
-                      {scenario.reachable
-                        ? "Forbidden outcome reachable — blocked"
-                        : "Forbidden outcome NOT reachable"}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </Block>
-
-            {/* Business impact */}
-            {resolved && (
-              <Block label="Business impact" step="05" lit tone={meta.tone}>
-                <p className="ld-impact">{scenario.businessImpact}</p>
-                {scenario.consequenceAvoided && (
-                  <p className="ld-impact-sub">
-                    <span className="ld-impact-k">
-                      {scenario.decision === "ALLOW"
-                        ? "Outcome"
-                        : "Consequence avoided"}
-                    </span>
-                    {scenario.consequenceAvoided}
-                  </p>
-                )}
-                <ul className="ld-assets">
-                  {scenario.protectedAssets.map((a) => (
-                    <li key={a}>{a}</li>
-                  ))}
-                </ul>
-              </Block>
+          <button
+            className={`rgx-simbtn rgx-simbtn--${meta.tone}`}
+            onClick={() => simulate(scenario)}
+            disabled={phase === 1 || phase === 2}
+          >
+            {phase === 1 || phase === 2 ? (
+              <><span className="rgx-spin" aria-hidden="true" /> Evaluating trajectory…</>
+            ) : resolved ? (
+              <>↻ Re-run trajectory check</>
+            ) : (
+              <>▶ Simulate trajectory check</>
             )}
+          </button>
 
-            {/* Technical drilldown */}
-            {resolved && (
-              <div className="ld-drill">
-                <button
-                  type="button"
-                  className="ld-drill-toggle"
-                  aria-expanded={showTech}
-                  onClick={() => setDrillOpen((v) => !v)}
-                >
-                  <span className="ld-drill-chev" data-open={showTech}>
-                    ▸
-                  </span>
-                  Technical drilldown
-                  <span className="ld-drill-hint">
-                    risk category · layer · trajectory · repo evidence
-                  </span>
-                </button>
-                {showTech && (
-                  <dl className="ld-drill-body">
-                    <div>
-                      <dt>Risk category</dt>
-                      <dd>{scenario.tech.riskCategory}</dd>
-                    </div>
-                    <div>
-                      <dt>Ω domain</dt>
-                      <dd>{scenario.tech.omegaDomain}</dd>
-                    </div>
-                    <div>
-                      <dt>Governance layer triggered</dt>
-                      <dd className="ld-mono">{scenario.tech.layer}</dd>
-                    </div>
-                    <div>
-                      <dt>Rule</dt>
-                      <dd className="ld-mono">{scenario.tech.rule}</dd>
-                    </div>
-                    <div className="ld-drill-wide">
-                      <dt>Trajectory explanation</dt>
-                      <dd>{scenario.tech.trajectoryExplanation}</dd>
-                    </div>
-                    <div className="ld-drill-wide">
-                      <dt>Repo evidence</dt>
-                      <dd>
-                        <a
-                          href={scenario.tech.evidenceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ld-link"
-                        >
-                          {scenario.tech.evidenceRef} ↗
-                        </a>
-                      </dd>
-                    </div>
-                  </dl>
-                )}
+          <ReachabilityMap scenario={scenario} phase={phase} reduce={!!reduce} />
+
+          <div className={`rgx-reachstatus${resolved ? ` is-${meta.tone}` : ""}`} aria-live="polite">
+            {!resolved && phase === 0 && "Awaiting trajectory check…"}
+            {!resolved && phase > 0 && "Computing reachable set ℛ(t)…"}
+            {resolved && scenario.reachable && "⊘ UNSAFE STATE REACHABLE — trajectory terminates at Ω"}
+            {resolved && !scenario.reachable && scenario.decision === "ALLOW" && "✓ SAFE PATH FOUND — Ω never reachable"}
+            {resolved && !scenario.reachable && scenario.decision === "ESCALATE" && "⚑ ESCALATE TO HUMAN — routed around Ω to a human authoriser"}
+          </div>
+        </section>
+      </div>
+
+      {/* ───────────────── Governance decision panel ───────────────── */}
+      {resolved && (
+        <section className={`rgx-verdict rgx-verdict--${meta.tone}`} aria-label="Governance verdict">
+          <div className="rgx-verdict-l">
+            <span className="rgx-verdict-tag">Final verdict</span>
+            <span className="rgx-verdict-word">{meta.label}</span>
+            <span className="rgx-verdict-verb">{meta.verb}</span>
+          </div>
+          <div className="rgx-verdict-r">
+            <div className="rgx-vrow">
+              <span className="rgx-k">Reason</span>
+              <p>{scenario.reason}</p>
+            </div>
+
+            {mode === "ceo" ? (
+              <>
+                <div className="rgx-vrow">
+                  <span className="rgx-k">Business impact</span>
+                  <ul className="rgx-impacts">
+                    {scenario.ceoImpacts.map((b) => (
+                      <li key={b} className={`rgx-impact rgx-impact--${meta.tone}`}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rgx-vrow rgx-cost">
+                  <span className="rgx-k">{scenario.decision === "ALLOW" ? "Cost of friction" : "Estimated exposure avoided"}</span>
+                  <span className="rgx-cost-v">{scenario.costAvoided}</span>
+                </div>
+              </>
+            ) : (
+              <div className="rgx-tech-grid">
+                <div><span className="rgx-k">Risk category</span><p>{scenario.tech.riskCategory}</p></div>
+                <div><span className="rgx-k">Rule triggered</span><p className="mono">{scenario.tech.rule}</p></div>
+                <div><span className="rgx-k">Governance layer</span><p className="mono accent">{scenario.tech.layer}</p></div>
+                <div><span className="rgx-k">Ω category</span><p className="mono">{scenario.tech.omegaDomain}</p></div>
+                <div className="wide"><span className="rgx-k">Decision logic</span><p className="mono">{scenario.tech.decisionLogic}</p></div>
+                <div className="wide"><span className="rgx-k">Trajectory analysis</span><p>{scenario.tech.trajectoryExplanation}</p></div>
+                <div className="wide"><span className="rgx-k">Source repository</span>
+                  <p><a href={scenario.tech.evidenceUrl} target="_blank" rel="noopener noreferrer" className="rgx-link">{scenario.tech.evidenceRef} ↗</a></p>
+                </div>
               </div>
             )}
+          </div>
+        </section>
+      )}
 
-            {/* Replay */}
-            <div className="ld-controls">
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => run(active)}
-                disabled={evaluating}
-              >
-                {evaluating ? "Evaluating…" : "Replay evaluation"}
-              </button>
-              <span className="ld-controls-note">
-                Nothing is ever executed — the layer only inspects the proposed
-                trajectory.
-              </span>
-            </div>
+      {/* ───────────────── Multi-agent differentiator ───────────────── */}
+      <section className="rgx-section rgx-multi" aria-label="Multi-agent governance">
+        <PanelHead n="04" title="Multi-agent governance" sub="The differentiator: harm that no single agent reveals." />
+        <div className="rgx-multi-grid">
+          <div className="rgx-multi-flow" aria-hidden="true">
+            {["Agent A", "Agent B", "Agent C"].map((a) => (
+              <div className="rgx-magent" key={a}>
+                <span className="rgx-magent-id">{a}</span>
+                <span className="rgx-magent-ok">locally safe ✓</span>
+              </div>
+            ))}
+            <div className="rgx-marrow">↓</div>
+            <div className="rgx-mcombine">Combined trajectory</div>
+            <div className="rgx-marrow rgx-marrow--block">↓</div>
+            <div className="rgx-momega">Ω · Data Exfiltration</div>
+            <div className="rgx-mverdict">BLOCKED</div>
+          </div>
+          <div className="rgx-multi-copy">
+            <p>
+              Each agent appeared safe in isolation. The <b>combined trajectory</b> was
+              unsafe. Runtime Governance evaluates the <b>entire pipeline</b> before
+              execution — flattening cooperating agents into one joint trajectory and
+              tracking data flow across them.
+            </p>
+            <ul className="rgx-multi-pts">
+              <li>Agent A acquires customer PII — admissible alone.</li>
+              <li>Agent B stages it in shared memory — admissible alone.</li>
+              <li>Agent C egresses it externally — admissible alone.</li>
+              <li><b>Joint path reaches Ω → BLOCK.</b></li>
+            </ul>
+            <button className="btn btn--ghost btn--sm" onClick={() => select(SCENARIOS.findIndex((s) => s.multiAgent))}>
+              Load the multi-agent scenario →
+            </button>
           </div>
         </div>
       </section>
 
-      {/* ───────────────── Audit log ───────────────── */}
-      <section className="ld-panel" aria-label="Audit log">
-        <div className="ld-panel-h">
-          <h2>Audit log</h2>
-          <span className="ld-panel-sub">
-            Every evaluation produces a timestamped, layer-attributed,
-            replayable record.
-          </span>
-        </div>
-        <div className="ld-audit" role="log" aria-live="polite">
+      {/* ───────────────── Live audit log ───────────────── */}
+      <section className="rgx-section" aria-label="Audit log">
+        <PanelHead n="05" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record." />
+        <div className="rgx-audit" role="log" aria-live="polite">
           {audit.length === 0 ? (
-            <p className="ld-audit-empty">Run a scenario to generate the first audit entry.</p>
+            <p className="rgx-audit-empty">Run a scenario to generate audit events.</p>
           ) : (
-            <table className="ld-audit-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Scenario</th>
-                  <th>Action</th>
-                  <th>Decision</th>
-                  <th>Risk category</th>
-                  <th>Layer</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audit.map((e) => (
-                  <tr key={e.id} className={`ld-audit-row ld-audit-row--${DECISION_META[e.decision].tone}`}>
-                    <td className="ld-mono ld-audit-ts">{e.timestamp}</td>
-                    <td>{e.scenario}</td>
-                    <td className="ld-mono">{e.action}</td>
-                    <td>
-                      <span className={`ld-badge ld-badge--${DECISION_META[e.decision].tone}`}>
-                        {e.decision}
-                      </span>
-                    </td>
-                    <td>{e.riskCategory}</td>
-                    <td className="ld-mono">{e.layer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="rgx-audit-list">
+              {audit.map((e) => (
+                <li key={e.id} className={`rgx-audit-row rgx-audit-row--${e.tone ?? "info"}`}>
+                  <span className="rgx-audit-time mono">{e.time}</span>
+                  <span className="rgx-audit-event">{e.event}</span>
+                  <span className="rgx-audit-detail">{e.detail}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>
 
-      {/* ───────────────── Evidence ───────────────── */}
-      <section className="ld-panel" aria-label="Evidence">
-        <div className="ld-panel-h">
-          <h2>Evidence</h2>
-          <span className="ld-panel-sub">
-            This demo mirrors the public Morrison Runtime Governance repository.
-          </span>
-        </div>
-
-        <div className="ld-evidence">
-          <div className="ld-ev-stats">
-            <Stat v={EVIDENCE.evaluations} l="Governed evaluations" />
-            <Stat v={EVIDENCE.falsePositives} l="False positives (test suite)" />
-            <Stat v={EVIDENCE.falseNegatives} l="False negatives (test suite)" />
-            <Stat v={EVIDENCE.testFunctions} l="Test functions" />
-            <Stat v={EVIDENCE.multiAgentScenarios} l="Multi-agent scenarios" />
-          </div>
-
-          <div className="ld-ev-meta">
-            <div className="ld-ev-card">
-              <span className="ld-ev-k">Repository</span>
-              <a href={EVIDENCE.repo} target="_blank" rel="noopener noreferrer" className="ld-link">
-                Morrison-Runtime-Governance ↗
-              </a>
-              <p className="ld-ev-models">Tested planners: {EVIDENCE.models}</p>
-            </div>
-            <div className="ld-ev-card">
-              <span className="ld-ev-k">Latest commit</span>
-              <a href={EVIDENCE.latestCommit.url} target="_blank" rel="noopener noreferrer" className="ld-link ld-mono">
-                {EVIDENCE.latestCommit.sha} ↗
-              </a>
-              <p className="ld-ev-commit">
-                {EVIDENCE.latestCommit.summary}
-                <span className="ld-ev-date"> · {EVIDENCE.latestCommit.date}</span>
-              </p>
-            </div>
-            <div className="ld-ev-card">
-              <span className="ld-ev-k">Layer hierarchy</span>
-              <ul className="ld-ev-layers">
-                {EVIDENCE.layers.map((ly) => (
-                  <li key={ly.id}>
-                    <code>{ly.id}</code> {ly.desc}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="ld-ev-card">
-              <span className="ld-ev-k">Patents</span>
-              <p className="ld-mono ld-ev-patents">{EVIDENCE.patents}</p>
-              <div className="ld-ev-links">
-                <Link href="/evidence" className="ld-link">
-                  Full evidence &amp; methodology →
-                </Link>
-                <Link href="/test-trajectory" className="ld-link">
-                  Test your own trajectory →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="ld-disclaimer">
-          Scenarios, taxonomy, tool trajectories and layer attribution are
-          derived from the public Morrison Runtime Governance repository. This
-          page is a faithful demonstration: it runs entirely in your browser,
-          exposes no secrets, requires no private infrastructure, and never
-          executes any tool call.
-        </div>
-      </section>
-
-      {/* ───────────────── Closing CTA ───────────────── */}
-      <section className="ld-closing">
-        <h2>See it run against your own agent architecture.</h2>
+      {/* ───────────────── CTAs ───────────────── */}
+      <section className="rgx-closing">
+        <h2>Run this against your own agent architecture.</h2>
         <p>
           The 48-hour Runtime Safety Assessment evaluates your real tool-call
           plans as trajectories — which catastrophic states are reachable, what
           executes, what is intercepted, and why.
         </p>
-        <div className="ld-cta">
-          <Link
-            href="/book#assessment"
-            className="btn btn--primary"
-            onClick={() => track("cta_click", { location: "live-demo-closing", cta: "assessment" })}
-          >
+        <div className="rgx-cta">
+          <Link href="/book#assessment" className="btn btn--primary" onClick={() => track("cta_click", { location: "live-demo", cta: "assessment" })}>
             Book a Runtime Safety Assessment <span className="arr">→</span>
           </Link>
           <a href={EVIDENCE.repo} target="_blank" rel="noopener noreferrer" className="btn btn--ghost">
             View GitHub evidence
           </a>
-          <Link href="/integrations" className="btn btn--ghost">
-            See integrations
-          </Link>
+          <Link href="/integrations" className="btn btn--ghost">See integrations</Link>
         </div>
       </section>
+
+      {/* ───────────────── Evidence drawer ───────────────── */}
+      <div className={`rgx-drawer-scrim${evidenceOpen ? " is-open" : ""}`} onClick={() => setEvidenceOpen(false)} aria-hidden="true" />
+      <aside className={`rgx-drawer${evidenceOpen ? " is-open" : ""}`} role="dialog" aria-label="Evidence" aria-modal={evidenceOpen} hidden={!evidenceOpen}>
+        <div className="rgx-drawer-head">
+          <h2>Evidence</h2>
+          <button className="rgx-drawer-x" onClick={() => setEvidenceOpen(false)} aria-label="Close evidence">×</button>
+        </div>
+        <p className="rgx-drawer-sub">This console mirrors the public Morrison Runtime Governance repository.</p>
+
+        <div className="rgx-ev-stats">
+          <EvStat v={EVIDENCE.evaluations} l="Governed evaluations" />
+          <EvStat v={EVIDENCE.falsePositives} l="False positives" />
+          <EvStat v={EVIDENCE.falseNegatives} l="False negatives" />
+          <EvStat v={EVIDENCE.testFunctions} l="Test functions" />
+        </div>
+
+        <div className="rgx-ev-card">
+          <span className="rgx-k">Repository</span>
+          <a href={EVIDENCE.repo} target="_blank" rel="noopener noreferrer" className="rgx-link">Morrison-Runtime-Governance ↗</a>
+          <p className="rgx-ev-muted">Tested planners: {EVIDENCE.models}</p>
+        </div>
+
+        <div className="rgx-ev-card">
+          <span className="rgx-k">Latest commit</span>
+          <a href={EVIDENCE.latestCommit.url} target="_blank" rel="noopener noreferrer" className="rgx-link mono">{EVIDENCE.latestCommit.sha} ↗</a>
+          <p className="rgx-ev-muted">{EVIDENCE.latestCommit.summary} · {EVIDENCE.latestCommit.date}</p>
+        </div>
+
+        <div className="rgx-ev-card">
+          <span className="rgx-k">Layer hierarchy</span>
+          <ul className="rgx-ev-layers">
+            {EVIDENCE.layers.map((ly) => (
+              <li key={ly.id}><code>{ly.id}</code> {ly.desc}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rgx-ev-card">
+          <span className="rgx-k">Patent references</span>
+          <p className="mono rgx-ev-muted">{EVIDENCE.patents}</p>
+        </div>
+
+        <div className="rgx-ev-card">
+          <span className="rgx-k">Integrate in 15 minutes</span>
+          <pre className="rgx-code"><code>{INTEGRATION_SNIPPET}</code></pre>
+          <div className="rgx-ev-links">
+            <Link href="/integrations" className="rgx-link">Integration guide →</Link>
+            <Link href="/test-trajectory" className="rgx-link">Test your own trajectory →</Link>
+          </div>
+        </div>
+
+        <p className="rgx-drawer-foot">
+          Runs entirely in your browser · exposes no secrets · requires no
+          private infrastructure · never executes any tool call.
+        </p>
+      </aside>
     </div>
   );
 }
 
 /* ───────────────── Sub-components ───────────────── */
 
-function Block({
-  label,
-  step,
-  lit,
-  tone,
-  children,
-}: {
-  label: string;
-  step: string;
-  lit: boolean;
-  tone?: "block" | "allow" | "escalate";
-  children: React.ReactNode;
-}) {
+function PanelHead({ n, title, sub }: { n: string; title: string; sub: string }) {
   return (
-    <div
-      className={`ld-block${lit ? " is-lit" : ""}${tone ? ` ld-block--${tone}` : ""}`}
-    >
-      <div className="ld-block-head">
-        <span className="ld-block-step">{step}</span>
-        <span className="ld-block-label">{label}</span>
+    <div className="rgx-panelhead">
+      <span className="rgx-panelhead-n">{n}</span>
+      <div>
+        <h2>{title}</h2>
+        <p>{sub}</p>
       </div>
-      <div className="ld-block-body">{children}</div>
     </div>
   );
 }
 
-function Stat({ v, l }: { v: string; l: string }) {
+function EvStat({ v, l }: { v: string; l: string }) {
   return (
-    <div className="ld-stat">
-      <div className="ld-stat-v">{v}</div>
-      <div className="ld-stat-l">{l}</div>
+    <div className="rgx-ev-stat">
+      <span className="rgx-ev-statv">{v}</span>
+      <span className="rgx-ev-statl">{l}</span>
     </div>
   );
 }
 
-/** Trajectory pipeline visual. Single-agent or multi-agent (joint) variant. */
-function TrajectoryVisual({ scenario, phase }: { scenario: Scenario; phase: Phase }) {
-  const resolved = phase >= 4;
+/**
+ * Animated reachability map (pure SVG, fixed viewBox so coordinates align at
+ * any width). Unsafe trajectories terminate at Ω (red, pulsing); safe /
+ * escalated trajectories route AROUND Ω to an outcome node.
+ */
+function ReachabilityMap({ scenario, phase, reduce }: { scenario: Scenario; phase: Phase; reduce: boolean }) {
   const meta = DECISION_META[scenario.decision];
-  const flowing = phase >= 2;
+  const nodes = scenario.nodes;
+  const N = nodes.length;
 
-  if (scenario.multiAgent) {
-    const agents = scenario.trajectory;
-    return (
-      <div className={`ld-flow ld-flow--multi${resolved ? ` is-${meta.tone}` : ""}`} aria-hidden="true">
-        <div className="ld-flow-agents">
-          {agents.map((a, i) => (
-            <div className="ld-flow-agent" key={i} data-lit={flowing}>
-              <span className="ld-flow-aid">Agent {a.agent}</span>
-              <span className="ld-flow-arole">{a.role}</span>
-              <span className="ld-flow-atool">{a.tool}</span>
-            </div>
-          ))}
-        </div>
-        <FlowArrow lit={flowing} />
-        <div className="ld-flow-node ld-flow-node--combine" data-lit={phase >= 3}>
-          Combined trajectory
-        </div>
-        <FlowArrow lit={resolved} tone={meta.tone} />
-        <div className={`ld-flow-node ld-flow-node--decision ld-flow--${meta.tone}`} data-lit={resolved}>
-          {resolved ? meta.label : "Runtime Governance"}
-        </div>
-      </div>
-    );
-  }
+  const W = 320;
+  const SP = 100; // spine x
+  const TOP = 30;
+  const GAP = 60;
+  const yOf = (i: number) => TOP + i * GAP;
+  const yLast = yOf(N - 1);
+  const omegaCx = 244;
+  const omegaCy = yLast + 50;
+  const outcomeY = yLast + 118;
+  const H = yLast + 170;
+
+  const drawing = phase >= 2;
+  const resolved = phase >= 3;
+  const unsafe = scenario.reachable;
+  const startY = yLast + 18;
+
+  // Branch path: into Ω (unsafe) or around Ω to the outcome node (safe/escalate).
+  const pathToOmega = `M ${SP} ${startY} C ${SP} ${startY + 30}, ${omegaCx} ${omegaCy - 52}, ${omegaCx} ${omegaCy - 24}`;
+  const pathAround = `M ${SP} ${startY} C ${SP - 34} ${startY + 32}, ${SP - 34} ${outcomeY - 46}, ${SP} ${outcomeY - 18}`;
+  const branchPath = unsafe ? pathToOmega : pathAround;
+  const branchColor =
+    meta.tone === "block" ? "var(--omega)" : meta.tone === "escalate" ? "var(--escalate)" : "var(--ok)";
+
+  const drawStyle = (active: boolean): React.CSSProperties =>
+    reduce
+      ? { strokeDashoffset: 0 }
+      : { strokeDashoffset: active ? 0 : 1, transition: "stroke-dashoffset .8s ease" };
 
   return (
-    <div className={`ld-flow${resolved ? ` is-${meta.tone}` : ""}`} aria-hidden="true">
-      <div className="ld-flow-node" data-lit={phase >= 0}>User request</div>
-      <FlowArrow lit={phase >= 1} />
-      <div className="ld-flow-node" data-lit={phase >= 1}>AI agent</div>
-      <FlowArrow lit={phase >= 2} />
-      <div className="ld-flow-node" data-lit={phase >= 2}>Proposed action</div>
-      <FlowArrow lit={phase >= 3} />
-      <div className="ld-flow-node ld-flow-node--gate" data-lit={phase >= 3}>
-        <span className="ld-flow-omega">Ω</span>
-        Runtime Governance
-      </div>
-      <FlowArrow lit={resolved} tone={meta.tone} />
-      <div className={`ld-flow-node ld-flow-node--decision ld-flow--${meta.tone}`} data-lit={resolved}>
-        {resolved ? meta.label : "Decision"}
-      </div>
+    <div className="rgx-map">
+      <svg viewBox={`0 0 ${W} ${H}`} className="rgx-map-svg" role="img"
+        aria-label={`Reachability map. Verdict ${meta.label}.`}>
+        {/* spine connectors */}
+        {nodes.slice(0, -1).map((_, i) => (
+          <line
+            key={i}
+            x1={SP} y1={yOf(i) + 18} x2={SP} y2={yOf(i + 1) - 18}
+            className={`rgx-conn${phase >= 1 ? " is-lit" : ""}`}
+            pathLength={1}
+            style={drawStyle(phase >= 1)}
+          />
+        ))}
+
+        {/* branch path */}
+        <path
+          d={branchPath}
+          fill="none"
+          className="rgx-branch"
+          stroke={resolved ? branchColor : "var(--ink-4)"}
+          pathLength={1}
+          style={drawStyle(drawing)}
+        />
+        {/* terminator X at Ω when unsafe */}
+        {resolved && unsafe && (
+          <g className="rgx-term" stroke="var(--omega)">
+            <line x1={omegaCx - 7} y1={omegaCy - 7} x2={omegaCx + 7} y2={omegaCy + 7} />
+            <line x1={omegaCx + 7} y1={omegaCy - 7} x2={omegaCx - 7} y2={omegaCy + 7} />
+          </g>
+        )}
+
+        {/* trajectory nodes */}
+        {nodes.map((label, i) => {
+          const y = yOf(i);
+          const lit = phase >= 1;
+          return (
+            <g key={label} className={`rgx-node${lit ? " is-lit" : ""}`} style={reduce ? undefined : { transitionDelay: `${i * 90}ms` }}>
+              <rect x={SP - 72} y={y - 16} width={144} height={32} rx={8} />
+              <text x={SP} y={y + 4} textAnchor="middle">{label}</text>
+            </g>
+          );
+        })}
+
+        {/* Ω node */}
+        <g className={`rgx-omeganode${resolved && unsafe ? " is-hit" : ""}${resolved && !unsafe ? " is-avoided" : ""}`}>
+          <circle cx={omegaCx} cy={omegaCy} r={22} />
+          <text x={omegaCx} y={omegaCy + 6} textAnchor="middle" className="rgx-omega-glyph">Ω</text>
+          <text x={omegaCx} y={omegaCy + 40} textAnchor="middle" className="rgx-omega-label">
+            {scenario.omegaState.replace(/^Ω ·?\s*/, "")}
+          </text>
+        </g>
+
+        {/* outcome node (routed destination) */}
+        <g className={`rgx-outcome rgx-outcome--${meta.tone}${resolved && !unsafe ? " is-on" : ""}`}>
+          <rect x={SP - 78} y={outcomeY - 17} width={156} height={34} rx={9} />
+          <text x={SP} y={outcomeY + 4} textAnchor="middle">
+            {unsafe ? "✕ never reached" : scenario.outcomeNode}
+          </text>
+        </g>
+      </svg>
     </div>
-  );
-}
-
-function FlowArrow({ lit, tone }: { lit: boolean; tone?: "block" | "allow" | "escalate" }) {
-  return (
-    <span className={`ld-flow-arrow${lit ? " is-lit" : ""}${tone ? ` ld-flow-arrow--${tone}` : ""}`}>
-      →
-    </span>
   );
 }
