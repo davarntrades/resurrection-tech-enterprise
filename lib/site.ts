@@ -21,6 +21,7 @@ export const SITE = {
 
 // Curated links shown inline in the desktop navbar — conversion-focused, no jargon.
 export const NAV_LINKS = [
+  { href: "/live-demo", label: "Live Demo" },
   { href: "/why-runtime-governance", label: "Why us" },
   { href: "/integrations", label: "Integrations" },
   { href: "/evidence", label: "Evidence" },

@@ -616,7 +616,7 @@ export const EVIDENCE = {
   testFunctions: "219",
   multiAgentScenarios: "10",
   models: "GPT-4o · Qwen · Llama · DeepSeek",
-  patents: "GB2600765.8 · GB2602013.1 · GB2602072.7 · GB2602332.5",
+  patents: "GB2600765.8",
   latestCommit: {
     sha: "8ad0976",
     summary: "docs(partnerships): add Partner Revenue Independence section",
