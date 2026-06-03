@@ -36,6 +36,23 @@ const Lock = () => (
   </svg>
 );
 
+/** Cross-domain Ω scope — shown high on the page as a capability showcase. */
+const SECTORS: { name: string; omega: string; scope: string[]; scale: string }[] = [
+  { name: "Finance / Banking Infrastructure", omega: "Ω · Financial loss", scope: ["Treasury automation", "Payment systems", "Autonomous trading", "Settlement systems"], scale: "£1M–£5M+" },
+  { name: "Healthcare / Clinical Systems", omega: "Ω · Patient safety / PHI", scope: ["PHI governance", "Discharge workflows", "Medication authorization", "Clinical AI systems"], scale: "£750K–£3M+" },
+  { name: "Cybersecurity / Infrastructure", omega: "Ω · Infrastructure compromise", scope: ["Credential governance", "Shell-execution governance", "Infrastructure orchestration", "Security operations"], scale: "£750K–£3M+" },
+  { name: "Data Privacy / Compliance", omega: "Ω · Regulatory breach", scope: ["GDPR runtime enforcement", "FCA compliance", "SOX governance", "Executable regulatory controls"], scale: "£1M–£4M+" },
+  { name: "Enterprise Autonomous Systems", omega: "Ω · Operational integrity", scope: ["Internal workflow governance", "Autonomous operations", "Auditability", "Agent orchestration"], scale: "£500K–£2M+" },
+  { name: "Insurance / Actuarial Governance", omega: "Ω · Insurability / claims", scope: ["Runtime insurability evidence", "Claims governance", "Risk verification", "Actuarial automation"], scale: "£750K–£3M+" },
+  { name: "Government / Public Sector", omega: "Ω · Public-service integrity", scope: ["Citizen services", "Benefits administration", "Regulatory workflows", "Public-sector AI systems"], scale: "£1M–£10M+" },
+  { name: "Supply Chain / Logistics", omega: "Ω · Procurement / fulfilment", scope: ["Procurement automation", "Vendor approval", "Inventory orchestration", "Shipping authorization"], scale: "£500K–£5M+" },
+  { name: "Energy / Critical Infrastructure", omega: "Ω · Grid stability", scope: ["Grid operations", "Utility automation", "Infrastructure control systems", "Load balancing"], scale: "£1M–£10M+" },
+  { name: "Telecommunications / Network Operations", omega: "Ω · Network integrity", scope: ["Network orchestration", "Service provisioning", "Infrastructure management", "Autonomous network operations"], scale: "£500K–£5M+" },
+  { name: "Manufacturing / Industrial Automation", omega: "Ω · Production / safety", scope: ["Factory orchestration", "Robotics governance", "Production scheduling", "Quality-control automation"], scale: "£500K–£10M+" },
+  { name: "Aerospace / Aviation Systems", omega: "Ω · Flight safety", scope: ["Fleet operations", "Mission planning", "Maintenance automation", "Safety-critical workflows"], scale: "£1M–£25M+" },
+  { name: "Defence / Sovereign Infrastructure", omega: "Ω · National security", scope: ["Autonomous coordination", "Classified handling", "Sovereign runtime governance", "Mission-critical infrastructure"], scale: "£5M–£25M+" },
+];
+
 export function HomeClient() {
   useSiteMotion();
 
@@ -220,6 +237,42 @@ export function HomeClient() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ===== TARGET SECTORS & Ω SCOPE — cross-domain capability showcase ===== */}
+        <section className="section section--tight sectors" id="domains" data-screen-label="Domains">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Cross-domain capability</span>
+              <h2>Runtime Governance across critical industries.</h2>
+              <p>
+                The governance mechanism remains constant. The Ω domain changes.
+                Runtime Governance applies wherever autonomous systems can create
+                financial, operational, regulatory, safety, or national-security
+                consequences.
+              </p>
+            </div>
+            <div className="sectors-grid reveal" data-rowreveal>
+              {SECTORS.map((s) => (
+                <div className="sector-card" key={s.name}>
+                  <span className="sector-omega">{s.omega}</span>
+                  <h3 className="sector-name">{s.name}</h3>
+                  <ul className="sector-scope">
+                    {s.scope.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                  <div className="sector-scale">
+                    <span className="sector-scale-k">Indicative engagement scale</span>
+                    <span className="sector-scale-v">{s.scale}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="sectors-note reveal">
+              Indicative engagement scales represent target deployment categories
+              and potential market scope. They are not claims regarding existing
+              customers or contracts.
+            </p>
           </div>
         </section>
 
@@ -860,45 +913,6 @@ export function HomeClient() {
         </section>
 
         <hr className="divider" />
-
-        {/* ===== DOMAINS ===== */}
-        <section className="section section--tight" id="domains" data-screen-label="Domains">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Enterprise / domain integration</span>
-              <h2>Target sectors &amp; Ω scope.</h2>
-              <p>Indicative engagement scale by domain. The following are target sectors — not existing client claims.</p>
-            </div>
-            <div className="tbl-wrap reveal" data-rowreveal>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Domain</th><th>Ω definition / scope</th><th>Investment</th></tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Finance / Banking Infrastructure", "Treasury automation, payment systems, autonomous trading, settlement", "£1M–£5M+"],
-                    ["Healthcare / Clinical Systems", "PHI governance, discharge workflows, medication authorization", "£750K–£3M+"],
-                    ["Cybersecurity / Infrastructure", "Credential governance, shell-execution governance, orchestration", "£750K–£3M+"],
-                    ["Data Privacy / Compliance", "GDPR / FCA / SOX executable runtime enforcement", "£1M–£4M+"],
-                    ["Enterprise Autonomous Systems", "Internal workflow governance, auditability, autonomous operations", "£500K–£2M+"],
-                    ["Insurance / Actuarial Governance", "Runtime insurability evidence & governance verification", "£750K–£3M+"],
-                    ["Defence / Sovereign Infrastructure", "Autonomous coordination, classified handling, sovereign runtime governance", "£5M–£25M+"],
-                  ].map(([d, s, inv]) => (
-                    <tr key={d}>
-                      <td data-l="Domain" className="t-main">{d}</td>
-                      <td data-l="Scope">{s}</td>
-                      <td data-l="Investment" className="t-price">{inv}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="note-strip reveal">
-              <div><div className="k">ARR target / client</div><div className="v"><b>£500K–£2M+</b> annually</div></div>
-              <div><div className="k">Sovereign / defence retainers</div><div className="v"><b>£1M–£5M+</b> / yr</div></div>
-            </div>
-          </div>
-        </section>
 
         {/* ===== FINAL CTA ===== */}
         <section className="section cta-final" id="contact" data-screen-label="Contact">
