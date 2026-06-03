@@ -1,0 +1,5 @@
+# FastAPI service deps. The Morrison engine itself is pure-Python (stdlib only)
+# and is vendored into the image at build time (see Dockerfile) — no extra deps.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { trajectoryRequestSchema } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { evaluateTrajectory, type EvalResult } from "@/lib/trajectory-eval";
+import { evaluateViaGovernance } from "@/lib/governance-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,22 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   }
 
   // ── Evaluate (pure; never executes anything) ──────────────
-  const result = evaluateTrajectory(parsed.data.trajectory);
-  return NextResponse.json({ ok: true, ...result });
+  // Prefer the real Morrison engine (GovernanceLayer.evaluate_plan via the
+  // governance service). On any failure — unset URL, network, non-2xx, or
+  // timeout — fall back to the in-process heuristic so the UI never breaks.
+  let result: EvalResult;
+  let source = "heuristic";
+  try {
+    result = await evaluateViaGovernance(parsed.data.trajectory);
+    source = "morrison";
+  } catch (err) {
+    if (process.env.GOVERNANCE_URL) {
+      console.warn("[evaluate-trajectory] governance service unavailable, using heuristic fallback:", (err as Error).message);
+    }
+    result = evaluateTrajectory(parsed.data.trajectory);
+  }
+
+  const res = NextResponse.json<Resp>({ ok: true, ...result });
+  res.headers.set("x-governance-source", source); // observability only — not a UI field
+  return res;
 }
