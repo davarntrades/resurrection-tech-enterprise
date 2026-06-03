@@ -1,0 +1,145 @@
+name: Deploy governance-service
+
+# Deploys governance-service/ (the real Morrison Runtime Governance engine,
+# wrapped in FastAPI) to Railway as a live HTTPS service, then prints the
+# public GOVERNANCE_URL. Does NOT touch the website UI or the heuristic
+# fallback — the Next.js route already uses the service when GOVERNANCE_URL
+# is set and falls back automatically when it is not.
+#
+# Optional: if Vercel secrets are present, it also sets the production env
+# vars (GOVERNANCE_URL / GOVERNANCE_TOKEN / GOVERNANCE_TIMEOUT_MS) and
+# redeploys the site so the change goes live with no manual steps.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "governance-service/**"
+      - ".github/workflows/deploy-governance.yml"
+
+concurrency:
+  group: deploy-governance
+  cancel-in-progress: false
+
+env:
+  SERVICE_NAME: governance-service
+
+jobs:
+  deploy-railway:
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.domain.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@3
+
+      - name: Set service env vars (token, horizon)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          GOVERNANCE_TOKEN: ${{ secrets.GOVERNANCE_TOKEN }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::RAILWAY_TOKEN secret is not set."; exit 1
+          fi
+          if [ -z "$GOVERNANCE_TOKEN" ]; then
+            echo "::error::GOVERNANCE_TOKEN secret is not set."; exit 1
+          fi
+          railway variables \
+            --service "$SERVICE_NAME" \
+            --set "GOVERNANCE_TOKEN=$GOVERNANCE_TOKEN" \
+            --set "GOVERNANCE_HORIZON=3" \
+            --set "GOVERNANCE_EVAL_TIMEOUT_S=4.0" \
+            --skip-deploys
+
+      - name: Deploy (Docker build from governance-service/)
+        working-directory: governance-service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service "$SERVICE_NAME" --ci
+
+      - name: Resolve public HTTPS URL
+        id: domain
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          # Generates a public domain if one doesn't exist, else returns it.
+          OUT="$(railway domain --service "$SERVICE_NAME" 2>&1 || true)"
+          echo "$OUT"
+          URL="$(printf '%s' "$OUT" | grep -oE 'https://[A-Za-z0-9._-]+' | head -1)"
+          if [ -z "$URL" ]; then
+            echo "::error::Could not resolve a public domain. Open the Railway service → Settings → Networking → Generate Domain, then re-run."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Health check
+        run: |
+          URL="${{ steps.domain.outputs.url }}"
+          for i in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$URL/health" || true)"
+            if [ "$code" = "200" ]; then echo "health OK"; curl -s "$URL/health"; break; fi
+            echo "waiting for service ($code)…"; sleep 5
+          done
+          [ "$code" = "200" ] || { echo "::error::Service did not become healthy."; exit 1; }
+
+      - name: Summary
+        run: |
+          {
+            echo "### governance-service deployed ✅"
+            echo ""
+            echo "**GOVERNANCE_URL:** \`${{ steps.domain.outputs.url }}\`"
+            echo ""
+            echo "Set this as \`GOVERNANCE_URL\` in Vercel → Production (with \`GOVERNANCE_TOKEN\` and \`GOVERNANCE_TIMEOUT_MS=4000\`), then redeploy."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Optional: only runs its steps if Vercel secrets are present. Sets the
+  # production env vars and triggers a redeploy so the site goes live.
+  update-vercel:
+    needs: deploy-railway
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      GOVERNANCE_URL: ${{ needs.deploy-railway.outputs.url }}
+      GOVERNANCE_TOKEN: ${{ secrets.GOVERNANCE_TOKEN }}
+    steps:
+      - name: Check for Vercel secrets
+        id: gate
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel secrets not set — skipping. Set GOVERNANCE_URL in Vercel manually (see job summary)."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+
+      - name: Install Vercel CLI
+        if: steps.gate.outputs.enabled == 'true'
+        run: npm install -g vercel@latest
+
+      - name: Set production env vars + redeploy
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -e
+          add_env () {
+            local name="$1" value="$2"
+            vercel env rm "$name" production --yes --token="$VERCEL_TOKEN" >/dev/null 2>&1 || true
+            printf '%s' "$value" | vercel env add "$name" production --token="$VERCEL_TOKEN"
+          }
+          add_env GOVERNANCE_URL "$GOVERNANCE_URL"
+          add_env GOVERNANCE_TOKEN "$GOVERNANCE_TOKEN"
+          add_env GOVERNANCE_TIMEOUT_MS "4000"
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
