@@ -278,6 +278,9 @@ export function LiveDemoClient() {
         </section>
       </div>
 
+      {/* ───────────────── Decision reasoning ───────────────── */}
+      {resolved && <DecisionReasoning scenario={scenario} />}
+
       {/* ───────────────── Governance decision panel ───────────────── */}
       {resolved && (
         <section className={`rgx-verdict rgx-verdict--${meta.tone}`} aria-label="Governance verdict">
@@ -326,7 +329,7 @@ export function LiveDemoClient() {
 
       {/* ───────────────── Multi-agent differentiator ───────────────── */}
       <section className="rgx-section rgx-multi" aria-label="Multi-agent governance">
-        <PanelHead n="04" title="Multi-agent governance" sub="The differentiator: harm that no single agent reveals." />
+        <PanelHead n="05" title="Multi-agent governance" sub="The differentiator: harm that no single agent reveals." />
         <div className="rgx-multi-grid">
           <div className="rgx-multi-flow" aria-hidden="true">
             {["Agent A", "Agent B", "Agent C"].map((a) => (
@@ -363,7 +366,7 @@ export function LiveDemoClient() {
 
       {/* ───────────────── Live audit log ───────────────── */}
       <section className="rgx-section" aria-label="Audit log">
-        <PanelHead n="05" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record." />
+        <PanelHead n="06" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record." />
         <div className="rgx-audit" role="log" aria-live="polite">
           {audit.length === 0 ? (
             <p className="rgx-audit-empty">Run a scenario to generate audit events.</p>
@@ -461,6 +464,94 @@ export function LiveDemoClient() {
 }
 
 /* ───────────────── Sub-components ───────────────── */
+
+/** Structured, deterministic decision reasoning. No chain-of-thought. */
+function DecisionReasoning({ scenario }: { scenario: Scenario }) {
+  const [techOpen, setTechOpen] = useState(false);
+  const meta = DECISION_META[scenario.decision];
+  const r = scenario.reasoning;
+  const d = scenario.decision;
+
+  const whyLabel =
+    d === "BLOCK" ? "Why this trajectory is unsafe"
+    : d === "ALLOW" ? "Why no Ω state is reachable"
+    : "Why this is not automatically blocked";
+  const verdictLabel =
+    d === "BLOCK" ? "Verdict explanation"
+    : d === "ALLOW" ? "Why the action is permitted"
+    : "Why human review is required";
+  const step7 =
+    d === "ALLOW"
+      ? { label: "Audit evidence recorded", text: r.evidence }
+      : { label: "Business consequence avoided", text: r.consequence };
+  const callout =
+    d === "ALLOW"
+      ? null
+      : d === "ESCALATE"
+        ? { label: "Evidence the reviewer receives", text: r.evidence }
+        : { label: "Audit evidence recorded", text: r.evidence };
+
+  const steps: { label: string; text: string; mono?: boolean }[] = [
+    { label: "Triggered rule", text: scenario.tech.rule, mono: true },
+    { label: "Risk category", text: `${scenario.tech.omegaDomain} / ${scenario.tech.riskCategory}` },
+    { label: whyLabel, text: r.why },
+    { label: "Reachability explanation", text: r.reachability },
+    { label: "Governance layer triggered", text: r.layer },
+    { label: verdictLabel, text: r.verdict },
+    step7,
+  ];
+
+  return (
+    <section className={`rgx-reason rgx-reason--${meta.tone}`} aria-label="Decision reasoning">
+      <div className="rgx-reason-head">
+        <PanelHead n="04" title="Decision reasoning" sub="A structured, deterministic explanation — not a chatbot answer." />
+        <span className={`rgx-badge rgx-badge--${meta.tone} rgx-reason-badge`}>{meta.label}</span>
+      </div>
+
+      <ol className="rgx-reason-steps">
+        {steps.map((s, i) => (
+          <li key={i} className="rgx-reason-step">
+            <span className="rgx-reason-num">{i + 1}</span>
+            <div className="rgx-reason-body">
+              <span className="rgx-k">{s.label}</span>
+              <p className={s.mono ? "rgx-reason-text mono" : "rgx-reason-text"}>{s.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {callout && (
+        <div className={`rgx-reason-callout rgx-reason-callout--${meta.tone}`}>
+          <span className="rgx-k">{callout.label}</span>
+          <p>{callout.text}</p>
+        </div>
+      )}
+
+      <div className="rgx-reason-tech">
+        <button className="rgx-reason-toggle" aria-expanded={techOpen} onClick={() => setTechOpen((v) => !v)}>
+          <span className="rgx-reason-chev" data-open={techOpen}>▸</span>
+          Technical detail
+          <span className="rgx-reason-hint">rule · layer · decision logic · source file</span>
+        </button>
+        {techOpen && (
+          <dl className="rgx-reason-techgrid">
+            <div><dt>Triggered rule</dt><dd className="mono">{scenario.tech.rule}</dd></div>
+            <div><dt>Governance layer</dt><dd className="mono accent">{scenario.tech.layer}</dd></div>
+            <div><dt>Ω domain</dt><dd className="mono">{scenario.tech.omegaDomain}</dd></div>
+            <div className="wide"><dt>Decision logic</dt><dd className="mono">{scenario.tech.decisionLogic}</dd></div>
+            <div className="wide"><dt>Source file</dt>
+              <dd>
+                <a href={scenario.tech.evidenceUrl} target="_blank" rel="noopener noreferrer" className="rgx-link">
+                  {scenario.tech.evidenceRef} ↗
+                </a>
+              </dd>
+            </div>
+          </dl>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function PanelHead({ n, title, sub }: { n: string; title: string; sub: string }) {
   return (
