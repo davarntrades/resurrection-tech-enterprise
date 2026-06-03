@@ -41,11 +41,20 @@ export function Nav() {
         </Link>
 
         <div className="nav-links">
-          {NAV_LINKS.map((l) => (
-            <Link key={l.href} href={l.href}>
-              {l.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((l) => {
+            const isLive = l.href === "/live-demo";
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={isLive ? "nav-live" : undefined}
+                onClick={isLive ? () => track(Events.CTA_CLICK, { location: "nav", cta: "live-demo" }) : undefined}
+              >
+                {isLive && <span className="nav-live-dot" aria-hidden="true" />}
+                {l.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="nav-cta">

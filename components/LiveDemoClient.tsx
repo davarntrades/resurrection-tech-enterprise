@@ -441,7 +441,7 @@ export function LiveDemoClient() {
         </div>
 
         <div className="rgx-ev-card">
-          <span className="rgx-k">Patent references</span>
+          <span className="rgx-k">Patent</span>
           <p className="mono rgx-ev-muted">{EVIDENCE.patents}</p>
         </div>
 

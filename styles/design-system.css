@@ -201,6 +201,27 @@ p { margin: 0; }
   content: ""; position: absolute; left: 13px; right: 13px; bottom: 2px;
   height: 1.5px; background: var(--accent); border-radius: 2px;
 }
+/* Live Demo — surfaced as a try-it CTA in the inline nav */
+.nav-links a.nav-live {
+  color: var(--ink);
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--accent-dim);
+  background: rgba(76,125,255,0.08);
+}
+.nav-links a.nav-live:hover { background: rgba(76,125,255,0.16); border-color: var(--accent); }
+.nav-live-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex: none;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: navLivePulse 2.4s var(--ease) infinite;
+}
+@keyframes navLivePulse {
+  0% { box-shadow: 0 0 0 0 rgba(76,125,255,0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(76,125,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(76,125,255,0); }
+}
+@media (prefers-reduced-motion: reduce) { .nav-live-dot { animation: none; } }
+
 .nav-cta { display: flex; align-items: center; gap: 10px; }
 .nav-burger { display: none; }
 
