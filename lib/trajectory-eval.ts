@@ -352,18 +352,20 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
     return {
       verdict: "INCONCLUSIVE",
       layer: "none",
-      reason: "No rule for this trajectory pattern in the public demo",
-      omega: "not evaluated",
-      runtimeStatus: "not evaluated in public demo",
-      category: "Inconclusive",
+      reason: "Novel trajectory detected — escalated for review.",
+      omega: "indeterminate",
+      runtimeStatus: "escalated for review",
+      category: "Novel trajectory",
       explanation:
-        "The public demonstration contains no rule for this trajectory pattern. It evaluates only a limited set of illustrative patterns — a full Morrison Runtime Governance assessment evaluates the complete trajectory and state space.",
+        "Insufficient information to determine reachability within the public evaluation environment. Escalated for review — a full Morrison Runtime Governance assessment evaluates the complete trajectory and state space.",
       omegaReachable: false,
-      businessImpact: "Not determined by the public demonstration.",
-      protectedAssets: ["Not evaluated"],
-      confidence: "Not applicable",
-      omegaReason: "The public demonstration contains no rule for this trajectory pattern.",
-      estimatedConsequence: "Not determined by the public demonstration.",
+      businessImpact:
+        "Reachability could not be determined here. A human review / full assessment is required before this trajectory runs.",
+      protectedAssets: ["Pending human review"],
+      confidence: "Escalate",
+      omegaReason:
+        "The public evaluation environment has insufficient information to determine whether Ω is reachable for this trajectory.",
+      estimatedConsequence: "Undetermined — escalated for human review.",
       steps,
     };
   }

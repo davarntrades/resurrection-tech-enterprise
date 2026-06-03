@@ -183,8 +183,8 @@ export function TestTrajectoryClient() {
           <p>
             This public demonstration evaluates a limited set of illustrative trajectory patterns.
             It is <b>not</b> the complete Morrison Runtime Governance evaluation system used in
-            internal benchmarking and enterprise assessments. Trajectories it has no rule for return{" "}
-            <b>INCONCLUSIVE</b>, not a verdict.
+            internal benchmarking and enterprise assessments. Trajectories outside its rule set are
+            flagged as a <b>novel trajectory</b> and escalated for review, rather than cleared.
           </p>
         </div>
 
