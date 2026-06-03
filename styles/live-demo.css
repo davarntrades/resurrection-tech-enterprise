@@ -232,6 +232,79 @@
 .rgx-reachstatus.is-allow { color: var(--ok); border-color: rgba(63,178,127,0.4); background: rgba(63,178,127,0.06); }
 .rgx-reachstatus.is-escalate { color: var(--escalate); border-color: rgba(224,163,46,0.4); background: rgba(224,163,46,0.06); }
 
+/* ───────────── Decision reasoning panel ───────────── */
+.rgx-reason {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: clamp(18px, 3vw, 30px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.rgx-reason::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; }
+.rgx-reason--block::before { background: var(--omega); }
+.rgx-reason--allow::before { background: var(--ok); }
+.rgx-reason--escalate::before { background: var(--escalate); }
+.rgx-reason-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.rgx-reason-badge { margin-left: 0; flex: none; }
+
+.rgx-reason-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+@media (min-width: 760px) { .rgx-reason-steps { grid-template-columns: 1fr 1fr; gap: 2px 28px; } }
+.rgx-reason-step { display: flex; gap: 14px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+@media (min-width: 760px) { .rgx-reason-step:nth-last-child(2):nth-child(odd), .rgx-reason-step:last-child { border-bottom: 0; } }
+.rgx-reason-num {
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent-bright);
+  border: 1px solid var(--accent-dim);
+  border-radius: 7px;
+  background: var(--bg-1);
+}
+.rgx-reason--block .rgx-reason-num { color: #e98b8e; border-color: rgba(229,72,77,0.4); }
+.rgx-reason--allow .rgx-reason-num { color: #6fc6a0; border-color: rgba(63,178,127,0.4); }
+.rgx-reason--escalate .rgx-reason-num { color: #d9b25e; border-color: rgba(224,163,46,0.4); }
+.rgx-reason-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.rgx-reason-text { font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+.rgx-reason-text.mono { font-family: var(--mono); font-size: 13px; color: var(--accent-bright); }
+
+.rgx-reason-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+}
+.rgx-reason-callout p { font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+.rgx-reason-callout--block { border-color: rgba(229,72,77,0.28); }
+.rgx-reason-callout--escalate { border-color: rgba(224,163,46,0.32); background: rgba(224,163,46,0.05); }
+
+.rgx-reason-tech { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); overflow: hidden; }
+.rgx-reason-toggle {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: transparent; border: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-2); text-align: left;
+}
+.rgx-reason-toggle:hover { color: var(--ink); }
+.rgx-reason-chev { color: var(--accent-bright); transition: transform .3s var(--ease); }
+.rgx-reason-chev[data-open="true"] { transform: rotate(90deg); }
+.rgx-reason-hint { margin-left: auto; font-size: 10px; letter-spacing: 0.05em; text-transform: none; color: var(--ink-4); }
+.rgx-reason-techgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0; background: var(--line); border-top: 1px solid var(--line); }
+@media (max-width: 560px) { .rgx-reason-techgrid { grid-template-columns: 1fr; } }
+.rgx-reason-techgrid > div { background: var(--bg-1); padding: 12px 16px; }
+.rgx-reason-techgrid .wide { grid-column: 1 / -1; }
+.rgx-reason-techgrid dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+.rgx-reason-techgrid dd { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.rgx-reason-techgrid dd.mono { font-family: var(--mono); font-size: 12.5px; }
+
 /* ───────────── Governance verdict panel ───────────── */
 .rgx-verdict {
   display: grid;
