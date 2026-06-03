@@ -965,3 +965,10 @@
 .is-legacy .mw-compare-k { color: var(--omega); }
 .is-gov .mw-compare-k { color: var(--ok); }
 .mw-compare-v { font-size: 14px; line-height: 1.45; color: var(--ink); }
+
+/* ---------- Hero sub: punch line + supporting paragraph ---------- */
+.hero-sub b { color: var(--ink); font-weight: 640; }
+.hero-sub2 {
+  max-width: 600px; margin-top: 14px;
+  font-size: clamp(14px, 1.5vw, 16px); line-height: 1.6; color: var(--ink-3); text-wrap: pretty;
+}

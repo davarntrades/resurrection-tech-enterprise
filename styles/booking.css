@@ -351,11 +351,12 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
   text-decoration: none;
   border: 1px solid rgba(111, 151, 255, 0.7);
   box-shadow: 0 10px 34px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.25);
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background 0.3s var(--ease);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background 0.3s var(--ease), opacity 0.28s var(--ease), visibility 0.28s var(--ease);
   overflow: hidden;
   /* lift above iOS safe-area / mobile chrome */
   margin-bottom: env(safe-area-inset-bottom, 0px);
 }
+.sticky-book.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .sticky-book:hover {
   transform: translateY(-2px);
   background: var(--accent-bright);

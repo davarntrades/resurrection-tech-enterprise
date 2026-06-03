@@ -57,14 +57,18 @@ export function HomeClient() {
                 enforcement
               </div>
               <h1 className="reveal in" data-d="1">
-                Runtime Governance
+                Preventing Catastrophic Outcomes
                 <br />
-                for <span className="grad">Autonomous Systems</span>
+                in <span className="grad">Autonomous Systems</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                Stop autonomous AI agents from taking catastrophic actions — unauthorised transfers,
-                data exfiltration, privilege escalation — before they execute. Deploy AI with
-                governance built in.
+                <b>Your AI can cost millions before anyone realises something has gone wrong.</b>
+              </p>
+              <p className="hero-sub2 reveal in" data-d="2">
+                Autonomous systems now have access to money, customer data, critical infrastructure,
+                and regulated workflows. If you cannot identify which catastrophic states remain
+                reachable within your AI stack today, you may already be carrying risks that only
+                become visible after the damage is done.
               </p>
               <div className="hero-chips reveal in" data-d="3">
                 <span>Prevents unsafe actions before execution</span>
