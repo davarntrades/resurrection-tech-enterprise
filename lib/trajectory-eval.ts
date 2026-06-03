@@ -352,20 +352,20 @@ export function evaluateTrajectory(trajectory: ToolCall[]): EvalResult {
     return {
       verdict: "INCONCLUSIVE",
       layer: "none",
-      reason: "Novel trajectory detected — escalated for review.",
+      reason: "Novel trajectory detected — escalated for human review before execution.",
       omega: "indeterminate",
-      runtimeStatus: "escalated for review",
+      runtimeStatus: "escalated for human review before execution",
       category: "Novel trajectory",
       explanation:
-        "Insufficient information to determine reachability within the public evaluation environment. Escalated for review — a full Morrison Runtime Governance assessment evaluates the complete trajectory and state space.",
+        "This trajectory falls outside the public evaluation library and cannot be conclusively classified. Escalated for human review before execution.",
       omegaReachable: false,
       businessImpact:
-        "Reachability could not be determined here. A human review / full assessment is required before this trajectory runs.",
+        "Reachability could not be conclusively classified here. Escalated for human review before execution.",
       protectedAssets: ["Pending human review"],
       confidence: "Escalate",
       omegaReason:
-        "The public evaluation environment has insufficient information to determine whether Ω is reachable for this trajectory.",
-      estimatedConsequence: "Undetermined — escalated for human review.",
+        "This trajectory falls outside the public evaluation library, so reachability cannot be conclusively classified here.",
+      estimatedConsequence: "Undetermined — escalated for human review before execution.",
       steps,
     };
   }
