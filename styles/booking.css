@@ -333,35 +333,51 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
 .lead-done p { color: var(--ink-2); max-width: 42ch; font-size: 14px; }
 .lead-done-ref { font-size: 12px; color: var(--ink-3); }
 
-/* ---------- Floating "Book Meeting" bar ---------- */
-.sticky-book {
+/* ---------- Floating sticky CTA bar ---------- */
+.sticky-bar {
   position: fixed;
   z-index: 60;
   right: 24px;
   bottom: 24px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 20px;
-  border-radius: 100px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 580;
-  text-decoration: none;
-  border: 1px solid rgba(111, 151, 255, 0.7);
-  box-shadow: 0 10px 34px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.25);
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background 0.3s var(--ease), opacity 0.28s var(--ease), visibility 0.28s var(--ease);
-  overflow: hidden;
+  transition: opacity 0.28s var(--ease), visibility 0.28s var(--ease), transform 0.28s var(--ease);
   /* lift above iOS safe-area / mobile chrome */
   margin-bottom: env(safe-area-inset-bottom, 0px);
 }
-.sticky-book.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.sticky-book:hover {
+.sticky-bar.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(8px); }
+
+.sticky-book {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 20px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 580;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.sticky-book--demo {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid rgba(111, 151, 255, 0.7);
+  box-shadow: 0 10px 34px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.25);
+}
+.sticky-book--demo:hover {
   transform: translateY(-2px);
   background: var(--accent-bright);
   box-shadow: 0 16px 44px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.4);
 }
+.sticky-book--book {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+}
+.sticky-book--book:hover { transform: translateY(-2px); background: var(--panel-3); border-color: var(--line-strong); }
 .sticky-book:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-bright);
@@ -383,16 +399,11 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
   animation: pulseDot 2.4s var(--ease) infinite;
 }
 @media (max-width: 640px) {
-  .sticky-book {
-    right: 50%;
-    transform: translateX(50%);
-    bottom: 16px;
-    padding: 12px 22px;
-  }
-  .sticky-book:hover { transform: translateX(50%) translateY(-2px); }
+  .sticky-bar { right: 12px; left: 12px; bottom: 14px; justify-content: center; }
+  .sticky-book { flex: 1 1 0; justify-content: center; padding: 12px 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sticky-book-dot,
   .cal-pending-dot { animation: none; }
-  .sticky-book { transition: none; }
+  .sticky-book, .sticky-bar { transition: none; }
 }

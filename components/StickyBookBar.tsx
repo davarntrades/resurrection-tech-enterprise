@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 
 /**
- * Floating "Book Assessment" button.
- * - Hidden near the hero (which has its own CTA) and near the footer / final CTA.
+ * Floating sticky CTA bar: "Try Live Demo" (primary, fastest path to value)
+ * and "Book Assessment".
+ * - Hidden near the hero (which has its own CTAs) and near the footer / final CTA.
  * - Hides while scrolling down (so it never covers content you're reading) and
  *   reappears on scroll-up (intent to act). Hidden on /book and /request-audit.
  */
@@ -44,18 +45,29 @@ export function StickyBookBar() {
   }
 
   return (
-    <Link
-      href="/book#assessment"
-      className={`sticky-book${hidden ? " is-hidden" : ""}`}
-      aria-label="Book a Runtime Safety Assessment"
-      aria-hidden={hidden}
-      tabIndex={hidden ? -1 : 0}
-      onClick={() => track("cta_click", { location: "sticky_bar" })}
-    >
-      <span className="sticky-book-glow" aria-hidden="true" />
-      <span className="sticky-book-dot" aria-hidden="true" />
-      <span className="sticky-book-label">Book Assessment</span>
-      <span className="arr" aria-hidden="true">→</span>
-    </Link>
+    <div className={`sticky-bar${hidden ? " is-hidden" : ""}`} aria-hidden={hidden}>
+      <Link
+        href="/live-demo"
+        className="sticky-book sticky-book--demo"
+        aria-label="Try the live Runtime Governance demo"
+        tabIndex={hidden ? -1 : 0}
+        onClick={() => track("cta_click", { location: "sticky_bar", cta: "live-demo" })}
+      >
+        <span className="sticky-book-glow" aria-hidden="true" />
+        <span className="sticky-book-dot" aria-hidden="true" />
+        <span className="sticky-book-label">Try Live Demo</span>
+        <span className="arr" aria-hidden="true">→</span>
+      </Link>
+      <Link
+        href="/book#assessment"
+        className="sticky-book sticky-book--book"
+        aria-label="Book a Runtime Safety Assessment"
+        tabIndex={hidden ? -1 : 0}
+        onClick={() => track("cta_click", { location: "sticky_bar", cta: "assessment" })}
+      >
+        <span className="sticky-book-label">Book Assessment</span>
+        <span className="arr" aria-hidden="true">→</span>
+      </Link>
+    </div>
   );
 }
