@@ -73,14 +73,19 @@ export function HomeClient() {
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
+                  href="/live-demo"
+                  className="btn btn--primary btn--live"
+                  onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "live-demo" })}
+                >
+                  <span className="live-pip" aria-hidden="true" />
+                  Try Live Demo <span className="arr">→</span>
+                </Link>
+                <Link
                   href="/book#assessment"
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero" })}
                 >
                   Book a Runtime Safety Assessment <span className="arr">→</span>
-                </Link>
-                <Link href="/enterprise-pathways" className="btn btn--ghost">
-                  View Enterprise Pathways
                 </Link>
                 <Link
                   href="/integrations"
@@ -89,6 +94,10 @@ export function HomeClient() {
                 >
                   See How It Integrates <span className="arr">→</span>
                 </Link>
+              </div>
+              <div className="hero-demo-hint reveal in" data-d="4">
+                The fastest way to experience Runtime Governance — test it
+                yourself in seconds. No signup.
               </div>
               <div className="hero-meta reveal in" data-d="5">
                 <span className="line" />

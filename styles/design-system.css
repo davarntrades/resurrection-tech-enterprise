@@ -222,6 +222,27 @@ p { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .nav-live-dot { animation: none; } }
 
+/* Live CTA button (hero) — equal weight to the primary, with a LIVE pip */
+.btn--live { gap: 9px; }
+.live-pip {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(255,255,255,0.6);
+  animation: livePipPulse 2.2s var(--ease) infinite;
+}
+@keyframes livePipPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(255,255,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+@media (prefers-reduced-motion: reduce) { .live-pip { animation: none; } }
+.hero-demo-hint {
+  margin-top: 16px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  max-width: 460px;
+}
+
 .nav-cta { display: flex; align-items: center; gap: 10px; }
 .nav-burger { display: none; }
 
