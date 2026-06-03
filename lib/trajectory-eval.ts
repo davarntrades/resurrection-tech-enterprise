@@ -60,7 +60,7 @@ export interface EvalResult {
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */
-const OMEGA_META: Record<
+export const OMEGA_META: Record<
   string,
   {
     businessImpact: string;
