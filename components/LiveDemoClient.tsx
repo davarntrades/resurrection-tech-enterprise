@@ -813,7 +813,7 @@ function CustomEval({
                 <span className="rgx-cv-word">{rmeta.label}</span>
                 <span className="rgx-cv-verb">
                   {result.rawVerdict === "INCONCLUSIVE"
-                    ? "Inconclusive in the public demo — recommend a full assessment"
+                    ? "Novel trajectory — escalated for human review"
                     : rmeta.verb}
                 </span>
               </div>
