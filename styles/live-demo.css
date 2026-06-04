@@ -571,6 +571,18 @@
 }
 .rgx-cv-domain:focus { outline: none; border-color: var(--accent-dim); }
 .rgx-cv-domnote { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; }
+/* Live runtime latency (real engine eval_time_ms) */
+.rgx-cv-latency {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 16px; border: 1px solid var(--accent-dim); border-radius: 10px;
+  background: radial-gradient(120% 160% at 0 0, rgba(76,125,255,0.08), transparent 60%), var(--panel);
+}
+.rgx-cv-lat-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.rgx-cv-lat-v { font-family: var(--mono); font-size: clamp(22px, 3.4vw, 30px); font-weight: 640; color: var(--accent-bright); letter-spacing: -0.01em; }
+.rgx-cv-lat-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 100px; padding: 2px 8px; }
+.rgx-cv-lat-cmp { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+.rgx-cv-lat-cmp b { color: var(--ink-3); font-weight: 500; margin-right: 6px; letter-spacing: 0.03em; }
+
 .rgx-cv-audit {
   display: flex; flex-wrap: wrap; gap: 8px 18px;
   padding: 11px 14px; border: 1px solid var(--line-2); border-radius: 8px;

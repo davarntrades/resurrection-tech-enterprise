@@ -60,6 +60,9 @@ export interface EvalResult {
   /** Audit fields populated only by the real engine path (undefined for the heuristic). */
   trajectoryHash?: string;
   reachabilityDistance?: number | null;
+  /** Real engine timing from GovernanceResult.metadata (engine path only). */
+  evalTimeMs?: number;
+  evalNumber?: number;
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */

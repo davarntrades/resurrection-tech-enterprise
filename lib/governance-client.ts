@@ -64,6 +64,11 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
   const rule = (g.metadata?.rule as string | undefined) ?? undefined;
   const meta = metaFor(rule, g.omega_domain);
 
+  // Real engine timing (GovernanceResult.metadata) — pass through to the UI.
+  const evalTimeMs = typeof g.metadata?.eval_time_ms === "number" ? (g.metadata.eval_time_ms as number) : undefined;
+  const evalNumber = typeof g.metadata?.eval_number === "number" ? (g.metadata.eval_number as number) : undefined;
+  const timing = { evalTimeMs, evalNumber };
+
   // Real engine signals, surfaced inside the existing explanation field (no new UI fields).
   const distance = g.reachability_distance;
   const distanceNote =
@@ -88,6 +93,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       steps,
       trajectoryHash: g.trajectory_hash,
       reachabilityDistance: g.reachability_distance,
+      ...timing,
     };
   }
 
@@ -113,6 +119,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       steps,
       trajectoryHash: g.trajectory_hash,
       reachabilityDistance: g.reachability_distance,
+      ...timing,
     };
   }
 
@@ -135,6 +142,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
     steps,
     trajectoryHash: g.trajectory_hash,
     reachabilityDistance: g.reachability_distance,
+    ...timing,
   };
 }
 
