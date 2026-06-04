@@ -72,7 +72,7 @@ const idxOf = (id: string) => SCENARIOS.findIndex((s) => s.id === id);
 const TOUR_IDS = ["transfer", "safe", "regulatory"];
 
 export function LiveDemoClient() {
-  const [tab, setTab] = useState<Tab>("scenarios");
+  const [tab, setTab] = useState<Tab>("custom");
   const [active, setActive] = useState(0);
   const [phase, setPhase] = useState<Phase>(0);
   const [mode, setMode] = useState<Mode>("ceo");
@@ -86,6 +86,7 @@ export function LiveDemoClient() {
   const tourTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const startedRef = useRef(false);
   const scrollPendingRef = useRef(false);
+  const deepLinkRef = useRef(false);
   const reduce = useReducedMotion();
 
   const scenario = useMemo<Scenario>(() => SCENARIOS[active], [active]);
@@ -219,20 +220,19 @@ export function LiveDemoClient() {
     const deepIdx = slug ? SCENARIOS.findIndex((s) => s.slug === slug) : -1;
 
     if (deepIdx >= 0) {
+      // Shared scenario link → open the scenario tab and run it.
+      deepLinkRef.current = true;
+      setTab("scenarios");
       setActive(deepIdx);
       log("Scenario selected", SCENARIOS[deepIdx].title);
       scrollPendingRef.current = true;
       tourTimers.current.push(setTimeout(() => simulate(SCENARIOS[deepIdx]), 500));
       return;
     }
-
-    let seen = false;
-    try { seen = !!localStorage.getItem("rt_tour_seen"); } catch { /* ignore */ }
-    if (!seen && !reduce) { runTourStep(0); return; }
-
-    log("Scenario selected", SCENARIOS[0].title);
-    tourTimers.current.push(setTimeout(() => simulate(SCENARIOS[0]), 700));
-  }, [simulate, log, runTourStep, reduce]);
+    // Default: the paste-first Custom Evaluation tab is the hero. It auto-runs
+    // one evaluation on mount so a passive visitor sees ALLOW/BLOCK + audit
+    // within seconds. The example tour is available on demand (scenario tab).
+  }, [simulate, log]);
 
   useEffect(() => () => { clearTimers(); clearTour(); }, [clearTimers, clearTour]);
 
@@ -310,14 +310,14 @@ export function LiveDemoClient() {
         <div className="rgx-head-l">
           <span className="eyebrow">Runtime Governance™ · Live console</span>
           <h1 className="rgx-title">
-            Don't take our word for it —{" "}
-            <span className="rgx-title-accent">test it yourself.</span>
+            Paste a workflow.{" "}
+            <span className="rgx-title-accent">See ALLOW or BLOCK.</span>
           </h1>
           <p className="rgx-lede">
-            A pre-execution governance layer that sits between an AI agent's plan
-            and your tools. Pick a scenario or paste your own — then watch the
-            trajectory reach Ω, see the system block it, and see the business
-            impact avoided.
+            Don&rsquo;t read the paper — put your agent&rsquo;s workflow in. Runtime
+            Governance evaluates the plan <b>before it executes</b> and returns a
+            real verdict, the rule and layer that fired, and a downloadable audit
+            trail.
           </p>
         </div>
         <div className="rgx-head-r">
@@ -345,24 +345,34 @@ export function LiveDemoClient() {
         </div>
       </header>
 
+      {/* ── 5-second middleware positioning ── */}
+      <div className="rgx-mini-flow" aria-label="Where Runtime Governance sits">
+        {["Agent / Planner", "Morrison Runtime Governance", "Trajectory evaluation", "ALLOW / BLOCK", "Tool execution"].map((n, i, a) => (
+          <span key={n} className="rgx-mini-step">
+            <span className={`rgx-mini-node${i === 1 ? " is-gov" : ""}${i === 3 ? " is-verdict" : ""}`}>{n}</span>
+            {i < a.length - 1 && <span className="rgx-mini-arrow" aria-hidden="true">→</span>}
+          </span>
+        ))}
+      </div>
+
       {/* ───────────────── Tabs ───────────────── */}
       <div className="rgx-tabs" role="tablist" aria-label="Console mode">
-        <button
-          role="tab"
-          aria-selected={tab === "scenarios"}
-          className={`rgx-tab${tab === "scenarios" ? " is-on" : ""}`}
-          onClick={() => { if (tour.active) finishTour(); setTab("scenarios"); }}
-        >
-          Scenario library
-        </button>
         <button
           role="tab"
           aria-selected={tab === "custom"}
           className={`rgx-tab${tab === "custom" ? " is-on" : ""}`}
           onClick={() => { if (tour.active) finishTour(); setTab("custom"); track("live_demo_tab", { tab: "custom" }); }}
         >
-          Custom evaluation
-          <span className="rgx-tab-pill">Bring your own</span>
+          Evaluate your workflow
+          <span className="rgx-tab-pill">Start here</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "scenarios"}
+          className={`rgx-tab${tab === "scenarios" ? " is-on" : ""}`}
+          onClick={() => { if (tour.active) finishTour(); setTab("scenarios"); }}
+        >
+          Example scenarios
         </button>
       </div>
 
@@ -370,7 +380,12 @@ export function LiveDemoClient() {
         <>
           {/* ── Panel 1 · Scenario library ── */}
           <section className="rgx-section" aria-label="Scenario library">
-            <PanelHead n="01" title="Scenario library" sub="Real governance scenarios from the Morrison repository." />
+            <div className="rgx-section-row">
+              <PanelHead n="01" title="Example scenarios" sub="Real governance scenarios from the Morrison repository." />
+              <button className="btn btn--ghost btn--sm" onClick={() => runTourStep(0)} disabled={tour.active}>
+                {tour.active ? "Touring…" : "▶ Watch 30-second tour"}
+              </button>
+            </div>
             <div className="rgx-cards">
               {SCENARIOS.map((s, i) => {
                 const m = DECISION_META[s.decision];
@@ -534,11 +549,17 @@ export function LiveDemoClient() {
           </section>
         </>
       ) : (
-        <CustomEval mode={mode} onResult={onCustomRecord} reduce={!!reduce} />
+        <CustomEval
+          mode={mode}
+          onResult={onCustomRecord}
+          reduce={!!reduce}
+          autoRun={!deepLinkRef.current}
+          onViewAudit={() => document.getElementById("audit-log")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" })}
+        />
       )}
 
       {/* ───────────────── Live audit log ───────────────── */}
-      <section className="rgx-section" aria-label="Audit log">
+      <section className="rgx-section" id="audit-log" aria-label="Audit log">
         <div className="rgx-audit-head">
           <PanelHead n="06" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record." />
           <div className="rgx-audit-actions">
@@ -551,7 +572,7 @@ export function LiveDemoClient() {
         </div>
         <div className="rgx-audit" role="log" aria-live="polite">
           {audit.length === 0 ? (
-            <p className="rgx-audit-empty">Run a scenario to generate audit events.</p>
+            <p className="rgx-audit-empty">Run an evaluation to generate audit events.</p>
           ) : (
             <ul className="rgx-audit-list">
               {audit.map((e) => (
@@ -700,16 +721,23 @@ function CustomEval({
   mode,
   onResult,
   reduce,
+  autoRun,
+  onViewAudit,
 }: {
   mode: Mode;
   onResult: (rec: EvalRecord, events: AuditEvent[]) => void;
   reduce: boolean;
+  autoRun: boolean;
+  onViewAudit: () => void;
 }) {
   const [input, setInput] = useState(CUSTOM_EXAMPLES[0].code);
   const [domain, setDomain] = useState(LIVE_DOMAINS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CustomResult | null>(null);
+  const [lastEvents, setLastEvents] = useState<AuditEvent[]>([]);
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  const autoRef = useRef(false);
 
   const run = useCallback(async () => {
     const parsed = parseTrajectoryInput(input);
@@ -759,6 +787,11 @@ function CustomEval({
         { id: evtId(), time: clock(), event: "Reachability evaluated", detail: data.explanation, tone: "info" },
         { id: evtId(), time: clock(), event: "Custom trajectory submitted", detail: trajStr, tone: "info" },
       ];
+      setLastEvents(events);
+      // Decision → evidence with zero friction: bring the verdict into view.
+      requestAnimationFrame(() =>
+        resultRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" }),
+      );
       onResult(
         {
           timestamp: fullStamp(),
@@ -777,7 +810,16 @@ function CustomEval({
       setError("Network error — please try again.");
     }
     setLoading(false);
-  }, [input, domain, onResult]);
+  }, [input, domain, onResult, reduce]);
+
+  // Auto-run one evaluation on first mount so a passive visitor instantly sees
+  // a real ALLOW/BLOCK + audit (the paste-first hero). Runs once.
+  useEffect(() => {
+    if (!autoRun || autoRef.current) return;
+    autoRef.current = true;
+    const t = setTimeout(() => { void run(); }, 500);
+    return () => clearTimeout(t);
+  }, [autoRun, run]);
 
   const rmeta = result ? DECISION_META[result.decision] : null;
 
@@ -830,7 +872,7 @@ function CustomEval({
           </p>
         </div>
 
-        <div className="rgx-cv-output">
+        <div className="rgx-cv-output" ref={resultRef}>
           {!result && !loading && <div className="rgx-cv-placeholder">Verdict, reasoning and audit trail appear here.</div>}
           {loading && <div className="rgx-cv-placeholder">Computing reachable set ℛ(t)…</div>}
           {result && rmeta && (
@@ -884,6 +926,32 @@ function CustomEval({
                     {result.steps.map((s) => <li key={s.index}><code>{s.tool}</code></li>)}
                   </ol>
                 </div>
+              </div>
+
+              {/* Decision → evidence, one click away */}
+              {lastEvents.length > 0 && (
+                <div className="rgx-cv-evidence">
+                  <div className="rgx-cv-evidence-h">
+                    <span className="rgx-k">Audit trail</span>
+                    <button type="button" className="rgx-cv-viewaudit" onClick={onViewAudit}>View full audit trail →</button>
+                  </div>
+                  <ul className="rgx-cv-evlist">
+                    {lastEvents.map((e) => (
+                      <li key={e.id} className={`rgx-cv-evrow rgx-cv-evrow--${e.tone ?? "info"}`}>
+                        <span className="mono">{e.time}</span>
+                        <span>{e.event}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Natural next step */}
+              <div className="rgx-cv-next">
+                <span className="rgx-cv-next-t">Interesting? Now test <b>your</b> architecture.</span>
+                <Link href="/book#assessment" className="btn btn--primary btn--sm" onClick={() => track("cta_click", { location: "live-demo-result", cta: "assessment" })}>
+                  Run this against your own agent architecture <span className="arr">→</span>
+                </Link>
               </div>
             </div>
           )}
