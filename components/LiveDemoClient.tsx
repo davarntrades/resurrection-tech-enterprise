@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { track } from "@/lib/analytics";
+import BENCH from "../public/benchmarks/latency.json";
 import {
   SCENARIOS,
   DECISION_META,
@@ -809,10 +810,20 @@ interface CustomResult {
   directExposure?: string;
   trajectoryHash?: string;
   reachabilityDistance?: number | null;
+  evalTimeMs?: number;
+  evalNumber?: number;
 }
 
 function mapVerdict(v: string): Decision {
   return v === "BLOCK" ? "BLOCK" : v === "PERMIT" ? "ALLOW" : "ESCALATE";
+}
+
+/** Closest benchmark class avg (ms) for a given trajectory length. */
+function benchAvgForSteps(n: number): number {
+  const classes = Object.values((BENCH as { classes: Record<string, { steps: number; avg_ms: number }> }).classes);
+  let best = classes[0];
+  for (const c of classes) if (Math.abs(c.steps - n) < Math.abs(best.steps - n)) best = c;
+  return best.avg_ms;
 }
 
 function CustomEval({
@@ -890,6 +901,8 @@ function CustomEval({
         directExposure,
         trajectoryHash: data.trajectoryHash,
         reachabilityDistance: data.reachabilityDistance,
+        evalTimeMs: data.evalTimeMs,
+        evalNumber: data.evalNumber,
       };
       setResult(cr);
 
@@ -1013,6 +1026,27 @@ function CustomEval({
                     ? "✓ SAFE PATH — Ω never reachable"
                     : "⚑ Routed for human review"}
               </p>
+
+              {result.evalTimeMs !== undefined && (() => {
+                const benchAvg = benchAvgForSteps(result.steps.length);
+                const delta = Math.round((result.evalTimeMs! - benchAvg) * 1000) / 1000;
+                return (
+                  <div className="rgx-cv-latency">
+                    <div className="rgx-cv-lat-main">
+                      <span className="rgx-k">Runtime latency</span>
+                      <span className="rgx-cv-lat-v">{result.evalTimeMs} ms</span>
+                      <span className="rgx-cv-lat-tag">measured · this evaluation</span>
+                    </div>
+                    <div className="rgx-cv-lat-cmp">
+                      <span><b>This evaluation</b> {result.evalTimeMs} ms</span>
+                      <span><b>Benchmark avg (CI env)</b> {benchAvg} ms</span>
+                      <span><b>Δ</b> {delta >= 0 ? "+" : ""}{delta} ms</span>
+                      {result.evalNumber !== undefined && <span><b>Eval #</b> {result.evalNumber}</span>}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="rgx-cv-audit">
                 <span><b>Ω domain</b> {result.omegaDomain || "—"}</span>
                 <span><b>Layer</b> {result.layer}</span>
