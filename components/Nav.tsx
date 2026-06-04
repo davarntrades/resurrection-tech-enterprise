@@ -31,7 +31,20 @@ export function Nav() {
   return (
     <nav className={`nav${scrolled ? " scrolled" : ""}`} aria-label="Primary">
       <div className="wrap">
-        <Link className="brand" href="/" aria-label="Resurrection Tech home">
+        <Link
+          className="brand"
+          href="/"
+          aria-label="Scroll to top"
+          onClick={(e) => {
+            // Plain click → smooth-scroll the current page to top. Modifier /
+            // middle clicks fall through to the href so "open home" still works.
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            const reduceMotion = typeof window !== "undefined"
+              && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+            window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+          }}
+        >
           <span className="mark" aria-hidden="true" style={{ color: "var(--ink)" }}>
             <Logo height={22} />
           </span>

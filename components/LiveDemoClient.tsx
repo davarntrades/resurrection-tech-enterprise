@@ -82,17 +82,30 @@ const VP_GENERIC_COSTS: { label: string; range?: string }[] = [
   { label: "Operational downtime" }, { label: "Compliance remediation" }, { label: "Executive escalation and review" },
 ];
 
-/** Indicative enterprise-impact estimate by Ω domain — used for custom evals. */
+/** Indicative, conservative enterprise-impact estimate by Ω domain (custom evals). */
 const DOMAIN_IMPACT: Record<string, { direct: string; range: string }> = {
-  finance: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  banking: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  fintech: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  fraud: { direct: "Fraudulent transaction", range: "£100,000 – £2M+" },
-  cybersecurity: { direct: "Infrastructure / credentials", range: "£500,000 – £10.2M+" },
-  data_privacy: { direct: "Personal data (PII)", range: "£1M – £20M+" },
-  healthcare: { direct: "Protected health information", range: "£1M – £15M+" },
-  enterprise: { direct: "Internal systems / data", range: "£500,000 – £5M+" },
-  compliance: { direct: "Regulated decision", range: "£250,000 – £5M+" },
+  finance: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
+  banking: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
+  fintech: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
+  fraud: { direct: "Fraudulent transaction", range: "£100,000 – £1M+" },
+  cybersecurity: { direct: "Credentials / infrastructure access", range: "£150,000 – £1.5M+" },
+  data_privacy: { direct: "Personal data (PII)", range: "£250,000 – £5M+" },
+  healthcare: { direct: "Protected health information", range: "£250,000 – £5M+" },
+  enterprise: { direct: "Internal systems / data", range: "£200,000 – £2M+" },
+  compliance: { direct: "Regulated decision", range: "£100,000 – £1.5M+" },
+};
+
+/** Domain-aligned cost categories (custom evals) — falls back to the generic list. */
+const DOMAIN_COSTS: Record<string, { label: string }[]> = {
+  finance: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
+  banking: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
+  fintech: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
+  fraud: [{ label: "Fraudulent transaction value" }, { label: "Fraud investigation" }, { label: "Customer reimbursement" }, { label: "Regulatory reporting" }, { label: "Reputational impact" }],
+  cybersecurity: [{ label: "Credential compromise" }, { label: "Forensic investigation" }, { label: "Incident response" }, { label: "Security remediation" }, { label: "Operational downtime" }, { label: "Customer trust impact" }],
+  data_privacy: [{ label: "Data breach response" }, { label: "Customer notification" }, { label: "Legal exposure" }, { label: "Compliance remediation" }, { label: "Regulatory investigation" }, { label: "Reputational impact" }],
+  healthcare: [{ label: "Patient safety review" }, { label: "Regulatory reporting" }, { label: "Clinical investigation" }, { label: "Legal liability" }, { label: "Operational disruption" }, { label: "Compliance remediation" }],
+  enterprise: [{ label: "Internal audit" }, { label: "Governance review" }, { label: "Executive escalation" }, { label: "Operational disruption" }, { label: "Compliance remediation" }],
+  compliance: [{ label: "Regulatory investigation" }, { label: "Conduct-risk review" }, { label: "Compliance remediation" }, { label: "Legal review" }, { label: "Executive escalation" }],
 };
 
 /** Executive "Value Protected" card — headline estimate first, then the cascade. */
@@ -1011,7 +1024,7 @@ function CustomEval({
                       <ValueProtected
                         direct={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).direct ?? "Blocked unsafe action"}
                         range={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).range ?? "Frequently exceeds the initial loss"}
-                        costs={VP_GENERIC_COSTS}
+                        costs={DOMAIN_COSTS[result.omegaDomain] ?? VP_GENERIC_COSTS}
                         tone={rmeta.tone}
                       />
                     )}
