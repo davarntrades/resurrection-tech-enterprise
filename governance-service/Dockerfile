@@ -20,7 +20,7 @@ RUN git clone --depth 1 --branch "${ENGINE_REF}" "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+COPY app.py finance_rules.py ./
 
 ENV PORT=8000 \
     GOVERNANCE_EVAL_TIMEOUT_S=4.0 \
