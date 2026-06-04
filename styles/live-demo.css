@@ -514,7 +514,14 @@
   border: 1px solid var(--line-2); border-radius: 100px; padding: 5px 11px;
   background: var(--panel-2); cursor: pointer; transition: border-color .25s var(--ease), color .25s var(--ease);
 }
+.rgx-cv-ex { display: inline-flex; align-items: center; gap: 7px; }
 .rgx-cv-ex:hover { color: var(--ink); border-color: var(--accent-dim); }
+.rgx-cv-ex:disabled { opacity: 0.55; cursor: progress; }
+.rgx-cv-ex-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ink-4); }
+.rgx-cv-ex--block .rgx-cv-ex-dot { background: var(--omega); }
+.rgx-cv-ex--allow .rgx-cv-ex-dot { background: var(--ok); }
+.rgx-cv-ex--block:hover { border-color: rgba(229,72,77,0.4); }
+.rgx-cv-ex--allow:hover { border-color: rgba(63,178,127,0.4); }
 .rgx-cv-domain {
   width: 100%;
   font-family: var(--mono); font-size: 13px;
