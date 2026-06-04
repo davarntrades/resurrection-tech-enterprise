@@ -347,6 +347,41 @@
 .rgx-cost-v { font-size: clamp(26px, 4vw, 38px); font-weight: 560; letter-spacing: -0.02em; color: var(--ink); }
 .rgx-verdict--block .rgx-cost-v, .rgx-verdict--escalate .rgx-cost-v { color: var(--ink); }
 
+/* ───────────── Executive "Value protected" card ───────────── */
+.rgx-vp {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rgx-vp--block { border-color: rgba(229,72,77,0.32); }
+.rgx-vp--escalate { border-color: rgba(224,163,46,0.34); }
+.rgx-vp-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.rgx-vp-tag {
+  font-size: 9.5px; letter-spacing: 0.08em; color: var(--ink-3);
+  border: 1px solid var(--line-2); border-radius: 100px; padding: 3px 9px; text-transform: none;
+}
+.rgx-vp-figs { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 520px) { .rgx-vp-figs { grid-template-columns: 1fr 1fr; } }
+.rgx-vp-fig { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.rgx-vp-direct { font-size: clamp(20px, 3vw, 26px); font-weight: 560; letter-spacing: -0.02em; color: var(--ink); }
+.rgx-vp-range { font-size: clamp(18px, 2.6vw, 23px); font-weight: 560; letter-spacing: -0.01em; }
+.rgx-vp--block .rgx-vp-range { color: var(--omega); }
+.rgx-vp--escalate .rgx-vp-range { color: var(--escalate); }
+.rgx-vp-costs ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px 16px; }
+@media (min-width: 560px) { .rgx-vp-costs ul { grid-template-columns: 1fr 1fr; } }
+.rgx-vp-costs li { position: relative; padding-left: 22px; font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+.rgx-vp-costs li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; font-size: 12px; }
+.rgx-vp-explain { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.rgx-vp-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; padding-top: 12px; border-top: 1px solid var(--line); font-style: italic; }
+
 .rgx-tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 @media (max-width: 560px) { .rgx-tech-grid { grid-template-columns: 1fr; } }
 .rgx-tech-grid > div { background: var(--bg-1); padding: 13px 15px; }

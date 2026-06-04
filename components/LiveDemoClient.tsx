@@ -71,6 +71,59 @@ const idxOf = (id: string) => SCENARIOS.findIndex((s) => s.id === id);
 /** First-visit tour order: one BLOCK, one ALLOW, one ESCALATE. */
 const TOUR_IDS = ["transfer", "safe", "regulatory"];
 
+/** Executive "Value Protected" copy (shared). */
+const VP_EXPLANATION =
+  "The blocked transaction represents only the initial risk. Enterprise incidents often trigger investigations, legal review, compliance obligations, regulatory scrutiny, operational disruption, and reputational damage that can significantly exceed the original loss.";
+const VP_NOTE =
+  "Runtime Governance protects more than the asset at risk. It prevents the downstream investigation, response, legal, regulatory, reputational, and operational costs that frequently exceed the original incident.";
+const VP_GENERIC_COSTS = [
+  "Direct financial loss", "Investigation costs", "Incident response costs", "Legal expenses",
+  "Regulatory exposure", "Reputation damage", "Operational downtime", "Compliance remediation",
+  "Executive escalation and review",
+];
+
+/** Executive "Value Protected" card — direct + cascade impact, never guaranteed. */
+function ValueProtected({
+  direct, directLabel, range, costs, tone,
+}: {
+  direct?: string;
+  directLabel?: string;
+  range?: string;
+  costs: string[];
+  tone: "block" | "allow" | "escalate";
+}) {
+  return (
+    <div className={`rgx-vp rgx-vp--${tone}`}>
+      <div className="rgx-vp-head">
+        Value protected
+        <span className="rgx-vp-tag">Indicative · not guaranteed savings</span>
+      </div>
+      {(direct || range) && (
+        <div className="rgx-vp-figs">
+          {direct && (
+            <div className="rgx-vp-fig">
+              <span className="rgx-k">{directLabel ?? "Direct exposure prevented"}</span>
+              <span className="rgx-vp-direct">{direct}</span>
+            </div>
+          )}
+          {range && (
+            <div className="rgx-vp-fig">
+              <span className="rgx-k">Estimated enterprise impact avoided</span>
+              <span className="rgx-vp-range">{range}</span>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="rgx-vp-costs">
+        <span className="rgx-k">Potential costs avoided</span>
+        <ul>{costs.map((c) => <li key={c}>{c}</li>)}</ul>
+      </div>
+      <p className="rgx-vp-explain">{VP_EXPLANATION}</p>
+      <p className="rgx-vp-note">{VP_NOTE}</p>
+    </div>
+  );
+}
+
 export function LiveDemoClient() {
   const [tab, setTab] = useState<Tab>("custom");
   const [active, setActive] = useState(0);
@@ -499,10 +552,14 @@ export function LiveDemoClient() {
                         {scenario.ceoImpacts.map((b) => <li key={b} className={`rgx-impact rgx-impact--${meta.tone}`}>{b}</li>)}
                       </ul>
                     </div>
-                    <div className="rgx-vrow rgx-cost">
-                      <span className="rgx-k">{scenario.decision === "ALLOW" ? "Cost of friction" : "Estimated exposure avoided"}</span>
-                      <span className="rgx-cost-v">{scenario.costAvoided}</span>
-                    </div>
+                    {scenario.decision === "ALLOW" ? (
+                      <div className="rgx-vrow rgx-cost">
+                        <span className="rgx-k">Cost of friction</span>
+                        <span className="rgx-cost-v">{scenario.costAvoided}</span>
+                      </div>
+                    ) : scenario.valueProtected ? (
+                      <ValueProtected {...scenario.valueProtected} tone={meta.tone} />
+                    ) : null}
                   </>
                 ) : (
                   <div className="rgx-tech-grid">
@@ -929,6 +986,9 @@ function CustomEval({
                       <div><span className="rgx-k">Protected assets</span>
                         <ul className="rgx-assets">{result.protectedAssets.map((a) => <li key={a}>{a}</li>)}</ul>
                       </div>
+                    )}
+                    {result.decision !== "ALLOW" && (
+                      <ValueProtected costs={VP_GENERIC_COSTS} tone={rmeta.tone} />
                     )}
                   </>
                 ) : (
