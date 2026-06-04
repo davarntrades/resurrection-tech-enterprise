@@ -446,6 +446,25 @@
 .rgx-tour-skip:hover { color: var(--ink); border-color: var(--line-strong); }
 @media (prefers-reduced-motion: reduce) { .rgx-tour-dot { animation: none; } }
 
+/* ───────────── 5-second middleware flow ───────────── */
+.rgx-mini-flow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-1);
+}
+.rgx-mini-step { display: inline-flex; align-items: center; gap: 6px 8px; }
+.rgx-mini-node {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.02em;
+  color: var(--ink-2); padding: 6px 11px; border: 1px solid var(--line-2);
+  border-radius: 100px; background: var(--panel); white-space: nowrap;
+}
+.rgx-mini-node.is-gov { color: var(--accent-bright); border-color: var(--accent-dim); background: rgba(76,125,255,0.07); }
+.rgx-mini-node.is-verdict { color: var(--ink); border-color: var(--line-strong); }
+.rgx-mini-arrow { color: var(--ink-4); font-family: var(--mono); }
+
+/* section header with an inline action */
+.rgx-section-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
 /* ───────────── Tabs ───────────── */
 .rgx-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
 .rgx-tab {
@@ -536,6 +555,21 @@
 .rgx-cv-steps code { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
 .rgx-assets { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 7px; }
 .rgx-assets li { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); padding: 4px 10px; border: 1px solid var(--line-2); border-radius: 100px; background: var(--panel-2); }
+
+/* inline audit preview + next step (decision → evidence → book) */
+.rgx-cv-evidence { margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-1); overflow: hidden; }
+.rgx-cv-evidence-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.rgx-cv-viewaudit { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--accent-bright); background: transparent; border: 0; cursor: pointer; padding: 0; }
+.rgx-cv-viewaudit:hover { text-decoration: underline; }
+.rgx-cv-evlist { list-style: none; margin: 0; padding: 6px 12px 10px; display: flex; flex-direction: column; gap: 5px; }
+.rgx-cv-evrow { display: grid; grid-template-columns: 64px 1fr; gap: 10px; font-size: 12px; color: var(--ink-2); align-items: baseline; }
+.rgx-cv-evrow .mono { color: var(--ink-3); }
+.rgx-cv-evrow--block > span:last-child { color: var(--omega); }
+.rgx-cv-evrow--allow > span:last-child { color: var(--ok); }
+.rgx-cv-evrow--escalate > span:last-child { color: var(--escalate); }
+.rgx-cv-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding: 14px 16px; border: 1px solid var(--accent-dim); border-radius: 8px; background: radial-gradient(120% 160% at 0 0, rgba(76,125,255,0.08), transparent 60%), var(--panel); }
+.rgx-cv-next-t { font-size: 14px; color: var(--ink); }
+.rgx-cv-next-t b { color: var(--accent-bright); }
 
 /* ───────────── Reduced motion ───────────── */
 @media (prefers-reduced-motion: reduce) {
