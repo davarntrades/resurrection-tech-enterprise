@@ -112,9 +112,26 @@ export function HomeClient() {
                   See How It Integrates <span className="arr">→</span>
                 </Link>
               </div>
+              <div className="hero-tryit reveal in" data-d="4">
+                <span className="hero-tryit-label">See a live verdict in one click:</span>
+                {[
+                  ["credential-exfiltration", "Credential exfiltration", "block"],
+                  ["multi-agent-leak", "Multi-agent leak", "block"],
+                  ["safe-workflow", "Safe workflow", "allow"],
+                ].map(([id, label, tone]) => (
+                  <Link
+                    key={id}
+                    href={`/live-demo?example=${id}`}
+                    className={`hero-tryit-chip hero-tryit-chip--${tone}`}
+                    onClick={() => track(Events.CTA_CLICK, { location: "hero-tryit", cta: id })}
+                  >
+                    <span className="hero-tryit-dot" aria-hidden="true" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
               <div className="hero-demo-hint reveal in" data-d="4">
-                The fastest way to experience Runtime Governance — test it
-                yourself in seconds. No signup.
+                Test it yourself in seconds. No signup.
               </div>
               <div className="hero-meta reveal in" data-d="5">
                 <span className="line" />
