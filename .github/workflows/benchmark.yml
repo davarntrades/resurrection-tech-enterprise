@@ -1,0 +1,61 @@
+name: Refresh latency benchmarks
+
+# Regenerates public/benchmarks/* by running the real engine on a fixed CI
+# runner, then commits the updated measured figures back. Runs on demand, on a
+# schedule, and whenever the engine rules in the service change. Benchmark
+# numbers depend on runner hardware; the report records the environment.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 6 * * 1"        # weekly, Monday 06:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - "governance-service/finance_rules.py"
+      - "governance-service/coverage_rules.py"
+      - "governance-service/benchmark.py"
+
+concurrency:
+  group: benchmark
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  ENGINE_REF: main
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vendor the engine (pinned)
+        run: git clone --depth 1 --branch "${ENGINE_REF}" https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine
+
+      - name: Run benchmark harness
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python benchmark.py > /dev/null
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: latency-benchmarks
+          path: public/benchmarks/
+
+      - name: Commit refreshed figures (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- public/benchmarks; then
+            echo "No benchmark changes."
+            exit 0
+          fi
+          git add public/benchmarks
+          git commit -m "chore(benchmarks): refresh measured latency figures [skip ci]"
+          git push

@@ -237,11 +237,29 @@ p { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .live-pip { animation: none; } }
 .hero-demo-hint {
-  margin-top: 16px;
+  margin-top: 12px;
   font-size: 13.5px;
   color: var(--ink-3);
   max-width: 460px;
 }
+
+/* One-click "live verdict" chips — reduce time-to-first-verdict to one click */
+.hero-tryit { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.hero-tryit-label { font-size: 12.5px; color: var(--ink-3); margin-right: 2px; }
+.hero-tryit-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ink);
+  padding: 7px 13px; border: 1px solid var(--line-2); border-radius: 100px;
+  background: var(--panel-2);
+  transition: border-color .25s var(--ease), background .25s var(--ease), transform .25s var(--ease);
+}
+.hero-tryit-chip:hover { transform: translateY(-1px); background: var(--panel-3); }
+.hero-tryit-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.hero-tryit-chip--block .hero-tryit-dot { background: var(--omega); box-shadow: 0 0 8px rgba(229,72,77,0.5); }
+.hero-tryit-chip--block:hover { border-color: rgba(229,72,77,0.45); }
+.hero-tryit-chip--allow .hero-tryit-dot { background: var(--ok); box-shadow: 0 0 8px rgba(63,178,127,0.5); }
+.hero-tryit-chip--allow:hover { border-color: rgba(63,178,127,0.45); }
+@media (prefers-reduced-motion: reduce) { .hero-tryit-chip { transition: none; } }
 
 .nav-cta { display: flex; align-items: center; gap: 10px; }
 .nav-burger { display: none; }
