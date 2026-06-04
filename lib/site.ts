@@ -36,6 +36,7 @@ export const NAV_MENU = [
     links: [
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
+      { href: "/enterprise", label: "Enterprise readiness" },
       { href: "/integrations", label: "How it integrates" },
       { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
       { href: "/pay", label: "Pricing & engagements" },
@@ -45,7 +46,7 @@ export const NAV_MENU = [
     group: "Who it's for",
     links: [
       { href: "/why-runtime-governance", label: "Executives — CEO / CFO / CRO" },
-      { href: "/integrations", label: "Technical leaders — CTO / CISO" },
+      { href: "/enterprise", label: "Technical leaders — CTO / CISO" },
       { href: "/security", label: "Risk & compliance" },
       { href: "/test-trajectory", label: "AI & engineering teams" },
       { href: "/#domains", label: "Target sectors" },
