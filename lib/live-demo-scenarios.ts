@@ -615,6 +615,38 @@ if result.blocked:
     raise GovernanceError(result.reason)   # BLOCK / ESCALATE — never executes
 execute(proposed_tool_calls)               # PERMIT — safe to run`;
 
+/**
+ * Domains with EXECUTABLE Ω rules in the live engine (verified against the
+ * registry: morrison_governance/domains.py DEFAULT_RULES). The Custom
+ * Evaluation tab sends these to the real API.
+ */
+export const LIVE_DOMAINS: { id: string; label: string }[] = [
+  { id: "finance", label: "Finance" },
+  { id: "banking", label: "Banking" },
+  { id: "fintech", label: "Fintech" },
+  { id: "cybersecurity", label: "Cybersecurity" },
+  { id: "healthcare", label: "Healthcare" },
+  { id: "data_privacy", label: "Data privacy" },
+  { id: "enterprise", label: "Enterprise" },
+  { id: "compliance", label: "Compliance" },
+  { id: "fraud", label: "Fraud" },
+];
+
+/**
+ * Target deployment domains that appear in positioning but have NO Ω rules in
+ * the live registry yet. Shown disabled/separated — never sent to the engine.
+ */
+export const TARGET_DOMAINS: { id: string; label: string }[] = [
+  { id: "insurance", label: "Insurance" },
+  { id: "government", label: "Government / Public sector" },
+  { id: "supply_chain", label: "Supply chain / Logistics" },
+  { id: "energy", label: "Energy / Critical infrastructure" },
+  { id: "telecommunications", label: "Telecommunications" },
+  { id: "manufacturing", label: "Manufacturing" },
+  { id: "aerospace", label: "Aerospace / Aviation" },
+  { id: "defence", label: "Defence / Sovereign" },
+];
+
 /** Evidence-panel facts, kept faithful to the public repo. */
 export const EVIDENCE = {
   repo: REPO,

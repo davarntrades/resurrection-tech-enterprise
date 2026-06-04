@@ -57,6 +57,9 @@ export interface EvalResult {
   /** Illustrative consequence if the trajectory were executed. Not a guarantee. */
   estimatedConsequence: string;
   steps: StepSummary[];
+  /** Audit fields populated only by the real engine path (undefined for the heuristic). */
+  trajectoryHash?: string;
+  reachabilityDistance?: number | null;
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */

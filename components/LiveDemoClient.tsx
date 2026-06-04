@@ -25,6 +25,8 @@ import {
   DECISION_META,
   EVIDENCE,
   INTEGRATION_SNIPPET,
+  LIVE_DOMAINS,
+  TARGET_DOMAINS,
   type Scenario,
   type Decision,
 } from "@/lib/live-demo-scenarios";
@@ -684,6 +686,9 @@ interface CustomResult {
   reachable: boolean;
   steps: { index: number; tool: string; summary: string }[];
   trajectory: string;
+  domain: string;
+  trajectoryHash?: string;
+  reachabilityDistance?: number | null;
 }
 
 function mapVerdict(v: string): Decision {
@@ -700,6 +705,7 @@ function CustomEval({
   reduce: boolean;
 }) {
   const [input, setInput] = useState(CUSTOM_EXAMPLES[0].code);
+  const [domain, setDomain] = useState(LIVE_DOMAINS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CustomResult | null>(null);
@@ -710,12 +716,12 @@ function CustomEval({
     setError(null);
     setLoading(true);
     setResult(null);
-    track("live_demo_custom_eval", { steps: parsed.trajectory!.length });
+    track("live_demo_custom_eval", { steps: parsed.trajectory!.length, domain });
     try {
       const res = await fetch("/api/evaluate-trajectory", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ trajectory: parsed.trajectory }),
+        body: JSON.stringify({ trajectory: parsed.trajectory, domains: [domain] }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -740,6 +746,9 @@ function CustomEval({
         reachable: !!data.omegaReachable,
         steps: data.steps || [],
         trajectory: trajStr,
+        domain,
+        trajectoryHash: data.trajectoryHash,
+        reachabilityDistance: data.reachabilityDistance,
       };
       setResult(cr);
 
@@ -767,7 +776,7 @@ function CustomEval({
       setError("Network error — please try again.");
     }
     setLoading(false);
-  }, [input, onResult]);
+  }, [input, domain, onResult]);
 
   const rmeta = result ? DECISION_META[result.decision] : null;
 
@@ -777,7 +786,23 @@ function CustomEval({
 
       <div className="rgx-cv-grid">
         <div className="rgx-cv-input">
-          <span className="rgx-k">Trajectory — one tool call per line, or paste JSON</span>
+          <span className="rgx-k">Ω domain</span>
+          <select
+            className="rgx-cv-domain"
+            value={domain}
+            onChange={(e) => { setDomain(e.target.value); setResult(null); }}
+            aria-label="Governance domain"
+          >
+            <optgroup label="Live — real Ω rules">
+              {LIVE_DOMAINS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+            </optgroup>
+            <optgroup label="Target deployment — Ω rules pending">
+              {TARGET_DOMAINS.map((d) => <option key={d.id} value={d.id} disabled>{d.label} — Ω rules pending</option>)}
+            </optgroup>
+          </select>
+          <span className="rgx-cv-domnote">Live domains call the real engine. Target domains are positioning only — not yet in the Ω registry.</span>
+
+          <span className="rgx-k" style={{ marginTop: 6 }}>Trajectory — one tool call per line, or paste JSON</span>
           <textarea
             className="rgx-cv-textarea"
             value={input}
@@ -824,6 +849,15 @@ function CustomEval({
                     ? "✓ SAFE PATH — Ω never reachable"
                     : "⚑ Routed for human review"}
               </p>
+              <div className="rgx-cv-audit">
+                <span><b>Ω domain</b> {result.omegaDomain || "—"}</span>
+                <span><b>Layer</b> {result.layer}</span>
+                <span><b>Rule</b> {result.omega && result.omega !== "not reached" ? result.omega : "—"}</span>
+                {result.reachabilityDistance !== undefined && result.reachabilityDistance !== null && (
+                  <span><b>ℛ→Ω distance</b> {result.reachabilityDistance}</span>
+                )}
+                {result.trajectoryHash && <span><b>Trajectory hash</b> <code>{result.trajectoryHash}</code></span>}
+              </div>
               <div className="rgx-cv-rows">
                 <div><span className="rgx-k">Reason</span><p>{result.reason}</p></div>
                 {mode === "ceo" ? (

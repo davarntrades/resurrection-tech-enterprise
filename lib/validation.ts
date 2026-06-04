@@ -55,6 +55,8 @@ export const trajectoryRequestSchema = z.object({
     .array(toolCallSchema)
     .min(1, "Provide at least one tool-call step")
     .max(MAX_TRAJECTORY_STEPS, `Trajectory is limited to ${MAX_TRAJECTORY_STEPS} steps in this demo`),
+  /** Optional Ω domains to scope evaluation (forwarded to the governance engine). */
+  domains: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
 });
 
 export type TrajectoryRequestInput = z.infer<typeof trajectoryRequestSchema>;
