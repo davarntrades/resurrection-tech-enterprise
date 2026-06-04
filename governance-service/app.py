@@ -29,6 +29,8 @@ from pydantic import BaseModel, Field
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.result import GovernanceResult
 
+from finance_rules import finance_custom_rules
+
 # ── Config ───────────────────────────────────────────────────────────────
 SERVICE_VERSION = "1.0.0"
 EVAL_TIMEOUT_S = float(os.getenv("GOVERNANCE_EVAL_TIMEOUT_S", "4.0"))
@@ -77,7 +79,13 @@ def _layer_for(names: Optional[list[str]], horizon: int) -> GovernanceLayer:
     key = (tuple(d.value for d in domains), horizon)
     layer = _LAYERS.get(key)
     if layer is None:
-        layer = GovernanceLayer(domains=domains, horizon=horizon, log_all=False)
+        # Deployment-level Ω hardening. Finance funds-movement rules are
+        # tool-scoped, so they are harmless when finance is not in scope and
+        # close the reported gaps when it is.
+        layer = GovernanceLayer(
+            domains=domains, horizon=horizon, log_all=False,
+            custom_rules=finance_custom_rules(),
+        )
         _LAYERS[key] = layer
         log.info(f"built GovernanceLayer domains={key[0]} horizon={horizon} rules={len(layer.rules)}")
     return layer
