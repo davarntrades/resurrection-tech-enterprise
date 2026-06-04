@@ -76,48 +76,68 @@ const VP_EXPLANATION =
   "The blocked transaction represents only the initial risk. Enterprise incidents often trigger investigations, legal review, compliance obligations, regulatory scrutiny, operational disruption, and reputational damage that can significantly exceed the original loss.";
 const VP_NOTE =
   "Runtime Governance protects more than the asset at risk. It prevents the downstream investigation, response, legal, regulatory, reputational, and operational costs that frequently exceed the original incident.";
-const VP_GENERIC_COSTS = [
-  "Direct financial loss", "Investigation costs", "Incident response costs", "Legal expenses",
-  "Regulatory exposure", "Reputation damage", "Operational downtime", "Compliance remediation",
-  "Executive escalation and review",
+const VP_GENERIC_COSTS: { label: string; range?: string }[] = [
+  { label: "Direct financial loss" }, { label: "Investigation costs" }, { label: "Incident response costs" },
+  { label: "Legal expenses" }, { label: "Regulatory exposure" }, { label: "Reputation damage" },
+  { label: "Operational downtime" }, { label: "Compliance remediation" }, { label: "Executive escalation and review" },
 ];
 
-/** Executive "Value Protected" card — direct + cascade impact, never guaranteed. */
+/** Indicative enterprise-impact estimate by Ω domain — used for custom evals. */
+const DOMAIN_IMPACT: Record<string, { direct: string; range: string }> = {
+  finance: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
+  banking: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
+  fintech: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
+  fraud: { direct: "Fraudulent transaction", range: "£100,000 – £2M+" },
+  cybersecurity: { direct: "Infrastructure / credentials", range: "£500,000 – £10.2M+" },
+  data_privacy: { direct: "Personal data (PII)", range: "£1M – £20M+" },
+  healthcare: { direct: "Protected health information", range: "£1M – £15M+" },
+  enterprise: { direct: "Internal systems / data", range: "£500,000 – £5M+" },
+  compliance: { direct: "Regulated decision", range: "£250,000 – £5M+" },
+};
+
+/** Executive "Value Protected" card — headline estimate first, then the cascade. */
 function ValueProtected({
   direct, directLabel, range, costs, tone,
 }: {
   direct?: string;
   directLabel?: string;
   range?: string;
-  costs: string[];
+  costs: { label: string; range?: string }[];
   tone: "block" | "allow" | "escalate";
 }) {
   return (
     <div className={`rgx-vp rgx-vp--${tone}`}>
-      <div className="rgx-vp-head">
-        Value protected
-        <span className="rgx-vp-tag">Indicative · not guaranteed savings</span>
+      <div className="rgx-vp-head">Value protected</div>
+
+      {/* Headline estimate — execs read this before the details */}
+      <div className="rgx-vp-estimate">
+        {direct && (
+          <div className="rgx-vp-fig">
+            <span className="rgx-k">{directLabel ?? "Direct exposure prevented"}</span>
+            <span className="rgx-vp-direct">{direct}</span>
+          </div>
+        )}
+        {range && (
+          <div className="rgx-vp-fig rgx-vp-fig--hero">
+            <span className="rgx-k">Estimated enterprise impact avoided</span>
+            <span className="rgx-vp-range">{range}</span>
+          </div>
+        )}
+        <p className="rgx-vp-disclaimer">Indicative estimate — not guaranteed savings.</p>
       </div>
-      {(direct || range) && (
-        <div className="rgx-vp-figs">
-          {direct && (
-            <div className="rgx-vp-fig">
-              <span className="rgx-k">{directLabel ?? "Direct exposure prevented"}</span>
-              <span className="rgx-vp-direct">{direct}</span>
-            </div>
-          )}
-          {range && (
-            <div className="rgx-vp-fig">
-              <span className="rgx-k">Estimated enterprise impact avoided</span>
-              <span className="rgx-vp-range">{range}</span>
-            </div>
-          )}
-        </div>
-      )}
+
       <div className="rgx-vp-costs">
         <span className="rgx-k">Potential costs avoided</span>
-        <ul>{costs.map((c) => <li key={c}>{c}</li>)}</ul>
+        <ul>
+          {costs.map((c) => (
+            <li key={c.label}>
+              <span className="rgx-vp-cost-label">{c.label}</span>
+              {c.range && <span className="rgx-vp-cost-range">{c.range}</span>}
+            </li>
+          ))}
+        </ul>
       </div>
+
       <p className="rgx-vp-explain">{VP_EXPLANATION}</p>
       <p className="rgx-vp-note">{VP_NOTE}</p>
     </div>
@@ -988,7 +1008,12 @@ function CustomEval({
                       </div>
                     )}
                     {result.decision !== "ALLOW" && (
-                      <ValueProtected costs={VP_GENERIC_COSTS} tone={rmeta.tone} />
+                      <ValueProtected
+                        direct={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).direct ?? "Blocked unsafe action"}
+                        range={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).range ?? "Frequently exceeds the initial loss"}
+                        costs={VP_GENERIC_COSTS}
+                        tone={rmeta.tone}
+                      />
                     )}
                   </>
                 ) : (

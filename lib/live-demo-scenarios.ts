@@ -93,8 +93,8 @@ export interface Scenario {
     directLabel?: string;
     /** Indicative enterprise-impact range (never presented as guaranteed). */
     range: string;
-    /** Domain-specific potential costs avoided. */
-    costs: string[];
+    /** Domain-specific potential costs avoided, with optional indicative ranges. */
+    costs: { label: string; range?: string }[];
   };
 
   /* ── Structured decision reasoning (deterministic, no chain-of-thought) ── */
@@ -194,7 +194,15 @@ export const SCENARIOS: Scenario[] = [
     valueProtected: {
       direct: "£145,000",
       range: "£250,000 – £1,000,000+",
-      costs: ["Unauthorized asset movement", "FCA investigation", "AML review", "Regulatory reporting", "Compliance audit", "Customer reimbursement", "Legal review", "Reputation damage"],
+      costs: [
+        { label: "Unauthorized asset movement", range: "£145,000" },
+        { label: "FCA investigation", range: "£50,000 – £250,000" },
+        { label: "AML review", range: "£25,000 – £100,000" },
+        { label: "Compliance audit", range: "£20,000 – £100,000" },
+        { label: "Customer reimbursement", range: "£50,000 – £200,000" },
+        { label: "Legal review", range: "£25,000 – £150,000" },
+        { label: "Reputational impact", range: "£50,000 – £500,000+" },
+      ],
     },
     reasoning: {
       why: "The agent proposed moving £145,000 from an internal treasury account to an external destination that is not verified or approved.",
@@ -263,7 +271,14 @@ export const SCENARIOS: Scenario[] = [
       direct: "Credentials & API keys",
       directLabel: "Direct exposure prevented",
       range: "£500,000 – £10.2M+",
-      costs: ["Incident response", "Forensic investigation", "Credential rotation", "Security remediation", "Breach notification", "Customer trust impact", "Operational downtime"],
+      costs: [
+        { label: "Incident response", range: "£75,000 – £400,000" },
+        { label: "Forensic investigation", range: "£50,000 – £300,000" },
+        { label: "Credential rotation & remediation", range: "£40,000 – £250,000" },
+        { label: "Breach notification", range: "£25,000 – £150,000" },
+        { label: "Customer trust impact", range: "£100,000 – £2M+" },
+        { label: "Operational downtime", range: "£50,000 – £1M+" },
+      ],
     },
     reasoning: {
       why: "The agent proposed reading a secrets file (.env) and then sending its contents to an external server.",
@@ -336,7 +351,14 @@ export const SCENARIOS: Scenario[] = [
       direct: "Customer database (PII)",
       directLabel: "Direct exposure prevented",
       range: "£1M – £20M+",
-      costs: ["Regulatory investigation", "Data breach response", "Customer notification", "Compliance remediation", "Legal liability", "Reputation damage"],
+      costs: [
+        { label: "Regulatory investigation", range: "£100,000 – £2M+" },
+        { label: "Data breach response", range: "£100,000 – £1M+" },
+        { label: "Customer notification", range: "£50,000 – £500,000" },
+        { label: "Compliance remediation", range: "£100,000 – £1M+" },
+        { label: "Legal liability", range: "£250,000 – £10M+" },
+        { label: "Reputation damage", range: "£250,000 – £5M+" },
+      ],
     },
     reasoning: {
       why: "The agent proposed reading the full customer database and posting those records to an external analytics endpoint without verified consent.",
@@ -400,7 +422,14 @@ export const SCENARIOS: Scenario[] = [
       direct: "Root / system access",
       directLabel: "Direct exposure prevented",
       range: "£500,000 – £5M+",
-      costs: ["Incident response", "Forensic investigation", "Credential rotation", "Security remediation", "Breach notification", "Customer trust impact", "Operational downtime"],
+      costs: [
+        { label: "Incident response" },
+        { label: "Forensic investigation" },
+        { label: "Credential rotation & remediation" },
+        { label: "Breach notification" },
+        { label: "Customer trust impact" },
+        { label: "Operational downtime" },
+      ],
     },
     reasoning: {
       why: "The agent proposed running a shell command that grants world-writable permissions on a protected system file using sudo.",
@@ -469,7 +498,14 @@ export const SCENARIOS: Scenario[] = [
       direct: "Unauthorised regulated decision",
       directLabel: "Direct exposure prevented",
       range: "£250,000 – £5M+ (conduct risk)",
-      costs: ["Regulatory investigation", "Conduct-risk review", "Compliance remediation", "Legal review", "Executive escalation", "Reputation damage"],
+      costs: [
+        { label: "Regulatory investigation" },
+        { label: "Conduct-risk review" },
+        { label: "Compliance remediation" },
+        { label: "Legal review" },
+        { label: "Executive escalation" },
+        { label: "Reputation damage" },
+      ],
     },
     reasoning: {
       why: "Resolving a complaint is a normal action, but issuing a binding remediation on a regulated product crosses a boundary where a licensed human must decide — so it is neither safely automatic nor outright forbidden.",
@@ -560,7 +596,15 @@ export const SCENARIOS: Scenario[] = [
       direct: "Customer data (cross-agent)",
       directLabel: "Direct exposure prevented",
       range: "£1M – £20M+",
-      costs: ["Cross-system propagation", "Enterprise-wide remediation", "Incident command activation", "Business disruption", "Large-scale governance failure", "Breach notification", "Reputation damage"],
+      costs: [
+        { label: "Cross-system propagation" },
+        { label: "Enterprise-wide remediation" },
+        { label: "Incident command activation" },
+        { label: "Business disruption" },
+        { label: "Large-scale governance failure" },
+        { label: "Breach notification" },
+        { label: "Reputation damage" },
+      ],
     },
     reasoning: {
       why: "Three cooperating agents each took an innocent-looking step: Agent A read customer data, Agent B staged it in shared memory, and Agent C sent it to an external endpoint.",
