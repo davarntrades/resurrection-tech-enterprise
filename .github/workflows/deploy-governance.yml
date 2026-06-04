@@ -24,9 +24,27 @@ concurrency:
 
 env:
   SERVICE_NAME: governance-service
+  ENGINE_REF: main
 
 jobs:
+  corpus-gate:
+    # Regression gate: the labelled adversarial corpus must pass before deploy.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Vendor the engine (pinned)
+        run: |
+          git clone --depth 1 --branch "${ENGINE_REF:-main}" \
+            https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine
+      - name: Run labelled corpus (precision/recall must be 1.0; any mismatch fails)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_corpus.py
+
   deploy-railway:
+    needs: corpus-gate
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.domain.outputs.url }}
