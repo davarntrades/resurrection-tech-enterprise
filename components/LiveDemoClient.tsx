@@ -579,6 +579,7 @@ export function LiveDemoClient() {
             Book a Runtime Safety Assessment <span className="arr">→</span>
           </Link>
           <a href={EVIDENCE.repo} target="_blank" rel="noopener noreferrer" className="btn btn--ghost">View GitHub evidence</a>
+          <Link href="/enterprise" className="btn btn--ghost">Enterprise readiness</Link>
           <Link href="/integrations" className="btn btn--ghost">See integrations</Link>
         </div>
       </section>

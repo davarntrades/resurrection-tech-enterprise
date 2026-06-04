@@ -373,6 +373,7 @@ export default function Page() {
           </div>
           <div className="ig-cta reveal">
             <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/enterprise" className="btn btn--ghost">Enterprise readiness</Link>
             <Link href="/sample-audit" className="btn btn--ghost">See a sample report</Link>
           </div>
         </div>
