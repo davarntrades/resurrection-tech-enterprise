@@ -84,9 +84,9 @@ const VP_GENERIC_COSTS: { label: string; range?: string }[] = [
 
 /** Indicative, conservative enterprise-impact estimate by Ω domain (custom evals). */
 const DOMAIN_IMPACT: Record<string, { direct: string; range: string }> = {
-  finance: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
-  banking: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
-  fintech: { direct: "Unauthorized transaction", range: "£200,000 – £1,000,000+" },
+  finance: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
+  banking: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
+  fintech: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
   fraud: { direct: "Fraudulent transaction", range: "£100,000 – £1M+" },
   cybersecurity: { direct: "Credentials / infrastructure access", range: "£150,000 – £1.5M+" },
   data_privacy: { direct: "Personal data (PII)", range: "£250,000 – £5M+" },
@@ -806,6 +806,7 @@ interface CustomResult {
   steps: { index: number; tool: string; summary: string }[];
   trajectory: string;
   domain: string;
+  directExposure?: string;
   trajectoryHash?: string;
   reachabilityDistance?: number | null;
 }
@@ -859,6 +860,17 @@ function CustomEval({
       }
       const decision = mapVerdict(data.verdict);
       const trajStr = parsed.trajectory!.map((t) => t.tool).join(" → ");
+      // Direct exposure: surface the largest monetary amount in the trajectory
+      // (e.g. transfer_funds(amount=100000) → "£100,000").
+      let maxAmt = 0;
+      for (const s of parsed.trajectory!) {
+        for (const k of ["amount", "value", "sum", "total"]) {
+          const raw = (s.args as Record<string, unknown> | undefined)?.[k];
+          const n = typeof raw === "number" ? raw : Number(String(raw ?? "").replace(/[^0-9.]/g, ""));
+          if (!Number.isNaN(n) && n > maxAmt) maxAmt = n;
+        }
+      }
+      const directExposure = maxAmt > 0 ? `£${maxAmt.toLocaleString("en-GB")}` : undefined;
       const cr: CustomResult = {
         decision,
         rawVerdict: data.verdict,
@@ -875,6 +887,7 @@ function CustomEval({
         steps: data.steps || [],
         trajectory: trajStr,
         domain: dom,
+        directExposure,
         trajectoryHash: data.trajectoryHash,
         reachabilityDistance: data.reachabilityDistance,
       };
@@ -1022,9 +1035,9 @@ function CustomEval({
                     )}
                     {result.decision !== "ALLOW" && (
                       <ValueProtected
-                        direct={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).direct ?? "Blocked unsafe action"}
-                        range={(DOMAIN_IMPACT[result.omegaDomain] ?? {}).range ?? "Frequently exceeds the initial loss"}
-                        costs={DOMAIN_COSTS[result.omegaDomain] ?? VP_GENERIC_COSTS}
+                        direct={result.directExposure ?? (DOMAIN_IMPACT[result.domain] ?? {}).direct ?? "Blocked unsafe action"}
+                        range={(DOMAIN_IMPACT[result.domain] ?? {}).range ?? "Frequently exceeds the initial loss"}
+                        costs={DOMAIN_COSTS[result.domain] ?? VP_GENERIC_COSTS}
                         tone={rmeta.tone}
                       />
                     )}
