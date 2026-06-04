@@ -189,11 +189,11 @@ export const SCENARIOS: Scenario[] = [
       "Regulatory exposure (FCA / AML) prevented",
       "Irreversible transfer stopped pre-execution",
     ],
-    costAvoided: "£200,000 – £1,000,000+",
+    costAvoided: "£250,000 – £1,000,000+",
     protectedAssets: ["Banking APIs", "Payment systems", "Treasury controls"],
     valueProtected: {
       direct: "£145,000",
-      range: "£200,000 – £1,000,000+",
+      range: "£250,000 – £1,000,000+",
       costs: [
         { label: "Unauthorized asset movement", range: "£145,000" },
         { label: "FCA investigation", range: "£40,000 – £200,000" },
