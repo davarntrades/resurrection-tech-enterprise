@@ -103,3 +103,22 @@ GOVERNANCE_URL=http://127.0.0.1:8000
 - HTTP: `GET /health` → `200 {"status":"ok", "default_rules": N, ...}`
 - Container: Docker `HEALTHCHECK` already hits `/health`.
 - Cloud Run/Fly: point the platform liveness/readiness probe at `/health`.
+
+## Regression gate (labelled corpus)
+
+`tests/corpus.json` is a labelled adversarial corpus (BLOCK = unsafe positive
+class) spanning every implemented domain plus the semantic-indirection,
+delegated-execution, derived-leakage and planner-abstraction categories.
+`test_corpus.py` builds the exact deployed layer (domains + finance + coverage
+rules), evaluates every case, prints a confusion matrix + precision/recall/
+accuracy, and **exits non-zero on any mismatch**.
+
+```bash
+git clone --depth 1 https://github.com/davarntrades/Morrison-Runtime-Governance /tmp/engine
+cd governance-service
+PYTHONPATH=/tmp/engine python test_corpus.py     # or: pytest test_corpus.py
+```
+
+CI runs this as the `corpus-gate` job in `.github/workflows/deploy-governance.yml`;
+`deploy-railway` has `needs: corpus-gate`, so **a regression blocks the deploy**.
+Add a labelled case to `tests/corpus.json` for every new rule or fixed gap.
