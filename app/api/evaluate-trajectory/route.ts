@@ -63,7 +63,7 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   let result: EvalResult;
   let source = "heuristic";
   try {
-    result = await evaluateViaGovernance(parsed.data.trajectory);
+    result = await evaluateViaGovernance(parsed.data.trajectory, parsed.data.domains);
     source = "morrison";
   } catch (err) {
     console.warn("[evaluate-trajectory] governance service unavailable, using heuristic fallback:", (err as Error).message);

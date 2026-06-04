@@ -496,6 +496,22 @@
   background: var(--panel-2); cursor: pointer; transition: border-color .25s var(--ease), color .25s var(--ease);
 }
 .rgx-cv-ex:hover { color: var(--ink); border-color: var(--accent-dim); }
+.rgx-cv-domain {
+  width: 100%;
+  font-family: var(--mono); font-size: 13px;
+  color: var(--ink); background: var(--panel-2);
+  border: 1px solid var(--line-2); border-radius: 8px;
+  padding: 10px 12px; cursor: pointer;
+}
+.rgx-cv-domain:focus { outline: none; border-color: var(--accent-dim); }
+.rgx-cv-domnote { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; }
+.rgx-cv-audit {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  padding: 11px 14px; border: 1px solid var(--line-2); border-radius: 8px;
+  background: var(--bg-1); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+}
+.rgx-cv-audit b { color: var(--ink-3); font-weight: 500; margin-right: 6px; letter-spacing: 0.04em; }
+.rgx-cv-audit code { color: var(--accent-bright); word-break: break-all; }
 .rgx-cv-error { font-size: 13px; color: var(--omega); background: rgba(229,72,77,0.07); border: 1px solid rgba(229,72,77,0.28); border-radius: 7px; padding: 9px 12px; }
 .rgx-simbtn--accent { border-color: var(--accent-dim); }
 .rgx-cv-run { margin-top: 2px; }

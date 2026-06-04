@@ -86,6 +86,8 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       omegaReason: meta?.omegaReason ?? "The trajectory creates a path into a forbidden state Ω.",
       estimatedConsequence: meta?.estimatedConsequence ?? "Material operational, financial, or regulatory exposure (illustrative).",
       steps,
+      trajectoryHash: g.trajectory_hash,
+      reachabilityDistance: g.reachability_distance,
     };
   }
 
@@ -109,6 +111,8 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       omegaReason: "The verdict flips under environmental perturbation, so Ω may become reachable depending on conditions.",
       estimatedConsequence: "Undetermined — escalated for human review before execution.",
       steps,
+      trajectoryHash: g.trajectory_hash,
+      reachabilityDistance: g.reachability_distance,
     };
   }
 
@@ -129,6 +133,8 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
     omegaReason: "No step creates a path toward a forbidden state, so Ω stays out of reach.",
     estimatedConsequence: "None — no protected assets exposed.",
     steps,
+    trajectoryHash: g.trajectory_hash,
+    reachabilityDistance: g.reachability_distance,
   };
 }
 
@@ -136,7 +142,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
  * Call the real governance service. Throws on any failure so the caller can
  * fall back to the heuristic evaluator. Never executes a tool call.
  */
-export async function evaluateViaGovernance(trajectory: ToolCall[]): Promise<EvalResult> {
+export async function evaluateViaGovernance(trajectory: ToolCall[], domains?: string[]): Promise<EvalResult> {
   // Default to the live Railway deployment; override with GOVERNANCE_URL (e.g.
   // Vercel production env) to point at a different backend. Empty string ⇒
   // disabled (caller falls back to the heuristic).
@@ -146,10 +152,11 @@ export async function evaluateViaGovernance(trajectory: ToolCall[]): Promise<Eva
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (process.env.GOVERNANCE_TOKEN) headers.authorization = `Bearer ${process.env.GOVERNANCE_TOKEN}`;
 
+  const body = domains && domains.length ? { trajectory, domains } : { trajectory };
   const res = await fetch(`${base.replace(/\/$/, "")}/v1/evaluate`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ trajectory }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
     cache: "no-store",
   });
