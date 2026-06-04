@@ -155,6 +155,21 @@
 }
 .tp-cta { margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap; }
 
+.tp-link { color: var(--accent-bright); border-bottom: 1px solid transparent; transition: border-color .2s var(--ease); }
+.tp-link:hover { border-color: var(--accent-bright); }
+.tp-prose code, .tp-card code { font-family: var(--mono); font-size: 0.86em; color: var(--accent-bright); }
+.tp-flowline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin-top: 14px; padding: 14px 16px; border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm); background: var(--bg-1);
+}
+.tp-flowline span {
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink-2);
+  padding: 7px 13px; border: 1px solid var(--line-2); border-radius: 100px; background: var(--panel);
+}
+.tp-flowline span.is-gov { color: var(--accent-bright); border-color: var(--accent-dim); background: rgba(76,125,255,0.07); }
+.tp-flowline i { color: var(--ink-4); font-style: normal; }
+
 /* Footer gains a 4th column (Trust & due diligence) */
 .footer .wrap { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
 @media (max-width: 900px) { .footer .wrap { grid-template-columns: 1fr 1fr; } }

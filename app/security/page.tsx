@@ -3,112 +3,147 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 
 export const metadata: Metadata = {
-  title: "Security, Data Handling & Deployment",
+  title: "Security & Trust",
   description:
-    "How Morrison Runtime Governance deploys, what it observes and retains, its security model, integration surface, and performance considerations — written for enterprise security review.",
+    "Enterprise trust: what Morrison Runtime Governance evaluates and stores, audit logging and export, deployment architecture and patterns, retention, and security principles (pre-execution, fail-closed, planner-untrusted, trajectory-level).",
   alternates: { canonical: "/security" },
 };
 
 export default function Page() {
   return (
     <PageShell>
-      <section className="section section--tight tp" aria-label="Security, data handling and deployment">
+      <section className="section section--tight tp" aria-label="Security and trust">
         <div className="wrap">
-          <span className="eyebrow">Security &amp; deployment</span>
-          <h1>Security, Data Handling &amp; Deployment</h1>
+          <span className="eyebrow">Security &amp; trust</span>
+          <h1>Security &amp; Trust</h1>
           <p className="tp-lede">
-            The questions an enterprise security team asks before anything sits in the execution
-            path. Where ground-truth commitments require sign-off they are flagged rather than
-            asserted — so this page can be relied on in a security review.
+            What a security team needs before anything sits in the execution path: what is
+            evaluated, what is and isn&rsquo;t stored, how audit works, where it deploys, and the
+            enforcement principles. Items that require commercial or legal sign-off are flagged
+            rather than asserted, so this page can be relied on in review.
           </p>
 
-          {/* Deployment models */}
+          {/* Deployment architecture */}
           <div className="tp-block">
-            <h2>Deployment models</h2>
+            <h2>Deployment architecture</h2>
             <p className="tp-sub">
-              Runtime Governance runs at the agent&rsquo;s execution boundary as middleware. Because
-              it sits at the boundary rather than inside a model, it can be deployed where your
-              workloads already run.
+              Governance is a pre-execution checkpoint at the tool-dispatch boundary:
+            </p>
+            <div className="tp-flowline" aria-label="Agent to governance layer to decision to tool execution">
+              <span>Agent / Planner</span><i aria-hidden="true">→</i>
+              <span className="is-gov">Governance Layer</span><i aria-hidden="true">→</i>
+              <span>ALLOW / BLOCK</span><i aria-hidden="true">→</i>
+              <span>Tool execution</span>
+            </div>
+            <p className="tp-sub" style={{ marginTop: 18 }}>
+              The reference service is a stateless container running the pure-Python engine, so it can
+              run wherever your workloads do. These are the architecturally supported patterns:
             </p>
             <div className="tp-grid">
-              <div className="tp-card"><span className="k">Customer VPC</span><p>Deployed inside your own cloud environment; trajectories are evaluated within your security perimeter.</p></div>
-              <div className="tp-card"><span className="k">On-premises</span><p>Runs within your data centre for workloads that cannot leave the building.</p></div>
-              <div className="tp-card"><span className="k">SaaS</span><p>Hosted evaluation endpoint for lower-sensitivity workloads and rapid pilots.</p></div>
-              <div className="tp-card"><span className="k">Air-gapped</span><p>For isolated/classified environments. <span className="tp-pill warn">Confirm availability</span></p></div>
+              <div className="tp-card"><span className="k">Cloud</span><p>Managed HTTPS service (e.g. the public reference deployment). Fastest to stand up for pilots.</p></div>
+              <div className="tp-card"><span className="k">Customer VPC</span><p>Run the container inside your own cloud; trajectories are evaluated within your perimeter.</p></div>
+              <div className="tp-card"><span className="k">Self-hosted / on-prem</span><p>Runs as a container or sidecar in your data centre for workloads that cannot leave the building.</p></div>
+              <div className="tp-card"><span className="k">Hybrid</span><p>Service in your VPC, called by agents across environments via the same HTTP contract.</p></div>
             </div>
             <div className="tp-todo">
-              <b>Owner action:</b> confirm which of these deployment models are actually offered
-              today versus on the roadmap, and remove or re-label any that are not yet available. Do
-              not imply air-gapped/on-prem support if it has not been delivered.
+              <b>Sign-off needed:</b> managed-offering SLAs, support tiers, and any air-gapped
+              packaging are commercial commitments — confirm scope per engagement. The architecture
+              supports the patterns above; availability of a <em>managed</em> form of each is a
+              contractual matter.
             </div>
           </div>
 
           {/* Data handling */}
           <div className="tp-block">
             <h2>Data handling</h2>
-            <p className="tp-sub">What the governance layer sees, and what it does not.</p>
+            <p className="tp-sub">What the governance layer evaluates, and what it does not.</p>
             <div className="tp-grid">
-              <div className="tp-card"><span className="k">Observes</span><p>Proposed tool calls and their arguments (the trajectory) at the execution boundary, in order to evaluate reachability of Ω.</p></div>
-              <div className="tp-card"><span className="k">Does not require</span><p>Model weights, training data, or model internals. Governance is model-agnostic and external to the model.</p></div>
-              <div className="tp-card"><span className="k">Retains</span><p>Governance decisions and audit records (verdict, reason, Ω, timestamp) for auditability. <span className="tp-pill warn">Confirm retention policy</span></p></div>
-              <div className="tp-card"><span className="k">Does not retain</span><p>In a VPC/on-prem deployment, evaluated payloads need not leave your environment. <span className="tp-pill warn">Confirm</span></p></div>
+              <div className="tp-card"><span className="k">What is evaluated</span><p>The proposed tool calls and their arguments — the trajectory — submitted before execution, to evaluate reachability of Ω.</p></div>
+              <div className="tp-card"><span className="k">What is not required</span><p>Model weights, training data, prompts, or model internals. Governance is model-agnostic and external to the model.</p></div>
+              <div className="tp-card"><span className="k">What is stored (reference service)</span><p>Nothing by default. The engine is a pure function; the reference service holds no datastore and persists no evaluations. It returns the verdict and emits structured operational logs (verdict, layer, timing) — not the evaluated payload. Per-evaluation engine logging is off by default (<code>log_all=false</code>).</p></div>
+              <div className="tp-card"><span className="k">What you control</span><p>Audit records are produced by the caller/host that wants them (see Audit logging). In a VPC/self-hosted deployment, evaluated payloads never leave your environment.</p></div>
             </div>
             <div className="tp-todo">
-              <b>Owner action:</b> publish the exact data-retention policy (what is stored, where,
-              for how long, and under what legal basis) and a DPA. A security team will not approve
-              an in-path component without this.
+              <b>Sign-off needed:</b> if you adopt a managed/SaaS form, publish the data-processing
+              terms (DPA) covering what transits the hosted endpoint and for how long. The
+              self-hosted pattern avoids this by keeping evaluation in your perimeter.
             </div>
           </div>
 
-          {/* Security model */}
-          <div className="tp-block tp-prose">
-            <h2>Security model</h2>
-            <p><b>Execution boundary.</b> Governance is enforced at the point where an agent would act — the tool-call boundary — not inside the model and not after the fact.</p>
-            <p><b>Pre-execution enforcement.</b> A trajectory that would reach Ω is intercepted before any action runs. The default posture is fail-closed: if a trajectory cannot be shown to keep <span className="om">Ω</span> unreachable, it is not permitted to execute.</p>
-            <p><b>Logging.</b> Every governed decision produces a timestamped, attributable record — the verdict, the reason, the forbidden state, and the risk — suitable for an audit file.</p>
-            <p><b>Auditability.</b> Records are designed to be regulator-ready: one artifact per decision, mapping actions to the controls and forbidden states they engage.</p>
-            <div className="tp-todo">
-              <b>Owner action:</b> add current security posture and certifications honestly —
-              e.g. SOC 2 / ISO 27001 status (achieved, in progress, or not yet started), penetration
-              test cadence, and a vulnerability-disclosure contact. Do not claim certifications that
-              are not held.
-            </div>
-          </div>
-
-          {/* Integration surface */}
+          {/* Audit logging */}
           <div className="tp-block">
-            <h2>Integration surface</h2>
+            <h2>Audit logging</h2>
+            <p className="tp-sub">
+              Every evaluation yields a structured, attributable record. These are the actual fields
+              the engine and console produce:
+            </p>
             <div className="tp-grid">
-              <div className="tp-card"><span className="k">Middleware placement</span><p>A thin wrapper around the agent&rsquo;s tool-call layer: evaluate, then execute only if permitted.</p></div>
-              <div className="tp-card"><span className="k">API</span><p>A request/response evaluation interface — submit a proposed trajectory, receive a structured verdict before execution.</p></div>
-              <div className="tp-card"><span className="k">Model-agnostic</span><p>Works across GPT, Claude, Gemini, Llama, and Mistral; survives model swaps because it is external to the model.</p></div>
+              <div className="tp-card"><span className="k">Per-decision fields</span><p><code>verdict</code> (ALLOW/BLOCK/ESCALATE), <code>reason</code>, <code>omega_domain</code>, triggered <code>rule</code>, governance <code>layer</code>, <code>reachability_distance</code>, and a deterministic <code>trajectory_hash</code>.</p></div>
+              <div className="tp-card"><span className="k">Timestamping</span><p>Each record carries a UTC timestamp; evaluation timing (<code>eval_time_ms</code>) is recorded for performance attribution.</p></div>
+              <div className="tp-card"><span className="k">Attribution</span><p>Decisions attribute to the specific rule and enforcement layer that fired — not an opaque score — so each action maps to the control it engaged.</p></div>
+              <div className="tp-card"><span className="k">Export</span><p>The console exports the audit trail as JSON or TXT and supports copy-to-clipboard. The same structured record is available programmatically from the API response.</p></div>
+            </div>
+            <p className="tp-sub" style={{ marginTop: 14 }}>
+              Records are deterministic and replayable (the trajectory hash is stable across runs),
+              which is what makes them suitable for a regulator-ready audit file. Try it in the{" "}
+              <Link href="/live-demo" className="tp-link">live console</Link>.
+            </p>
+          </div>
+
+          {/* Retention */}
+          <div className="tp-block">
+            <h2>Retention</h2>
+            <div className="tp-grid">
+              <div className="tp-card"><span className="k">Evaluation retention</span><p>Default: none. The reference service does not persist trajectories or verdicts; nothing to retain unless you choose to store the returned records.</p></div>
+              <div className="tp-card"><span className="k">Audit retention</span><p>You own it. Records are emitted to the caller; you store them in your own log/SIEM under your existing retention policy.</p></div>
+              <div className="tp-card"><span className="k">Export behaviour</span><p>On demand — JSON/TXT from the console, or the structured verdict from each API response. No background export.</p></div>
+              <div className="tp-card"><span className="k">Deletion</span><p>Because the default posture stores nothing centrally, deletion is governed by your own log store. A managed form would inherit a documented policy.</p></div>
             </div>
             <div className="tp-todo">
-              <b>Owner action:</b> link the integration/API specification and any SDKs once published.
+              <b>Sign-off needed:</b> if a managed/SaaS form is adopted, publish concrete retention
+              windows and a deletion SLA for any records held on the hosted side.
             </div>
           </div>
 
-          {/* Performance */}
+          {/* Security principles */}
+          <div className="tp-block tp-prose">
+            <h2>Security principles</h2>
+            <p><b>Pre-execution enforcement.</b> The verdict is computed and returned <em>before</em> any tool runs. A trajectory that would reach a forbidden state Ω is intercepted before execution, not flagged after the fact.</p>
+            <p><b>Deny-by-default / fail-closed.</b> The engine permits a trajectory only when it can show <span className="om">ℛ(t) ∩ Ω = ∅</span>; otherwise it blocks. A production gate should treat a governance outage as &ldquo;do not execute&rdquo; — the runnable integration examples fail closed on transport error.</p>
+            <p><b>The planner remains untrusted.</b> The verdict is a pure function of the proposed trajectory, independent of which model produced it. Swapping or upgrading the planner does not change a verdict, and a compromised or hallucinating planner cannot talk its way past the boundary.</p>
+            <p><b>Trajectory-level, not per-call.</b> Governance evaluates the reachable set of the whole proposed plan — including source→sink data flow and multi-agent/joint trajectories — so harm that appears only in the combination of individually-admissible steps is caught.</p>
+            <div className="tp-todo">
+              <b>Honest note:</b> the public website demo route degrades to an in-process heuristic if
+              the live engine is unreachable (so the marketing page never breaks). That is a
+              demo-availability choice — a production deployment should fail closed, as the examples do.
+            </div>
+            <div className="tp-todo">
+              <b>Sign-off needed:</b> formal certifications (SOC 2 / ISO 27001), penetration-test
+              cadence, and a vulnerability-disclosure contact are not claimed here. Add them only when
+              held. None are asserted.
+            </div>
+          </div>
+
+          {/* Performance (now measured) */}
           <div className="tp-block tp-prose">
             <h2>Performance</h2>
             <p>
-              Governance adds a bounded pre-execution evaluation at the tool-call boundary. The
-              architectural consideration is that the check runs per action rather than per token,
-              so cost scales with the number of governed actions, not model size.
+              Governance adds a bounded pre-execution check per action (not per token), so cost scales
+              with the number and shape of governed actions, not model size. Unlike earlier, these are
+              now <b>measured</b>, not estimated: on the benchmark environment a single-step evaluation
+              runs at sub-millisecond median latency.
             </p>
             <p>
-              <b>Representative latency figures are not yet published.</b> Rather than quote a number
-              we cannot stand behind, we will publish latency from pilot telemetry. Honest answer
-              today: it is a synchronous pre-execution check; budget for a small added latency on
-              governed actions and confirm against your own workload during a pilot.
+              See the full table, charts, methodology and downloadable report on{" "}
+              <Link href="/enterprise#performance" className="tp-link">Enterprise readiness → Operational performance</Link>.
+              Production latency depends on your host CPU, concurrency, and transport — re-run the
+              benchmark harness on target hardware for deployment figures.
             </p>
-            <div className="tp-todo">
-              <b>Owner action:</b> replace with measured p50/p95 latency from a pilot once available.
-            </div>
           </div>
 
           <div className="tp-cta">
             <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/enterprise" className="btn btn--ghost">Enterprise readiness</Link>
             <Link href="/evidence" className="btn btn--ghost">Evidence &amp; methodology</Link>
           </div>
         </div>
