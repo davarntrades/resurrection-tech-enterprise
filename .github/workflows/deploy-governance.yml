@@ -45,6 +45,9 @@ jobs:
       - name: Run finance hardening tests (verdict + V5+ attribution)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_finance_hardening.py
+      - name: Run cross-domain V5+ hardening tests
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_domain_hardening.py
 
   deploy-railway:
     needs: corpus-gate

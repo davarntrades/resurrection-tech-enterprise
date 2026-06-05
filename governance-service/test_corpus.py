@@ -19,10 +19,11 @@ import sys
 from morrison_governance import GovernanceLayer, OmegaDomain
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
+from domain_rules import domain_custom_rules
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(HERE, "tests", "corpus.json")
-CUSTOM = finance_custom_rules() + coverage_custom_rules()
+CUSTOM = finance_custom_rules() + coverage_custom_rules() + domain_custom_rules()
 _LAYERS: dict[tuple, GovernanceLayer] = {}
 
 
