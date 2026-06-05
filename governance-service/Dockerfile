@@ -18,7 +18,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Vendor the pure-Python engine package onto the import path.
-RUN git clone --depth 1 --branch "${ENGINE_REF}" "${ENGINE_REPO}" /tmp/engine \
+# ENGINE_REF may be a commit SHA, tag, or branch — so clone then checkout
+# (a `--branch` clone only accepts branch/tag names, never a commit SHA).
+RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
+ && git -C /tmp/engine checkout "${ENGINE_REF}" \
  && cp -r /tmp/engine/morrison_governance /app/morrison_governance \
  && rm -rf /tmp/engine
 
