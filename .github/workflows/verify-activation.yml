@@ -35,7 +35,7 @@ jobs:
           N=$(printf '%s' "$BODY" | python3 -c "import sys,json;print(len((json.load(sys.stdin) or {}).get('live_sectors',[])))" 2>/dev/null || echo "0")
           echo "live_sectors=$N" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Website real-engine check (expect x-governance-source: morrison)
+      - name: "Website real-engine check (expect x-governance-source = morrison)"
         id: site
         run: |
           SRC=$(curl -s -D - -o /dev/null --max-time 25 -X POST \
