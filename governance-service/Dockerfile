@@ -6,7 +6,12 @@ WORKDIR /app
 
 # Pin the engine to a specific commit/tag for reproducible verdicts.
 ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
-ARG ENGINE_REF=main
+# Pinned to the Omega-Sector expansion (PR #9) + sector authorisation-awareness
+# fix (PR #10, 2026-06-05): adds the eight sector OmegaDomain enum values that
+# the deployment sector_rules.py / website resolve, and honours domain-scoped
+# verification flags (payee_verified, operator_confirmed, ...). Bump
+# deliberately so verdicts stay reproducible.
+ARG ENGINE_REF=96ecd39528072057f37ab8975c203171cc12aa53
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
