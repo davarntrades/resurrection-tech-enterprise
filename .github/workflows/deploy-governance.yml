@@ -49,6 +49,10 @@ jobs:
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_domain_hardening.py
 
+      - name: Run target-sector hardening tests (skips sectors the engine lacks)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_sector_hardening.py
+
   deploy-railway:
     needs: corpus-gate
     runs-on: ubuntu-latest

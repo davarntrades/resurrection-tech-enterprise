@@ -705,11 +705,11 @@ if result.blocked:
 execute(proposed_tool_calls)               # PERMIT — safe to run`;
 
 /**
- * Domains with EXECUTABLE Ω rules in the live engine (verified against the
+ * Core domains with EXECUTABLE Ω rules in the live engine (verified against the
  * registry: morrison_governance/domains.py DEFAULT_RULES). The Custom
  * Evaluation tab sends these to the real API.
  */
-export const LIVE_DOMAINS: { id: string; label: string }[] = [
+const CORE_LIVE_DOMAINS: { id: string; label: string }[] = [
   { id: "finance", label: "Finance" },
   { id: "banking", label: "Banking" },
   { id: "fintech", label: "Fintech" },
@@ -722,10 +722,15 @@ export const LIVE_DOMAINS: { id: string; label: string }[] = [
 ];
 
 /**
- * Target deployment domains that appear in positioning but have NO Ω rules in
- * the live registry yet. Shown disabled/separated — never sent to the engine.
+ * Target deployment sectors. These now have executable Ω rule sets shipped as
+ * deployment custom_rules (governance-service/sector_rules.py), attributed to
+ * their own OmegaDomain values. They go live once (a) the engine ships the
+ * sector enum values and (b) NEXT_PUBLIC_SECTORS_LIVE is enabled — at which
+ * point the Custom Evaluation tab sends them to the real API. Until then they
+ * stay in the disabled "Ω rules pending" group and are never sent to the engine
+ * (which would 422), so the demo never overstates live coverage.
  */
-export const TARGET_DOMAINS: { id: string; label: string }[] = [
+const SECTOR_DOMAINS: { id: string; label: string }[] = [
   { id: "insurance", label: "Insurance" },
   { id: "government", label: "Government / Public sector" },
   { id: "supply_chain", label: "Supply chain / Logistics" },
@@ -735,6 +740,23 @@ export const TARGET_DOMAINS: { id: string; label: string }[] = [
   { id: "aerospace", label: "Aerospace / Aviation" },
   { id: "defence", label: "Defence / Sovereign" },
 ];
+
+/**
+ * Rollout switch for the target sectors. Set NEXT_PUBLIC_SECTORS_LIVE=true once
+ * the engine has the sector enum values deployed (see governance-service
+ * README / engine patch) to surface the sectors as live, real-engine domains.
+ */
+export const SECTORS_LIVE = process.env.NEXT_PUBLIC_SECTORS_LIVE === "true";
+
+/** Domains the Custom Evaluation tab sends to the real engine. */
+export const LIVE_DOMAINS: { id: string; label: string }[] = SECTORS_LIVE
+  ? [...CORE_LIVE_DOMAINS, ...SECTOR_DOMAINS]
+  : CORE_LIVE_DOMAINS;
+
+/** Positioning-only domains, shown disabled and never sent to the engine. */
+export const TARGET_DOMAINS: { id: string; label: string }[] = SECTORS_LIVE
+  ? []
+  : SECTOR_DOMAINS;
 
 /** Evidence-panel facts, kept faithful to the public repo. */
 export const EVIDENCE = {

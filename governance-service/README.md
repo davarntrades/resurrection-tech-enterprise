@@ -122,3 +122,32 @@ PYTHONPATH=/tmp/engine python test_corpus.py     # or: pytest test_corpus.py
 CI runs this as the `corpus-gate` job in `.github/workflows/deploy-governance.yml`;
 `deploy-railway` has `needs: corpus-gate`, so **a regression blocks the deploy**.
 Add a labelled case to `tests/corpus.json` for every new rule or fixed gap.
+
+## Deployment rule sets
+
+Ω hardening beyond the engine's `DEFAULT_RULES` ships here as `custom_rules`,
+attributed to the V5+ extended layer in responses:
+
+| File | Coverage |
+|---|---|
+| `finance_rules.py` | finance funds-movement, rerouting, approval tampering |
+| `coverage_rules.py` | semantic-indirection / delegated-execution / planner-abstraction egress |
+| `domain_rules.py` | cross-domain attack classes (approval-spoof, role-escalation, state-transition, sensitive-egress, …) |
+| `sector_rules.py` | **target sectors** — insurance, government, supply chain, energy, telecommunications, manufacturing, aerospace, defence |
+
+### Target sectors (`sector_rules.py`)
+
+Three deny-by-default Ω rules per sector, attributed to that sector's own
+`OmegaDomain` value. The rules are **forward-compatible**: each sector is only
+emitted if the running engine defines its enum value, so this is safe to deploy
+before the engine ships the enum (it then contributes nothing and the sector
+corpus / `test_sector_hardening.py` cases skip). Going live is a three-step
+rollout — see [`engine-patches/README.md`](engine-patches/README.md):
+
+1. merge here (no production change),
+2. apply `engine-patches/0001-add-target-sector-omega-domains.patch` to the
+   engine repo and redeploy this service,
+3. set `NEXT_PUBLIC_SECTORS_LIVE=true` on the website.
+
+`/health` reports the sectors the running engine can evaluate under
+`live_sectors`. Verify with `PYTHONPATH=/tmp/engine python test_sector_hardening.py`.

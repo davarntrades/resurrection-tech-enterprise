@@ -290,7 +290,7 @@ export default function Page() {
               </div>
             ))}
           </div>
-          <p className="ent-fine reveal">Finance, cybersecurity, healthcare, data-privacy, enterprise, compliance and fraud Ω rule sets are implemented in the live engine today; other sectors are target deployment domains with Ω rules pending. See the <Link href="/live-demo" className="ent-link">live demo</Link> to evaluate against the implemented domains.</p>
+          <p className="ent-fine reveal">Finance, cybersecurity, healthcare, data-privacy, enterprise, compliance and fraud Ω rule sets are implemented in the live engine today. Eight further target sectors — insurance, government, supply chain, energy, telecommunications, manufacturing, aerospace and defence — now have executable Ω rule sets authored and verified (BLOCK/PERMIT suites), rolling out to the live engine. See the <Link href="/live-demo" className="ent-link">live demo</Link> to evaluate against the live domains.</p>
 
           <p className="ent-answer reveal"><b>Can this work in my environment?</b> Yes — the mechanism stays constant while you define Ω from your own regulatory and operational policy. New domains are added as rule sets, not as engine rewrites.</p>
         </div>

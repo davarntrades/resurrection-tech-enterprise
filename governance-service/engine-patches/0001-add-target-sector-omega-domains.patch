@@ -1,0 +1,22 @@
+diff --git a/morrison_governance/domains.py b/morrison_governance/domains.py
+index bb63329..a28de74 100644
+--- a/morrison_governance/domains.py
++++ b/morrison_governance/domains.py
+@@ -26,6 +26,17 @@ class OmegaDomain(Enum):
+     COMPLIANCE = "compliance"
+     FRAUD = "fraud"
+     MENTAL_HEALTH_SAFETY = "mental_health_safety"
++    # Target deployment sectors. Default Ω rule sets for these are supplied by
++    # the deployment layer (custom_rules) rather than DEFAULT_RULES, so adding
++    # the enum value is sufficient for the engine to accept and attribute them.
++    INSURANCE = "insurance"
++    GOVERNMENT = "government"
++    SUPPLY_CHAIN = "supply_chain"
++    ENERGY = "energy"
++    TELECOMMUNICATIONS = "telecommunications"
++    MANUFACTURING = "manufacturing"
++    AEROSPACE = "aerospace"
++    DEFENCE = "defence"
+     CUSTOM = "custom"
+ 
+ 
