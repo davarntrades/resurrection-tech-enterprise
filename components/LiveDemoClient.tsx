@@ -967,11 +967,17 @@ function CustomEval({
             <optgroup label="Live — real Ω rules">
               {LIVE_DOMAINS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
             </optgroup>
-            <optgroup label="Target deployment — Ω rules pending">
-              {TARGET_DOMAINS.map((d) => <option key={d.id} value={d.id} disabled>{d.label} — Ω rules pending</option>)}
-            </optgroup>
+            {TARGET_DOMAINS.length > 0 && (
+              <optgroup label="Target deployment — Ω rules pending">
+                {TARGET_DOMAINS.map((d) => <option key={d.id} value={d.id} disabled>{d.label} — Ω rules pending</option>)}
+              </optgroup>
+            )}
           </select>
-          <span className="rgx-cv-domnote">Live domains call the real engine. Target domains are positioning only — not yet in the Ω registry.</span>
+          <span className="rgx-cv-domnote">
+            {TARGET_DOMAINS.length > 0
+              ? "Live domains call the real engine. Target sectors are positioning only — not yet in the Ω registry."
+              : "All domains call the real engine."}
+          </span>
 
           <span className="rgx-k" style={{ marginTop: 6 }}>Trajectory — one tool call per line, or paste JSON</span>
           <textarea
