@@ -31,9 +31,10 @@ from morrison_governance.result import GovernanceResult
 
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
+from domain_rules import domain_custom_rules
 
 # Deployment-extended rule names → attributed to the V5+ layer in responses.
-EXTENDED_RULES = {r.name for r in (finance_custom_rules() + coverage_custom_rules())}
+EXTENDED_RULES = {r.name for r in (finance_custom_rules() + coverage_custom_rules() + domain_custom_rules())}
 
 # ── Config ───────────────────────────────────────────────────────────────
 SERVICE_VERSION = "1.0.0"
@@ -88,7 +89,7 @@ def _layer_for(names: Optional[list[str]], horizon: int) -> GovernanceLayer:
         # close the reported gaps when it is.
         layer = GovernanceLayer(
             domains=domains, horizon=horizon, log_all=False,
-            custom_rules=finance_custom_rules() + coverage_custom_rules(),
+            custom_rules=finance_custom_rules() + coverage_custom_rules() + domain_custom_rules(),
         )
         _LAYERS[key] = layer
         log.info(f"built GovernanceLayer domains={key[0]} horizon={horizon} rules={len(layer.rules)}")
