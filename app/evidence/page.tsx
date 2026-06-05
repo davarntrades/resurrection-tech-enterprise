@@ -49,7 +49,7 @@ export default function Page() {
               </div>
               <div className="tp-card">
                 <span className="k">Evaluation hierarchy</span>
-                <p>V1 — single-step forbidden actions. V2 — multi-step source→sink trajectories, including cross-agent chains. Evaluated before execution.</p>
+                <p>A_safe → V2 → V3 → V4 → V4+ → V5 → V5+. Single-step checks, source→sink taint (incl. cross-agent), forward reachability, admissibility, feasibility, environmental stability, and the V5+ extended deployment layer (finance hardening + adversarial coverage). Evaluated before execution.</p>
               </div>
             </div>
           </div>
