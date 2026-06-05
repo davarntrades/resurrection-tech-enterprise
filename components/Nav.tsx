@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { NAV_LINKS, NAV_MENU } from "@/lib/site";
 import { track, Events } from "@/lib/analytics";
@@ -9,6 +10,7 @@ import { track, Events } from "@/lib/analytics";
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -34,12 +36,18 @@ export function Nav() {
         <Link
           className="brand"
           href="/"
-          aria-label="Scroll to top"
+          aria-label="Resurrection Tech — home"
           onClick={(e) => {
-            // Plain click → smooth-scroll the current page to top. Modifier /
-            // middle clicks fall through to the href so "open home" still works.
+            // Modifier / middle clicks fall through to the href so "open home in
+            // a new tab" still works.
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            // On another route, let the <Link> navigate to "/" — Next.js lands
+            // the new page at the top. Only intercept when already on the
+            // homepage, where a plain navigation would be a no-op: smooth-scroll
+            // back to the very top instead.
+            if (pathname !== "/") return;
             e.preventDefault();
+            setMenuOpen(false);
             const reduceMotion = typeof window !== "undefined"
               && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
             window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
