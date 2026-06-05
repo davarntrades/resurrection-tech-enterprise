@@ -200,23 +200,27 @@ export default function Page() {
               <span>Measured latency — {BENCH.config.rules_loaded} Ω rules, horizon {BENCH.config.horizon}</span>
               <span className="ent-bench-tag is-measured">Measured · {BENCH.generated_utc}</span>
             </div>
-            <table className="ent-bench-table">
-              <thead>
-                <tr><th>Evaluation class</th><th>p50</th><th>p95</th><th>p99</th><th>avg</th><th>throughput</th></tr>
-              </thead>
-              <tbody>
-                {Object.entries(BENCH.classes).map(([k, v]) => (
-                  <tr key={k}>
-                    <td className="t-main">{CLASS_LABEL[k] ?? k}</td>
-                    <td className="mono">{v.p50_ms} ms</td>
-                    <td className="mono">{v.p95_ms} ms</td>
-                    <td className="mono">{v.p99_ms} ms</td>
-                    <td className="mono">{v.avg_ms} ms</td>
-                    <td className="mono">{Math.round(v.throughput_per_s).toLocaleString()}/s</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Horizontally scrollable on narrow screens so p50/p95/p99/avg/
+                throughput stay readable instead of being clipped. */}
+            <div className="ent-bench-scroll" role="region" aria-label="Measured latency table" tabIndex={0}>
+              <table className="ent-bench-table">
+                <thead>
+                  <tr><th>Evaluation class</th><th>p50</th><th>p95</th><th>p99</th><th>avg</th><th>throughput</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(BENCH.classes).map(([k, v]) => (
+                    <tr key={k}>
+                      <td className="t-main">{CLASS_LABEL[k] ?? k}</td>
+                      <td className="mono">{v.p50_ms} ms</td>
+                      <td className="mono">{v.p95_ms} ms</td>
+                      <td className="mono">{v.p99_ms} ms</td>
+                      <td className="mono">{v.avg_ms} ms</td>
+                      <td className="mono">{Math.round(v.throughput_per_s).toLocaleString()}/s</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <p className="ent-bench-foot">
               Measured on {BENCH.environment.platform} · Python {BENCH.environment.python} · {BENCH.environment.cpu_count} logical CPUs, single-threaded.
               {" "}{BENCH.environment.note}
