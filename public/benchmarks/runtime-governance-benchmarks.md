@@ -1,47 +1,47 @@
 # Morrison Runtime Governance — Latency Benchmark Report
 
-Generated: 2026-06-04 13:37:14Z
+Generated: 2026-06-05 09:20:20Z
 
 ## Environment
 
-- Python: 3.11.15
-- Platform: Linux-6.18.5-x86_64-with-glibc2.39
+- Python: 3.12.13
+- Platform: Linux-6.17.0-1015-azure-x86_64-with-glibc2.39
 - Processor: x86_64
 - Logical CPUs: 4
 - Single-threaded, measured on this CI/build environment. Representative figures, not a production-hardware guarantee.
 
-Configuration: horizon 3, 30 Ω rules across 9 domains; 5000 iterations per class after 500 warm-up calls; single-threaded.
+Configuration: horizon 3, 34 Ω rules across 9 domains; 5000 iterations per class after 500 warm-up calls; single-threaded.
 
 ## Latency by evaluation class
 
 | Class | Steps | p50 (ms) | p95 (ms) | p99 (ms) | avg (ms) | throughput (eval/s) |
 |---|---|---|---|---|---|---|
-| Single-step | 1 | 0.0687 | 0.1085 | 0.1274 | 0.0749 | 13351 |
-| Short (2) | 2 | 0.084 | 0.128 | 0.1583 | 0.0911 | 10977 |
-| Medium (4) | 4 | 0.1509 | 0.1968 | 0.2435 | 0.1601 | 6246 |
-| Long (8) | 8 | 0.282 | 0.3657 | 0.4321 | 0.3 | 3333 |
-| Very long (16) | 16 | 0.5725 | 0.66 | 0.7604 | 0.5784 | 1729 |
-| Multi-agent (joint) | 3 | 0.1185 | 0.1695 | 0.1969 | 0.1284 | 7788 |
+| Single-step | 1 | 0.0733 | 0.0942 | 0.1022 | 0.0756 | 13228 |
+| Short (2) | 2 | 0.092 | 0.1148 | 0.1464 | 0.0954 | 10482 |
+| Medium (4) | 4 | 0.1643 | 0.1881 | 0.2078 | 0.1686 | 5931 |
+| Long (8) | 8 | 0.3014 | 0.3303 | 0.3653 | 0.3089 | 3237 |
+| Very long (16) | 16 | 0.5895 | 0.6083 | 0.6667 | 0.5878 | 1701 |
+| Multi-agent (joint) | 3 | 0.1289 | 0.1517 | 0.1714 | 0.1325 | 7547 |
 
 ## Scaling by trajectory length (avg ms)
 
 | Steps | avg (ms) |
 |---|---|
-| 1 | 0.0765 |
-| 2 | 0.0914 |
-| 4 | 0.1648 |
+| 1 | 0.0747 |
+| 2 | 0.0942 |
+| 4 | 0.1674 |
 | 8 | 0.3096 |
-| 16 | 0.5872 |
-| 32 | 1.1463 |
+| 16 | 0.5923 |
+| 32 | 1.1706 |
 
 ## Scaling by domain / rule count (4-step trajectory)
 
 | Domains | Rules | avg (ms) | p95 (ms) |
 |---|---|---|---|
-| 1 | 9 | 0.1213 | 0.1624 |
-| 3 | 13 | 0.135 | 0.1766 |
-| 6 | 21 | 0.1525 | 0.2018 |
-| 9 | 30 | 0.1852 | 0.2965 |
+| 1 | 13 | 0.1288 | 0.1478 |
+| 3 | 17 | 0.1426 | 0.1613 |
+| 6 | 25 | 0.1549 | 0.1749 |
+| 9 | 34 | 0.168 | 0.188 |
 
 ## Methodology
 
