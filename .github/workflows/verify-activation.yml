@@ -1,0 +1,62 @@
+name: Verify sector activation
+
+# Runs the two pre-activation checks from a GitHub runner (open egress):
+#   1. The Railway governance endpoint must REQUIRE auth (401 without a token).
+#   2. The live website must reach the real engine (x-governance-source: morrison).
+# Neither check uses a secret: (1) is unauthenticated by design; (2) hits the
+# site's public API route, which holds the token server-side.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-activation.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Railway /v1/evaluate without token (expect 401)
+        id: rail
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST \
+            https://resurrection-tech-enterprise-production.up.railway.app/v1/evaluate \
+            -H 'content-type: application/json' \
+            -d '{"trajectory":[{"tool":"x","args":{}}]}' || echo "000")
+          echo "code=$CODE" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Railway /health (engine sector registry)
+        id: health
+        run: |
+          BODY=$(curl -s --max-time 20 \
+            https://resurrection-tech-enterprise-production.up.railway.app/health || echo "{}")
+          echo "$BODY"
+          N=$(printf '%s' "$BODY" | python3 -c "import sys,json;print(len((json.load(sys.stdin) or {}).get('live_sectors',[])))" 2>/dev/null || echo "0")
+          echo "live_sectors=$N" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Website real-engine check (expect x-governance-source: morrison)
+        id: site
+        run: |
+          SRC=$(curl -s -D - -o /dev/null --max-time 25 -X POST \
+            https://resurrection-tech.com/api/evaluate-trajectory \
+            -H 'content-type: application/json' \
+            -d '{"trajectory":[{"tool":"transfer","args":{"amount":50000,"threshold":1000}}]}' \
+            | tr -d '\r' | awk -F': ' 'tolower($1)=="x-governance-source"{print $2}')
+          echo "source=${SRC:-none}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Verdict
+        run: |
+          RAIL='${{ steps.rail.outputs.code }}'
+          SRC='${{ steps.site.outputs.source }}'
+          SECTORS='${{ steps.health.outputs.live_sectors }}'
+          {
+            echo "## Sector activation verification"
+            echo ""
+            echo "| Check | Result | Expected | Pass |"
+            echo "|---|---|---|---|"
+            echo "| Railway requires auth | \`$RAIL\` | 401 | $([ "$RAIL" = 401 ] && echo ✅ || echo ❌) |"
+            echo "| Website real engine | \`$SRC\` | morrison | $([ "$SRC" = morrison ] && echo ✅ || echo ❌) |"
+            echo "| Engine live sectors | \`$SECTORS\` | 8 | $([ "$SECTORS" = 8 ] && echo ✅ || echo ❌) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "RESULT rail=$RAIL source=$SRC sectors=$SECTORS"
