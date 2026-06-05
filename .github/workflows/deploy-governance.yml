@@ -42,6 +42,9 @@ jobs:
       - name: Run labelled corpus (precision/recall must be 1.0; any mismatch fails)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_corpus.py
+      - name: Run finance hardening tests (verdict + V5+ attribution)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_finance_hardening.py
 
   deploy-railway:
     needs: corpus-gate

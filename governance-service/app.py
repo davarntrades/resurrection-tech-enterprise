@@ -32,6 +32,9 @@ from morrison_governance.result import GovernanceResult
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
 
+# Deployment-extended rule names → attributed to the V5+ layer in responses.
+EXTENDED_RULES = {r.name for r in (finance_custom_rules() + coverage_custom_rules())}
+
 # ── Config ───────────────────────────────────────────────────────────────
 SERVICE_VERSION = "1.0.0"
 EVAL_TIMEOUT_S = float(os.getenv("GOVERNANCE_EVAL_TIMEOUT_S", "4.0"))
@@ -145,6 +148,13 @@ def _serialize(result: GovernanceResult, steps: list[dict]) -> dict:
     #                          trajectory_hash, reachability_distance, metadata
     body["blocked"] = result.blocked
     body["steps"] = steps
+    # Attribute deployment-extended rules (finance hardening + adversarial
+    # coverage) to the V5+ extended layer. The engine's built-in layers
+    # (A_safe/V2/V3/V4/V4+/V5) are left untouched; the original is preserved.
+    rule = (body.get("metadata") or {}).get("rule")
+    if rule in EXTENDED_RULES:
+        body.setdefault("metadata", {})["core_layer"] = body.get("layer")
+        body["layer"] = "V5+"
     return body
 
 
@@ -159,6 +169,8 @@ def health() -> dict:
         "default_rules": len(default.rules),
         "default_domains": [d.value for d in DEFAULT_DOMAINS],
         "horizon": HORIZON,
+        "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
+        "extended_rules": sorted(EXTENDED_RULES),
     }
 
 

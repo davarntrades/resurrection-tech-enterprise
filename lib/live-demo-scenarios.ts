@@ -758,6 +758,8 @@ export const EVIDENCE = {
     { id: "V2", desc: "Source→sink data-flow taint (incl. multi-agent)" },
     { id: "V3", desc: "Forward reachability over horizon k ≥ 2" },
     { id: "V4", desc: "State-space admissibility (permissions, scope, schema)" },
+    { id: "V4+", desc: "Feasibility-constrained selection (no valid solution → refuse)" },
     { id: "V5", desc: "Stability across the environment set ℰ" },
+    { id: "V5+", desc: "Extended deployment governance (finance hardening + adversarial coverage)" },
   ],
 } as const;
