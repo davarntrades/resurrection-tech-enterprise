@@ -167,20 +167,16 @@ p { margin: 0; }
   border-bottom: 1px solid transparent;
 }
 .nav.scrolled {
-  background: rgba(8,9,11,0.66);
+  /* Near-opaque on every breakpoint so page content can't bleed through the
+     bar while scrolling — including on iOS Safari, where backdrop-filter can
+     intermittently fail to paint and would otherwise leave the bar
+     see-through. The blur is polish on top of the solid fill, not what hides
+     the content behind it. */
+  background: rgba(8,9,11,0.95);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border-bottom-color: var(--line);
-}
-/* Desktop/laptop: make the sticky header near-solid so scrolling animations
-   and text can't visibly bleed through behind it. Mobile keeps its current,
-   already-working treatment above. The high opacity means the blur is purely a
-   subtle polish — no content shows through it. */
-@media (min-width: 641px) {
-  .nav.scrolled {
-    background: rgba(8,9,11,0.96);
-    box-shadow: 0 1px 0 var(--line), 0 10px 30px -20px rgba(0,0,0,0.9);
-  }
+  box-shadow: 0 1px 0 var(--line), 0 10px 30px -20px rgba(0,0,0,0.9);
 }
 .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 11px; font-weight: 560; letter-spacing: -0.02em; font-size: 16px; }
