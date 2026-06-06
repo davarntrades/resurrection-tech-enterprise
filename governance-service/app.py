@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import os
 import time
@@ -106,6 +107,35 @@ logging.basicConfig(
     format='{"ts":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}',
 )
 log = logging.getLogger("governance.service")
+
+# ── Per-evaluation metrics ───────────────────────────────────────────────
+# One clean JSON line per evaluation for latency + verdict observability.
+# METADATA ONLY — never the raw trajectory/args, so customer payloads are
+# never written to logs. Uses a message-only formatter so each line is a
+# complete, parseable JSON object (distinct from the service log envelope).
+metrics_log = logging.getLogger("governance.metrics")
+if not metrics_log.handlers:
+    _mh = logging.StreamHandler()
+    _mh.setFormatter(logging.Formatter("%(message)s"))
+    metrics_log.addHandler(_mh)
+    metrics_log.setLevel(logging.INFO)
+    metrics_log.propagate = False
+
+
+def _log_eval_metrics(endpoint: str, body: dict, n_steps: int, eval_time_ms: float) -> None:
+    metrics_log.info(json.dumps({
+        "evt": "evaluate",
+        "endpoint": endpoint,
+        "ts": round(time.time(), 3),
+        "eval_time_ms": eval_time_ms,
+        "verdict": body.get("verdict"),
+        "layer": body.get("layer"),
+        "omega_domain": body.get("omega_domain"),
+        "blocked": body.get("blocked"),
+        "n_steps": n_steps,
+        "engine_commit": ENGINE_COMMIT,
+    }))
+
 
 # ── Engine layer cache (evaluate_plan is pure → instances are reusable) ──
 _LAYERS: dict[tuple, GovernanceLayer] = {}
@@ -236,15 +266,14 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
         raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
-    log.info(
-        f'evaluate verdict={body["verdict"]} layer={body.get("layer")!r} '
-        f'steps={len(steps)} ms={round((time.perf_counter()-t0)*1000,1)}'
-    )
+    _log_eval_metrics("/v1/evaluate", body, len(steps),
+                      round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
 
 
 @app.post("/v1/evaluate-step", dependencies=[Depends(require_token)])
 async def evaluate_step(req: StepRequest) -> JSONResponse:
+    t0 = time.perf_counter()
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     call = {"tool": req.tool, "args": req.args}
     try:
@@ -256,4 +285,6 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
         raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
     body = _serialize(result, [call])
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    _log_eval_metrics("/v1/evaluate-step", body, 1,
+                      round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
