@@ -64,3 +64,44 @@ jobs:
             echo "| Engine live sectors | \`$SECTORS\` | 8 | $([ "$SECTORS" = 8 ] && echo ✅ || echo ❌) |"
           } | tee -a "$GITHUB_STEP_SUMMARY"
           echo "RESULT rail=$RAIL source=$SRC sectors=$SECTORS"
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch production /live-demo + its CSS bundle
+        id: fe
+        run: |
+          set -e
+          curl -fsSL --max-time 30 https://resurrection-tech.com/live-demo > page.html
+          CSS_URLS=$(grep -oE '/_next/static/css/[^"]+\.css' page.html | sort -u)
+          : > all.css
+          for u in $CSS_URLS; do
+            curl -fsSL --max-time 30 "https://resurrection-tech.com$u" >> all.css || true
+          done
+          echo "css_bytes=$(wc -c < all.css)" | tee -a "$GITHUB_OUTPUT"
+          gapfix=no;    grep -q ':has(.trust-bar)' all.css && gapfix=yes
+          opaque=no;    grep -q '.nav.scrolled{background:var(--bg-1)' all.css && opaque=yes
+          oldtrans=no;  grep -Eq '8,9,11,(0?\.(95|66))' all.css && oldtrans=yes
+          trustbar=present; grep -q 'class="trust-bar"' page.html || trustbar=absent
+          pending=present;  grep -qi 'rules pending' page.html || pending=absent
+          defence=no;   grep -q 'Defence / Sovereign' page.html && defence=yes
+          { echo "gapfix=$gapfix"; echo "opaque=$opaque"; echo "oldtrans=$oldtrans";
+            echo "trustbar=$trustbar"; echo "pending=$pending"; echo "defence=$defence"; } | tee -a "$GITHUB_OUTPUT"
+      - name: Frontend verdict
+        run: |
+          G='${{ steps.fe.outputs.gapfix }}'; O='${{ steps.fe.outputs.opaque }}'
+          T='${{ steps.fe.outputs.oldtrans }}'; B='${{ steps.fe.outputs.trustbar }}'
+          P='${{ steps.fe.outputs.pending }}'; D='${{ steps.fe.outputs.defence }}'
+          {
+            echo "## Production /live-demo frontend verification"
+            echo ""
+            echo "| Check | Result | Expected | Pass |"
+            echo "|---|---|---|---|"
+            echo "| c5a11d3 CSS live (gap fix :has(.trust-bar)) | \`$G\` | yes | $([ "$G" = yes ] && echo ✅ || echo ❌) |"
+            echo "| Opaque scrolled nav shipped | \`$O\` | yes | $([ "$O" = yes ] && echo ✅ || echo ❌) |"
+            echo "| Old translucent nav values gone | \`$T\` | no | $([ "$T" = no ] && echo ✅ || echo ❌) |"
+            echo "| No trust-bar on /live-demo (=> nav top:0, no gap) | \`$B\` | absent | $([ "$B" = absent ] && echo ✅ || echo ❌) |"
+            echo "| No 'Ω rules pending' group | \`$P\` | absent | $([ "$P" = absent ] && echo ✅ || echo ❌) |"
+            echo "| Defence sector present/selectable | \`$D\` | yes | $([ "$D" = yes ] && echo ✅ || echo ❌) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "FRONTEND gapfix=$G opaque=$O oldtrans=$T trustbar=$B pending=$P defence=$D"
