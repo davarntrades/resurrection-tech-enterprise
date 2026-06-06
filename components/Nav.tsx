@@ -13,7 +13,9 @@ export function Nav() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    // Solidify the bar almost immediately on scroll so content never bleeds
+    // through it (the opaque background is defined in .nav.scrolled).
+    const onScroll = () => setScrolled(window.scrollY > 4);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
