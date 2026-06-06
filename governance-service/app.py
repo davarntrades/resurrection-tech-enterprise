@@ -47,6 +47,20 @@ EXTENDED_RULES = {r.name for r in DEPLOYMENT_RULES}
 
 # ── Config ───────────────────────────────────────────────────────────────
 SERVICE_VERSION = "1.0.0"
+
+
+def _engine_commit() -> str:
+    """The exact engine commit vendored into the image at build time (written
+    by the Dockerfile). Lets /health prove which engine is actually running —
+    no guessing which build is live. Falls back to an env var, else 'unknown'."""
+    try:
+        from pathlib import Path
+        return Path(__file__).with_name("engine_commit.txt").read_text().strip()
+    except Exception:  # noqa: BLE001
+        return os.getenv("ENGINE_COMMIT", "unknown")
+
+
+ENGINE_COMMIT = _engine_commit()
 EVAL_TIMEOUT_S = float(os.getenv("GOVERNANCE_EVAL_TIMEOUT_S", "4.0"))
 MAX_STEPS = int(os.getenv("GOVERNANCE_MAX_STEPS", "25"))
 AUTH_TOKEN = os.getenv("GOVERNANCE_TOKEN", "")  # if set, require Bearer token
@@ -176,6 +190,7 @@ def health() -> dict:
         "status": "ok",
         "service_version": SERVICE_VERSION,
         "engine": "morrison_governance",
+        "engine_commit": ENGINE_COMMIT,
         "default_rules": len(default.rules),
         "default_domains": [d.value for d in DEFAULT_DOMAINS],
         "live_sectors": live_sector_ids(),
