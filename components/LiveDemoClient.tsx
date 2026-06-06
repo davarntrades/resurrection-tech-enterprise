@@ -57,6 +57,43 @@ interface EvalRecord {
   reasoning: string;
 }
 
+// ── Tamper-evident audit chain ──────────────────────────────────────────
+// record_hash = SHA-256(prev_hash + canonical(record)). Each record links to
+// the previous one, so editing, reordering, or removing any record breaks the
+// chain — making an exported audit trail independently verifiable.
+const AUDIT_GENESIS = "0".repeat(64);
+
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Deterministic serialization of a record: keys sorted, hash fields excluded. */
+function canonicalRecord(rec: EvalRecord): string {
+  return JSON.stringify(rec, Object.keys(rec).sort());
+}
+
+/** Build a verifiable, SHA-256–linked audit document (records oldest→newest). */
+async function chainedAuditDoc(recordsNewestFirst: EvalRecord[]) {
+  const chrono = [...recordsNewestFirst].reverse();
+  let prev = AUDIT_GENESIS;
+  const records: (EvalRecord & { prev_hash: string; record_hash: string })[] = [];
+  for (const rec of chrono) {
+    const record_hash = await sha256Hex(prev + canonicalRecord(rec));
+    records.push({ ...rec, prev_hash: prev, record_hash });
+    prev = record_hash;
+  }
+  return {
+    schema: "morrison-audit-chain/1",
+    algorithm:
+      "record_hash = SHA-256(prev_hash + JSON.stringify(record_without_hashes, sortedKeys))",
+    genesis: AUDIT_GENESIS,
+    count: records.length,
+    head_hash: prev,
+    records,
+  };
+}
+
 function clock(d = new Date()) {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
@@ -349,8 +386,9 @@ export function LiveDemoClient() {
   }, [resolved, reduce]);
 
   /* ── Audit export ── */
-  const exportJson = useCallback(() => {
-    download(`runtime-governance-audit-${Date.now()}.json`, JSON.stringify(records, null, 2), "application/json");
+  const exportJson = useCallback(async () => {
+    const doc = await chainedAuditDoc(records);
+    download(`runtime-governance-audit-${Date.now()}.json`, JSON.stringify(doc, null, 2), "application/json");
     track("live_demo_export", { format: "json", count: records.length });
   }, [records]);
 
@@ -375,7 +413,8 @@ export function LiveDemoClient() {
 
   const copyTrail = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(records, null, 2));
+      const doc = await chainedAuditDoc(records);
+      await navigator.clipboard.writeText(JSON.stringify(doc, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
       track("live_demo_copy_audit", { count: records.length });
@@ -663,7 +702,7 @@ export function LiveDemoClient() {
       {/* ───────────────── Live audit log ───────────────── */}
       <section className="rgx-section" id="audit-log" aria-label="Audit log">
         <div className="rgx-audit-head">
-          <PanelHead n="06" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record." />
+          <PanelHead n="06" title="Audit log" sub="Every evaluation produces a timestamped, layer-attributed record. JSON export is a SHA-256–linked, tamper-evident chain." />
           <div className="rgx-audit-actions">
             <button className="rgx-audit-btn" onClick={copyTrail} disabled={!records.length}>
               {copied ? "✓ Copied" : "Copy audit trail"}
