@@ -812,6 +812,8 @@ interface CustomResult {
   reachabilityDistance?: number | null;
   evalTimeMs?: number;
   evalNumber?: number;
+  /** Which evaluator produced this verdict — the real engine or the fallback. */
+  source?: "morrison" | "heuristic";
 }
 
 function mapVerdict(v: string): Decision {
@@ -903,6 +905,7 @@ function CustomEval({
         reachabilityDistance: data.reachabilityDistance,
         evalTimeMs: data.evalTimeMs,
         evalNumber: data.evalNumber,
+        source: data.source,
       };
       setResult(cr);
 
@@ -1032,6 +1035,17 @@ function CustomEval({
                     ? "✓ SAFE PATH — Ω never reachable"
                     : "⚑ Routed for human review"}
               </p>
+
+              {result.source && (
+                <div
+                  className={`rgx-cv-source rgx-cv-source--${result.source}`}
+                  title="The evaluator that produced this verdict"
+                >
+                  {result.source === "morrison"
+                    ? "Evaluated by the Morrison Runtime Governance engine"
+                    : "⚠ Heuristic fallback — governance engine unavailable; not a real-engine verdict"}
+                </div>
+              )}
 
               {result.evalTimeMs !== undefined && (() => {
                 const benchAvg = benchAvgForSteps(result.steps.length);
