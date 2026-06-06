@@ -1,0 +1,84 @@
+name: Post-deploy verification
+
+# One-shot, manual production verification of the reliability + audit features.
+# Dispatch-only (no schedule/push) so it adds zero ongoing noise — the nightly
+# verify-activation workflow handles continuous health.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  postdeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: "Production /health — attestation + engine commit visible"
+        id: health
+        run: |
+          curl -fsSL --max-time 25 \
+            https://resurrection-tech-enterprise-production.up.railway.app/health > health.json
+          python3 -m json.tool health.json
+          python3 - <<'PY'
+          import json, os
+          h = json.load(open("health.json"))
+          att = h.get("attestation") or {}
+          ec = att.get("engine_commit") or h.get("engine_commit") or ""
+          rh = att.get("ruleset_hash") or ""
+          assert att, "no attestation block in /health"
+          assert ec and ec != "unknown", f"engine_commit not visible: {ec!r}"
+          assert rh, "no ruleset_hash in attestation"
+          assert len(h.get("live_sectors", [])) == 8, f"live_sectors={h.get('live_sectors')}"
+          open(os.environ["GITHUB_OUTPUT"], "a").write(f"engine_commit={ec}\nruleset_hash={rh}\n")
+          print(f"attestation OK · engine_commit={ec[:12]} · ruleset_hash={rh[:12]} · sectors=8")
+          PY
+
+      - name: "Website API returns source morrison (badge data live)"
+        run: |
+          curl -fsSL -L --post301 --post302 --post303 --max-time 25 -X POST \
+            https://resurrection-tech.com/api/evaluate-trajectory \
+            -H 'content-type: application/json' \
+            -d '{"trajectory":[{"tool":"transfer","args":{"amount":50000,"threshold":1000}}]}' > resp.json
+          python3 - <<'PY'
+          import json
+          r = json.load(open("resp.json"))
+          assert r.get("source") == "morrison", f"source={r.get('source')!r} (expected morrison)"
+          print("website API source=morrison ✓ (real engine, badge data present)")
+          PY
+
+      - name: "Live-demo bundle carries badge + chained-export code"
+        run: |
+          curl -fsSL --max-time 25 https://resurrection-tech.com/live-demo > page.html
+          : > all.js
+          for u in $(grep -oE '/_next/static/chunks/[^"]+\.js' page.html | sort -u); do
+            curl -fsSL --max-time 25 "https://resurrection-tech.com$u" >> all.js || true
+          done
+          echo "scanned js bytes: $(wc -c < all.js)"
+          grep -q "Morrison Runtime Governance engine" all.js && echo "source badge (engine) ✓"   || { echo "::error::badge engine text missing"; exit 1; }
+          grep -q "Heuristic fallback" all.js              && echo "source badge (fallback) ✓"   || { echo "::error::badge fallback text missing"; exit 1; }
+          grep -q "morrison-audit-chain" all.js            && echo "chained export schema ✓"     || { echo "::error::chained-export code missing"; exit 1; }
+
+      - name: "Replayability — production attestation reproducible from source"
+        run: |
+          EC='${{ steps.health.outputs.engine_commit }}'
+          RH='${{ steps.health.outputs.ruleset_hash }}'
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine
+          git -C /tmp/engine checkout "$EC"
+          cd governance-service
+          PYTHONPATH=/tmp/engine python test_replay.py
+          EXPECT="$RH" PYTHONPATH=/tmp/engine python3 - <<'PY'
+          import os
+          from replay import _ruleset_hash, _layer
+          prod = os.environ["EXPECT"]
+          core = ["finance","banking","fintech","cybersecurity","healthcare",
+                  "data_privacy","enterprise","compliance","fraud"]
+          got = _ruleset_hash(_layer(core, 3).rules)
+          print("production ruleset_hash:", prod)
+          print("rebuilt    ruleset_hash:", got)
+          assert got == prod, "MISMATCH — production attestation not reproducible from source"
+          print("production attestation is reproducible (replayable) from source ✓")
+          PY
