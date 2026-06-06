@@ -16,6 +16,7 @@ Nothing is ever executed: the engine only inspects the proposed trajectory.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import os
 import time
@@ -61,6 +62,26 @@ def _engine_commit() -> str:
 
 
 ENGINE_COMMIT = _engine_commit()
+
+
+def _ruleset_hash(rules) -> str:
+    """Deterministic fingerprint of the exact Ω ruleset that produced a verdict:
+    sorted '{domain}:{name}' of every loaded rule, sha256-hashed. With
+    engine_commit + the engine's trajectory_hash, this is everything needed to
+    reproduce and independently verify a decision."""
+    canon = "\n".join(sorted(f"{r.domain.value}:{r.name}" for r in rules))
+    return hashlib.sha256(canon.encode()).hexdigest()
+
+
+def _attestation(layer, horizon: int) -> dict:
+    """Versioned provenance stamped onto every verdict and onto /health, so an
+    auditor can tie a verdict to the exact engine + ruleset that produced it."""
+    return {
+        "engine_commit": ENGINE_COMMIT,
+        "ruleset_hash": _ruleset_hash(layer.rules),
+        "service_version": SERVICE_VERSION,
+        "horizon": horizon,
+    }
 EVAL_TIMEOUT_S = float(os.getenv("GOVERNANCE_EVAL_TIMEOUT_S", "4.0"))
 MAX_STEPS = int(os.getenv("GOVERNANCE_MAX_STEPS", "25"))
 AUTH_TOKEN = os.getenv("GOVERNANCE_TOKEN", "")  # if set, require Bearer token
@@ -197,6 +218,7 @@ def health() -> dict:
         "horizon": HORIZON,
         "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
         "extended_rules": sorted(EXTENDED_RULES),
+        "attestation": _attestation(default, HORIZON),
     }
 
 
@@ -213,6 +235,7 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
         log.exception("evaluate_plan failed")
         raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
     body = _serialize(result, steps)
+    body["attestation"] = _attestation(layer, req.horizon or HORIZON)
     log.info(
         f'evaluate verdict={body["verdict"]} layer={body.get("layer")!r} '
         f'steps={len(steps)} ms={round((time.perf_counter()-t0)*1000,1)}'
@@ -231,4 +254,6 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     except Exception as exc:
         log.exception("evaluate failed")
         raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
-    return JSONResponse(_serialize(result, [call]))
+    body = _serialize(result, [call])
+    body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    return JSONResponse(body)
