@@ -22,6 +22,7 @@ RUN apt-get update \
 # (a `--branch` clone only accepts branch/tag names, never a commit SHA).
 RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
  && git -C /tmp/engine checkout "${ENGINE_REF}" \
+ && git -C /tmp/engine rev-parse HEAD > /app/engine_commit.txt \
  && cp -r /tmp/engine/morrison_governance /app/morrison_governance \
  && rm -rf /tmp/engine
 

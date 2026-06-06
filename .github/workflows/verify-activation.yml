@@ -1,19 +1,26 @@
 name: Verify sector activation
 
-# Runs the two pre-activation checks from a GitHub runner (open egress):
-#   1. The Railway governance endpoint must REQUIRE auth (401 without a token).
-#   2. The live website must reach the real engine (x-governance-source: morrison).
-# Neither check uses a secret: (1) is unauthenticated by design; (2) hits the
-# site's public API route, which holds the token server-side.
+# Production confidence check, run three ways:
+#   • nightly (schedule) as a health alarm — FAILS loudly on a regression
+#   • on demand (workflow_dispatch)
+#   • when this file changes (push)
+#
+# Runs from a GitHub runner (open egress) because the checks hit the live
+# Railway service and the live website. Secret-free: the 401 check is
+# unauthenticated by design; the website check uses the site's own
+# server-side token.
 
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: "17 6 * * *"   # 06:17 UTC daily
   push:
     branches: [main]
     paths:
       - ".github/workflows/verify-activation.yml"
 
 jobs:
+  # ── Production invariants — these FAIL the run if they regress ──
   verify:
     runs-on: ubuntu-latest
     steps:
@@ -26,14 +33,16 @@ jobs:
             -d '{"trajectory":[{"tool":"x","args":{}}]}' || echo "000")
           echo "code=$CODE" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Railway /health (engine sector registry)
+      - name: Railway /health (engine sector registry + commit)
         id: health
         run: |
           BODY=$(curl -s --max-time 20 \
             https://resurrection-tech-enterprise-production.up.railway.app/health || echo "{}")
           echo "$BODY"
           N=$(printf '%s' "$BODY" | python3 -c "import sys,json;print(len((json.load(sys.stdin) or {}).get('live_sectors',[])))" 2>/dev/null || echo "0")
+          C=$(printf '%s' "$BODY" | python3 -c "import sys,json;print((json.load(sys.stdin) or {}).get('engine_commit','unknown'))" 2>/dev/null || echo "unknown")
           echo "live_sectors=$N" | tee -a "$GITHUB_OUTPUT"
+          echo "engine_commit=$C" | tee -a "$GITHUB_OUTPUT"
 
       - name: "Website real-engine check (expect x-governance-source = morrison)"
         id: site
@@ -49,13 +58,16 @@ jobs:
             | tr -d '\r' | awk -F': ' 'tolower($1)=="x-governance-source"{print $2}' | tail -1)
           echo "source=${SRC:-none}" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Verdict
+      - name: Verdict (fails on regression)
         run: |
           RAIL='${{ steps.rail.outputs.code }}'
           SRC='${{ steps.site.outputs.source }}'
           SECTORS='${{ steps.health.outputs.live_sectors }}'
+          COMMIT='${{ steps.health.outputs.engine_commit }}'
           {
-            echo "## Sector activation verification"
+            echo "## Production invariants"
+            echo ""
+            echo "Engine commit: \`$COMMIT\`"
             echo ""
             echo "| Check | Result | Expected | Pass |"
             echo "|---|---|---|---|"
@@ -63,4 +75,49 @@ jobs:
             echo "| Website real engine | \`$SRC\` | morrison | $([ "$SRC" = morrison ] && echo ✅ || echo ❌) |"
             echo "| Engine live sectors | \`$SECTORS\` | 8 | $([ "$SECTORS" = 8 ] && echo ✅ || echo ❌) |"
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          echo "RESULT rail=$RAIL source=$SRC sectors=$SECTORS"
+          echo "RESULT rail=$RAIL source=$SRC sectors=$SECTORS commit=$COMMIT"
+          [ "$RAIL" = 401 ] && [ "$SRC" = morrison ] && [ "$SECTORS" = 8 ] || {
+            echo "::error::Production invariant regression (auth/real-engine/sectors)"; exit 1; }
+
+  # ── Production frontend — informational, but fails if sectors regress ──
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch production /live-demo + its CSS bundle
+        id: fe
+        run: |
+          set -e
+          curl -fsSL --max-time 30 https://resurrection-tech.com/live-demo > page.html
+          CSS_URLS=$(grep -oE '/_next/static/css/[^"]+\.css' page.html | sort -u)
+          : > all.css
+          for u in $CSS_URLS; do
+            curl -fsSL --max-time 30 "https://resurrection-tech.com$u" >> all.css || true
+          done
+          gapfix=no;    grep -q ':has(.trust-bar)' all.css && gapfix=yes
+          opaque=no;    grep -q '.nav.scrolled{background:var(--bg-1)' all.css && opaque=yes
+          trustbar=present; grep -q 'class="trust-bar"' page.html || trustbar=absent
+          pending=present;  grep -qi 'rules pending' page.html || pending=absent
+          defence=no;   grep -q 'Defence / Sovereign' page.html && defence=yes
+          { echo "gapfix=$gapfix"; echo "opaque=$opaque"; echo "trustbar=$trustbar";
+            echo "pending=$pending"; echo "defence=$defence"; } | tee -a "$GITHUB_OUTPUT"
+      - name: Frontend verdict (fails if sectors regress)
+        run: |
+          G='${{ steps.fe.outputs.gapfix }}'; O='${{ steps.fe.outputs.opaque }}'
+          B='${{ steps.fe.outputs.trustbar }}'; P='${{ steps.fe.outputs.pending }}'; D='${{ steps.fe.outputs.defence }}'
+          {
+            echo "## Production /live-demo frontend"
+            echo ""
+            echo "| Check | Result | Expected | Pass |"
+            echo "|---|---|---|---|"
+            echo "| Gap fix in CSS (:has(.trust-bar)) | \`$G\` | yes | $([ "$G" = yes ] && echo ✅ || echo ⚠️) |"
+            echo "| Opaque scrolled nav in CSS | \`$O\` | yes | $([ "$O" = yes ] && echo ✅ || echo ⚠️) |"
+            echo "| No trust-bar on /live-demo | \`$B\` | absent | $([ "$B" = absent ] && echo ✅ || echo ⚠️) |"
+            echo "| No 'Ω rules pending' group | \`$P\` | absent | $([ "$P" = absent ] && echo ✅ || echo ❌) |"
+            echo "| Defence sector present | \`$D\` | yes | $([ "$D" = yes ] && echo ✅ || echo ❌) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "FRONTEND gapfix=$G opaque=$O trustbar=$B pending=$P defence=$D"
+          # Hard-fail only on a real product regression (sectors gone). The CSS
+          # gap/opaque checks are deploy-validation and stay informational so
+          # CSS-minification format changes don't cause flaky nightly alarms.
+          [ "$P" = absent ] && [ "$D" = yes ] || {
+            echo "::error::Sector regression on /live-demo (pending group returned or Defence missing)"; exit 1; }
