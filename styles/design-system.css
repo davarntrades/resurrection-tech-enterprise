@@ -49,12 +49,16 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Trust bar */
-  --trust-bar-h: 34px;
+  /* Trust bar height. Default 0 so the global `.nav { top: var(--trust-bar-h) }`
+     offset puts the nav at top:0 on every page WITHOUT a trust bar — otherwise
+     those pages get a 34px gap above the nav that scrolled content bleeds
+     through. Only the homepage renders `.trust-bar`, and only on tablet/desktop,
+     so we raise the offset to 34px exactly there. */
+  --trust-bar-h: 0px;
 }
 
-@media (max-width: 640px) {
-  :root { --trust-bar-h: 0px; }
+@media (min-width: 641px) {
+  :root:has(.trust-bar) { --trust-bar-h: 34px; }
 }
 
 * { box-sizing: border-box; }
@@ -167,14 +171,11 @@ p { margin: 0; }
   border-bottom: 1px solid transparent;
 }
 .nav.scrolled {
-  /* Near-opaque on every breakpoint so page content can't bleed through the
-     bar while scrolling — including on iOS Safari, where backdrop-filter can
-     intermittently fail to paint and would otherwise leave the bar
-     see-through. The blur is polish on top of the solid fill, not what hides
-     the content behind it. */
-  background: rgba(8,9,11,0.95);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  /* FULLY opaque when scrolled so page content can never bleed through the bar
+     — on any browser or breakpoint. We deliberately do NOT depend on
+     backdrop-filter (iOS Safari paints it unreliably, which was the cause of
+     the bleed-through); a solid fill is what hides the content. */
+  background: var(--bg-1);
   border-bottom-color: var(--line);
   box-shadow: 0 1px 0 var(--line), 0 10px 30px -20px rgba(0,0,0,0.9);
 }
