@@ -7,7 +7,8 @@ import { evaluateViaGovernance } from "@/lib/governance-client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Resp = (EvalResult & { ok: true }) | { ok: false; error: string; fieldErrors?: Record<string, string> };
+type Source = "morrison" | "heuristic";
+type Resp = (EvalResult & { ok: true; source: Source }) | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 /**
  * Public demo endpoint: evaluates a proposed tool-call trajectory for reachable
@@ -61,7 +62,7 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   // governance service). On any failure — unset URL, network, non-2xx, or
   // timeout — fall back to the in-process heuristic so the UI never breaks.
   let result: EvalResult;
-  let source = "heuristic";
+  let source: Source = "heuristic";
   try {
     result = await evaluateViaGovernance(parsed.data.trajectory, parsed.data.domains);
     source = "morrison";
@@ -70,7 +71,9 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
     result = evaluateTrajectory(parsed.data.trajectory);
   }
 
-  const res = NextResponse.json<Resp>({ ok: true, ...result });
-  res.headers.set("x-governance-source", source); // observability only — not a UI field
+  // Surface the evaluation source to the UI so a heuristic fallback is never
+  // presented as a real-engine verdict. Also kept as a header for observability.
+  const res = NextResponse.json<Resp>({ ok: true, source, ...result });
+  res.headers.set("x-governance-source", source);
   return res;
 }
