@@ -24,6 +24,12 @@
 }
 @media (max-width: 1000px) { .metrics-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 560px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+/* Latency headline beneath the validation metrics. */
+.metrics-latency {
+  margin: clamp(20px, 3vw, 32px) auto 0; max-width: 760px; text-align: center;
+  color: var(--ink-2); font-size: clamp(14px, 1.4vw, 16px); line-height: 1.6; text-wrap: pretty;
+}
+.metrics-latency b { color: var(--ink); }
 .metric {
   background: var(--panel); padding: 26px 22px; position: relative;
   transition: background .4s var(--ease);

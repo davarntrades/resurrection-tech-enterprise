@@ -227,6 +227,13 @@ export default function Page() {
             </p>
           </div>
 
+          <div className="ent-latency-summary reveal">
+            <h3 className="ent-latency-h">Latency Summary</h3>
+            <p>Runtime Governance has been benchmarked at microsecond-scale latency, with benchmark averages typically around 0.1 ms per evaluation depending on trajectory length and rule count.</p>
+            <p>Across representative deployed-service evaluations, observed governance evaluation times have remained sub-millisecond, with sampled evaluations observed up to approximately 0.4 ms.</p>
+            <p>The governance layer therefore operates at a timescale that is typically negligible relative to model inference, tool execution, database operations, and network latency.</p>
+          </div>
+
           <div className="ent-charts reveal">
             <div className="ent-chart-card">
               <div className="ent-chart-h">Avg latency vs trajectory length</div>
