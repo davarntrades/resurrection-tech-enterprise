@@ -1,0 +1,8 @@
+{
+  "change_description": "Tighten the homepage latency headline copy",
+  "target_area": "website",
+  "risk_level": "low",
+  "requires_benchmark": false,
+  "requires_corpus": false,
+  "requires_deployment": true
+}

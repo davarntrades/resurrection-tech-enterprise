@@ -1,0 +1,8 @@
+{
+  "change_description": "Short description of the change",
+  "target_area": "governance | website | skills | corpus | benchmark | ci | mixed",
+  "risk_level": "low | medium | high",
+  "requires_benchmark": false,
+  "requires_corpus": true,
+  "requires_deployment": true
+}

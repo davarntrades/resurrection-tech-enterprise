@@ -1,0 +1,8 @@
+{
+  "change_description": "Add unauthorized_record_modification Ω rule to the healthcare sector",
+  "target_area": "governance",
+  "risk_level": "medium",
+  "requires_benchmark": true,
+  "requires_corpus": true,
+  "requires_deployment": true
+}
