@@ -41,3 +41,12 @@ yarn-error.log*
 # git bundles
 *.bundle.git
 resurrection-tech-bundle.git
+
+# Governance Skills — generated outputs (runtime artefacts, not source)
+/attestation/
+/audit-pack/
+/governance-service/sectors_scaffold/
+
+# python caches
+__pycache__/
+*.pyc
