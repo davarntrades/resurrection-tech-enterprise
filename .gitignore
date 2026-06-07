@@ -51,3 +51,4 @@ resurrection-tech-bundle.git
 __pycache__/
 *.pyc
 /threat-model/
+/ship/

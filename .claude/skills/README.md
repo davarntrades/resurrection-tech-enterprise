@@ -13,6 +13,7 @@ nothing here is a placeholder.
 | **verify-production** | `/verify-production` | Source-side deploy verification + attestation: artefacts exist, JSON integrity, tables↔source, latency↔measured, replay determinism + tamper, audit-chain, deployment metadata | `attestation/verify-production-report.{md,json}` |
 | **generate-audit-pack** | `/generate-audit-pack` | Customer-ready due-diligence pack from live assets (benchmark, validation corpus, replay, audit trail, coverage, attestation) | `audit-pack/audit-pack.md`, `.pdf.md`, `evidence-manifest.json` |
 | **onboard-sector** | `/onboard-sector <name>` | Scaffold a new governed Ω domain (Ω defs, rule skeletons, corpus, benchmark, docs, deployment checklist) | `governance-service/sectors_scaffold/<name>/…` |
+| **ship-to-green** | `/ship-to-green` | Orchestrate a change idea→validated→benchmarked→evidenced→ready (fail-closed) + Release Readiness Score; post-merge verify + attest | `ship/…` + `deployment-attestation.{md,json}` |
 
 ## Commercial pipeline
 ```
@@ -22,6 +23,8 @@ Prospect
   → generate-audit-pack          (evidence pack for the pilot / due diligence)
   → verify-production            (attest every deploy; nightly guard)
   → Enterprise deployment
+
+Every change above ships via ship-to-green (validate → benchmark → evidence → PR → verify → attest, fail-closed).
 ```
 
 ## File tree
@@ -39,9 +42,14 @@ Prospect
 ├── generate-audit-pack/
 │   ├── SKILL.md
 │   └── scripts/generate_audit_pack.py
-└── onboard-sector/
-    ├── SKILL.md
-    └── scripts/onboard_sector.py
+├── onboard-sector/
+│   ├── SKILL.md
+│   └── scripts/onboard_sector.py
+└── ship-to-green/
+    ├── SKILL.md · README.md
+    ├── scripts/ship_to_green.py
+    ├── templates/change.template.json
+    └── examples/{add-healthcare-omega-rule,update-homepage-copy}.json
 ```
 
 ## Engine resolution
