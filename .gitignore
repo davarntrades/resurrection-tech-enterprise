@@ -50,3 +50,4 @@ resurrection-tech-bundle.git
 # python caches
 __pycache__/
 *.pyc
+/threat-model/

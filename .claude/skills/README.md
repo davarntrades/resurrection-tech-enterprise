@@ -9,14 +9,30 @@ nothing here is a placeholder.
 
 | Skill | Command | Does | Outputs |
 |---|---|---|---|
+| **threat-model-omega-mapping** | `/threat-model` | Map a prospect threat model to the live Ω catalog → coverage matrix, gap analysis, recommended Ω extensions, pilot scope, exec summary | `threat-model/…` + `onboard-spec-<industry>.json` |
 | **verify-production** | `/verify-production` | Source-side deploy verification + attestation: artefacts exist, JSON integrity, tables↔source, latency↔measured, replay determinism + tamper, audit-chain, deployment metadata | `attestation/verify-production-report.{md,json}` |
 | **generate-audit-pack** | `/generate-audit-pack` | Customer-ready due-diligence pack from live assets (benchmark, validation corpus, replay, audit trail, coverage, attestation) | `audit-pack/audit-pack.md`, `.pdf.md`, `evidence-manifest.json` |
 | **onboard-sector** | `/onboard-sector <name>` | Scaffold a new governed Ω domain (Ω defs, rule skeletons, corpus, benchmark, docs, deployment checklist) | `governance-service/sectors_scaffold/<name>/…` |
+
+## Commercial pipeline
+```
+Prospect
+  → threat-model-omega-mapping   (what would we protect? coverage + gaps + pilot scope)
+  → onboard-sector               (close the gaps: new Ω registry)
+  → generate-audit-pack          (evidence pack for the pilot / due diligence)
+  → verify-production            (attest every deploy; nightly guard)
+  → Enterprise deployment
+```
 
 ## File tree
 ```
 .claude/skills/
 ├── README.md
+├── threat-model-omega-mapping/
+│   ├── SKILL.md · README.md
+│   ├── scripts/threat_model_omega.py
+│   ├── templates/spec.template.{json,yaml}
+│   └── examples/{healthcare-ai-agent,financial-copilot,soc-agent}.json
 ├── verify-production/
 │   ├── SKILL.md
 │   └── scripts/verify_production.py
