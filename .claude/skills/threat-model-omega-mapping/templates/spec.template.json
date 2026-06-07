@@ -1,0 +1,16 @@
+{
+  "organization": "Example Corp",
+  "industry": "finance",
+  "agent_architecture": "single copilot calling internal tools + external HTTP",
+  "tool_inventory": ["transfer", "send_payment", "http_request", "update_role"],
+  "critical_assets": ["Customer funds", "PII", "Internal documents"],
+  "threat_model": [
+    {"name": "unauthorized transfer", "severity": "high"},
+    {"name": "PII export", "severity": "high"},
+    {"name": "privilege escalation", "severity": "medium"},
+    {"name": "prompt injection", "severity": "medium"},
+    {"name": "cross-agent collusion", "severity": "high"}
+  ],
+  "regulatory_requirements": ["FCA", "GDPR"],
+  "existing_controls": ["RBAC", "audit logging"]
+}

@@ -1,0 +1,18 @@
+{
+  "organization": "Sterling Bank",
+  "industry": "finance",
+  "agent_architecture": "treasury copilot: payments + reconciliation + external bank APIs",
+  "tool_inventory": ["transfer", "send_payment", "change_destination_account", "export_payment_data", "http_request"],
+  "critical_assets": ["Customer funds", "Payment instructions", "Beneficiary records"],
+  "threat_model": [
+    {"name": "unauthorized transfer", "severity": "high"},
+    {"name": "payment rerouting", "severity": "high"},
+    {"name": "structuring", "severity": "medium"},
+    {"name": "approval bypass", "severity": "high"},
+    {"name": "PII export", "severity": "medium"},
+    {"name": "cross-agent collusion", "severity": "high"},
+    {"name": "delayed intent", "severity": "medium"}
+  ],
+  "regulatory_requirements": ["FCA", "PCI-DSS", "AML"],
+  "existing_controls": ["four-eyes approval", "transaction monitoring"]
+}

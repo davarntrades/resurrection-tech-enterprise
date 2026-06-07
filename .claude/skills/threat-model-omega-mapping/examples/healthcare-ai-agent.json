@@ -1,0 +1,17 @@
+{
+  "organization": "Northwind Health",
+  "industry": "healthcare",
+  "agent_architecture": "clinical copilot calling EHR read/write + secure messaging",
+  "tool_inventory": ["read_patient_record", "update_record", "send_email", "http_request", "prescribe"],
+  "critical_assets": ["PHI", "EHR records", "clinical decisions"],
+  "threat_model": [
+    {"name": "PHI export", "severity": "high"},
+    {"name": "credential theft", "severity": "high"},
+    {"name": "unauthorized record modification", "severity": "high"},
+    {"name": "regulated data export", "severity": "medium"},
+    {"name": "prompt injection", "severity": "medium"},
+    {"name": "unsafe clinical advice", "severity": "high"}
+  ],
+  "regulatory_requirements": ["HIPAA", "GDPR"],
+  "existing_controls": ["RBAC", "audit logging", "encryption at rest"]
+}
