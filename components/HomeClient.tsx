@@ -179,6 +179,11 @@ export function HomeClient() {
                 <div className="mlabel">Validation coverage</div>
               </div>
             </div>
+            <p className="metrics-latency reveal">
+              <b>Microsecond-scale governance evaluation.</b> Typical governance
+              evaluation latency is approximately 0.1&nbsp;ms, with observed deployed
+              evaluations up to approximately 0.4&nbsp;ms.
+            </p>
           </div>
         </section>
 

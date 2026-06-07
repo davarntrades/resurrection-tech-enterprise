@@ -46,6 +46,18 @@
 }
 .ent-answer b { color: var(--accent-bright); }
 
+/* Latency summary — narrative band beside the measured tables. */
+.ent-latency-summary {
+  margin-top: 18px; padding: 18px 20px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ent-latency-h {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent-bright);
+}
+.ent-latency-summary p { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; text-wrap: pretty; }
+
 /* performance */
 .ent-perf-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 6px; }
 @media (min-width: 720px) { .ent-perf-grid { grid-template-columns: repeat(2, 1fr); } }
