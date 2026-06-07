@@ -144,6 +144,22 @@ export function HomeClient() {
         {/* ===== VALIDATION METRICS ===== */}
         <section className="metrics glow-top" id="validation" aria-label="Validation benchmarks">
           <div className="wrap">
+            <Link
+              href="/enterprise#performance"
+              className="latency-banner reveal"
+              aria-label="See the measured latency benchmarks on the Enterprise Readiness page"
+            >
+              <span className="lb-main">
+                <span className="lb-eyebrow">Measured performance</span>
+                <span className="lb-head">Microsecond-scale governance evaluation</span>
+                <span className="lb-sub">
+                  Typical governance evaluation latency ≈ <b>0.1&nbsp;ms</b>, with observed
+                  deployed evaluations up to ≈ <b>0.4&nbsp;ms</b> — sub-millisecond, before any
+                  action runs.
+                </span>
+              </span>
+              <span className="lb-cta">See the benchmarks <span className="arr">→</span></span>
+            </Link>
             <div className="metrics-head reveal">
               <span>Governance validation benchmark</span>
               <span className="ln" />
@@ -179,11 +195,6 @@ export function HomeClient() {
                 <div className="mlabel">Validation coverage</div>
               </div>
             </div>
-            <p className="metrics-latency reveal">
-              <b>Microsecond-scale governance evaluation.</b> Typical governance
-              evaluation latency is approximately 0.1&nbsp;ms, with observed deployed
-              evaluations up to approximately 0.4&nbsp;ms.
-            </p>
           </div>
         </section>
 

@@ -24,12 +24,35 @@
 }
 @media (max-width: 1000px) { .metrics-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 560px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
-/* Latency headline beneath the validation metrics. */
-.metrics-latency {
-  margin: clamp(20px, 3vw, 32px) auto 0; max-width: 760px; text-align: center;
-  color: var(--ink-2); font-size: clamp(14px, 1.4vw, 16px); line-height: 1.6; text-wrap: pretty;
+/* Latency headline banner — prominent, clickable, links to the benchmark. */
+.latency-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px 28px; flex-wrap: wrap;
+  margin-bottom: clamp(22px, 3vw, 34px);
+  padding: clamp(18px, 2.4vw, 24px) clamp(20px, 3vw, 28px);
+  border: 1px solid var(--accent-dim); border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(76,125,255,0.09), rgba(76,125,255,0.03));
+  box-shadow: 0 0 0 1px rgba(76,125,255,0.15), 0 24px 64px -34px var(--accent-glow);
+  transition: border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
 }
-.metrics-latency b { color: var(--ink); }
+.latency-banner:hover {
+  border-color: var(--accent); transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(76,125,255,0.38), 0 30px 76px -30px var(--accent-glow);
+}
+.lb-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 320px; }
+.lb-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); }
+.lb-head { font-size: clamp(19px, 2.2vw, 25px); font-weight: 560; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; }
+.lb-sub { color: var(--ink-2); font-size: clamp(13.5px, 1.3vw, 15px); line-height: 1.55; text-wrap: pretty; }
+.lb-sub b { color: var(--ink); }
+.lb-cta {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.04em; color: var(--accent-bright);
+  border: 1px solid var(--accent-dim); border-radius: 100px; padding: 11px 20px; white-space: nowrap;
+  transition: background .3s var(--ease), border-color .3s var(--ease);
+}
+.latency-banner:hover .lb-cta { background: rgba(76,125,255,0.14); border-color: var(--accent); }
+.latency-banner .arr { transition: transform .3s var(--ease); }
+.latency-banner:hover .arr { transform: translateX(4px); }
+@media (max-width: 600px) { .lb-cta { align-self: stretch; justify-content: center; } }
 .metric {
   background: var(--panel); padding: 26px 22px; position: relative;
   transition: background .4s var(--ease);
