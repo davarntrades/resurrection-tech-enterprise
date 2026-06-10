@@ -39,6 +39,8 @@ export const NAV_MENU = [
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/enterprise", label: "Enterprise readiness" },
       { href: "/integrations", label: "How it integrates" },
+      { href: "/pilot", label: "Pilot scope of work" },
+      { href: "/design-partners", label: "Design Partner Program" },
       { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
       { href: "/pay", label: "Pricing & engagements" },
     ],

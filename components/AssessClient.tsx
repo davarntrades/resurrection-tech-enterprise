@@ -195,6 +195,24 @@ function Report({ report }: { report: AssessReport }) {
 
   return (
     <section className="assess-report" aria-label="Assessment result">
+      {/* Print-only branded header (hidden on screen; appears in the PDF). */}
+      <div className="assess-print-head" aria-hidden="true">
+        <span className="assess-print-brand">ℛ(t) · Resurrection Tech™ — Runtime Governance</span>
+        <span className="assess-print-title">
+          Ω Exposure Assessment{report.organization && report.organization !== "your agent" ? ` — ${report.organization}` : ""}
+        </span>
+        <span className="assess-print-meta">
+          {report.manifest_format} · {report.summary.tools} tools · live catalog {report.catalog_rules} Ω rules
+        </span>
+      </div>
+
+      <div className="assess-report-bar">
+        <button type="button" className="btn btn--ghost btn--sm assess-print-btn"
+                onClick={() => { track("assess_download_pdf", {}); if (typeof window !== "undefined") window.print(); }}>
+          ⬇ Download PDF report
+        </button>
+      </div>
+
       <div className={`assess-headline assess-headline--${tone}`}>
         <div className="assess-cov">
           <span className="assess-cov-num">{pct(s.coverage_pct)}</span>
