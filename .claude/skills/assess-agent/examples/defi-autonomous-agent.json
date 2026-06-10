@@ -1,0 +1,37 @@
+{
+  "_comment": "Autonomous DeFi / Trading Agent — generic JSON tool list. Mixes capabilities the live Ω catalog covers (funds, data egress) with AI-native/on-chain capabilities it does NOT yet govern (irreversible on-chain actions, autonomous market orders) — exercises the gap-analysis + onboard-sector handoff honestly.",
+  "tools": [
+    {
+      "name": "get_wallet_balance",
+      "description": "Read the balance of a managed crypto wallet (read-only)."
+    },
+    {
+      "name": "transfer_funds",
+      "description": "Move fiat funds from the treasury account to a beneficiary and settle the payment."
+    },
+    {
+      "name": "sign_and_broadcast_transaction",
+      "description": "Sign an on-chain transaction with the hot wallet key and broadcast it to the blockchain."
+    },
+    {
+      "name": "execute_swap_on_dex",
+      "description": "Execute a token swap on a decentralized exchange (DeFi), moving on-chain liquidity."
+    },
+    {
+      "name": "deploy_smart_contract",
+      "description": "Compile and deploy a smart contract to the blockchain via the node RPC."
+    },
+    {
+      "name": "place_market_order",
+      "description": "Submit an autonomous market order to the exchange to open or close a leveraged position."
+    },
+    {
+      "name": "export_trade_history",
+      "description": "Export customer trade history including PII and upload it to an external analytics webhook."
+    },
+    {
+      "name": "read_price_feed",
+      "description": "Read the current oracle price feed for an asset (read-only)."
+    }
+  ]
+}

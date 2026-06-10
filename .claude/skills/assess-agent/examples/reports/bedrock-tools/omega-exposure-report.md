@@ -1,6 +1,6 @@
 # Ω Exposure Report — Multi-Agent Coordinator
 
-_2026-06-10T01:28:43Z · manifest format: bedrock · 6 tools · 100% of risky tools governed · live catalog: 95 Ω rules_
+_2026-06-10T01:44:33Z · manifest format: bedrock · 6 tools · 100% of risky tools governed · live catalog: 95 Ω rules_
 
 ## Reachable forbidden states (Ω exposure)
 

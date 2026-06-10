@@ -45,6 +45,38 @@ CAP = {
                    "create_agent"],
     "mutation": ["approve", "override", "bypass", "change", "modify", "update", "delete",
                  "write", "set_", "create", "revoke", "reset", "alter"],
+    # ── AI-native / physical capability classes the live Ω catalog does NOT
+    #    yet govern — these surface as genuine gaps (never fabricated coverage).
+    # action-oriented only — reading a wallet/price is NOT an irreversible on-chain action
+    "onchain": ["mint_token", "approve_token", "sign_transaction", "broadcast_tx",
+                "broadcast_transaction", "sign_and_broadcast", "swap_on_dex",
+                "execute_swap", "bridge_funds", "add_liquidity", "remove_liquidity",
+                "deploy_contract", "deploy_smart_contract", "send_onchain", "stake_tokens"],
+    "physical": ["actuate", "actuator", "robotic", "servo_", "valve", "plc_write",
+                 "scada_write", "drone", "uav", "throttle", "gripper", "conveyor",
+                 "door_lock", "centrifuge", "steering", "robot_arm", "motor_command"],
+    "model_integrity": ["fine_tune", "finetune", "training_data", "model_weights",
+                        "update_model", "retrain", "system_prompt", "prompt_template",
+                        "embedding_store", "vector_index", "modify_model"],
+    "resource": ["spawn_many", "unbounded", "infinite_loop", "gpu_cluster", "scale_up",
+                 "provision_compute", "autoscale", "fork_bomb", "batch_unbounded",
+                 "unlimited_retries"],
+    "market": ["place_order", "execute_order", "submit_order", "market_order",
+               "limit_order", "short_sell", "leverage_trade", "trade_crypto",
+               "autonomous_trade", "place_bet", "open_position"],
+    "synthetic_identity": ["deepfake", "voice_clone", "face_swap", "synthesize_voice",
+                           "generate_face", "biometric_enroll", "spoof_identity",
+                           "impersonate", "clone_voice"],
+}
+# Capability → uncovered risk class + the phrase the live mapping returns
+# UNCOVERED/PARTIAL for (proves the gap honestly, no synthetic rule).
+GAP_CLASS = {
+    "onchain": ("Irreversible On-Chain Action", "irreversible onchain action"),
+    "physical": ("Physical Actuation Harm", "physical actuation"),
+    "model_integrity": ("Model / Prompt Integrity", "model manipulation"),
+    "resource": ("Resource / Cost Exhaustion", "resource exhaustion"),
+    "market": ("Autonomous Market Action", "autonomous trading"),
+    "synthetic_identity": ("Synthetic Identity / Deepfake", "deepfake generation"),
 }
 SENSITIVE = {"credential": "Credential Exfiltration", "secret": "Credential Exfiltration",
              "key": "Credential Exfiltration", "token": "Credential Exfiltration",
@@ -66,6 +98,7 @@ RISK_PHRASE = {
     "Cross-Agent Collusion": "cross-agent collusion",
     "Approval / Control Bypass": "approval bypass",
     "State-Transition Abuse": "state transition abuse",
+    **{cls: phrase for cls, phrase in GAP_CLASS.values()},
 }
 DANGER_VERBS = ("delete", "override", "execute", "transfer", "grant", "disable",
                 "send", "deploy", "escalate", "bypass")
@@ -194,6 +227,10 @@ def risk_classes(tool: dict, caps: set[str]) -> list[str]:
     if "mutation" in caps and ("privilege" in caps or "funds" in caps or "data" in caps):
         rc.add("Approval / Control Bypass")
         rc.add("State-Transition Abuse")
+    # AI-native / physical classes — surface as genuine (uncovered) gaps.
+    for cap, (cls, _phrase) in GAP_CLASS.items():
+        if cap in caps:
+            rc.add(cls)
     # fail-closed: dangerous verb but nothing detected -> mark for review
     if not rc and any(_kw_hit(text, v) for v in DANGER_VERBS):
         rc.add("State-Transition Abuse")
@@ -330,7 +367,11 @@ def trace_mode(path: str, engine: bool) -> dict | None:
 
 def industry_guess(tools: list[dict]) -> str:
     text = " ".join(t["name"] + " " + t["description"] for t in tools).lower()
-    for ind, kws in (("finance", ["transfer", "payment", "account", "trade"]),
+    for ind, kws in (("digital_assets", ["onchain", "on-chain", "blockchain", "smart contract",
+                                          "defi", "dex", "erc20", "erc721", "web3",
+                                          "crypto wallet", "decentralized exchange"]),
+                     ("robotics", ["actuat", "robot", "drone", "scada", "plc_", "servo"]),
+                     ("finance", ["transfer", "payment", "account", "trade"]),
                      ("healthcare", ["patient", "phi", "prescribe", "ehr", "clinical"]),
                      ("cybersecurity", ["shell", "exec", "credential", "soc", "incident"])):
         if any(k in text for k in kws):
@@ -447,6 +488,17 @@ def build(org, tools, fmt, assessed, blocks, trace, cat_n) -> tuple[dict, dict]:
     return sec, js
 
 
+def pdf_ready(org: str, sec: dict, ts: str) -> str:
+    """One branded, Pandoc/PDF-ready leave-behind: exec summary → exposure →
+    gaps → pilot, page-broken per section."""
+    front = ["---", f'title: "Morrison Runtime Governance — Ω Exposure Assessment"',
+             f'subtitle: "{org} · Confidential"', f'date: "{ts}"',
+             "geometry: margin=1in", "---", ""]
+    body = "\n\n\\newpage\n\n".join(
+        sec[k] for k in ("exec", "exposure", "gaps", "pilot"))
+    return "\n".join(front) + body + "\n"
+
+
 def commercial(total, governed, uncovered, blocked) -> str:
     return (f"Of your {total} tools, {governed} map to governed Ω domains today, "
             f"{uncovered} require bespoke Ω extensions, and {blocked} high-risk "
@@ -481,11 +533,14 @@ def main() -> int:
     open(os.path.join(out, "executive-summary.md"), "w").write(sec["exec"])
     open(os.path.join(out, "coverage-matrix.json"), "w").write(json.dumps(js, indent=2))
     open(os.path.join(out, f"onboard-spec-{js['industry']}.json"), "w").write(json.dumps(sec["onboard"], indent=2))
+    open(os.path.join(out, "assessment-report.pdf.md"), "w").write(
+        pdf_ready(a.org, sec, js["generated_utc"]))
 
     print(sec["exec"])
     print(f"\ncatalog {len(cat)} Ω rules · {js['summary']['coverage_pct']}% of risky tools governed · "
           f"{js['summary']['verified_blocked_trajectories']} verified BLOCK trajectories")
-    print(f"wrote {out}/ (omega-exposure-report, coverage-matrix.json, gap-analysis, pilot-scope, executive-summary, onboard-spec)")
+    print(f"wrote {out}/ (omega-exposure-report, coverage-matrix.json, gap-analysis, pilot-scope, "
+          f"executive-summary, onboard-spec, assessment-report.pdf.md)")
     if not engine:
         print("⚠️  engine not reachable — coverage uncertain; mappings reported as best-effort (fail-closed).")
     return 0
