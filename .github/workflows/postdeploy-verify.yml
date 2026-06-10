@@ -36,6 +36,44 @@ jobs:
           print(f"attestation OK · engine_commit={ec[:12]} · ruleset_hash={rh[:12]} · sectors=8")
           PY
 
+      - name: "Public /v1/assess — Day-1 self-serve front door is live"
+        run: |
+          curl -fsSL --max-time 30 -X POST \
+            https://resurrection-tech-enterprise-production.up.railway.app/v1/assess \
+            -H 'content-type: application/json' \
+            -d '{"manifest":{"tools":[
+                  {"name":"get_balance","description":"Read an account balance"},
+                  {"name":"transfer_funds","description":"Move funds to an account and settle the payment"},
+                  {"name":"sign_and_broadcast_transaction","description":"Sign an on-chain transaction and broadcast it to the blockchain"}
+                ]},"org":"CI Smoke"}' > assess.json
+          python3 - <<'PY'
+          import json
+          r = json.load(open("assess.json"))
+          s = r["summary"]
+          assert s["tools"] == 3, f"tools={s['tools']}"
+          assert s["covered"] >= 1, f"covered={s['covered']}"
+          assert s["uncovered"] >= 1, f"uncovered={s['uncovered']} (on-chain gap should surface)"
+          assert s["verified_blocked_trajectories"] >= 1, "no grounded BLOCK trajectories"
+          assert r.get("commercial"), "missing commercial line"
+          assert (r.get("attestation") or {}).get("engine_commit"), "no attestation"
+          print(f"/v1/assess live ✓ · cov {s['coverage_pct']}% · "
+                f"{s['uncovered']} gap(s) · {s['verified_blocked_trajectories']} verified BLOCK")
+          PY
+
+      - name: "Website /assess proxy returns a live report"
+        run: |
+          curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST \
+            https://resurrection-tech.com/api/assess \
+            -H 'content-type: application/json' \
+            -d '{"manifest":{"tools":[{"name":"transfer_funds","description":"Move funds to an account"}]}}' > wassess.json
+          python3 - <<'PY'
+          import json
+          r = json.load(open("wassess.json"))
+          assert r.get("ok") is True, f"ok={r.get('ok')} err={r.get('error')}"
+          assert r["summary"]["tools"] == 1
+          print("website /api/assess proxy live ✓ (source: morrison engine)")
+          PY
+
       - name: "Website API returns source morrison (badge data live)"
         run: |
           curl -fsSL -L --post301 --post302 --post303 --max-time 25 -X POST \
