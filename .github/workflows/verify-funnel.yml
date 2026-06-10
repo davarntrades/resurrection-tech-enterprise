@@ -1,0 +1,83 @@
+name: Verify funnel (lead + audit delivery)
+
+# Dispatch-only. Submits a real, clearly-marked test LEAD and test AUDIT request
+# to production and proves each is actually delivered (not just logged). Fails
+# RED if either form is "logged only" (no sink configured) — so a green run =
+# the full funnel is operational. Re-run after configuring a Vercel sink.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Contact email for the test submissions (reply-to / inbox marker)"
+        required: false
+        default: "davarnmorrison1@gmail.com"
+
+jobs:
+  verify-funnel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Submit a real test LEAD + AUDIT to production, prove delivery"
+        run: |
+          STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          EMAIL="${{ github.event.inputs.email }}"
+
+          # ── 1) Assessment lead → /api/lead ──────────────────────────────
+          cat > lead.json <<JSON
+          { "name": "Funnel Verification (lead)", "email": "${EMAIL}",
+            "organisation": "Pipeline Test", "role": "Founder",
+            "use_case": "Enterprise pilot", "source": "verify:funnel-lead",
+            "message": "Automated end-to-end funnel verification (lead) at ${STAMP}. Real submission to confirm delivery. Safe to delete." }
+          JSON
+          echo "→ POST /api/lead"
+          curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST \
+            https://resurrection-tech.com/api/lead \
+            -H 'content-type: application/json' --data @lead.json > lead_resp.json
+          python3 -m json.tool lead_resp.json
+
+          # ── 2) Audit request → /api/audit ───────────────────────────────
+          cat > audit.json <<JSON
+          { "company_name": "Funnel Verification (audit)", "industry": "Software",
+            "contact_name": "CRO Pipeline Test", "contact_email": "${EMAIL}",
+            "deployment_type": "Staging", "autonomy_level": "Supervised",
+            "risk_summary": "High", "ai_system_type": ["AI agents"],
+            "risk_capabilities": ["Funds movement","Customer data"],
+            "audit_scope": "Automated end-to-end funnel verification (audit) at ${STAMP}. Real submission to confirm delivery. Safe to decline.",
+            "estimated_investment": "£40K-£75K" }
+          JSON
+          echo "→ POST /api/audit"
+          curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST \
+            https://resurrection-tech.com/api/audit \
+            -H 'content-type: application/json' --data @audit.json > audit_resp.json
+          python3 -m json.tool audit_resp.json
+
+          # ── 3) Evaluate delivery (fail if either is logged-only) ────────
+          python3 - <<'PY'
+          import json
+          fails = []
+          def check(tag, path):
+              r = json.load(open(path))
+              if not r.get("ok") or not r.get("reference"):
+                  fails.append(f"{tag}: endpoint did not accept the submission: {r}")
+                  return
+              d = r.get("delivery")
+              if d is None:
+                  fails.append(f"{tag}: no `delivery` field — production not yet on the delivery-reporting build")
+                  return
+              dest = [k for k in ("forwarded","stored","emailed") if d.get(k)]
+              print(f"{tag:6} ref={r['reference']:18} delivered_to={', '.join(dest) if dest else 'NONE (logged only)'}")
+              if d.get("logged_only"):
+                  fails.append(f"{tag}: LOGGED ONLY — no sink configured in Vercel; submission not delivered")
+          check("LEAD",  "lead_resp.json")
+          check("AUDIT", "audit_resp.json")
+          print()
+          if fails:
+              for f in fails: print("::error::" + f)
+              print("\nFUNNEL: ❌ NOT OPERATIONAL — configure a Vercel sink "
+                    "(RESEND_API_KEY + LEAD_NOTIFY_TO/AUDIT_NOTIFY_TO, or Supabase keys, or LEAD_FORWARD_URL), "
+                    "redeploy, then re-run this workflow.")
+              raise SystemExit(1)
+          print("FUNNEL: ✅ OPERATIONAL — both the assessment lead and the audit request were delivered. "
+                "Check the destination inbox (LEAD_NOTIFY_TO / AUDIT_NOTIFY_TO) and/or the Supabase "
+                "`leads` + `audit_requests` tables for the references above.")
+          PY

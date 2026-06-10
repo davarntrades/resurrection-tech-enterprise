@@ -51,6 +51,8 @@ export async function POST(req: Request): Promise<NextResponse<AuditSubmitRespon
   }
 
   const reference = makeReference();
+  let stored = false;
+  let emailed = false;
 
   // ── Persist (Supabase) ────────────────────────────────────
   const supabase = getServiceSupabase();
@@ -83,6 +85,7 @@ export async function POST(req: Request): Promise<NextResponse<AuditSubmitRespon
         { status: 502 },
       );
     }
+    stored = true;
   } else {
     // No DB configured (e.g. local dev). Log so the dev still sees the payload.
     console.warn("[audit] Supabase not configured — skipping persistence.", { reference });
@@ -90,11 +93,22 @@ export async function POST(req: Request): Promise<NextResponse<AuditSubmitRespon
 
   // ── Notify (email) — non-blocking failure ─────────────────
   try {
-    await sendAuditEmails(data, reference);
+    const r = await sendAuditEmails(data, reference);
+    emailed = !!r?.sent;
   } catch (e) {
     console.error("[audit] email send failed:", e);
     // Submission already persisted; do not fail the request on email error.
   }
 
-  return NextResponse.json({ ok: true, reference });
+  const logged_only = !(stored || emailed);
+  if (logged_only) {
+    console.warn("[audit] no sink configured — captured audit request logged.", { reference });
+  }
+  // One structured line per audit request for observability (metadata only).
+  console.log(JSON.stringify({ evt: "audit", reference, stored, emailed, logged_only }));
+
+  return NextResponse.json({
+    ok: true, reference,
+    delivery: { stored, emailed, logged_only },
+  });
 }

@@ -30,6 +30,12 @@ export interface AuditSubmitResponse {
   reference?: string;
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** Per-sink delivery outcome (non-secret booleans) for observability/verification. */
+  delivery?: {
+    stored: boolean;      // persisted to the Supabase `audit_requests` table
+    emailed: boolean;     // Resend notification sent (internal + prospect confirmation)
+    logged_only: boolean; // no sink handled it — server log is the only record
+  };
 }
 
 export interface LeadSubmitResponse {
