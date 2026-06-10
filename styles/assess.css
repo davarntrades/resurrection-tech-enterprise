@@ -115,3 +115,23 @@
 .assess-cta-row { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1rem; }
 .assess-attest { text-align: center; color: var(--fg-3, #8b95a5); font-size: 0.78rem; margin-top: 1.25rem; }
 .assess-attest code { background: var(--bg-2, #1a1f27); border-radius: 5px; padding: 0.05rem 0.3rem; }
+
+/* ── lead capture ── */
+.assess-lead {
+  margin: 0 auto 1rem; max-width: 640px; text-align: left;
+  background: var(--bg-0, #0c0e12); border: 1px solid var(--border, #232a35);
+  border-radius: 14px; padding: 1.1rem 1.25rem;
+}
+.assess-lead-h { margin: 0 0 0.6rem; font-weight: 600; }
+.assess-lead-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.assess-lead-in {
+  flex: 1 1 180px; min-width: 0; background: var(--bg-1, #12151b); color: var(--fg-1, #e7ecf3);
+  border: 1px solid var(--border, #232a35); border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.9rem;
+}
+.assess-lead-in:focus { outline: none; border-color: var(--accent, #6ea8fe); }
+.assess-lead .btn { flex: 0 0 auto; }
+.assess-lead-note { color: var(--fg-3, #8b95a5); font-size: 0.74rem; margin: 0.6rem 0 0; }
+.assess-lead--done { text-align: center; }
+.assess-lead--done code { background: var(--bg-2, #1a1f27); border-radius: 5px; padding: 0.05rem 0.3rem; }
+/* Honeypot — keep in the layout flow for bots, invisible + unfocusable for humans. */
+.assess-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

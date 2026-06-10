@@ -10,7 +10,7 @@
    manifest is ever executed.
    ============================================================ */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 import type { AssessReport } from "@/lib/governance-client";
@@ -282,9 +282,10 @@ function Report({ report }: { report: AssessReport }) {
           This assessment is the pilot scope. Next: load your Ω registry, run your corpus to
           0 false-positives / 0 false-negatives, and replay every verdict with an attestation.
         </p>
+        <LeadCapture report={report} />
         <div className="assess-cta-row">
-          <Link href="/book#assessment" className="btn btn--primary" onClick={() => track("assess_cta", { cta: "book" })}>
-            Book a scoped pilot
+          <Link href="/book#assessment" className="btn btn--ghost" onClick={() => track("assess_cta", { cta: "book" })}>
+            Or book a call
           </Link>
           <Link href="/sample-audit" className="btn btn--ghost">See an evidence pack</Link>
           <Link href="/live-demo" className="btn btn--ghost">Watch it block live</Link>
@@ -299,6 +300,103 @@ function Report({ report }: { report: AssessReport }) {
         </p>
       )}
     </section>
+  );
+}
+
+/** Email capture that attaches the live assessment as qualified-lead context
+ *  and posts to the existing /api/lead sink (Supabase / Resend / webhook). */
+function LeadCapture({ report }: { report: AssessReport }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [orgName, setOrgName] = useState(report.organization !== "your agent" ? report.organization : "");
+  const [hp, setHp] = useState(""); // honeypot
+  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [ref, setRef] = useState<string | null>(null);
+
+  const summary = useMemo(() => {
+    const s = report.summary;
+    const gaps = report.tools
+      .filter((t) => t.status === "Uncovered")
+      .map((t) => t.tool)
+      .slice(0, 8);
+    const lines = [
+      `Day-1 Ω exposure assessment (self-serve).`,
+      `Manifest format: ${report.manifest_format} · industry: ${report.industry}.`,
+      `Tools: ${s.tools} (${s.risky} risk-carrying). Coverage: ${s.coverage_pct}% — `
+        + `${s.covered} covered, ${s.partial} partial, ${s.uncovered} uncovered.`,
+      `Verified pre-execution BLOCK trajectories: ${s.verified_blocked_trajectories}.`,
+      gaps.length ? `Top gaps (need bespoke Ω): ${gaps.join(", ")}.` : `No uncovered gaps.`,
+      report.commercial,
+      report.attestation
+        ? `Catalog ${report.catalog_rules} Ω rules · engine ${report.attestation.engine_commit.slice(0, 12)}.`
+        : "",
+    ];
+    return lines.filter(Boolean).join("\n");
+  }, [report]);
+
+  const submit = useCallback(async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !name.trim()) { setState("error"); setMsg("Name and email are required."); return; }
+    setState("busy"); setMsg(null);
+    track("assess_lead_submit", { coverage: report.summary.coverage_pct, uncovered: report.summary.uncovered });
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          organisation: orgName.trim(),
+          role: "",
+          use_case: "AI agents / agentic workflows",
+          message: summary,
+          source: `assess:${report.industry}:cov${report.summary.coverage_pct}:gap${report.summary.uncovered}`,
+          company_url_confirm: hp,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      setRef(data.reference ?? null);
+      setState("done");
+      track("assess_lead_done", {});
+    } catch (err) {
+      setState("error");
+      setMsg((err as Error).message);
+    }
+  }, [name, email, orgName, hp, summary, report]);
+
+  if (state === "done") {
+    return (
+      <div className="assess-lead assess-lead--done" role="status">
+        <strong>Sent ✓</strong> We&apos;ll email your full report and a scoped pilot plan
+        {ref ? <> — reference <code>{ref}</code></> : null}. Check your inbox shortly.
+      </div>
+    );
+  }
+
+  return (
+    <form className="assess-lead" onSubmit={submit} aria-label="Get the full report">
+      <p className="assess-lead-h">Email me the full report &amp; a scoped pilot plan</p>
+      <div className="assess-lead-row">
+        <input className="assess-lead-in" type="text" value={name} onChange={(e) => setName(e.target.value)}
+               placeholder="Name" autoComplete="name" maxLength={160} aria-label="Name" required />
+        <input className="assess-lead-in" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+               placeholder="Work email" autoComplete="email" maxLength={200} aria-label="Work email" required />
+        <input className="assess-lead-in" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)}
+               placeholder="Organization (optional)" autoComplete="organization" maxLength={200} aria-label="Organization" />
+        {/* Honeypot — visually hidden; bots fill it, humans don't. */}
+        <input className="assess-hp" tabIndex={-1} autoComplete="off" value={hp}
+               onChange={(e) => setHp(e.target.value)} aria-hidden="true" />
+        <button type="submit" className="btn btn--primary" disabled={state === "busy"}>
+          {state === "busy" ? "Sending…" : "Send me the report"}
+        </button>
+      </div>
+      {state === "error" && msg && <p className="assess-error" role="alert">{msg}</p>}
+      <p className="assess-lead-note">
+        Your assessment summary is attached so we can tailor the pilot. No spam; unsubscribe anytime.
+      </p>
+    </form>
   );
 }
 
