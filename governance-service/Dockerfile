@@ -29,7 +29,7 @@ RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py ./
+COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py ./
 
 ENV PORT=8000 \
     GOVERNANCE_EVAL_TIMEOUT_S=4.0 \
