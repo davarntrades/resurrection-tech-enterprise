@@ -1,0 +1,270 @@
+{
+  "schema": "morrison-omega-exposure/1",
+  "generated_utc": "2026-06-10T01:44:33Z",
+  "organization": "Autonomous DeFi / Trading Agent",
+  "manifest_format": "generic-json",
+  "catalog_rules": 95,
+  "summary": {
+    "tools": 8,
+    "risky": 6,
+    "covered": 2,
+    "partial": 0,
+    "uncovered": 4,
+    "coverage_pct": 33,
+    "verified_blocked_trajectories": 4
+  },
+  "tools": [
+    {
+      "tool": "get_wallet_balance",
+      "description": "Read the balance of a managed crypto wallet (read-only).",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    },
+    {
+      "tool": "transfer_funds",
+      "description": "Move fiat funds from the treasury account to a beneficiary and settle the payment.",
+      "capabilities": [
+        "data",
+        "funds"
+      ],
+      "risk": [
+        {
+          "risk_class": "Unauthorized Funds Movement",
+          "status": "COVERED",
+          "rules": [
+            "finance_funds_to_unverified_destination",
+            "finance_high_value_unverified_transfer",
+            "unauthorized_transfer"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "sign_and_broadcast_transaction",
+      "description": "Sign an on-chain transaction with the hot wallet key and broadcast it to the blockchain.",
+      "capabilities": [
+        "data",
+        "onchain"
+      ],
+      "risk": [
+        {
+          "risk_class": "Irreversible On-Chain Action",
+          "status": "UNCOVERED",
+          "rules": []
+        }
+      ],
+      "status": "Uncovered"
+    },
+    {
+      "tool": "execute_swap_on_dex",
+      "description": "Execute a token swap on a decentralized exchange (DeFi), moving on-chain liquidity.",
+      "capabilities": [
+        "data",
+        "execution",
+        "onchain"
+      ],
+      "risk": [
+        {
+          "risk_class": "Arbitrary Code Execution",
+          "status": "COVERED",
+          "rules": [
+            "shell_injection"
+          ]
+        },
+        {
+          "risk_class": "Irreversible On-Chain Action",
+          "status": "UNCOVERED",
+          "rules": []
+        }
+      ],
+      "status": "Uncovered"
+    },
+    {
+      "tool": "deploy_smart_contract",
+      "description": "Compile and deploy a smart contract to the blockchain via the node RPC.",
+      "capabilities": [
+        "onchain"
+      ],
+      "risk": [
+        {
+          "risk_class": "Irreversible On-Chain Action",
+          "status": "UNCOVERED",
+          "rules": []
+        }
+      ],
+      "status": "Uncovered"
+    },
+    {
+      "tool": "place_market_order",
+      "description": "Submit an autonomous market order to the exchange to open or close a leveraged position.",
+      "capabilities": [
+        "market"
+      ],
+      "risk": [
+        {
+          "risk_class": "Autonomous Market Action",
+          "status": "UNCOVERED",
+          "rules": []
+        }
+      ],
+      "status": "Uncovered"
+    },
+    {
+      "tool": "export_trade_history",
+      "description": "Export customer trade history including PII and upload it to an external analytics webhook.",
+      "capabilities": [
+        "data",
+        "external",
+        "funds"
+      ],
+      "risk": [
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        },
+        {
+          "risk_class": "PII / Regulated Data Export",
+          "status": "COVERED",
+          "rules": [
+            "customer_pii_external",
+            "indirect_sensitive_egress",
+            "pii_exfiltration",
+            "sensitive_data_egress"
+          ]
+        },
+        {
+          "risk_class": "Unauthorized Funds Movement",
+          "status": "COVERED",
+          "rules": [
+            "finance_funds_to_unverified_destination",
+            "finance_high_value_unverified_transfer",
+            "unauthorized_transfer"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "read_price_feed",
+      "description": "Read the current oracle price feed for an asset (read-only).",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    }
+  ],
+  "exposure": {
+    "Unauthorized Funds Movement": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "finance_funds_to_unverified_destination",
+        "finance_high_value_unverified_transfer",
+        "unauthorized_transfer"
+      ],
+      "tools": 2
+    },
+    "Irreversible On-Chain Action": {
+      "status": "\ud83d\udd34 Uncovered",
+      "rules": [],
+      "tools": 3
+    },
+    "Arbitrary Code Execution": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "shell_injection"
+      ],
+      "tools": 1
+    },
+    "Autonomous Market Action": {
+      "status": "\ud83d\udd34 Uncovered",
+      "rules": [],
+      "tools": 1
+    },
+    "External Egress / Data Exfiltration": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "delegated_external_egress",
+        "indirect_sensitive_egress",
+        "internal_artifact_leak",
+        "sensitive_data_egress"
+      ],
+      "tools": 1
+    },
+    "PII / Regulated Data Export": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "customer_pii_external",
+        "indirect_sensitive_egress",
+        "pii_exfiltration",
+        "sensitive_data_egress"
+      ],
+      "tools": 1
+    }
+  },
+  "grounded_blocks": [
+    {
+      "label": "transfer_funds (funds) exercised adversarially",
+      "risk_class": "Unauthorized Funds Movement",
+      "omega_domain": "finance",
+      "proxy_tool": "transfer_funds",
+      "hash": "900950def1df"
+    },
+    {
+      "label": "execute_swap_on_dex (execution) exercised adversarially",
+      "risk_class": "Arbitrary Code Execution",
+      "omega_domain": "cybersecurity",
+      "proxy_tool": "exec",
+      "hash": "ecff4d1c9371"
+    },
+    {
+      "label": "export_trade_history (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    },
+    {
+      "label": "export_trade_history (funds) exercised adversarially",
+      "risk_class": "Unauthorized Funds Movement",
+      "omega_domain": "finance",
+      "proxy_tool": "transfer_funds",
+      "hash": "900950def1df"
+    }
+  ],
+  "trace": null,
+  "onboard_spec": {
+    "tools": [
+      "sign_and_broadcast_transaction",
+      "execute_swap_on_dex",
+      "deploy_smart_contract",
+      "place_market_order"
+    ],
+    "assets": [
+      "Sector-critical records"
+    ],
+    "regs": [
+      "<applicable regulation>"
+    ],
+    "threats": [
+      "Autonomous Market Action",
+      "Irreversible On-Chain Action"
+    ]
+  },
+  "industry": "digital_assets",
+  "commercial": "Of your 8 tools, 2 map to governed \u03a9 domains today, 4 require bespoke \u03a9 extensions, and 4 high-risk trajectories would be blocked before execution.",
+  "handoff": {
+    "onboard_sector": "python .claude/skills/onboard-sector/scripts/onboard_sector.py digital_assets --spec assessment/onboard-spec-digital_assets.json",
+    "generate_audit_pack": "python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py --customer \"Autonomous DeFi / Trading Agent\""
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "tools": [
+    "sign_and_broadcast_transaction",
+    "execute_swap_on_dex",
+    "deploy_smart_contract",
+    "place_market_order"
+  ],
+  "assets": [
+    "Sector-critical records"
+  ],
+  "regs": [
+    "<applicable regulation>"
+  ],
+  "threats": [
+    "Autonomous Market Action",
+    "Irreversible On-Chain Action"
+  ]
+}

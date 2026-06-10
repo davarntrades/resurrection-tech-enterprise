@@ -36,7 +36,10 @@ Bedrock tool definitions · generic JSON tool lists · CSV · Markdown.
 
 ## Extracts per tool
 name · description · inputs · inferred capabilities: **privilege · external
-access · data access · execution · delegation**.
+access · data access · execution · delegation · funds · mutation**, plus
+AI-native / physical classes the live catalog does **not** yet govern —
+**on-chain · physical actuation · model integrity · resource/cost · autonomous
+market · synthetic identity** — which surface as genuine gaps.
 
 ## Maps to the live Ω catalog (no synthetic rules)
 Capabilities → risk classes → the **actual** Ω rules that would govern them.
@@ -49,6 +52,7 @@ tool a gap; uncertain risk is never reported as covered.
 - `gap-analysis.md` — uncovered/partial tools + recommended Ω extensions (onboard-ready).
 - `pilot-scope.md` — objectives, success criteria, integrations, risk reduction, plan.
 - `executive-summary.md` — coverage %, highest-risk trajectories, top gaps, pilot, time-to-value.
+- `assessment-report.pdf.md` — branded, Pandoc/PDF-ready leave-behind (all sections).
 - `onboard-spec-<industry>.json` — feeds `/onboard-sector`.
 
 ## Trace mode (optional)

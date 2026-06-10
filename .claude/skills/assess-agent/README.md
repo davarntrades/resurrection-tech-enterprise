@@ -54,7 +54,13 @@ trajectories · observed latency.
 | `examples/mcp-tools.json` | MCP | SOC / Security-Ops Agent |
 | `examples/langchain-tools.json` | LangChain | Healthcare Agent |
 | `examples/bedrock-tools.json` | Bedrock | Multi-Agent Coordinator |
+| `examples/defi-autonomous-agent.json` | generic JSON | Autonomous DeFi / Trading Agent — **shows real gaps** (on-chain + market) → `/onboard-sector` |
 | `examples/sample-traces.json` | trace log | `--traces` demo |
+
+The first four agents fall inside the covered catalog (100%); the DeFi agent
+carries on-chain / autonomous-market capabilities the catalog does not yet
+govern, so it surfaces genuine `UNCOVERED` gaps and an onboard-ready spec —
+demonstrating the fail-closed path end to end.
 
 ## Reuse (no duplicated governance logic)
 
