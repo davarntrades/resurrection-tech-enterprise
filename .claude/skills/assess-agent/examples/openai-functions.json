@@ -1,0 +1,89 @@
+{
+  "_comment": "Finance Agent — OpenAI function-calling schema (tools[].function).",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_account_balance",
+        "description": "Read the available balance for a customer account.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "account_id": {"type": "string"}
+          },
+          "required": ["account_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "transfer_funds",
+        "description": "Move funds from one account to another and settle the payment.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_account": {"type": "string"},
+            "to_account": {"type": "string"},
+            "amount": {"type": "number"}
+          },
+          "required": ["from_account", "to_account", "amount"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_wire_payment",
+        "description": "Submit an outbound wire payment to an external bank via the payment rail API.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "beneficiary": {"type": "string"},
+            "amount": {"type": "number"},
+            "swift": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "export_customer_records",
+        "description": "Export customer PII and card data to a downloadable CSV file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "segment": {"type": "string"},
+            "destination_url": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "approve_transaction",
+        "description": "Approve or override a pending transaction above the manual-review threshold.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "transaction_id": {"type": "string"},
+            "override": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_fx_rate",
+        "description": "Read the current foreign-exchange rate for a currency pair.",
+        "parameters": {
+          "type": "object",
+          "properties": {"pair": {"type": "string"}}
+        }
+      }
+    }
+  ]
+}

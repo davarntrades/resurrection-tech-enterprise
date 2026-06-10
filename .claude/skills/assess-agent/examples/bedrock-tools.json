@@ -1,0 +1,79 @@
+{
+  "_comment": "Multi-Agent Coordinator — Amazon Bedrock toolConfig (toolConfig.tools[].toolSpec).",
+  "toolConfig": {
+    "tools": [
+      {
+        "toolSpec": {
+          "name": "dispatch_subagent",
+          "description": "Spawn and delegate a task to a specialized sub-agent.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {"agent": {"type": "string"}, "task": {"type": "string"}}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "route_to_finance_agent",
+          "description": "Hand off a request to the finance agent to transfer funds or settle a payment.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {"amount": {"type": "number"}, "account": {"type": "string"}}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "aggregate_agent_results",
+          "description": "Read and combine outputs returned by the sub-agents.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {"run_id": {"type": "string"}}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "grant_agent_permission",
+          "description": "Grant a sub-agent an elevated role so it can access a restricted system.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {"agent": {"type": "string"}, "role": {"type": "string"}}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "publish_run_summary",
+          "description": "Send the orchestration run summary to an external webhook.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {"url": {"type": "string"}, "summary": {"type": "string"}}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "list_available_agents",
+          "description": "Read the registry of available sub-agents (read-only).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        }
+      }
+    ]
+  }
+}

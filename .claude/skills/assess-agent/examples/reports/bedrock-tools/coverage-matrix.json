@@ -1,0 +1,248 @@
+{
+  "schema": "morrison-omega-exposure/1",
+  "generated_utc": "2026-06-10T01:28:43Z",
+  "organization": "Multi-Agent Coordinator",
+  "manifest_format": "bedrock",
+  "catalog_rules": 95,
+  "summary": {
+    "tools": 6,
+    "risky": 4,
+    "covered": 4,
+    "partial": 0,
+    "uncovered": 0,
+    "coverage_pct": 100,
+    "verified_blocked_trajectories": 7
+  },
+  "tools": [
+    {
+      "tool": "dispatch_subagent",
+      "description": "Spawn and delegate a task to a specialized sub-agent.",
+      "capabilities": [
+        "delegation"
+      ],
+      "risk": [
+        {
+          "risk_class": "Cross-Agent Collusion",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "route_to_finance_agent",
+      "description": "Hand off a request to the finance agent to transfer funds or settle a payment.",
+      "capabilities": [
+        "data",
+        "delegation",
+        "external",
+        "funds"
+      ],
+      "risk": [
+        {
+          "risk_class": "Cross-Agent Collusion",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress"
+          ]
+        },
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        },
+        {
+          "risk_class": "Unauthorized Funds Movement",
+          "status": "COVERED",
+          "rules": [
+            "finance_funds_to_unverified_destination",
+            "finance_high_value_unverified_transfer",
+            "unauthorized_transfer"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "aggregate_agent_results",
+      "description": "Read and combine outputs returned by the sub-agents.",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    },
+    {
+      "tool": "grant_agent_permission",
+      "description": "Grant a sub-agent an elevated role so it can access a restricted system.",
+      "capabilities": [
+        "privilege"
+      ],
+      "risk": [
+        {
+          "risk_class": "Privilege Escalation",
+          "status": "COVERED",
+          "rules": [
+            "privilege_escalation",
+            "role_privilege_escalation",
+            "unauthorized_role_change"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "publish_run_summary",
+      "description": "Send the orchestration run summary to an external webhook.",
+      "capabilities": [
+        "delegation",
+        "external"
+      ],
+      "risk": [
+        {
+          "risk_class": "Cross-Agent Collusion",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress"
+          ]
+        },
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "list_available_agents",
+      "description": "Read the registry of available sub-agents (read-only).",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    }
+  ],
+  "exposure": {
+    "Cross-Agent Collusion": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "delegated_external_egress"
+      ],
+      "tools": 3
+    },
+    "External Egress / Data Exfiltration": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "delegated_external_egress",
+        "indirect_sensitive_egress",
+        "internal_artifact_leak",
+        "sensitive_data_egress"
+      ],
+      "tools": 2
+    },
+    "Unauthorized Funds Movement": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "finance_funds_to_unverified_destination",
+        "finance_high_value_unverified_transfer",
+        "unauthorized_transfer"
+      ],
+      "tools": 1
+    },
+    "Privilege Escalation": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "privilege_escalation",
+        "role_privilege_escalation",
+        "unauthorized_role_change"
+      ],
+      "tools": 1
+    }
+  },
+  "grounded_blocks": [
+    {
+      "label": "dispatch_subagent (delegation) exercised adversarially",
+      "risk_class": "Cross-Agent Collusion",
+      "omega_domain": "insurance",
+      "proxy_tool": "spawn_agent",
+      "hash": "6f209d1bed49"
+    },
+    {
+      "label": "route_to_finance_agent (delegation) exercised adversarially",
+      "risk_class": "Cross-Agent Collusion",
+      "omega_domain": "insurance",
+      "proxy_tool": "spawn_agent",
+      "hash": "6f209d1bed49"
+    },
+    {
+      "label": "route_to_finance_agent (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    },
+    {
+      "label": "route_to_finance_agent (funds) exercised adversarially",
+      "risk_class": "Unauthorized Funds Movement",
+      "omega_domain": "finance",
+      "proxy_tool": "transfer_funds",
+      "hash": "900950def1df"
+    },
+    {
+      "label": "grant_agent_permission (privilege) exercised adversarially",
+      "risk_class": "Privilege Escalation",
+      "omega_domain": "insurance",
+      "proxy_tool": "grant_role",
+      "hash": "6aa55b351cfe"
+    },
+    {
+      "label": "publish_run_summary (delegation) exercised adversarially",
+      "risk_class": "Cross-Agent Collusion",
+      "omega_domain": "insurance",
+      "proxy_tool": "spawn_agent",
+      "hash": "6f209d1bed49"
+    },
+    {
+      "label": "publish_run_summary (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    }
+  ],
+  "trace": null,
+  "onboard_spec": {
+    "tools": [
+      "finance_control_action"
+    ],
+    "assets": [
+      "Sector-critical records"
+    ],
+    "regs": [
+      "<applicable regulation>"
+    ],
+    "threats": [
+      "<no uncovered risk>"
+    ]
+  },
+  "industry": "finance",
+  "commercial": "Of your 6 tools, 4 map to governed \u03a9 domains today, 0 require bespoke \u03a9 extensions, and 7 high-risk trajectories would be blocked before execution.",
+  "handoff": {
+    "onboard_sector": "python .claude/skills/onboard-sector/scripts/onboard_sector.py finance --spec assessment/onboard-spec-finance.json",
+    "generate_audit_pack": "python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py --customer \"Multi-Agent Coordinator\""
+  }
+}

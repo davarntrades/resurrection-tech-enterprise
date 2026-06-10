@@ -1,0 +1,14 @@
+{
+  "tools": [
+    "healthcare_control_action"
+  ],
+  "assets": [
+    "Sector-critical records"
+  ],
+  "regs": [
+    "<applicable regulation>"
+  ],
+  "threats": [
+    "<no uncovered risk>"
+  ]
+}

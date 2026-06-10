@@ -1,0 +1,53 @@
+{
+  "_comment": "Healthcare Agent — LangChain-style tool registry (name/description/args_schema).",
+  "tools": [
+    {
+      "name": "get_patient_record",
+      "description": "Read a patient's EHR record including PHI and clinical history.",
+      "args_schema": {
+        "type": "object",
+        "properties": {"patient_id": {"type": "string"}}
+      }
+    },
+    {
+      "name": "schedule_appointment",
+      "description": "Create or update an appointment slot for a patient.",
+      "args_schema": {
+        "type": "object",
+        "properties": {"patient_id": {"type": "string"}, "slot": {"type": "string"}}
+      }
+    },
+    {
+      "name": "prescribe_medication",
+      "description": "Write a prescription order to the pharmacy system for a patient.",
+      "args_schema": {
+        "type": "object",
+        "properties": {"patient_id": {"type": "string"}, "drug": {"type": "string"}, "dose": {"type": "string"}}
+      }
+    },
+    {
+      "name": "export_phi_dataset",
+      "description": "Export a de-identified patient dataset and upload it to an external research portal.",
+      "args_schema": {
+        "type": "object",
+        "properties": {"cohort": {"type": "string"}, "destination_url": {"type": "string"}}
+      }
+    },
+    {
+      "name": "send_referral",
+      "description": "Transmit a patient referral with clinical notes to an external provider via email.",
+      "args_schema": {
+        "type": "object",
+        "properties": {"patient_id": {"type": "string"}, "provider_email": {"type": "string"}}
+      }
+    },
+    {
+      "name": "lookup_drug_interactions",
+      "description": "Read the drug-interaction reference database (read-only).",
+      "args_schema": {
+        "type": "object",
+        "properties": {"drug": {"type": "string"}}
+      }
+    }
+  ]
+}

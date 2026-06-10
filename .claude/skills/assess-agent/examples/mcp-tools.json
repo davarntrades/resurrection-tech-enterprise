@@ -1,0 +1,69 @@
+{
+  "_comment": "SOC / Security-Operations Agent — MCP tool manifest (tools[].inputSchema).",
+  "tools": [
+    {
+      "name": "query_siem_alerts",
+      "description": "Read and list open alerts from the SIEM for triage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"severity": {"type": "string"}, "since": {"type": "string"}}
+      }
+    },
+    {
+      "name": "run_shell_command",
+      "description": "Execute a shell command on a managed endpoint to collect forensic evidence.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"host": {"type": "string"}, "command": {"type": "string"}}
+      }
+    },
+    {
+      "name": "read_secret_vault",
+      "description": "Retrieve a credential or API token from the secrets vault for an investigation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"secret_path": {"type": "string"}}
+      }
+    },
+    {
+      "name": "isolate_host",
+      "description": "Change firewall policy to quarantine a compromised host from the network.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"host": {"type": "string"}}
+      }
+    },
+    {
+      "name": "grant_iam_role",
+      "description": "Grant or escalate an IAM role for a responder during an incident.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"principal": {"type": "string"}, "role": {"type": "string"}}
+      }
+    },
+    {
+      "name": "disable_audit_logging",
+      "description": "Temporarily disable audit logging on a host during maintenance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"host": {"type": "string"}, "duration_minutes": {"type": "number"}}
+      }
+    },
+    {
+      "name": "post_threat_intel",
+      "description": "Publish an indicator-of-compromise to an external threat-intel sharing API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"indicator": {"type": "string"}, "url": {"type": "string"}}
+      }
+    },
+    {
+      "name": "enrich_indicator",
+      "description": "Look up reputation data for an IP or hash (read-only enrichment).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {"indicator": {"type": "string"}}
+      }
+    }
+  ]
+}
