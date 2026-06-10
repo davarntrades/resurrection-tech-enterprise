@@ -211,6 +211,18 @@ function Report({ report }: { report: AssessReport }) {
         <Stat n={s.verified_blocked_trajectories} label="verified BLOCK before execution" tone="accent" />
       </div>
 
+      {report.latency && (
+        <div className="assess-latency" aria-label="Measured evaluation latency">
+          <span className="assess-latency-icon" aria-hidden="true">⚡</span>
+          <span>
+            <strong>{report.latency.p50} ms</strong> median pre-execution check
+            {" "}(p95 {report.latency.p95} ms · max {report.latency.max} ms, {report.latency.samples} samples).
+            Every verdict is computed <strong>before</strong> the tool runs — engine compute, not round-trip.
+            At this speed governance sits inline in the hot path without slowing the agent.
+          </span>
+        </div>
+      )}
+
       <h2 className="assess-h2">Reachable forbidden states (Ω exposure)</h2>
       <div className="assess-table-wrap">
         <table className="assess-table">
