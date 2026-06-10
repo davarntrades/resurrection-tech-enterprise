@@ -56,8 +56,12 @@ jobs:
           assert s["verified_blocked_trajectories"] >= 1, "no grounded BLOCK trajectories"
           assert r.get("commercial"), "missing commercial line"
           assert (r.get("attestation") or {}).get("engine_commit"), "no attestation"
+          lat = r.get("latency") or {}
+          assert lat.get("p50") is not None and lat.get("p95") is not None, "no measured latency"
+          assert lat["p95"] >= lat["p50"] and lat["max"] < 1000, f"implausible latency {lat}"
           print(f"/v1/assess live ✓ · cov {s['coverage_pct']}% · "
-                f"{s['uncovered']} gap(s) · {s['verified_blocked_trajectories']} verified BLOCK")
+                f"{s['uncovered']} gap(s) · {s['verified_blocked_trajectories']} verified BLOCK · "
+                f"p50 {lat['p50']} ms")
           PY
 
       - name: "Website /assess proxy returns a live report"

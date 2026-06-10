@@ -116,6 +116,17 @@
 .assess-attest { text-align: center; color: var(--fg-3, #8b95a5); font-size: 0.78rem; margin-top: 1.25rem; }
 .assess-attest code { background: var(--bg-2, #1a1f27); border-radius: 5px; padding: 0.05rem 0.3rem; }
 
+/* ── latency banner ── */
+.assess-latency {
+  display: flex; gap: 0.7rem; align-items: flex-start;
+  margin: -0.75rem 0 2rem; padding: 0.85rem 1.1rem;
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 8%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 30%, var(--border, #232a35));
+  border-radius: 12px; font-size: 0.9rem; line-height: 1.5; color: var(--fg-2, #b8c0cc);
+}
+.assess-latency strong { color: var(--fg-1, #e7ecf3); }
+.assess-latency-icon { font-size: 1.1rem; line-height: 1.4; }
+
 /* ── lead capture ── */
 .assess-lead {
   margin: 0 auto 1rem; max-width: 640px; text-align: left;

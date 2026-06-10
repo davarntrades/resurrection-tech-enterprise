@@ -163,6 +163,7 @@ export interface AssessReport {
   }[];
   exposure: Record<string, { status: "Covered" | "Partial" | "Uncovered"; rules: string[]; tools: number }>;
   grounded_blocks: { label: string; risk_class: string; omega_domain: string | null; proxy_tool: string; hash: string }[];
+  latency: { unit: string; measured: string; samples: number; p50: number; p95: number; avg: number; max: number } | null;
   industry: string;
   onboard_spec: { tools: string[]; assets: string[]; regs: string[]; threats: string[] };
   commercial: string;

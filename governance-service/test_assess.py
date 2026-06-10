@@ -81,6 +81,17 @@ def main() -> int:
     else:
         print(f"  grounding ✓  ({fin['summary']['verified_blocked_trajectories']} verified BLOCK, real hashes)")
 
+    # 3b. Latency contract: a measured, monotonic, sub-second-sane block.
+    lat = fin.get("latency")
+    if not lat or any(lat.get(k) is None for k in ("p50", "p95", "avg", "max")):
+        failures.append("latency contract: missing measured latency block")
+    elif not (lat["p95"] >= lat["p50"] and lat["max"] >= lat["p95"]):
+        failures.append(f"latency contract: non-monotonic percentiles {lat}")
+    elif lat["max"] >= 1000:  # very loose CI-noise bound; engine compute is sub-ms
+        failures.append(f"latency contract: implausible max {lat['max']} ms")
+    else:
+        print(f"  latency ✓  (p50 {lat['p50']} ms · p95 {lat['p95']} ms · {lat['samples']} samples)")
+
     # 4. Never fabricates: every reported rule exists in the live catalog.
     names = {c["name"] for c in cat}
     for stem in REFERENCE:

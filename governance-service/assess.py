@@ -14,6 +14,7 @@ import csv
 import io
 import json
 import re
+import time
 from typing import Any, Optional
 
 # ── capability detection (mirrors assess-agent skill) ───────────────────────
@@ -447,6 +448,47 @@ def commercial(total, governed, uncovered, blocked) -> str:
             f"trajectories would be blocked before execution.")
 
 
+def measure_latency(tools: list[dict], layer, target: int = 60) -> Optional[dict]:
+    """Measure how fast the engine evaluates THIS agent's trajectories — warm,
+    in-process engine compute time (not network round-trip). Uses the canonical
+    proxy trajectories for the agent's detected capabilities so the figure
+    reflects realistic, full-catalog evaluation. Returns p50/p95/avg/max in ms."""
+    if layer is None:
+        return None
+    trajs: list[list] = []
+    caps: set[str] = set()
+    for t in tools:
+        caps |= detect_caps(t)
+    for cap in sorted(caps):
+        pr = _proxy(cap)
+        if pr:
+            trajs.append(pr[0])
+    if not trajs:  # no risk-carrying capability → time a benign single step
+        trajs = [[{"tool": "read_report", "args": {}}]]
+    try:
+        for steps in trajs:  # warm-up (JIT caches, rule closures)
+            layer.evaluate_plan([dict(s) for s in steps])
+        samples: list[float] = []
+        i = 0
+        while len(samples) < target:
+            steps = trajs[i % len(trajs)]
+            t0 = time.perf_counter()
+            layer.evaluate_plan([dict(s) for s in steps])
+            samples.append((time.perf_counter() - t0) * 1000.0)
+            i += 1
+    except Exception:
+        return None
+    samples.sort()
+    n = len(samples)
+
+    def q(p: float) -> float:
+        return round(samples[min(n - 1, int(p * n))], 4)
+
+    return {"unit": "ms", "measured": "engine evaluate_plan, warm (compute only, not round-trip)",
+            "samples": n, "p50": q(0.50), "p95": q(0.95),
+            "avg": round(sum(samples) / n, 4), "max": round(samples[-1], 4)}
+
+
 def assess(payload: Any, catalog: list[dict], ground_layer=None,
            fmt_hint: str = "", org: Optional[str] = None) -> dict:
     """Full assessment: parse → infer → map (fail-closed) → ground. Returns the
@@ -456,6 +498,7 @@ def assess(payload: Any, catalog: list[dict], ground_layer=None,
         raise ValueError("no tools parsed from manifest")
     assessed = assess_tools(tools, catalog)
     blocks = grounded_blocks(tools, ground_layer)
+    latency = measure_latency(tools, ground_layer)
 
     risky = [a for a in assessed if a["status"] != "No-risk"]
     covered = [a for a in assessed if a["status"] == "Covered"]
@@ -490,6 +533,7 @@ def assess(payload: Any, catalog: list[dict], ground_layer=None,
         "exposure": {k: {"status": estat(v["status"]), "rules": sorted(v["rules"]), "tools": v["tools"]}
                      for k, v in exposure.items()},
         "grounded_blocks": blocks,
+        "latency": latency,
         "industry": ind,
         "onboard_spec": onboard,
         "commercial": commercial(len(tools), governed, len(uncovered), len(blocks)),
