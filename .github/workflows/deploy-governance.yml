@@ -56,3 +56,6 @@ jobs:
       - name: Replay determinism + tamper-detection
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_replay.py
+      - name: Assessment parity + fail-closed/grounding contracts (/v1/assess)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_assess.py
