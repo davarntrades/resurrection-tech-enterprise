@@ -37,4 +37,11 @@ export interface LeadSubmitResponse {
   reference?: string;
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** Per-sink delivery outcome (non-secret booleans) for observability/verification. */
+  delivery?: {
+    forwarded: boolean;   // LEAD_FORWARD_URL webhook accepted it
+    stored: boolean;      // persisted to the Supabase `leads` table
+    emailed: boolean;     // Resend notification sent to LEAD_NOTIFY_TO
+    logged_only: boolean; // no sink handled it — server log is the only record
+  };
 }
