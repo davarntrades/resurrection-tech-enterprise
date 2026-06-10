@@ -59,7 +59,9 @@ export async function POST(req: Request): Promise<NextResponse<LeadSubmitRespons
   }
 
   const reference = makeReference();
-  let handled = false;
+  let forwarded = false;
+  let stored = false;
+  let emailed = false;
 
   // ── Integration point 1: forward to Formspree / generic webhook ───────────
   const forwardUrl = process.env.LEAD_FORWARD_URL;
@@ -70,7 +72,7 @@ export async function POST(req: Request): Promise<NextResponse<LeadSubmitRespons
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ reference, ...data, company_url_confirm: undefined }),
       });
-      handled = handled || res.ok;
+      forwarded = res.ok;
       if (!res.ok) console.error("[lead] forward failed:", res.status);
     } catch (e) {
       console.error("[lead] forward error:", e);
@@ -95,22 +97,31 @@ export async function POST(req: Request): Promise<NextResponse<LeadSubmitRespons
     if (error) {
       console.error("[lead] supabase insert failed:", error.message);
     } else {
-      handled = true;
+      stored = true;
     }
   }
 
   // ── Integration point 3: Resend notification (optional) ───────────────────
   try {
     const r = await sendLeadEmail(data, reference);
-    handled = handled || r.sent;
+    emailed = r.sent;
   } catch (e) {
     console.error("[lead] email send failed:", e);
   }
 
-  if (!handled) {
+  const logged_only = !(forwarded || stored || emailed);
+  if (logged_only) {
     // No integration configured (e.g. local dev). Log so nothing is lost.
     console.warn("[lead] no sink configured — captured lead logged.", { reference, ...data });
   }
+  // One structured line per lead for observability (metadata only).
+  console.log(JSON.stringify({
+    evt: "lead", reference, source: data.source,
+    forwarded, stored, emailed, logged_only,
+  }));
 
-  return NextResponse.json({ ok: true, reference });
+  return NextResponse.json({
+    ok: true, reference,
+    delivery: { forwarded, stored, emailed, logged_only },
+  });
 }
