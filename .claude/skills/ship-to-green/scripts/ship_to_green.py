@@ -103,7 +103,7 @@ def validate(root: str, engine_dir: str | None, cats: dict, requires_corpus: boo
             suites.append({"suite": "corpus", "status": "FAIL", "detail": str(e)[:200]})
         # script suites
         run_hardening = bool(cats.get("governance") or cats.get("corpus") or requires_corpus)
-        scripts = ["test_replay.py"]
+        scripts = ["test_replay.py", "test_assess.py"]
         if run_hardening:
             scripts += ["test_sector_hardening.py", "test_domain_hardening.py", "test_finance_hardening.py"]
         for sc in scripts:

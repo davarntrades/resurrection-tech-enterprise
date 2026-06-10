@@ -24,6 +24,7 @@
 @import "./pay.css";
 @import "./case-studies.css";
 @import "./why.css";
+@import "./assess.css";
 
 @tailwind components;
 @tailwind utilities;
