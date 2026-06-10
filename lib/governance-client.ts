@@ -146,6 +146,64 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
   };
 }
 
+/** Shape of the /v1/assess response (governance-service/assess.py::assess). */
+export interface AssessReport {
+  schema: string;
+  organization: string;
+  manifest_format: string;
+  catalog_rules: number;
+  summary: {
+    tools: number; risky: number; covered: number; partial: number;
+    uncovered: number; coverage_pct: number; verified_blocked_trajectories: number;
+  };
+  tools: {
+    tool: string; description: string; capabilities: string[];
+    risk: { risk_class: string; status: "COVERED" | "PARTIAL" | "UNCOVERED"; rules: string[] }[];
+    status: "Covered" | "Partial" | "Uncovered" | "No-risk";
+  }[];
+  exposure: Record<string, { status: "Covered" | "Partial" | "Uncovered"; rules: string[]; tools: number }>;
+  grounded_blocks: { label: string; risk_class: string; omega_domain: string | null; proxy_tool: string; hash: string }[];
+  industry: string;
+  onboard_spec: { tools: string[]; assets: string[]; regs: string[]; threats: string[] };
+  commercial: string;
+  attestation?: { engine_commit: string; ruleset_hash: string; service_version: string; horizon: number };
+}
+
+/**
+ * Call the real governance service's public /v1/assess endpoint with a tool
+ * manifest (parsed JSON object/array, or raw text). Throws on any failure so
+ * the route can surface a clean error. Never executes a tool call.
+ */
+export async function assessViaGovernance(
+  input: { manifest?: unknown; manifest_text?: string; org?: string; format?: string },
+): Promise<AssessReport> {
+  const base = (process.env.GOVERNANCE_URL ?? DEFAULT_GOVERNANCE_URL).trim();
+  if (!base) throw new Error("GOVERNANCE_URL disabled");
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/v1/assess`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+    signal: AbortSignal.timeout(TIMEOUT_MS * 4),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let detail = `governance service ${res.status}`;
+    try {
+      const j = (await res.json()) as { detail?: string };
+      if (j?.detail) detail = j.detail;
+    } catch { /* keep generic */ }
+    const err = new Error(detail) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  const report = (await res.json()) as AssessReport;
+  if (!report || typeof report.summary?.tools !== "number") {
+    throw new Error("governance service: malformed assessment");
+  }
+  return report;
+}
+
 /**
  * Call the real governance service. Throws on any failure so the caller can
  * fall back to the heuristic evaluator. Never executes a tool call.
