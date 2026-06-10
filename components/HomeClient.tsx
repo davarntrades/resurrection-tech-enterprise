@@ -90,26 +90,26 @@ export function HomeClient() {
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
-                  href="/live-demo"
+                  href="/assess"
                   className="btn btn--primary btn--live"
-                  onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "live-demo" })}
+                  onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "assess" })}
                 >
                   <span className="live-pip" aria-hidden="true" />
+                  Assess Your Agent — Free <span className="arr">→</span>
+                </Link>
+                <Link
+                  href="/live-demo"
+                  className="btn btn--primary"
+                  onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "live-demo" })}
+                >
                   Try Live Demo <span className="arr">→</span>
                 </Link>
                 <Link
                   href="/book#assessment"
-                  className="btn btn--primary"
-                  onClick={() => track(Events.CTA_CLICK, { location: "hero" })}
+                  className="btn btn--ghost"
+                  onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "book" })}
                 >
                   Book a Runtime Safety Assessment <span className="arr">→</span>
-                </Link>
-                <Link
-                  href="/integrations"
-                  className="btn btn--ghost"
-                  onClick={() => track(Events.CTA_CLICK, { location: "hero-integrations" })}
-                >
-                  See How It Integrates <span className="arr">→</span>
                 </Link>
               </div>
               <div className="hero-tryit reveal in" data-d="4">

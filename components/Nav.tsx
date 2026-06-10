@@ -82,11 +82,11 @@ export function Nav() {
 
         <div className="nav-cta">
           <Link
-            href="/book#assessment"
+            href="/assess"
             className="btn btn--primary btn--sm"
-            onClick={() => track(Events.CTA_CLICK, { location: "nav" })}
+            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
           >
-            Book Assessment <span className="arr">→</span>
+            Assess Your Agent <span className="arr">→</span>
           </Link>
           <button
             type="button"
@@ -113,9 +113,16 @@ export function Nav() {
           {/* Conversion actions first — top on mobile */}
           <div className="nav-menu-cta">
             <Link
-              href="/book#assessment"
+              href="/assess"
               className="btn btn--primary"
-              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu" }); setMenuOpen(false); }}
+              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "assess" }); setMenuOpen(false); }}
+            >
+              Assess Your Agent — Free <span className="arr">→</span>
+            </Link>
+            <Link
+              href="/book#assessment"
+              className="btn btn--ghost"
+              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "book" }); setMenuOpen(false); }}
             >
               Book a Runtime Safety Assessment <span className="arr">→</span>
             </Link>
