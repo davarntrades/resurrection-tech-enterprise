@@ -9,6 +9,7 @@ nothing here is a placeholder.
 
 | Skill | Command | Does | Outputs |
 |---|---|---|---|
+| **assess-agent** ⭐ | `/assess-agent` | **Day-1 front door.** Prospect uploads a tool manifest (OpenAI/MCP/LangChain/Bedrock/JSON/CSV/MD) → Ω exposure map, coverage matrix, gap analysis, pilot scope, exec summary in minutes, zero integration. Maps only to the live catalog (fail-closed); grounds blocks through the real engine; optional trace replay | `assessment/…` + `onboard-spec-<industry>.json` |
 | **threat-model-omega-mapping** | `/threat-model` | Map a prospect threat model to the live Ω catalog → coverage matrix, gap analysis, recommended Ω extensions, pilot scope, exec summary | `threat-model/…` + `onboard-spec-<industry>.json` |
 | **verify-production** | `/verify-production` | Source-side deploy verification + attestation: artefacts exist, JSON integrity, tables↔source, latency↔measured, replay determinism + tamper, audit-chain, deployment metadata | `attestation/verify-production-report.{md,json}` |
 | **generate-audit-pack** | `/generate-audit-pack` | Customer-ready due-diligence pack from live assets (benchmark, validation corpus, replay, audit trail, coverage, attestation) | `audit-pack/audit-pack.md`, `.pdf.md`, `evidence-manifest.json` |
@@ -18,7 +19,8 @@ nothing here is a placeholder.
 ## Commercial pipeline
 ```
 Prospect
-  → threat-model-omega-mapping   (what would we protect? coverage + gaps + pilot scope)
+  → assess-agent                 (Day 1: upload tool manifest → Ω exposure, coverage, grounded blocks, pilot — zero integration)
+  → threat-model-omega-mapping   (deepen: map a full threat model to the live Ω catalog)
   → onboard-sector               (close the gaps: new Ω registry)
   → generate-audit-pack          (evidence pack for the pilot / due diligence)
   → verify-production            (attest every deploy; nightly guard)
@@ -31,6 +33,11 @@ Every change above ships via ship-to-green (validate → benchmark → evidence 
 ```
 .claude/skills/
 ├── README.md
+├── assess-agent/
+│   ├── SKILL.md · README.md
+│   ├── scripts/assess_agent.py
+│   ├── templates/{executive-summary,omega-exposure-report,pilot-scope}.md
+│   └── examples/{openai-functions,mcp-tools,langchain-tools,bedrock-tools,sample-traces}.json
 ├── threat-model-omega-mapping/
 │   ├── SKILL.md · README.md
 │   ├── scripts/threat_model_omega.py
@@ -61,9 +68,10 @@ reuses `verify-production`'s core.
 
 ## Quick start
 ```bash
+python .claude/skills/assess-agent/scripts/assess_agent.py --manifest .claude/skills/assess-agent/examples/openai-functions.json --org "ACME"
 python .claude/skills/verify-production/scripts/verify_production.py
 python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py --customer "ACME"
 python .claude/skills/onboard-sector/scripts/onboard_sector.py biometrics --tools enroll_template,match_face
 ```
-Generated outputs (`attestation/`, `audit-pack/`, `sectors_scaffold/`) are
+Generated outputs (`assessment/`, `attestation/`, `audit-pack/`, `sectors_scaffold/`) are
 git-ignored — they're runtime artefacts.

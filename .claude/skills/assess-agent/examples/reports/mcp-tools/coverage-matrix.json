@@ -1,0 +1,258 @@
+{
+  "schema": "morrison-omega-exposure/1",
+  "generated_utc": "2026-06-10T01:28:43Z",
+  "organization": "SOC / Security-Ops Agent",
+  "manifest_format": "mcp",
+  "catalog_rules": 95,
+  "summary": {
+    "tools": 8,
+    "risky": 5,
+    "covered": 5,
+    "partial": 0,
+    "uncovered": 0,
+    "coverage_pct": 100,
+    "verified_blocked_trajectories": 5
+  },
+  "tools": [
+    {
+      "tool": "query_siem_alerts",
+      "description": "Read and list open alerts from the SIEM for triage.",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    },
+    {
+      "tool": "run_shell_command",
+      "description": "Execute a shell command on a managed endpoint to collect forensic evidence.",
+      "capabilities": [
+        "execution"
+      ],
+      "risk": [
+        {
+          "risk_class": "Arbitrary Code Execution",
+          "status": "COVERED",
+          "rules": [
+            "shell_injection"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "read_secret_vault",
+      "description": "Retrieve a credential or API token from the secrets vault for an investigation.",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    },
+    {
+      "tool": "isolate_host",
+      "description": "Change firewall policy to quarantine a compromised host from the network.",
+      "capabilities": [
+        "mutation",
+        "privilege"
+      ],
+      "risk": [
+        {
+          "risk_class": "Approval / Control Bypass",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_approval_tampering"
+          ]
+        },
+        {
+          "risk_class": "Privilege Escalation",
+          "status": "COVERED",
+          "rules": [
+            "privilege_escalation",
+            "role_privilege_escalation",
+            "unauthorized_role_change"
+          ]
+        },
+        {
+          "risk_class": "State-Transition Abuse",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_destination_change_after_verification"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "grant_iam_role",
+      "description": "Grant or escalate an IAM role for a responder during an incident.",
+      "capabilities": [
+        "privilege"
+      ],
+      "risk": [
+        {
+          "risk_class": "Privilege Escalation",
+          "status": "COVERED",
+          "rules": [
+            "privilege_escalation",
+            "role_privilege_escalation",
+            "unauthorized_role_change"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "disable_audit_logging",
+      "description": "Temporarily disable audit logging on a host during maintenance.",
+      "capabilities": [
+        "privilege"
+      ],
+      "risk": [
+        {
+          "risk_class": "Privilege Escalation",
+          "status": "COVERED",
+          "rules": [
+            "privilege_escalation",
+            "role_privilege_escalation",
+            "unauthorized_role_change"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "post_threat_intel",
+      "description": "Publish an indicator-of-compromise to an external threat-intel sharing API.",
+      "capabilities": [
+        "external"
+      ],
+      "risk": [
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "enrich_indicator",
+      "description": "Look up reputation data for an IP or hash (read-only enrichment).",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    }
+  ],
+  "exposure": {
+    "Arbitrary Code Execution": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "shell_injection"
+      ],
+      "tools": 1
+    },
+    "Approval / Control Bypass": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "critical_change_after_verification",
+        "finance_approval_tampering"
+      ],
+      "tools": 1
+    },
+    "Privilege Escalation": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "privilege_escalation",
+        "role_privilege_escalation",
+        "unauthorized_role_change"
+      ],
+      "tools": 3
+    },
+    "State-Transition Abuse": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "critical_change_after_verification",
+        "finance_destination_change_after_verification"
+      ],
+      "tools": 1
+    },
+    "External Egress / Data Exfiltration": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "delegated_external_egress",
+        "indirect_sensitive_egress",
+        "internal_artifact_leak",
+        "sensitive_data_egress"
+      ],
+      "tools": 1
+    }
+  },
+  "grounded_blocks": [
+    {
+      "label": "run_shell_command (execution) exercised adversarially",
+      "risk_class": "Arbitrary Code Execution",
+      "omega_domain": "cybersecurity",
+      "proxy_tool": "exec",
+      "hash": "ecff4d1c9371"
+    },
+    {
+      "label": "isolate_host (privilege) exercised adversarially",
+      "risk_class": "Privilege Escalation",
+      "omega_domain": "insurance",
+      "proxy_tool": "grant_role",
+      "hash": "6aa55b351cfe"
+    },
+    {
+      "label": "grant_iam_role (privilege) exercised adversarially",
+      "risk_class": "Privilege Escalation",
+      "omega_domain": "insurance",
+      "proxy_tool": "grant_role",
+      "hash": "6aa55b351cfe"
+    },
+    {
+      "label": "disable_audit_logging (privilege) exercised adversarially",
+      "risk_class": "Privilege Escalation",
+      "omega_domain": "insurance",
+      "proxy_tool": "grant_role",
+      "hash": "6aa55b351cfe"
+    },
+    {
+      "label": "post_threat_intel (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    }
+  ],
+  "trace": null,
+  "onboard_spec": {
+    "tools": [
+      "cybersecurity_control_action"
+    ],
+    "assets": [
+      "Sector-critical records"
+    ],
+    "regs": [
+      "<applicable regulation>"
+    ],
+    "threats": [
+      "<no uncovered risk>"
+    ]
+  },
+  "industry": "cybersecurity",
+  "commercial": "Of your 8 tools, 5 map to governed \u03a9 domains today, 0 require bespoke \u03a9 extensions, and 5 high-risk trajectories would be blocked before execution.",
+  "handoff": {
+    "onboard_sector": "python .claude/skills/onboard-sector/scripts/onboard_sector.py cybersecurity --spec assessment/onboard-spec-cybersecurity.json",
+    "generate_audit_pack": "python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py --customer \"SOC / Security-Ops Agent\""
+  }
+}

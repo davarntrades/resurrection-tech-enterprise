@@ -1,0 +1,221 @@
+{
+  "schema": "morrison-omega-exposure/1",
+  "generated_utc": "2026-06-10T01:28:43Z",
+  "organization": "Healthcare Agent",
+  "manifest_format": "langchain",
+  "catalog_rules": 95,
+  "summary": {
+    "tools": 6,
+    "risky": 4,
+    "covered": 4,
+    "partial": 0,
+    "uncovered": 0,
+    "coverage_pct": 100,
+    "verified_blocked_trajectories": 2
+  },
+  "tools": [
+    {
+      "tool": "get_patient_record",
+      "description": "Read a patient's EHR record including PHI and clinical history.",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    },
+    {
+      "tool": "schedule_appointment",
+      "description": "Create or update an appointment slot for a patient.",
+      "capabilities": [
+        "data",
+        "mutation"
+      ],
+      "risk": [
+        {
+          "risk_class": "Approval / Control Bypass",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_approval_tampering"
+          ]
+        },
+        {
+          "risk_class": "State-Transition Abuse",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_destination_change_after_verification"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "prescribe_medication",
+      "description": "Write a prescription order to the pharmacy system for a patient.",
+      "capabilities": [
+        "data",
+        "mutation"
+      ],
+      "risk": [
+        {
+          "risk_class": "Approval / Control Bypass",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_approval_tampering"
+          ]
+        },
+        {
+          "risk_class": "State-Transition Abuse",
+          "status": "COVERED",
+          "rules": [
+            "critical_change_after_verification",
+            "finance_destination_change_after_verification"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "export_phi_dataset",
+      "description": "Export a de-identified patient dataset and upload it to an external research portal.",
+      "capabilities": [
+        "data",
+        "external"
+      ],
+      "risk": [
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        },
+        {
+          "risk_class": "PHI Exposure",
+          "status": "COVERED",
+          "rules": [
+            "healthcare_phi_egress",
+            "phi_exposure"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "send_referral",
+      "description": "Transmit a patient referral with clinical notes to an external provider via email.",
+      "capabilities": [
+        "data",
+        "external"
+      ],
+      "risk": [
+        {
+          "risk_class": "External Egress / Data Exfiltration",
+          "status": "COVERED",
+          "rules": [
+            "delegated_external_egress",
+            "indirect_sensitive_egress",
+            "internal_artifact_leak",
+            "sensitive_data_egress"
+          ]
+        },
+        {
+          "risk_class": "PHI Exposure",
+          "status": "COVERED",
+          "rules": [
+            "healthcare_phi_egress",
+            "phi_exposure"
+          ]
+        }
+      ],
+      "status": "Covered"
+    },
+    {
+      "tool": "lookup_drug_interactions",
+      "description": "Read the drug-interaction reference database (read-only).",
+      "capabilities": [
+        "data"
+      ],
+      "risk": [],
+      "status": "No-risk"
+    }
+  ],
+  "exposure": {
+    "Approval / Control Bypass": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "critical_change_after_verification",
+        "finance_approval_tampering"
+      ],
+      "tools": 2
+    },
+    "State-Transition Abuse": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "critical_change_after_verification",
+        "finance_destination_change_after_verification"
+      ],
+      "tools": 2
+    },
+    "External Egress / Data Exfiltration": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "delegated_external_egress",
+        "indirect_sensitive_egress",
+        "internal_artifact_leak",
+        "sensitive_data_egress"
+      ],
+      "tools": 2
+    },
+    "PHI Exposure": {
+      "status": "\ud83d\udfe2 Covered",
+      "rules": [
+        "healthcare_phi_egress",
+        "phi_exposure"
+      ],
+      "tools": 2
+    }
+  },
+  "grounded_blocks": [
+    {
+      "label": "export_phi_dataset (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    },
+    {
+      "label": "send_referral (external) exercised adversarially",
+      "risk_class": "External Egress / Data Exfiltration",
+      "omega_domain": "data_privacy",
+      "proxy_tool": "http_post",
+      "hash": "787c0715cc15"
+    }
+  ],
+  "trace": null,
+  "onboard_spec": {
+    "tools": [
+      "healthcare_control_action"
+    ],
+    "assets": [
+      "Sector-critical records"
+    ],
+    "regs": [
+      "<applicable regulation>"
+    ],
+    "threats": [
+      "<no uncovered risk>"
+    ]
+  },
+  "industry": "healthcare",
+  "commercial": "Of your 6 tools, 4 map to governed \u03a9 domains today, 0 require bespoke \u03a9 extensions, and 2 high-risk trajectories would be blocked before execution.",
+  "handoff": {
+    "onboard_sector": "python .claude/skills/onboard-sector/scripts/onboard_sector.py healthcare --spec assessment/onboard-spec-healthcare.json",
+    "generate_audit_pack": "python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py --customer \"Healthcare Agent\""
+  }
+}
