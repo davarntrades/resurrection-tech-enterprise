@@ -15,11 +15,21 @@ export const metadata: Metadata = {
   },
 };
 
-const SUPPORTS = [
+const PRIMARY = [
   ["Article 9", "Risk Management"],
   ["Article 12", "Record-Keeping, Logging & Traceability"],
   ["Article 14", "Human Oversight"],
   ["Article 15", "Accuracy, Robustness & Cybersecurity"],
+];
+const STRONG = [
+  ["Article 26", "Deployer Obligations"],
+  ["Article 19", "Automatically Generated Logs"],
+];
+const SUPPORTING = [
+  ["Article 72", "Post-Market Monitoring"],
+  ["Article 13", "Transparency"],
+  ["Article 21", "Cooperation with Authorities"],
+  ["Article 17", "Quality Management (support)"],
 ];
 
 const PROVIDES = [
@@ -67,9 +77,30 @@ export default function Page() {
             </p>
           </header>
 
-          <h2 className="prog-h2">Runtime Governance demonstrably supports</h2>
+          <p className="cmpl-deployer">
+            <strong>Built for AI deployers, not just AI providers.</strong> Most AI-Act tooling
+            targets provider obligations; Runtime Governance also provides the enforcement and
+            evidence controls that support <em>deployer</em> obligations (Article 26) — where most
+            enterprises actually sit.
+          </p>
+
+          <h2 className="prog-h2">Primary alignment</h2>
           <ul className="cmpl-articles">
-            {SUPPORTS.map(([a, t]) => (
+            {PRIMARY.map(([a, t]) => (
+              <li key={a}><span className="cmpl-art">{a}</span><span className="cmpl-art-t">{t}</span></li>
+            ))}
+          </ul>
+
+          <h2 className="prog-h2">Strong additional alignment</h2>
+          <ul className="cmpl-articles">
+            {STRONG.map(([a, t]) => (
+              <li key={a} className="cmpl-articles--strong"><span className="cmpl-art">{a}</span><span className="cmpl-art-t">{t}</span></li>
+            ))}
+          </ul>
+
+          <h2 className="prog-h2">Supporting alignment</h2>
+          <ul className="cmpl-articles cmpl-articles--muted">
+            {SUPPORTING.map(([a, t]) => (
               <li key={a}><span className="cmpl-art">{a}</span><span className="cmpl-art-t">{t}</span></li>
             ))}
           </ul>

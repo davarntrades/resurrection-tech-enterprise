@@ -91,3 +91,61 @@
 .cmpl-table tr:last-child td { border-bottom: none; }
 .cmpl-table .cmpl-yes { color: var(--ok, #34d399); font-weight: 700; font-size: 1.1rem; }
 .cmpl-table .cmpl-no { color: var(--bad, #ff6b6b); font-weight: 700; font-size: 1.1rem; }
+
+/* ── Homepage EU AI Act deployer trust block (below hero) ── */
+.eu-trust { padding: 1rem 0 0.5rem; }
+.eu-trust-card {
+  max-width: 880px; margin: 0 auto; text-align: center;
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 6%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 30%, var(--border, #232a35));
+  border-radius: 18px; padding: 1.75rem 1.75rem 1.5rem;
+}
+.eu-trust-eyebrow {
+  display: inline-block; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent, #6ea8fe); margin: 0 0 0.5rem;
+}
+.eu-trust-title { font-size: clamp(1.3rem, 3vw, 1.9rem); line-height: 1.15; margin: 0 0 0.7rem; }
+.eu-trust-lede { color: var(--fg-2, #b8c0cc); max-width: 60ch; margin: 0 auto 1.4rem; line-height: 1.55; font-size: 0.98rem; }
+
+.eu-trust-tiers { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1.25rem; }
+.eu-trust-tier {
+  flex: 1 1 320px; max-width: 420px; text-align: center;
+  background: var(--bg-0, #0c0e12); border: 1px solid var(--border, #232a35);
+  border-radius: 14px; padding: 1rem 1.1rem;
+}
+.eu-trust-tier-label {
+  display: block; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--fg-3, #8b95a5); margin-bottom: 0.7rem;
+}
+.eu-trust-arts { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.7rem; }
+.eu-art {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 2.6rem; height: 2.6rem;
+  padding: 0 0.5rem; border-radius: 10px; font-weight: 700; font-size: 1.15rem;
+  color: var(--accent, #6ea8fe);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 40%, transparent);
+}
+.eu-art::before { content: "Art "; font-size: 0.6rem; font-weight: 600; opacity: 0.7; margin-right: 0.12rem; align-self: flex-start; margin-top: 0.35rem; }
+.eu-art--strong {
+  color: #08090b; background: var(--accent, #6ea8fe);
+  border-color: var(--accent, #6ea8fe);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #6ea8fe) 22%, transparent);
+}
+.eu-trust-tier-cap { display: block; color: var(--fg-3, #8b95a5); font-size: 0.78rem; line-height: 1.45; }
+
+.eu-trust-foot { color: var(--fg-1, #e7ecf3); font-weight: 600; max-width: 58ch; margin: 0 auto 1rem; line-height: 1.5; font-size: 0.96rem; }
+.eu-trust-link { color: var(--accent, #6ea8fe); text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+.eu-trust-link:hover { text-decoration: underline; }
+
+/* compliance page — deployer callout + tier emphasis */
+.cmpl-deployer {
+  margin: 0 0 1.75rem; padding: 1rem 1.2rem; line-height: 1.55; color: var(--fg-1, #e7ecf3);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 9%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 32%, var(--border, #232a35));
+  border-left: 4px solid var(--accent, #6ea8fe); border-radius: 12px;
+}
+.cmpl-articles--strong li { border-left-color: var(--ok, #34d399); }
+.cmpl-articles--strong .cmpl-art { color: var(--ok, #34d399); }
+.cmpl-articles--muted li { border-left-color: var(--fg-3, #8b95a5); }
+.cmpl-articles--muted .cmpl-art { color: var(--fg-2, #b8c0cc); }
+.cmpl-articles--muted .cmpl-art-t { color: var(--fg-2, #b8c0cc); }

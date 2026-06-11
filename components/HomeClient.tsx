@@ -141,6 +141,49 @@ export function HomeClient() {
           </div>
         </header>
 
+        {/* ===== EU AI ACT — DEPLOYER POSITIONING (buyer-facing differentiator) ===== */}
+        <section className="eu-trust" aria-label="EU AI Act alignment">
+          <div className="wrap">
+            <div className="eu-trust-card reveal">
+              <p className="eu-trust-eyebrow">EU AI Act · agentic AI</p>
+              <h2 className="eu-trust-title">Built for AI Deployers, Not Just AI Providers</h2>
+              <p className="eu-trust-lede">
+                Runtime Governance provides enforcement, evidence and audit-trail controls that
+                support organisations in meeting key EU AI Act obligations for agentic AI
+                deployments — it is not a legal certification.
+              </p>
+              <div className="eu-trust-tiers">
+                <div className="eu-trust-tier">
+                  <span className="eu-trust-tier-label">Primary alignment</span>
+                  <div className="eu-trust-arts">
+                    {["9", "12", "14", "15"].map((n) => (
+                      <span key={n} className="eu-art">{n}</span>
+                    ))}
+                  </div>
+                  <span className="eu-trust-tier-cap">Risk management · Record-keeping &amp; traceability · Human oversight · Robustness &amp; cybersecurity</span>
+                </div>
+                <div className="eu-trust-tier">
+                  <span className="eu-trust-tier-label">Strong additional alignment</span>
+                  <div className="eu-trust-arts">
+                    {["26", "19"].map((n) => (
+                      <span key={n} className="eu-art eu-art--strong">{n}</span>
+                    ))}
+                  </div>
+                  <span className="eu-trust-tier-cap">Deployer obligations · Automatically generated logs</span>
+                </div>
+              </div>
+              <p className="eu-trust-foot">
+                Runtime Governance provides pre-execution enforcement, replayable evidence, and
+                audit-trail controls for agentic AI systems.
+              </p>
+              <Link href="/compliance" className="eu-trust-link"
+                    onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "eu-ai-act" })}>
+                See the full EU AI Act article mapping <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* ===== VALIDATION METRICS ===== */}
         <section className="metrics glow-top" id="validation" aria-label="Validation benchmarks">
           <div className="wrap">
