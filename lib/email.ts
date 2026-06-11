@@ -94,10 +94,22 @@ export async function sendAuditEmails(data: AuditRequestInput, reference: string
     }),
   ]);
 
+  // resend.emails.send resolves with { data, error } (it does not reject), so a
+  // "fulfilled" promise can still carry a delivery error. Inspect the actual error.
+  const internalErr = internalRes.status === "rejected"
+    ? String(internalRes.reason)
+    : internalRes.value?.error?.message;
+  const confirmErr = confirmRes.status === "rejected"
+    ? String(confirmRes.reason)
+    : confirmRes.value?.error?.message;
+  if (internalErr) console.error("[audit] resend internal error:", internalErr);
+  if (confirmErr) console.error("[audit] resend confirm error:", confirmErr);
+
   return {
-    sent: internalRes.status === "fulfilled" || confirmRes.status === "fulfilled",
-    internal: internalRes.status,
-    confirm: confirmRes.status,
+    sent: !internalErr, // the internal team notification is the one that must land
+    reason: internalErr || confirmErr,
+    internal: !internalErr,
+    confirm: !confirmErr,
   };
 }
 
@@ -137,6 +149,7 @@ export async function sendLeadEmail(data: LeadInput, reference: string) {
     html: internal,
     replyTo: data.email,
   });
+  if (res.error) console.error("[lead] resend error:", res.error.message);
 
-  return { sent: !res.error, id: res.data?.id };
+  return { sent: !res.error, id: res.data?.id, reason: res.error?.message };
 }

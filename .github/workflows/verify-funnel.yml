@@ -65,9 +65,15 @@ jobs:
                   fails.append(f"{tag}: no `delivery` field — production not yet on the delivery-reporting build")
                   return
               dest = [k for k in ("forwarded","stored","emailed") if d.get(k)]
-              print(f"{tag:6} ref={r['reference']:18} delivered_to={', '.join(dest) if dest else 'NONE (logged only)'}")
+              line = f"{tag:6} ref={r['reference']:18} delivered_to={', '.join(dest) if dest else 'NONE (logged only)'}"
+              if d.get("email_error"):
+                  line += f"  | email_error: {d['email_error']}"
+              print(line)
               if d.get("logged_only"):
-                  fails.append(f"{tag}: LOGGED ONLY — no sink configured in Vercel; submission not delivered")
+                  reason = f" (Resend said: {d['email_error']})" if d.get("email_error") else ""
+                  fails.append(f"{tag}: LOGGED ONLY — not delivered{reason}")
+              elif d.get("email_error"):
+                  print(f"::warning::{tag} stored but email failed — {d['email_error']}")
           check("LEAD",  "lead_resp.json")
           check("AUDIT", "audit_resp.json")
           print()

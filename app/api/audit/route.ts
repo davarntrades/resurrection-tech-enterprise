@@ -92,11 +92,14 @@ export async function POST(req: Request): Promise<NextResponse<AuditSubmitRespon
   }
 
   // ── Notify (email) — non-blocking failure ─────────────────
+  let emailError: string | undefined;
   try {
     const r = await sendAuditEmails(data, reference);
     emailed = !!r?.sent;
+    if (!r?.sent) emailError = r?.reason;
   } catch (e) {
     console.error("[audit] email send failed:", e);
+    emailError = (e as Error).message;
     // Submission already persisted; do not fail the request on email error.
   }
 
@@ -109,6 +112,6 @@ export async function POST(req: Request): Promise<NextResponse<AuditSubmitRespon
 
   return NextResponse.json({
     ok: true, reference,
-    delivery: { stored, emailed, logged_only },
+    delivery: { stored, emailed, logged_only, ...(emailError ? { email_error: emailError } : {}) },
   });
 }
