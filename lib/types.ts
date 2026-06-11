@@ -48,7 +48,8 @@ export interface LeadSubmitResponse {
   delivery?: {
     forwarded: boolean;   // LEAD_FORWARD_URL webhook accepted it
     stored: boolean;      // persisted to the Supabase `leads` table
-    emailed: boolean;     // Resend notification sent to LEAD_NOTIFY_TO
+    emailed: boolean;     // internal Resend notification sent to LEAD_NOTIFY_TO
+    prospect_emailed?: boolean; // report email sent to the submitted (prospect) address
     logged_only: boolean; // no sink handled it — server log is the only record
     email_error?: string; // Resend failure reason when emailed is false (non-secret)
   };

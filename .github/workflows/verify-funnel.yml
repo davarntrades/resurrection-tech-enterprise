@@ -66,9 +66,13 @@ jobs:
                   return
               dest = [k for k in ("forwarded","stored","emailed") if d.get(k)]
               line = f"{tag:6} ref={r['reference']:18} delivered_to={', '.join(dest) if dest else 'NONE (logged only)'}"
+              if "prospect_emailed" in d:
+                  line += f"  | prospect_emailed={d['prospect_emailed']}"
               if d.get("email_error"):
                   line += f"  | email_error: {d['email_error']}"
               print(line)
+              if d.get("prospect_emailed") is False:
+                  print(f"::warning::{tag} internal notification sent but the PROSPECT report email failed")
               if d.get("logged_only"):
                   reason = f" (Resend said: {d['email_error']})" if d.get("email_error") else ""
                   fails.append(f"{tag}: LOGGED ONLY — not delivered{reason}")
