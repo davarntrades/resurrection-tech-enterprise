@@ -149,3 +149,27 @@
 .cmpl-articles--muted li { border-left-color: var(--fg-3, #8b95a5); }
 .cmpl-articles--muted .cmpl-art { color: var(--fg-2, #b8c0cc); }
 .cmpl-articles--muted .cmpl-art-t { color: var(--fg-2, #b8c0cc); }
+
+/* compliance page — Article 26 "how" mapping */
+.cmpl-how {
+  margin: 0 0 2rem; padding: 1.4rem 1.6rem;
+  background: color-mix(in srgb, var(--ok, #34d399) 6%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--ok, #34d399) 28%, var(--border, #232a35));
+  border-left: 4px solid var(--ok, #34d399); border-radius: 14px;
+}
+.cmpl-how-title { margin: 0 0 0.6rem; font-size: 1.1rem; }
+.cmpl-how-lede { color: var(--fg-2, #b8c0cc); line-height: 1.55; margin: 0 0 1.1rem; max-width: 72ch; }
+.cmpl-how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+@media (max-width: 680px) { .cmpl-how-grid { grid-template-columns: 1fr; } }
+.cmpl-how-item {
+  background: var(--bg-0, #0c0e12); border: 1px solid var(--border, #232a35);
+  border-radius: 12px; padding: 0.85rem 1rem;
+}
+.cmpl-how-k { display: block; font-weight: 700; color: var(--ok, #34d399); margin-bottom: 0.3rem; }
+.cmpl-how-k::before { content: "✓ "; }
+.cmpl-how-v { display: block; color: var(--fg-2, #b8c0cc); font-size: 0.88rem; line-height: 1.5; }
+
+/* homepage — compact Article 26 "supports through" line */
+.eu-trust-how { margin: 0 auto 1rem; max-width: 64ch; color: var(--fg-3, #8b95a5); font-size: 0.85rem; line-height: 1.6; }
+.eu-trust-how strong { color: var(--fg-1, #e7ecf3); }
+.eu-trust-how-items { color: var(--fg-2, #b8c0cc); }
