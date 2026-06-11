@@ -10,7 +10,7 @@
    manifest is ever executed.
    ============================================================ */
 
-import { type FormEvent, useCallback, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 import type { AssessReport } from "@/lib/governance-client";
@@ -61,6 +61,21 @@ const SAMPLES: { id: string; label: string; blurb: string; manifest: string }[] 
   },
 ];
 
+// Shadow-AI / external-LLM egress demo — an internal copilot that can send
+// regulated customer data to an external model. One-click via the demo button
+// or the /assess?demo=shadow-ai deep link. Uses only existing Ω domains.
+const SHADOW_AI_MANIFEST = JSON.stringify({
+  tools: [
+    { name: "get_crm_records", description: "Read customer records from the CRM (names, contact details, subscription tier)." },
+    { name: "read_customer_records", description: "Retrieve full customer records including PII, card data, and purchase history." },
+    { name: "search_internal_kb", description: "Search the internal knowledge base and confidential company documents." },
+    { name: "send_prompt_to_external_llm", description: "Transmit a prompt containing customer PII to an external LLM (OpenAI / Anthropic) over an outbound API call." },
+    { name: "export_customer_data", description: "Export customer PII and card data to an external destination." },
+    { name: "upload_to_chatgpt", description: "Upload an internal document containing customer data to ChatGPT for summarisation." },
+    { name: "external_api_call", description: "Make an outbound API call to a third-party external service, posting internal context." },
+  ],
+}, null, 2);
+
 type ToolRow = AssessReport["tools"][number];
 
 const STATUS_TONE: Record<string, string> = {
@@ -90,8 +105,9 @@ export function AssessClient() {
     r.readAsText(f);
   }, []);
 
-  const run = useCallback(async () => {
-    const body = text.trim();
+  const run = useCallback(async (override?: { manifest: string; org?: string }) => {
+    const body = (override?.manifest ?? text).trim();
+    const orgName = override?.org ?? org;
     if (!body) { setError("Paste a tool manifest, load a sample, or upload a file."); return; }
     setBusy(true); setError(null); setReport(null);
     track("assess_run", { bytes: body.length });
@@ -99,8 +115,8 @@ export function AssessClient() {
       // Send parsed JSON when possible (so the format is detected cleanly),
       // otherwise raw text (CSV / Markdown).
       let payload: Record<string, unknown>;
-      try { payload = { manifest: JSON.parse(body), org: org || undefined }; }
-      catch { payload = { manifest_text: body, org: org || undefined }; }
+      try { payload = { manifest: JSON.parse(body), org: orgName || undefined }; }
+      catch { payload = { manifest_text: body, org: orgName || undefined }; }
       const res = await fetch("/api/assess", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -117,6 +133,23 @@ export function AssessClient() {
     }
   }, [text, org]);
 
+  // One-click Shadow-AI demo: load the manifest into the box (so it's visible)
+  // and run it immediately — no setup, ideal for a live meeting.
+  const runShadowDemo = useCallback(() => {
+    setText(SHADOW_AI_MANIFEST);
+    setOrg("Internal Copilot");
+    track("assess_demo", { demo: "shadow-ai" });
+    void run({ manifest: SHADOW_AI_MANIFEST, org: "Internal Copilot" });
+  }, [run]);
+
+  // Deep link: /assess?demo=shadow-ai auto-runs the demo on load.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const demo = new URLSearchParams(window.location.search).get("demo");
+    if (demo === "shadow-ai" || demo === "shadow") runShadowDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="assess">
       <header className="assess-hero">
@@ -130,9 +163,21 @@ export function AssessClient() {
         </p>
       </header>
 
+      <div className="assess-demo-bar">
+        <div className="assess-demo-copy">
+          <strong>Shadow AI demo</strong> — an internal copilot tries to send regulated customer data to an external LLM.
+          Watch Runtime Governance block it before execution.
+        </div>
+        <button type="button" className="btn btn--primary btn--live assess-demo-btn"
+                onClick={runShadowDemo} disabled={busy}>
+          <span className="live-pip" aria-hidden="true" />
+          {busy ? "Running…" : "▶ Run the Shadow-AI demo"}
+        </button>
+      </div>
+
       <section className="assess-input" aria-label="Tool manifest">
         <div className="assess-samples">
-          <span className="assess-samples-label">Try a sample:</span>
+          <span className="assess-samples-label">Or try a sample:</span>
           {SAMPLES.map((s) => (
             <button key={s.id} type="button" className="assess-chip" onClick={() => loadSample(s.id)}>
               {s.label} <em>{s.blurb}</em>
@@ -168,7 +213,7 @@ export function AssessClient() {
           <button type="button" className="btn btn--ghost" onClick={() => fileRef.current?.click()}>
             Upload file
           </button>
-          <button type="button" className="btn btn--primary assess-run" onClick={run} disabled={busy}>
+          <button type="button" className="btn btn--primary assess-run" onClick={() => run()} disabled={busy}>
             {busy ? "Assessing…" : "Run assessment"}
           </button>
         </div>
@@ -193,6 +238,33 @@ function Report({ report }: { report: AssessReport }) {
   );
   const uncoveredTools = report.tools.filter((t) => t.status === "Uncovered");
 
+  // ── CTO executive read-out — plain-English findings derived from the real
+  //    result (nothing fabricated; each line only shows when its condition holds).
+  const exposureKeys = Object.keys(report.exposure);
+  const blocks = s.verified_blocked_trajectories;
+  const llmRe = /\b(llm|gpt|chatgpt|openai|anthropic|claude|external\s*model|external_llm)\b/i;
+  const llmEgress = report.tools.some(
+    (t) => t.capabilities.includes("external") && llmRe.test(`${t.tool} ${t.description}`),
+  );
+  const hasEgress = exposureKeys.includes("External Egress / Data Exfiltration");
+  const hasPii = exposureKeys.includes("PII / Regulated Data Export");
+  const hasCompliance = exposureKeys.includes("Card Data Exposure")
+    || Object.values(report.exposure).some((e) => e.rules.some((r) => /compliance|pci|gdpr|regulated/.test(r)));
+  const govDomains = Object.values(report.exposure).filter((e) => e.status !== "Uncovered").length;
+
+  const findings: { tone: "bad" | "warn" | "ok"; text: string }[] = [];
+  if (hasPii) findings.push({ tone: "bad", text: llmEgress ? "Customer PII can reach an external model." : "Customer PII / regulated data can reach an external destination." });
+  if (hasPii) findings.push({ tone: "bad", text: "Regulated data export is reachable." });
+  if (hasEgress) findings.push({ tone: "bad", text: llmEgress ? "External LLM egress path detected." : "External data-egress path detected." });
+  if (hasCompliance) findings.push({ tone: "warn", text: "Compliance exposure: regulated-data export path detected." });
+  if (blocks > 0) findings.push({ tone: "ok", text: `Runtime Governance would BLOCK ${blocks} high-risk trajector${blocks === 1 ? "y" : "ies"} before execution.` });
+  const showReadout = findings.length > 0;
+  const verdict = llmEgress && hasPii
+    ? "An internal copilot can send regulated customer data to an external model — Runtime Governance blocks it before execution."
+    : blocks > 0
+      ? "High-risk trajectories are reachable — Runtime Governance blocks them before execution."
+      : "No high-risk trajectories reachable for this agent.";
+
   return (
     <section className="assess-report" aria-label="Assessment result">
       {/* Print-only branded header (hidden on screen; appears in the PDF). */}
@@ -205,6 +277,27 @@ function Report({ report }: { report: AssessReport }) {
           {report.manifest_format} · {report.summary.tools} tools · live catalog {report.catalog_rules} Ω rules
         </span>
       </div>
+
+      {showReadout && (
+        <div className="assess-cto" aria-label="Executive read-out">
+          <p className="assess-cto-eyebrow">Executive read-out</p>
+          <p className="assess-cto-verdict">{verdict}</p>
+          <ul className="assess-cto-findings">
+            {findings.map((f, i) => (
+              <li key={i} className={`assess-cto-finding assess-cto-finding--${f.tone}`}>
+                <span className="assess-cto-dot" aria-hidden="true" />
+                {f.text}
+              </li>
+            ))}
+          </ul>
+          <div className="assess-cto-metrics">
+            <span><strong>{s.tools}</strong> tools analysed</span>
+            <span><strong>{govDomains}</strong> governed Ω domains</span>
+            <span><strong>{blocks}</strong> high-risk trajectories</span>
+            <span><strong>{blocks}</strong> blocked before execution</span>
+          </div>
+        </div>
+      )}
 
       <div className="assess-report-bar">
         <button type="button" className="btn btn--ghost btn--sm assess-print-btn"
