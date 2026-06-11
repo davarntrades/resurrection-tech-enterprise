@@ -1,0 +1,12 @@
+{
+  "_comment": "Internal Enterprise Copilot — Shadow-AI / external-LLM egress demo. CRM + customer-record + knowledge-base access plus tools that can send context to external LLMs. Demonstrates Runtime Governance blocking regulated-data egress to an external model before execution. Uses only existing Ω domains.",
+  "tools": [
+    { "name": "get_crm_records", "description": "Read customer records from the CRM (names, contact details, subscription tier)." },
+    { "name": "read_customer_records", "description": "Retrieve full customer records including PII, card data, and purchase history." },
+    { "name": "search_internal_kb", "description": "Search the internal knowledge base and confidential company documents." },
+    { "name": "send_prompt_to_external_llm", "description": "Transmit a prompt containing customer PII to an external LLM (OpenAI / Anthropic) over an outbound API call." },
+    { "name": "export_customer_data", "description": "Export customer PII and card data to an external destination." },
+    { "name": "upload_to_chatgpt", "description": "Upload an internal document containing customer data to ChatGPT for summarisation." },
+    { "name": "external_api_call", "description": "Make an outbound API call to a third-party external service, posting internal context." }
+  ]
+}

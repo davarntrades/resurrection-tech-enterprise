@@ -51,6 +51,44 @@
 .assess-error { color: var(--bad, #ff6b6b); margin: 0.75rem 0 0; font-size: 0.9rem; }
 .assess-privacy { color: var(--fg-3, #8b95a5); font-size: 0.78rem; margin: 0.75rem 0 0; }
 
+/* ── Shadow-AI one-click demo bar ── */
+.assess-demo-bar {
+  display: flex; flex-wrap: wrap; gap: 0.9rem; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; padding: 1rem 1.25rem;
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 9%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--bad, #ff6b6b) 32%, var(--border, #232a35));
+  border-radius: 14px;
+}
+.assess-demo-copy { flex: 1 1 280px; color: var(--fg-2, #b8c0cc); font-size: 0.92rem; line-height: 1.5; }
+.assess-demo-copy strong { color: var(--fg-1, #e7ecf3); }
+.assess-demo-btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* ── CTO executive read-out ── */
+.assess-cto {
+  margin-bottom: 1.25rem; padding: 1.25rem 1.4rem;
+  background: var(--bg-1, #12151b);
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 35%, var(--border, #232a35));
+  border-left: 4px solid var(--accent, #6ea8fe);
+  border-radius: 14px;
+}
+.assess-cto-eyebrow {
+  margin: 0 0 0.4rem; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent, #6ea8fe);
+}
+.assess-cto-verdict { margin: 0 0 0.9rem; font-size: 1.12rem; line-height: 1.45; font-weight: 600; color: var(--fg-1, #e7ecf3); }
+.assess-cto-findings { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.45rem; }
+.assess-cto-finding { display: flex; gap: 0.6rem; align-items: baseline; color: var(--fg-1, #e7ecf3); font-size: 0.96rem; line-height: 1.4; }
+.assess-cto-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; margin-top: 0.35rem; }
+.assess-cto-finding--bad .assess-cto-dot { background: var(--bad, #ff6b6b); }
+.assess-cto-finding--warn .assess-cto-dot { background: var(--warn, #fbbf24); }
+.assess-cto-finding--ok .assess-cto-dot { background: var(--ok, #34d399); }
+.assess-cto-finding--ok { color: var(--ok, #34d399); font-weight: 600; }
+.assess-cto-metrics {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; padding-top: 0.9rem;
+  border-top: 1px solid var(--border, #232a35); color: var(--fg-3, #8b95a5); font-size: 0.85rem;
+}
+.assess-cto-metrics strong { color: var(--fg-1, #e7ecf3); font-size: 1rem; }
+
 /* ── report ── */
 .assess-report { margin-top: 2.5rem; animation: assess-fade 0.4s ease; }
 @keyframes assess-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
