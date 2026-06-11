@@ -35,6 +35,7 @@ export interface AuditSubmitResponse {
     stored: boolean;      // persisted to the Supabase `audit_requests` table
     emailed: boolean;     // Resend notification sent (internal + prospect confirmation)
     logged_only: boolean; // no sink handled it — server log is the only record
+    email_error?: string; // Resend failure reason when emailed is false (non-secret)
   };
 }
 
@@ -49,5 +50,6 @@ export interface LeadSubmitResponse {
     stored: boolean;      // persisted to the Supabase `leads` table
     emailed: boolean;     // Resend notification sent to LEAD_NOTIFY_TO
     logged_only: boolean; // no sink handled it — server log is the only record
+    email_error?: string; // Resend failure reason when emailed is false (non-secret)
   };
 }
