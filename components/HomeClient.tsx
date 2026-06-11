@@ -172,6 +172,10 @@ export function HomeClient() {
                   <span className="eu-trust-tier-cap">Deployer obligations · Automatically generated logs</span>
                 </div>
               </div>
+              <p className="eu-trust-how">
+                <strong>Supports Article 26 through:</strong>{" "}
+                <span className="eu-trust-how-items">pre-execution controls · human review visibility · replayable audit evidence · deterministic decision records · risk exposure mapping · runtime monitoring evidence</span>
+              </p>
               <p className="eu-trust-foot">
                 Runtime Governance provides pre-execution enforcement, replayable evidence, and
                 audit-trail controls for agentic AI systems.

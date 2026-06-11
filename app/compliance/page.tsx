@@ -32,6 +32,16 @@ const SUPPORTING = [
   ["Article 17", "Quality Management (support)"],
 ];
 
+// How Runtime Governance supports the specific Article 26 deployer duties.
+const ART26 = [
+  ["Pre-execution controls", "Unsafe agent actions are blocked before they run — operationalising the duty to operate the system safely and under oversight (Art 26(1)–(2))."],
+  ["Human review visibility", "Borderline trajectories are surfaced and escalated for human review, supporting oversight by assigned, competent persons (Art 26(2))."],
+  ["Replayable audit evidence", "Every decision is reproducible with an attestation, supporting the duty to keep the system's automatically generated logs (Art 26(6))."],
+  ["Deterministic decision records", "Each ALLOW / BLOCK is a deterministic, attributable record — traceable evidence of how the system was operated."],
+  ["Risk exposure mapping", "Continuous mapping of which trajectories can reach forbidden states, supporting the duty to monitor operation and act on risk (Art 26(5))."],
+  ["Runtime monitoring evidence", "Ongoing runtime logs and metrics, supporting the duty to monitor operation and inform the provider of any risk (Art 26(5))."],
+];
+
 const PROVIDES = [
   "Pre-execution risk controls",
   "Deterministic ALLOW / BLOCK enforcement",
@@ -97,6 +107,23 @@ export default function Page() {
               <li key={a} className="cmpl-articles--strong"><span className="cmpl-art">{a}</span><span className="cmpl-art-t">{t}</span></li>
             ))}
           </ul>
+
+          <div className="cmpl-how">
+            <h3 className="cmpl-how-title">How Runtime Governance supports Article 26 (Deployer Obligations)</h3>
+            <p className="cmpl-how-lede">
+              Article 26 places operational duties on the organisations that <em>deploy</em> high-risk
+              AI systems — human oversight, monitoring, acting on risk, and keeping logs. Runtime
+              Governance provides enforcement and evidence controls that support those duties:
+            </p>
+            <div className="cmpl-how-grid">
+              {ART26.map(([k, v]) => (
+                <div key={k} className="cmpl-how-item">
+                  <span className="cmpl-how-k">{k}</span>
+                  <span className="cmpl-how-v">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <h2 className="prog-h2">Supporting alignment</h2>
           <ul className="cmpl-articles cmpl-articles--muted">
