@@ -296,6 +296,11 @@ function Report({ report }: { report: AssessReport }) {
             <span><strong>{blocks}</strong> high-risk trajectories</span>
             <span><strong>{blocks}</strong> blocked before execution</span>
           </div>
+          <p className="assess-cto-compliance">
+            <Link href="/compliance" onClick={() => track("assess_cta", { cta: "compliance" })}>
+              Does this make me EU AI Act compliant? →
+            </Link>
+          </p>
         </div>
       )}
 

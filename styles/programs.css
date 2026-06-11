@@ -59,3 +59,35 @@
 }
 .prog-foot p { color: var(--fg-2, #b8c0cc); max-width: 64ch; margin: 0 auto 1rem; line-height: 1.6; }
 .prog-pricedetail a { color: var(--accent, #6ea8fe); }
+
+/* ── /compliance — EU AI Act positioning ── */
+.cmpl-articles { list-style: none; padding: 0; margin: 0 0 2rem; display: grid; gap: 0.6rem; }
+.cmpl-articles li {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: baseline;
+  background: var(--bg-1, #12151b); border: 1px solid var(--border, #232a35);
+  border-left: 4px solid var(--accent, #6ea8fe); border-radius: 12px; padding: 0.8rem 1.1rem;
+}
+.cmpl-art { font-weight: 700; color: var(--accent, #6ea8fe); flex: 0 0 7rem; }
+.cmpl-art-t { color: var(--fg-1, #e7ecf3); }
+
+.cmpl-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
+.cmpl-list li { position: relative; padding-left: 1.6rem; color: var(--fg-2, #b8c0cc); line-height: 1.5; }
+.cmpl-list--yes li::before { content: "✓"; position: absolute; left: 0; color: var(--ok, #34d399); font-weight: 700; }
+.cmpl-list--no li::before { content: "✗"; position: absolute; left: 0; color: var(--bad, #ff6b6b); font-weight: 700; }
+
+.cmpl-positioning {
+  margin: 2.5rem 0 1rem; padding: 1.4rem 1.6rem; font-size: 1.1rem; line-height: 1.55; font-style: italic;
+  color: var(--fg-1, #e7ecf3); background: color-mix(in srgb, var(--accent, #6ea8fe) 9%, var(--bg-1, #12151b));
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 32%, var(--border, #232a35));
+  border-left: 4px solid var(--accent, #6ea8fe); border-radius: 14px;
+}
+.cmpl-note { color: var(--fg-3, #8b95a5); font-size: 0.88rem; line-height: 1.6; margin: 0 0 1rem; max-width: 70ch; }
+
+.cmpl-table-wrap { overflow-x: auto; border: 1px solid var(--border, #232a35); border-radius: 12px; margin-bottom: 1rem; }
+.cmpl-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.cmpl-table th, .cmpl-table td { text-align: left; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border, #232a35); }
+.cmpl-table th { color: var(--fg-3, #8b95a5); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.cmpl-table th:last-child, .cmpl-table td:last-child { text-align: center; width: 40%; }
+.cmpl-table tr:last-child td { border-bottom: none; }
+.cmpl-table .cmpl-yes { color: var(--ok, #34d399); font-weight: 700; font-size: 1.1rem; }
+.cmpl-table .cmpl-no { color: var(--bad, #ff6b6b); font-weight: 700; font-size: 1.1rem; }
