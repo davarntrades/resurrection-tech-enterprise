@@ -142,14 +142,64 @@ export async function sendLeadEmail(data: LeadInput, reference: string) {
         : ""
     }`);
 
-  const res = await resend.emails.send({
-    from: FROM,
-    to: LEAD_NOTIFY_TO,
-    subject: `New Lead — ${data.name}${data.organisation ? ` · ${data.organisation}` : ""} (${reference})`,
-    html: internal,
-    replyTo: data.email,
-  });
-  if (res.error) console.error("[lead] resend error:", res.error.message);
+  // 2) Prospect-facing report — sent to the address they submitted. This is the
+  //    "We'll email your full report" the /assess form promises. Includes their
+  //    Ω exposure summary (data.message) when present, plus next steps.
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com";
+  const btn = (href: string, label: string) =>
+    `<a href="${href}" style="display:inline-block;background:#6f97ff;color:#08090b;text-decoration:none;font-weight:600;font-size:14px;padding:11px 18px;border-radius:10px">${label}</a>`;
+  const prospectHtml = shell(`
+    <div style="color:#f3f5f7;font-size:20px;margin-bottom:10px">Your Runtime Governance Assessment</div>
+    <p style="font-size:14px;line-height:1.6;color:#aab2bd;margin:0 0 18px">
+      Hi ${data.name || "there"} — thanks for assessing your agent with Resurrection Tech.
+      Here is your Ω exposure summary. Nothing in your manifest was ever executed.
+    </p>
+    ${
+      data.message
+        ? `<div style="margin:0 0 18px;padding:16px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+             <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Your Ω exposure summary</div>
+             <p style="font-size:13px;line-height:1.65;color:#e7ecf3;margin:0;white-space:pre-wrap">${data.message}</p>
+           </div>`
+        : ""
+    }
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      ${row("Reference", reference)}
+      ${row("Next step", "A scoped, fixed-fee pilot that governs your agent before execution")}
+    </table>
+    <div style="margin:0 0 18px">${btn(`${site}/pilot`, "See the pilot scope →")}&nbsp;&nbsp;${btn(`${site}/book#assessment`, "Book a call →")}</div>
+    <p style="font-size:12px;color:#6b7480;margin:0;line-height:1.6">
+      The pilot loads your Ω registry, runs your corpus to 0 false-positives / 0 false-negatives,
+      and replays every verdict with an attestation. Reply to this email to talk to the team.
+    </p>`);
 
-  return { sent: !res.error, id: res.data?.id, reason: res.error?.message };
+  const [internalRes, prospectRes] = await Promise.allSettled([
+    resend.emails.send({
+      from: FROM,
+      to: LEAD_NOTIFY_TO,
+      subject: `New Lead — ${data.name}${data.organisation ? ` · ${data.organisation}` : ""} (${reference})`,
+      html: internal,
+      replyTo: data.email,
+    }),
+    resend.emails.send({
+      from: FROM,
+      to: data.email,
+      subject: "Your Runtime Governance Assessment — Resurrection Tech",
+      html: prospectHtml,
+      replyTo: LEAD_NOTIFY_TO,
+    }),
+  ]);
+
+  const internalErr = internalRes.status === "rejected"
+    ? String(internalRes.reason) : internalRes.value?.error?.message;
+  const prospectErr = prospectRes.status === "rejected"
+    ? String(prospectRes.reason) : prospectRes.value?.error?.message;
+  if (internalErr) console.error("[lead] resend internal error:", internalErr);
+  if (prospectErr) console.error("[lead] resend prospect error:", prospectErr);
+
+  return {
+    sent: !internalErr,                 // internal team notification (drives the funnel gate)
+    reason: internalErr || prospectErr,
+    prospect_sent: !prospectErr,        // prospect-facing report to the submitted address
+    prospect_reason: prospectErr,
+  };
 }

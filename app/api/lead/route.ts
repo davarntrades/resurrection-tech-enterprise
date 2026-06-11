@@ -103,10 +103,13 @@ export async function POST(req: Request): Promise<NextResponse<LeadSubmitRespons
 
   // ── Integration point 3: Resend notification (optional) ───────────────────
   let emailError: string | undefined;
+  let prospectEmailed = false;
   try {
     const r = await sendLeadEmail(data, reference);
     emailed = r.sent;
     if (!r.sent) emailError = r.reason;
+    prospectEmailed = !!r.prospect_sent;
+    if (!prospectEmailed && r.prospect_reason && !emailError) emailError = `prospect: ${r.prospect_reason}`;
   } catch (e) {
     console.error("[lead] email send failed:", e);
     emailError = (e as Error).message;
@@ -125,6 +128,7 @@ export async function POST(req: Request): Promise<NextResponse<LeadSubmitRespons
 
   return NextResponse.json({
     ok: true, reference,
-    delivery: { forwarded, stored, emailed, logged_only, ...(emailError ? { email_error: emailError } : {}) },
+    delivery: { forwarded, stored, emailed, prospect_emailed: prospectEmailed, logged_only,
+                ...(emailError ? { email_error: emailError } : {}) },
   });
 }
