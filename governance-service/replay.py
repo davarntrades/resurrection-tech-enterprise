@@ -36,11 +36,12 @@ from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
 from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules
+from cyber_rules import cyber_custom_rules
 
 # The same deployment Ω rules the live service assembles (app.py DEPLOYMENT_RULES).
 DEPLOYMENT_RULES = (
     finance_custom_rules() + coverage_custom_rules()
-    + domain_custom_rules() + sector_custom_rules()
+    + domain_custom_rules() + sector_custom_rules() + cyber_custom_rules()
 )
 
 # Field names compared during verification.
