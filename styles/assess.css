@@ -226,3 +226,7 @@
 .assess-cto-compliance { margin: 0.9rem 0 0; font-size: 0.88rem; }
 .assess-cto-compliance a { color: var(--accent, #6ea8fe); text-decoration: none; }
 .assess-cto-compliance a:hover { text-decoration: underline; }
+
+/* stacked one-click demo bars */
+.assess-demos { display: grid; gap: 0.7rem; margin-bottom: 1rem; }
+.assess-demos .assess-demo-bar { margin-bottom: 0; }

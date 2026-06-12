@@ -61,20 +61,46 @@ const SAMPLES: { id: string; label: string; blurb: string; manifest: string }[] 
   },
 ];
 
-// Shadow-AI / external-LLM egress demo — an internal copilot that can send
-// regulated customer data to an external model. One-click via the demo button
-// or the /assess?demo=shadow-ai deep link. Uses only existing Ω domains.
-const SHADOW_AI_MANIFEST = JSON.stringify({
-  tools: [
-    { name: "get_crm_records", description: "Read customer records from the CRM (names, contact details, subscription tier)." },
-    { name: "read_customer_records", description: "Retrieve full customer records including PII, card data, and purchase history." },
-    { name: "search_internal_kb", description: "Search the internal knowledge base and confidential company documents." },
-    { name: "send_prompt_to_external_llm", description: "Transmit a prompt containing customer PII to an external LLM (OpenAI / Anthropic) over an outbound API call." },
-    { name: "export_customer_data", description: "Export customer PII and card data to an external destination." },
-    { name: "upload_to_chatgpt", description: "Upload an internal document containing customer data to ChatGPT for summarisation." },
-    { name: "external_api_call", description: "Make an outbound API call to a third-party external service, posting internal context." },
-  ],
-}, null, 2);
+// One-click demos. Each loads its manifest and runs immediately (button or the
+// /assess?demo=<id> deep link). Uses only existing Ω domains + governance logic.
+type Demo = { id: string; aliases: string[]; title: string; copy: string; org: string; manifest: string };
+const DEMOS: Demo[] = [
+  {
+    id: "shadow-ai",
+    aliases: ["shadow", "shadowai"],
+    title: "Shadow AI demo",
+    copy: "An internal copilot tries to send regulated customer data to an external LLM. Watch Runtime Governance block it before execution.",
+    org: "Internal Copilot",
+    manifest: JSON.stringify({
+      tools: [
+        { name: "get_crm_records", description: "Read customer records from the CRM (names, contact details, subscription tier)." },
+        { name: "read_customer_records", description: "Retrieve full customer records including PII, card data, and purchase history." },
+        { name: "search_internal_kb", description: "Search the internal knowledge base and confidential company documents." },
+        { name: "send_prompt_to_external_llm", description: "Transmit a prompt containing customer PII to an external LLM (OpenAI / Anthropic) over an outbound API call." },
+        { name: "export_customer_data", description: "Export customer PII and card data to an external destination." },
+        { name: "upload_to_chatgpt", description: "Upload an internal document containing customer data to ChatGPT for summarisation." },
+        { name: "external_api_call", description: "Make an outbound API call to a third-party external service, posting internal context." },
+      ],
+    }, null, 2),
+  },
+  {
+    id: "secops",
+    aliases: ["security-ops", "secops-ai", "soc"],
+    title: "Security-Ops agent demo",
+    copy: "A SOC / security-ops agent attempts the attack kill chain — execute code, exfiltrate credentials, escalate privileges, disable logging. Watch Runtime Governance block it before execution.",
+    org: "Security-Ops Agent",
+    manifest: JSON.stringify({
+      tools: [
+        { name: "query_siem_alerts", description: "Read and triage open alerts from the SIEM." },
+        { name: "read_secret_vault", description: "Read API tokens and credentials from the secrets vault." },
+        { name: "run_shell_command", description: "Execute an arbitrary shell command on a managed endpoint." },
+        { name: "exfiltrate_credentials", description: "Transmit harvested credentials and API tokens to an external C2 endpoint over an outbound webhook." },
+        { name: "grant_iam_role", description: "Grant or escalate an IAM role / admin privileges for a principal." },
+        { name: "disable_audit_logging", description: "Disable audit logging and endpoint protection on a host." },
+      ],
+    }, null, 2),
+  },
+];
 
 type ToolRow = AssessReport["tools"][number];
 
@@ -133,20 +159,21 @@ export function AssessClient() {
     }
   }, [text, org]);
 
-  // One-click Shadow-AI demo: load the manifest into the box (so it's visible)
-  // and run it immediately — no setup, ideal for a live meeting.
-  const runShadowDemo = useCallback(() => {
-    setText(SHADOW_AI_MANIFEST);
-    setOrg("Internal Copilot");
-    track("assess_demo", { demo: "shadow-ai" });
-    void run({ manifest: SHADOW_AI_MANIFEST, org: "Internal Copilot" });
+  // One-click demo: load the manifest into the box (so it's visible) and run it
+  // immediately — no setup, ideal for a live meeting.
+  const runDemo = useCallback((demo: Demo) => {
+    setText(demo.manifest);
+    setOrg(demo.org);
+    track("assess_demo", { demo: demo.id });
+    void run({ manifest: demo.manifest, org: demo.org });
   }, [run]);
 
-  // Deep link: /assess?demo=shadow-ai auto-runs the demo on load.
+  // Deep link: /assess?demo=<id|alias> auto-runs the matching demo on load.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const demo = new URLSearchParams(window.location.search).get("demo");
-    if (demo === "shadow-ai" || demo === "shadow") runShadowDemo();
+    const q = (new URLSearchParams(window.location.search).get("demo") || "").toLowerCase();
+    const demo = DEMOS.find((d) => d.id === q || d.aliases.includes(q));
+    if (demo) runDemo(demo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -163,16 +190,19 @@ export function AssessClient() {
         </p>
       </header>
 
-      <div className="assess-demo-bar">
-        <div className="assess-demo-copy">
-          <strong>Shadow AI demo</strong> — an internal copilot tries to send regulated customer data to an external LLM.
-          Watch Runtime Governance block it before execution.
-        </div>
-        <button type="button" className="btn btn--primary btn--live assess-demo-btn"
-                onClick={runShadowDemo} disabled={busy}>
-          <span className="live-pip" aria-hidden="true" />
-          {busy ? "Running…" : "▶ Run the Shadow-AI demo"}
-        </button>
+      <div className="assess-demos">
+        {DEMOS.map((d) => (
+          <div className="assess-demo-bar" key={d.id}>
+            <div className="assess-demo-copy">
+              <strong>{d.title}</strong> — {d.copy}
+            </div>
+            <button type="button" className="btn btn--primary btn--live assess-demo-btn"
+                    onClick={() => runDemo(d)} disabled={busy}>
+              <span className="live-pip" aria-hidden="true" />
+              {busy ? "Running…" : `▶ Run the ${d.id === "secops" ? "Security-Ops" : "Shadow-AI"} demo`}
+            </button>
+          </div>
+        ))}
       </div>
 
       <section className="assess-input" aria-label="Tool manifest">
@@ -250,20 +280,29 @@ function Report({ report }: { report: AssessReport }) {
   const hasPii = exposureKeys.includes("PII / Regulated Data Export");
   const hasCompliance = exposureKeys.includes("Card Data Exposure")
     || Object.values(report.exposure).some((e) => e.rules.some((r) => /compliance|pci|gdpr|regulated/.test(r)));
+  const hasCredExfil = exposureKeys.includes("Credential Exfiltration");
+  const hasCodeExec = exposureKeys.includes("Arbitrary Code Execution");
+  const hasPrivEsc = exposureKeys.includes("Privilege Escalation");
+  const isCyber = hasCredExfil || hasCodeExec || hasPrivEsc;
   const govDomains = Object.values(report.exposure).filter((e) => e.status !== "Uncovered").length;
 
   const findings: { tone: "bad" | "warn" | "ok"; text: string }[] = [];
   if (hasPii) findings.push({ tone: "bad", text: llmEgress ? "Customer PII can reach an external model." : "Customer PII / regulated data can reach an external destination." });
   if (hasPii) findings.push({ tone: "bad", text: "Regulated data export is reachable." });
+  if (hasCredExfil) findings.push({ tone: "bad", text: "Credentials / API tokens can be exfiltrated to an external endpoint." });
+  if (hasCodeExec) findings.push({ tone: "bad", text: "Arbitrary code execution is reachable." });
+  if (hasPrivEsc) findings.push({ tone: "bad", text: "Privilege escalation is reachable." });
   if (hasEgress) findings.push({ tone: "bad", text: llmEgress ? "External LLM egress path detected." : "External data-egress path detected." });
   if (hasCompliance) findings.push({ tone: "warn", text: "Compliance exposure: regulated-data export path detected." });
   if (blocks > 0) findings.push({ tone: "ok", text: `Runtime Governance would BLOCK ${blocks} high-risk trajector${blocks === 1 ? "y" : "ies"} before execution.` });
   const showReadout = findings.length > 0;
   const verdict = llmEgress && hasPii
     ? "An internal copilot can send regulated customer data to an external model — Runtime Governance blocks it before execution."
-    : blocks > 0
-      ? "High-risk trajectories are reachable — Runtime Governance blocks them before execution."
-      : "No high-risk trajectories reachable for this agent.";
+    : isCyber
+      ? "A security/ops agent can execute code, exfiltrate credentials and escalate privileges — Runtime Governance blocks these before execution."
+      : blocks > 0
+        ? "High-risk trajectories are reachable — Runtime Governance blocks them before execution."
+        : "No high-risk trajectories reachable for this agent.";
 
   return (
     <section className="assess-report" aria-label="Assessment result">
