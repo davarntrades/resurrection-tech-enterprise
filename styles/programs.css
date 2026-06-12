@@ -203,3 +203,9 @@
   border-radius: 999px; padding: 0.15rem 0.55rem;
 }
 .cmpl-fw-not { margin-top: 0.5rem; max-width: 80ch; }
+
+/* compliance page — framework audience lenses (compliance vs threat) */
+.cmpl-fw-lens { margin: 2rem 0 0.5rem; padding-bottom: 0.45rem; border-bottom: 1px solid var(--border, #232a35); }
+.cmpl-fw-lens-h { font-size: 1.18rem; margin: 0; color: var(--fg-1, #e7ecf3); }
+.cmpl-fw-lens-cap { margin: 0.2rem 0 0; color: var(--fg-3, #8b95a5); font-size: 0.82rem; letter-spacing: 0.02em; }
+h4.cmpl-fw-tier { margin: 1rem 0 0.6rem; }
