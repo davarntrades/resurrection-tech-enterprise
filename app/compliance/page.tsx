@@ -81,7 +81,8 @@ const FW_STRONG: Fw[] = [
   { name: "ISO/IEC 42001", full: "AI management system",
     items: ["Monitoring", "Risk controls", "Evidence generation", "Auditability"] },
 ];
-const FW_SUPPORTING: Fw[] = [
+// Governance / compliance frameworks (risk, audit & compliance teams).
+const FW_COMPLIANCE: Fw[] = [
   { name: "ISO/IEC 23894", full: "AI risk management guidance",
     items: ["Risk identification", "Risk-treatment controls", "Monitoring evidence"] },
   { name: "SOC 2", full: "Trust Services Criteria",
@@ -92,6 +93,9 @@ const FW_SUPPORTING: Fw[] = [
     items: ["Risk management", "Operational resilience", "Monitoring evidence"] },
   { name: "GDPR", full: "General Data Protection Regulation (supporting only)",
     items: ["Accountability", "Traceability", "Audit evidence"] },
+];
+// Threat / security frameworks (security & AI red-team teams).
+const FW_THREAT: Fw[] = [
   { name: "MITRE ATLAS", full: "Adversarial threat landscape for AI systems",
     items: ["Adversarial-behaviour controls", "Pre-execution mitigation", "Evidence of testing"] },
   { name: "OWASP — LLM & Agentic AI", full: "Top-10 threats for LLM / agentic applications",
@@ -231,17 +235,29 @@ export default function Page() {
             compliance with any of these frameworks.</strong>
           </p>
 
-          <h3 className="cmpl-fw-tier">Strong alignment</h3>
+          <div className="cmpl-fw-lens">
+            <h3 className="cmpl-fw-lens-h">Governance &amp; compliance frameworks</h3>
+            <p className="cmpl-fw-lens-cap">For risk, audit &amp; compliance teams</p>
+          </div>
+          <h4 className="cmpl-fw-tier">Strong alignment</h4>
           <div className="cmpl-fw-grid">
             {FW_STRONG.map((f) => <FwCard key={f.name} f={f} />)}
           </div>
-
-          <h3 className="cmpl-fw-tier">Supporting alignment</h3>
+          <h4 className="cmpl-fw-tier">Supporting alignment</h4>
           <div className="cmpl-fw-grid">
-            {FW_SUPPORTING.map((f) => <FwCard key={f.name} f={f} />)}
+            {FW_COMPLIANCE.map((f) => <FwCard key={f.name} f={f} />)}
           </div>
 
-          <h3 className="cmpl-fw-tier">Not claimed</h3>
+          <div className="cmpl-fw-lens">
+            <h3 className="cmpl-fw-lens-h">Threat &amp; security frameworks</h3>
+            <p className="cmpl-fw-lens-cap">For security &amp; AI red-team teams</p>
+          </div>
+          <h4 className="cmpl-fw-tier">Supporting alignment</h4>
+          <div className="cmpl-fw-grid">
+            {FW_THREAT.map((f) => <FwCard key={f.name} f={f} />)}
+          </div>
+
+          <h4 className="cmpl-fw-tier">Not claimed</h4>
           <ul className="cmpl-list cmpl-list--no cmpl-fw-not">
             {FW_NOT_CLAIMED.map((x) => <li key={x}>{x}</li>)}
           </ul>
