@@ -5,7 +5,7 @@ import { PageShell } from "@/components/PageShell";
 export const metadata: Metadata = {
   title: "EU AI Act & Compliance Positioning — Runtime Governance",
   description:
-    "Does Runtime Governance make you EU AI Act compliant? No — compliance is a legal determination. But Runtime Governance provides the technical controls and audit evidence that help organisations meet EU AI Act Articles 9, 12, 14 and 15 for agentic AI systems, with replayable evidence for every governed decision.",
+    "Does Runtime Governance make you EU AI Act compliant? No — compliance is a legal determination. Runtime Governance provides enforcement, evidence and audit-trail controls that support EU AI Act Articles 9, 12, 14, 15, 26 and 19 for agentic AI systems, and may support broader governance frameworks (NIST AI RMF, ISO/IEC 42001, SOC 2, NIS2, DORA, GDPR). Not a certification.",
   alternates: { canonical: "/compliance" },
   openGraph: {
     title: "Does Runtime Governance make me EU AI Act compliant?",
@@ -69,6 +69,55 @@ const TABLE: [string, boolean][] = [
   ["Conformity assessment", false],
   ["Legal advice", false],
 ];
+
+// Related GRC / risk / security / agent-governance frameworks where Runtime
+// Governance has a defensible SUPPORT relationship tied to existing capabilities
+// (enforcement · evidence · monitoring · oversight · audit trails). Never a
+// certification claim.
+type Fw = { name: string; full: string; items: string[] };
+const FW_STRONG: Fw[] = [
+  { name: "NIST AI RMF", full: "NIST AI Risk Management Framework",
+    items: ["Risk identification", "Monitoring", "Oversight", "Operational controls", "Traceability"] },
+  { name: "ISO/IEC 42001", full: "AI management system",
+    items: ["Monitoring", "Risk controls", "Evidence generation", "Auditability"] },
+];
+const FW_SUPPORTING: Fw[] = [
+  { name: "ISO/IEC 23894", full: "AI risk management guidance",
+    items: ["Risk identification", "Risk-treatment controls", "Monitoring evidence"] },
+  { name: "SOC 2", full: "Trust Services Criteria",
+    items: ["Security", "Processing integrity", "Audit evidence"] },
+  { name: "NIS2", full: "EU network & information security directive",
+    items: ["Operational resilience", "Monitoring", "Governance visibility"] },
+  { name: "DORA", full: "Digital Operational Resilience Act",
+    items: ["Risk management", "Operational resilience", "Monitoring evidence"] },
+  { name: "GDPR", full: "General Data Protection Regulation (supporting only)",
+    items: ["Accountability", "Traceability", "Audit evidence"] },
+  { name: "MITRE ATLAS", full: "Adversarial threat landscape for AI systems",
+    items: ["Adversarial-behaviour controls", "Pre-execution mitigation", "Evidence of testing"] },
+  { name: "OWASP — LLM & Agentic AI", full: "Top-10 threats for LLM / agentic applications",
+    items: ["Excessive-agency control", "Sensitive-data egress control", "Pre-execution enforcement evidence"] },
+];
+const FW_NOT_CLAIMED = [
+  "Certification or conformity assessment under any framework (e.g. ISO 42001 / ISO 27001 certificates, SOC 2 report issuance, CE marking)",
+  "Training-data governance, dataset bias, or model-provider obligations",
+  "Regulatory registration or legal classification of your AI system",
+  "Domain certifications we do not hold (e.g. HIPAA, PCI-DSS, FedRAMP)",
+];
+
+function FwCard({ f }: { f: Fw }) {
+  return (
+    <div className="cmpl-fw-card">
+      <div className="cmpl-fw-head">
+        <span className="cmpl-fw-name">{f.name}</span>
+        <span className="cmpl-fw-badge">Supports</span>
+      </div>
+      <span className="cmpl-fw-full">{f.full}</span>
+      <div className="cmpl-fw-items">
+        {f.items.map((it) => <span key={it} className="cmpl-fw-chip">{it}</span>)}
+      </div>
+    </div>
+  );
+}
 
 export default function Page() {
   return (
@@ -173,6 +222,35 @@ export default function Page() {
               </tbody>
             </table>
           </div>
+
+          <h2 className="prog-h2 prog-h2--center">Related Governance &amp; Risk Framework Alignment</h2>
+          <p className="cmpl-fw-intro">
+            Runtime Governance provides enforcement, evidence, traceability and audit-trail controls
+            that may support organisations operating under broader governance, risk and compliance
+            frameworks. <strong>Runtime Governance is not a certification and does not claim
+            compliance with any of these frameworks.</strong>
+          </p>
+
+          <h3 className="cmpl-fw-tier">Strong alignment</h3>
+          <div className="cmpl-fw-grid">
+            {FW_STRONG.map((f) => <FwCard key={f.name} f={f} />)}
+          </div>
+
+          <h3 className="cmpl-fw-tier">Supporting alignment</h3>
+          <div className="cmpl-fw-grid">
+            {FW_SUPPORTING.map((f) => <FwCard key={f.name} f={f} />)}
+          </div>
+
+          <h3 className="cmpl-fw-tier">Not claimed</h3>
+          <ul className="cmpl-list cmpl-list--no cmpl-fw-not">
+            {FW_NOT_CLAIMED.map((x) => <li key={x}>{x}</li>)}
+          </ul>
+
+          <p className="cmpl-note">
+            Runtime Governance is a technical control and evidence layer. Regulatory compliance
+            remains dependent on the organisation, deployment context, legal obligations, and broader
+            governance programme.
+          </p>
 
           <div className="prog-foot">
             <p>
