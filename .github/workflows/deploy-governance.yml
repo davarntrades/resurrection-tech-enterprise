@@ -53,6 +53,9 @@ jobs:
       - name: Target-sector hardening (skips sectors the engine lacks)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_sector_hardening.py
+      - name: Cybersecurity hardening (attack kill-chain coverage)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_cyber_hardening.py
       - name: Replay determinism + tamper-detection
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_replay.py
