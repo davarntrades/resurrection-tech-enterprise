@@ -173,3 +173,33 @@
 .eu-trust-how { margin: 0 auto 1rem; max-width: 64ch; color: var(--fg-3, #8b95a5); font-size: 0.85rem; line-height: 1.6; }
 .eu-trust-how strong { color: var(--fg-1, #e7ecf3); }
 .eu-trust-how-items { color: var(--fg-2, #b8c0cc); }
+
+/* compliance page — related GRC framework alignment */
+.cmpl-fw-intro { color: var(--fg-2, #b8c0cc); line-height: 1.6; margin: 0 auto 1.5rem; max-width: 74ch; text-align: center; }
+.cmpl-fw-intro strong { color: var(--fg-1, #e7ecf3); }
+.cmpl-fw-tier {
+  font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3, #8b95a5);
+  margin: 1.5rem 0 0.75rem;
+}
+.cmpl-fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; }
+.cmpl-fw-card {
+  background: var(--bg-1, #12151b); border: 1px solid var(--border, #232a35);
+  border-left: 4px solid var(--ok, #34d399); border-radius: 12px; padding: 1rem 1.1rem;
+}
+.cmpl-fw-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.cmpl-fw-name { font-weight: 700; color: var(--fg-1, #e7ecf3); font-size: 1.02rem; }
+.cmpl-fw-badge {
+  flex: 0 0 auto; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--ok, #34d399); background: color-mix(in srgb, var(--ok, #34d399) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok, #34d399) 40%, transparent);
+  border-radius: 999px; padding: 0.15rem 0.6rem;
+}
+.cmpl-fw-badge::before { content: "✓ "; }
+.cmpl-fw-full { display: block; color: var(--fg-3, #8b95a5); font-size: 0.82rem; margin: 0.2rem 0 0.7rem; }
+.cmpl-fw-items { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.cmpl-fw-chip {
+  font-size: 0.78rem; color: var(--fg-2, #b8c0cc);
+  background: var(--bg-2, #1a1f27); border: 1px solid var(--border, #232a35);
+  border-radius: 999px; padding: 0.15rem 0.55rem;
+}
+.cmpl-fw-not { margin-top: 0.5rem; max-width: 80ch; }
