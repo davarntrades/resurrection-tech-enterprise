@@ -37,6 +37,7 @@ from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules, live_sector_ids
 from cyber_rules import cyber_custom_rules
 from healthcare_rules import healthcare_custom_rules
+from healthcare_escalation import apply_escalation
 import assess as _assess
 
 # All deployment-level custom Ω rules, assembled once. Sector rules are only
@@ -282,6 +283,10 @@ def _serialize(result: GovernanceResult, steps: list[dict]) -> dict:
     if rule in EXTENDED_RULES:
         body.setdefault("metadata", {})["core_layer"] = body.get("layer")
         body["layer"] = "V5+"
+    # Deployment-layer ESCALATE / HUMAN_REVIEW: reclassify a clinician-facing
+    # clinical-report BLOCK (open-world taint, no hard Ω reached) into a
+    # human-review verdict. Deterministic; engine unchanged.
+    body = apply_escalation(body, steps)
     return body
 
 
