@@ -56,6 +56,9 @@ jobs:
       - name: Cybersecurity hardening (attack kill-chain coverage)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_cyber_hardening.py
+      - name: Healthcare hardening (clinical-agent risk surface)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_healthcare_hardening.py
       - name: Replay determinism + tamper-detection
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_replay.py
