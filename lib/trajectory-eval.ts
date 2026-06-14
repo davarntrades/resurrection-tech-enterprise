@@ -64,8 +64,12 @@ export interface EvalResult {
   evalTimeMs?: number;
   evalNumber?: number;
   /** Structured human-review card for ESCALATE verdicts (engine path only):
-   *  what was generated, who must review it, and the next step. */
-  humanReview?: { reason: string; requiredAction: string; nextStep: string };
+   *  what was generated, who must review it, who has authority, the next step,
+   *  and the execution status. */
+  humanReview?: {
+    reason: string; requiredAction: string; decisionAuthority: string;
+    nextStep: string; executionStatus: string;
+  };
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */

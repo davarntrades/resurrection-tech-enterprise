@@ -62,6 +62,9 @@ jobs:
       - name: Healthcare ESCALATE / human-review verdict policy
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_healthcare_escalation.py
+      - name: Cross-domain ESCALATE / human-review verdict policy
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_escalation_domains.py
       - name: Replay determinism + tamper-detection
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_replay.py

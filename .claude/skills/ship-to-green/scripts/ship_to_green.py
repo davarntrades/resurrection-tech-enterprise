@@ -105,7 +105,7 @@ def validate(root: str, engine_dir: str | None, cats: dict, requires_corpus: boo
         run_hardening = bool(cats.get("governance") or cats.get("corpus") or requires_corpus)
         scripts = ["test_replay.py", "test_assess.py"]
         if run_hardening:
-            scripts += ["test_sector_hardening.py", "test_domain_hardening.py", "test_finance_hardening.py", "test_cyber_hardening.py", "test_healthcare_hardening.py", "test_healthcare_escalation.py"]
+            scripts += ["test_sector_hardening.py", "test_domain_hardening.py", "test_finance_hardening.py", "test_cyber_hardening.py", "test_healthcare_hardening.py", "test_healthcare_escalation.py", "test_escalation_domains.py"]
         for sc in scripts:
             ok, tail = _run(["python", sc], gs, env)
             suites.append({"suite": sc[:-3], "status": "PASS" if ok else "FAIL",

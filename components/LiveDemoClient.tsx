@@ -55,6 +55,10 @@ interface EvalRecord {
   governanceLayer: string;
   omegaDomain: string;
   reasoning: string;
+  review?: {
+    reason: string; requiredAction: string; decisionAuthority: string;
+    nextStep: string; executionStatus: string;
+  };
 }
 
 // ── Tamper-evident audit chain ──────────────────────────────────────────
@@ -253,6 +257,7 @@ export function LiveDemoClient() {
           governanceLayer: s.tech.layer,
           omegaDomain: s.tech.omegaDomain,
           reasoning: s.reason,
+          review: s.review,
         },
         ...prev,
       ].slice(0, 50),
@@ -403,7 +408,15 @@ export function LiveDemoClient() {
           `  Triggered rule: ${r.triggeredRule}\n` +
           `  Governance layer: ${r.governanceLayer}\n` +
           `  Ω domain     : ${r.omegaDomain}\n` +
-          `  Reasoning    : ${r.reasoning}\n`,
+          `  Reasoning    : ${r.reasoning}\n` +
+          (r.review
+            ? `  Human review :\n` +
+              `    Reason           : ${r.review.reason}\n` +
+              `    Required action  : ${r.review.requiredAction}\n` +
+              `    Decision authority: ${r.review.decisionAuthority}\n` +
+              `    Next step        : ${r.review.nextStep}\n` +
+              `    Execution status : ${r.review.executionStatus}\n`
+            : ""),
       )
       .join("\n");
     const header = `Resurrection Tech — Runtime Governance audit trail\nGenerated ${fullStamp()} · ${records.length} evaluation(s)\n${"=".repeat(60)}\n\n`;
@@ -617,6 +630,18 @@ export function LiveDemoClient() {
               </div>
               <div className="rgx-verdict-r">
                 <div className="rgx-vrow"><span className="rgx-k">Reason</span><p>{scenario.reason}</p></div>
+                {scenario.review && (
+                  <div className="rgx-vrow rgx-review">
+                    <span className="rgx-k">Human review</span>
+                    <div className="rgx-review-card">
+                      <div className="rgx-review-row"><span>Reason</span><b>{scenario.review.reason}</b></div>
+                      <div className="rgx-review-row"><span>Required action</span><b>{scenario.review.requiredAction}</b></div>
+                      <div className="rgx-review-row"><span>Decision authority</span><b>{scenario.review.decisionAuthority}</b></div>
+                      <div className="rgx-review-row"><span>Next step</span><b>{scenario.review.nextStep}</b></div>
+                      <div className="rgx-review-row"><span>Execution status</span><b className="rgx-review-status">{scenario.review.executionStatus}</b></div>
+                    </div>
+                  </div>
+                )}
                 {mode === "ceo" ? (
                   <>
                     <div className="rgx-vrow">
@@ -970,6 +995,7 @@ function CustomEval({
           governanceLayer: data.layer,
           omegaDomain: data.category,
           reasoning: data.reason,
+          review: data.humanReview,
         },
         events,
       );
