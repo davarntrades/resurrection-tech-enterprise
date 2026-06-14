@@ -219,7 +219,22 @@
     border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid;
   }
   .assess-h2 { break-after: avoid; }
-  .assess-cto, .assess-blocks { break-inside: avoid; }
+  .assess-cto { break-inside: avoid; }
+
+  /* Flex/grid lists are dropped by Chromium's print path (the block-level
+     heading + note around them survive, the flex/grid children vanish). Force
+     these to normal block flow for print so every entry renders — the Verified
+     blocks list, the CTO read-out findings/metrics, and the in-cell Ω pills. */
+  .assess-blocks, .assess-blocks li,
+  .assess-cto-findings, .assess-cto-finding, .assess-cto-metrics,
+  .assess-rules { display: block !important; }
+  .assess-blocks li { margin-bottom: 6px; padding: 0.45rem 0.6rem !important; break-inside: avoid; }
+  .assess-blocks li > span, .assess-cto-finding > * { display: inline !important; }
+  .assess-blocks li > span + span { margin-left: 0.5rem; }
+  .assess-block-hash { margin-left: 0.5rem !important; }
+  .assess-cto-finding { margin-bottom: 0.3rem; }
+  .assess-cto-dot { display: inline-block !important; width: 7px; height: 7px; margin: 0 4px 0 0 !important; }
+  .assess-rules .assess-pill { display: inline-block !important; margin: 0 4px 4px 0; }
 
   /* Fit wide content horizontally: tables must WRAP to the page, never
      scroll/clip. Fixed layout + word-break keeps long rule names / hashes in. */
