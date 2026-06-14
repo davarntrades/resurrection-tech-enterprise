@@ -36,6 +36,7 @@ from coverage_rules import coverage_custom_rules
 from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules, live_sector_ids
 from cyber_rules import cyber_custom_rules
+from healthcare_rules import healthcare_custom_rules
 import assess as _assess
 
 # All deployment-level custom Ω rules, assembled once. Sector rules are only
@@ -44,6 +45,7 @@ import assess as _assess
 DEPLOYMENT_RULES = (
     finance_custom_rules() + coverage_custom_rules()
     + domain_custom_rules() + sector_custom_rules() + cyber_custom_rules()
+    + healthcare_custom_rules()
 )
 
 # Deployment-extended rule names → attributed to the V5+ layer in responses.

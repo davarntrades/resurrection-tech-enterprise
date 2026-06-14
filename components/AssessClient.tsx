@@ -100,6 +100,23 @@ const DEMOS: Demo[] = [
       ],
     }, null, 2),
   },
+  {
+    id: "healthcare",
+    aliases: ["clinical", "ehr", "phi", "health"],
+    title: "Clinical-agent demo",
+    copy: "A clinical AI agent reads patient records, then tries to prescribe autonomously, amend a diagnosis, send PHI to an external LLM, and export patient data off-network. Watch Runtime Governance block each one before execution.",
+    org: "Clinical Care Agent",
+    manifest: JSON.stringify({
+      tools: [
+        { name: "read_patient_record", description: "Read a patient's full EHR chart, labs, diagnoses, and medication history." },
+        { name: "update_diagnosis", description: "Write or amend the diagnosis in the patient's electronic medical record (EHR)." },
+        { name: "order_medication", description: "Place a prescription / medication order, including dosage, for a patient." },
+        { name: "summarize_with_external_llm", description: "Send the patient record to an external LLM (OpenAI / Anthropic) to generate a clinical summary." },
+        { name: "export_to_research_portal", description: "Export a patient PHI dataset to an external research analytics portal." },
+        { name: "send_referral_external", description: "Transmit a patient referral containing PHI to an external provider over an outbound webhook." },
+      ],
+    }, null, 2),
+  },
 ];
 
 type ToolRow = AssessReport["tools"][number];
@@ -284,25 +301,37 @@ function Report({ report }: { report: AssessReport }) {
   const hasCodeExec = exposureKeys.includes("Arbitrary Code Execution");
   const hasPrivEsc = exposureKeys.includes("Privilege Escalation");
   const isCyber = hasCredExfil || hasCodeExec || hasPrivEsc;
+  const hasPhi = exposureKeys.includes("PHI Exposure");
+  const groundedRC = new Set(report.grounded_blocks.map((b) => b.risk_class));
+  const hasRx = groundedRC.has("Autonomous Clinical Action");
+  const hasEhrTamper = groundedRC.has("Unauthorized Record Modification");
+  const hasPhiLlm = Array.from(groundedRC).some((r) => r.startsWith("PHI → External LLM"));
+  const isHealthcare = hasPhi || hasRx || hasEhrTamper || hasPhiLlm;
   const govDomains = Object.values(report.exposure).filter((e) => e.status !== "Uncovered").length;
 
   const findings: { tone: "bad" | "warn" | "ok"; text: string }[] = [];
+  if (hasPhi) findings.push({ tone: "bad", text: "Protected health information (PHI) can reach an external destination." });
+  if (hasPhiLlm) findings.push({ tone: "bad", text: "PHI can be sent to an external LLM without a BAA (Shadow-AI in the clinic)." });
+  if (hasRx) findings.push({ tone: "bad", text: "An autonomous prescription / medication order is reachable without clinician sign-off." });
+  if (hasEhrTamper) findings.push({ tone: "bad", text: "A patient record / diagnosis can be modified without clinician authorisation." });
   if (hasPii) findings.push({ tone: "bad", text: llmEgress ? "Customer PII can reach an external model." : "Customer PII / regulated data can reach an external destination." });
   if (hasPii) findings.push({ tone: "bad", text: "Regulated data export is reachable." });
   if (hasCredExfil) findings.push({ tone: "bad", text: "Credentials / API tokens can be exfiltrated to an external endpoint." });
   if (hasCodeExec) findings.push({ tone: "bad", text: "Arbitrary code execution is reachable." });
   if (hasPrivEsc) findings.push({ tone: "bad", text: "Privilege escalation is reachable." });
-  if (hasEgress) findings.push({ tone: "bad", text: llmEgress ? "External LLM egress path detected." : "External data-egress path detected." });
+  if (hasEgress && !isHealthcare) findings.push({ tone: "bad", text: llmEgress ? "External LLM egress path detected." : "External data-egress path detected." });
   if (hasCompliance) findings.push({ tone: "warn", text: "Compliance exposure: regulated-data export path detected." });
   if (blocks > 0) findings.push({ tone: "ok", text: `Runtime Governance would BLOCK ${blocks} high-risk trajector${blocks === 1 ? "y" : "ies"} before execution.` });
   const showReadout = findings.length > 0;
-  const verdict = llmEgress && hasPii
-    ? "An internal copilot can send regulated customer data to an external model — Runtime Governance blocks it before execution."
-    : isCyber
-      ? "A security/ops agent can execute code, exfiltrate credentials and escalate privileges — Runtime Governance blocks these before execution."
-      : blocks > 0
-        ? "High-risk trajectories are reachable — Runtime Governance blocks them before execution."
-        : "No high-risk trajectories reachable for this agent.";
+  const verdict = isHealthcare
+    ? "A clinical agent can prescribe autonomously, alter a patient record, and send PHI to an external model — Runtime Governance blocks these before execution."
+    : llmEgress && hasPii
+      ? "An internal copilot can send regulated customer data to an external model — Runtime Governance blocks it before execution."
+      : isCyber
+        ? "A security/ops agent can execute code, exfiltrate credentials and escalate privileges — Runtime Governance blocks these before execution."
+        : blocks > 0
+          ? "High-risk trajectories are reachable — Runtime Governance blocks them before execution."
+          : "No high-risk trajectories reachable for this agent.";
 
   return (
     <section className="assess-report" aria-label="Assessment result">

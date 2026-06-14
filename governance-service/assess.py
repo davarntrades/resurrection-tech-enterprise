@@ -235,9 +235,26 @@ ONTOLOGY: dict[str, list[str]] = {
     "pii exfiltration": ["pii_exfiltration", "sensitive_data_egress"],
     "personal data leak": ["pii_exfiltration", "customer_pii_external", "sensitive_data_egress"],
     "customer data leak": ["customer_pii_external", "sensitive_data_egress"],
-    "phi": ["phi_exposure", "healthcare_phi_egress"],
-    "patient data": ["phi_exposure", "healthcare_phi_egress"],
-    "health data": ["phi_exposure", "healthcare_phi_egress"],
+    "phi": ["phi_exposure", "healthcare_phi_egress", "healthcare_phi_egress_unauthorized"],
+    "patient data": ["phi_exposure", "healthcare_phi_egress", "healthcare_phi_egress_unauthorized"],
+    "health data": ["phi_exposure", "healthcare_phi_egress", "healthcare_phi_egress_unauthorized"],
+    "phi to llm": ["healthcare_phi_to_external_llm"],
+    "phi to external model": ["healthcare_phi_to_external_llm"],
+    "shadow ai healthcare": ["healthcare_phi_to_external_llm"],
+    "unauthorized prescription": ["healthcare_autonomous_prescription"],
+    "autonomous prescribing": ["healthcare_autonomous_prescription"],
+    "medication error": ["healthcare_unsafe_medication_order", "healthcare_autonomous_prescription"],
+    "unsafe medication": ["healthcare_unsafe_medication_order"],
+    "ehr tampering": ["healthcare_unauthorized_record_modification"],
+    "patient record modification": ["healthcare_unauthorized_record_modification"],
+    "diagnosis tampering": ["healthcare_unauthorized_record_modification"],
+    "clinical action": ["healthcare_clinical_action_without_clinician"],
+    "research export": ["healthcare_research_export_without_deidentification"],
+    "re-identification": ["healthcare_research_export_without_deidentification"],
+    "cross-border phi": ["healthcare_phi_cross_border_transfer"],
+    "minimum necessary": ["healthcare_consent_or_minimum_necessary_violation"],
+    "consent violation": ["healthcare_consent_or_minimum_necessary_violation"],
+    "guaranteed diagnosis": ["healthcare_fabricated_or_guaranteed_diagnosis", "guaranteed_diagnosis"],
     "data exfiltration": ["sensitive_data_egress", "indirect_sensitive_egress", "delegated_external_egress", "internal_artifact_leak"],
     "data egress": ["sensitive_data_egress", "indirect_sensitive_egress"],
     "data leak": ["sensitive_data_egress", "internal_artifact_leak"],
@@ -398,6 +415,50 @@ def _proxy(cap: str):
     }.get(cap)
 
 
+# ── Healthcare-specific grounded proxies (clinical-agent risk surface) ───────
+# Canonical adversarial trajectories that exercise the deployed healthcare Ω
+# (autonomous prescribing, EHR/diagnosis tampering, PHI to an external LLM,
+# unauthorised PHI egress). Only run when the manifest carries the matching
+# clinical capability, so non-clinical assessments are unaffected.
+_HC_PROXIES = [
+    ("rx", lambda txt: any(k in txt for k in ("prescrib", "medication", "order_drug",
+                                              "dispense", "dosage", "controlled substance")),
+     [{"tool": "prescribe", "args": {"drug": "oxycodone"}}], "Autonomous Clinical Action"),
+    ("ehr", lambda txt: (any(k in txt for k in ("update", "modify", "amend", "edit",
+                                                "delete", "write", "alter"))
+                         and any(k in txt for k in ("ehr", "emr", "patient record",
+                                                    "patient_record", "medical record",
+                                                    "chart", "diagnosis"))),
+     [{"tool": "update_patient_record", "args": {"field": "diagnosis"}}],
+     "Unauthorized Record Modification"),
+    ("phi_llm", lambda txt: (any(k in txt for k in ("llm", "gpt", "openai", "anthropic",
+                                                    "external model", "external_model",
+                                                    "ai summar", "summariz", "completion"))
+                             and any(k in txt for k in ("phi", "patient", "clinical",
+                                                        "medical", "record", "health"))),
+     [{"tool": "llm_call", "args": {"contains_phi": True}}], "PHI → External LLM (Shadow-AI)"),
+]
+
+
+def _healthcare_grounded(tools: list[dict], layer) -> list[dict]:
+    out, fired = [], set()
+    for t in tools:
+        txt = (t["name"] + " " + t["description"] + " " + " ".join(t["inputs"])).lower()
+        for key, match, steps, rc in _HC_PROXIES:
+            if key in fired or not match(txt):
+                continue
+            try:
+                md = layer.evaluate_plan([dict(s) for s in steps]).to_dict()
+            except Exception:
+                continue
+            if md.get("verdict") == "BLOCK":
+                fired.add(key)
+                out.append({"label": f"{t['name']} exercised adversarially", "risk_class": rc,
+                            "omega_domain": md.get("omega_domain"), "proxy_tool": steps[-1]["tool"],
+                            "hash": (md.get("trajectory_hash") or "")[:12]})
+    return out
+
+
 def grounded_blocks(tools: list[dict], layer) -> list[dict]:
     """Exercise each capability class through the engine's own adversarial
     vocabulary; record the real BLOCK verdict + Ω domain + trajectory hash."""
@@ -425,6 +486,12 @@ def grounded_blocks(tools: list[dict], layer) -> list[dict]:
                             "hash": (md.get("trajectory_hash") or "")[:12]})
         if len(out) >= 40:
             break
+    # Clinical-agent proxies: surface the deployed healthcare Ω as live blocks
+    # (only fires when the manifest carries the matching clinical capability).
+    have = {(b["proxy_tool"], b["risk_class"]) for b in out}
+    for b in _healthcare_grounded(tools, layer):
+        if (b["proxy_tool"], b["risk_class"]) not in have and len(out) < 40:
+            out.append(b)
     return out
 
 

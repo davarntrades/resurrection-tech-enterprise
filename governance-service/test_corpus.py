@@ -22,12 +22,13 @@ from coverage_rules import coverage_custom_rules
 from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules
 from cyber_rules import cyber_custom_rules
+from healthcare_rules import healthcare_custom_rules
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(HERE, "tests", "corpus.json")
 CUSTOM = (finance_custom_rules() + coverage_custom_rules()
           + domain_custom_rules() + sector_custom_rules()
-          + cyber_custom_rules())
+          + cyber_custom_rules() + healthcare_custom_rules())
 _LAYERS: dict[tuple, GovernanceLayer] = {}
 
 
