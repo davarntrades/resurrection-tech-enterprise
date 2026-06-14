@@ -273,6 +273,11 @@
 .tt-review-reject { color: #c0392b; border-color: rgba(192,57,43,0.45); background: rgba(192,57,43,0.10); }
 .tt-review-sep { color: var(--ink-3, #8a8a8a); }
 .tt-review-tail { color: var(--ink-2, #555); font-size: 13px; }
+.tt-review-status {
+  display: inline-block; font-weight: 700; font-size: 12px; letter-spacing: 0.05em;
+  color: #b9821f; border: 1px solid rgba(214,158,46,0.5); background: rgba(214,158,46,0.12);
+  padding: 3px 10px; border-radius: 6px;
+}
 @media (max-width: 560px) {
   .tt-review-row { grid-template-columns: 1fr; gap: 3px; }
 }

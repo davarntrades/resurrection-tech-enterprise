@@ -282,6 +282,10 @@ export function TestTrajectoryClient() {
                           <span className="tt-review-v">{result.humanReview.requiredAction}</span>
                         </div>
                         <div className="tt-review-row">
+                          <span className="tt-review-k">Decision authority</span>
+                          <span className="tt-review-v">{result.humanReview.decisionAuthority}</span>
+                        </div>
+                        <div className="tt-review-row">
                           <span className="tt-review-k">Next step</span>
                           <span className="tt-review-v tt-review-actions">
                             <span className="tt-review-approve">Approve</span>
@@ -289,6 +293,10 @@ export function TestTrajectoryClient() {
                             <span className="tt-review-reject">Reject</span>
                             <span className="tt-review-tail">{result.humanReview.nextStep.replace(/^Approve \/ Reject\s*/i, "")}</span>
                           </span>
+                        </div>
+                        <div className="tt-review-row">
+                          <span className="tt-review-k">Execution status</span>
+                          <span className="tt-review-v tt-review-status">{result.humanReview.executionStatus}</span>
                         </div>
                       </div>
                     )}

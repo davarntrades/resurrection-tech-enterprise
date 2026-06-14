@@ -37,7 +37,7 @@ from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules, live_sector_ids
 from cyber_rules import cyber_custom_rules
 from healthcare_rules import healthcare_custom_rules
-from healthcare_escalation import apply_escalation
+from escalation import apply_escalation
 import assess as _assess
 
 # All deployment-level custom Ω rules, assembled once. Sector rules are only

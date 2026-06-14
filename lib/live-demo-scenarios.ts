@@ -132,6 +132,17 @@ export interface Scenario {
     /** Deep link to the relevant repo file. */
     evidenceUrl: string;
   };
+
+  /** Structured human-review card (ESCALATE only): what was generated, who must
+   *  review it, who holds sign-off authority, the next step, and execution
+   *  status. Data-driven so the UI/exports never hardcode the copy. */
+  review?: {
+    reason: string;
+    requiredAction: string;
+    decisionAuthority: string;
+    nextStep: string;
+    executionStatus: string;
+  };
 }
 
 /* Decision presentation metadata, reused by the UI. */
@@ -529,6 +540,13 @@ export const SCENARIOS: Scenario[] = [
       evidenceRef:
         "morrison_governance/test_mental_health_safety.py · failure_to_route → ESCALATE_TO_HUMAN",
       evidenceUrl: `${REPO_BLOB}/morrison_governance/test_mental_health_safety.py`,
+    },
+    review: {
+      reason: "Regulated remediation recommendation generated.",
+      requiredAction: "Compliance Officer review.",
+      decisionAuthority: "Compliance Officer",
+      nextStep: "Approve / Reject action.",
+      executionStatus: "HELD FOR HUMAN REVIEW",
     },
   },
 
