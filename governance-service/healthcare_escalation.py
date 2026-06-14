@@ -50,6 +50,28 @@ CLINICIAN_SINKS = {
     "recommend_treatment", "care_recommendation", "suggest_treatment",
     "flag_for_review", "route_for_review", "request_human_review",
 }
+RECOMMEND_TOOLS = {
+    "generate_recommendation", "clinical_recommendation", "treatment_recommendation",
+    "recommend_treatment", "care_recommendation", "suggest_treatment",
+}
+REPORT_GEN_TOOLS = {
+    "generate_risk_report", "risk_assessment", "generate_report", "clinical_summary",
+    "generate_summary", "summarize_patient_history", "patient_assessment",
+    "generate_assessment",
+}
+# Specialty inference for the "who must review" line. Ordered; first match wins.
+_SPECIALTY = [
+    (re.compile(r"(oncolog|cancer|chemo|tumou?r|malignan|carcinoma|metasta)", re.IGNORECASE),
+     "Oncology consultant review."),
+    (re.compile(r"(cardio|cardiac|\becg\b|\bekg\b|arrhythmia|\bheart\b|coronary)", re.IGNORECASE),
+     "Cardiology consultant review."),
+    (re.compile(r"(neuro|seizure|stroke|epilep|\bcns\b)", re.IGNORECASE),
+     "Neurology consultant review."),
+    (re.compile(r"(radiolog|imaging|\bmri\b|\bct\b|x-?ray|ultrasound|mammogram)", re.IGNORECASE),
+     "Radiology review."),
+    (re.compile(r"(psychiatr|mental health|depression|self-harm)", re.IGNORECASE),
+     "Psychiatry review."),
+]
 _CLINICIAN_RE = re.compile(r"(clinician|physician|\bdoctor\b|care[_ ]?team|attending|provider)", re.IGNORECASE)
 _DELIVER_RE = re.compile(r"(send|notify|route|deliver|report|recommend|review|escalate|flag|summar)", re.IGNORECASE)
 # Anything that smells like leaving the trusted boundary disqualifies escalation.
@@ -107,6 +129,28 @@ def _is_taint_block(body: dict) -> bool:
     return "data-flow taint" in reason or "open-world" in reason or "taint" in reason
 
 
+def _review_card(flat: list[dict]) -> dict[str, str]:
+    """Structured human-review card: what was generated, who must review it, and
+    the next step. Specialty is inferred from the trajectory; defaults to the
+    attending clinician when unknown."""
+    tools = {_tool(s) for s in flat}
+    is_reco = bool(tools & RECOMMEND_TOOLS) or bool(tools & REPORT_GEN_TOOLS)
+    reason = ("Clinical recommendation generated." if is_reco
+              else "Clinical report over patient data generated.")
+    blob = " ".join(
+        [_tool(s) for s in flat]
+        + [str(v) for s in flat for v in s.values() if not isinstance(v, dict)]
+    )
+    required = "Attending clinician review."
+    for rx, label in _SPECIALTY:
+        if rx.search(blob):
+            required = label
+            break
+    next_step = ("Approve / Reject recommendation." if is_reco
+                 else "Approve / Reject report.")
+    return {"reason": reason, "required_action": required, "next_step": next_step}
+
+
 def escalation_override(body: dict, steps: list[dict]) -> Optional[dict[str, Any]]:
     """Return response-field overrides if this BLOCK should become ESCALATE,
     else None. Pure + deterministic (no time / IO / randomness)."""
@@ -132,6 +176,7 @@ def escalation_override(body: dict, steps: list[dict]) -> Optional[dict[str, Any
                        "human (clinician) review before execution. No record modification, "
                        "prescription, clinical action, or external PHI egress is reached, so "
                        "this is escalated rather than blocked."),
+            "review": _review_card(flat),
         }
     return None
 

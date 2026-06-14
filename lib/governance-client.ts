@@ -18,6 +18,7 @@ interface GovernanceResponse {
   permitted: boolean;
   blocked: boolean;
   requires_human_review?: boolean;
+  review?: { reason: string; required_action: string; next_step: string };
   layer: string;
   reason: string;
   omega_domain: string | null;
@@ -138,6 +139,9 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       steps,
       trajectoryHash: g.trajectory_hash,
       reachabilityDistance: g.reachability_distance,
+      humanReview: g.review
+        ? { reason: g.review.reason, requiredAction: g.review.required_action, nextStep: g.review.next_step }
+        : undefined,
       ...timing,
     };
   }

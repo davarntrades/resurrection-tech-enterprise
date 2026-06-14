@@ -86,6 +86,11 @@ def main() -> int:
         if got == "ESCALATE" and (b.get("permitted") or not b.get("requires_human_review")):
             fails.append(f"{name}: ESCALATE not fail-closed (permitted={b.get('permitted')}, "
                          f"review={b.get('requires_human_review')})")
+        # ESCALATE must carry a structured human-review card
+        if got == "ESCALATE":
+            rv = b.get("review") or {}
+            if not all(rv.get(k) for k in ("reason", "required_action", "next_step")):
+                fails.append(f"{name}: ESCALATE missing review card {rv}")
         print(f"{name:52} {expected:9} {got:9} {b.get('layer')}{'' if ok else '  <-- MISMATCH'}")
 
     print(f"\n{len(CASES)} cases · {'PASS' if not fails else 'FAIL'}")

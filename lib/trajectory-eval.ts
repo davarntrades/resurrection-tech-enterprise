@@ -63,6 +63,9 @@ export interface EvalResult {
   /** Real engine timing from GovernanceResult.metadata (engine path only). */
   evalTimeMs?: number;
   evalNumber?: number;
+  /** Structured human-review card for ESCALATE verdicts (engine path only):
+   *  what was generated, who must review it, and the next step. */
+  humanReview?: { reason: string; requiredAction: string; nextStep: string };
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */

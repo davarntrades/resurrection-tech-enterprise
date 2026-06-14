@@ -248,6 +248,35 @@
 }
 .tt-badge-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
 
+/* ── ESCALATE human-review card (what · who · next step) ── */
+.tt-review {
+  margin-top: 12px;
+  border: 1px solid rgba(214,158,46,0.35);
+  border-left: 3px solid #e0a93f;
+  border-radius: 10px;
+  background: rgba(214,158,46,0.06);
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+.tt-review-row { display: grid; grid-template-columns: 132px 1fr; gap: 10px; align-items: baseline; }
+.tt-review-k {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #b9821f;
+}
+.tt-review-v { font-size: 15px; color: var(--ink-1, #1a1a1a); line-height: 1.4; }
+.tt-review-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tt-review-approve, .tt-review-reject {
+  font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 999px; border: 1px solid;
+}
+.tt-review-approve { color: #1f8a4c; border-color: rgba(31,138,76,0.45); background: rgba(31,138,76,0.10); }
+.tt-review-reject { color: #c0392b; border-color: rgba(192,57,43,0.45); background: rgba(192,57,43,0.10); }
+.tt-review-sep { color: var(--ink-3, #8a8a8a); }
+.tt-review-tail { color: var(--ink-2, #555); font-size: 13px; }
+@media (max-width: 560px) {
+  .tt-review-row { grid-template-columns: 1fr; gap: 3px; }
+}
+
 /* ── Executive Summary (primary zone) ── */
 .tt-exec {
   border: 1px solid var(--line-2);
