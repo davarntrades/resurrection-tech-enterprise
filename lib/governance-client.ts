@@ -14,9 +14,10 @@ import { OMEGA_META, type EvalResult, type StepSummary, type ToolCall, type Verd
 
 /** Raw shape returned by the FastAPI service (GovernanceResult.to_dict + extras). */
 interface GovernanceResponse {
-  verdict: "PERMIT" | "BLOCK" | "NO_VALID_SOLUTION" | "ENVIRONMENT_SENSITIVE";
+  verdict: "PERMIT" | "BLOCK" | "NO_VALID_SOLUTION" | "ENVIRONMENT_SENSITIVE" | "ESCALATE";
   permitted: boolean;
   blocked: boolean;
+  requires_human_review?: boolean;
   layer: string;
   reason: string;
   omega_domain: string | null;
@@ -54,7 +55,7 @@ function metaFor(rule: string | undefined, domain: string | null) {
 function mapVerdict(v: GovernanceResponse["verdict"]): Verdict {
   if (v === "PERMIT") return "PERMIT";
   if (v === "BLOCK" || v === "NO_VALID_SOLUTION") return "BLOCK";
-  return "INCONCLUSIVE"; // ENVIRONMENT_SENSITIVE → escalate
+  return "INCONCLUSIVE"; // ENVIRONMENT_SENSITIVE / ESCALATE → human review
 }
 
 /** Convert a real GovernanceResult into the existing EvalResult contract. */
@@ -98,23 +99,41 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
   }
 
   if (verdict === "INCONCLUSIVE") {
-    // ENVIRONMENT_SENSITIVE / escalate-to-human classification.
+    // Escalate-to-human classification. Two flavours:
+    //  • ESCALATE — a deployment-policy human-review verdict (e.g. a clinician-
+    //    facing clinical report over PHI that reaches no hard Ω). Fail-closed.
+    //  • ENVIRONMENT_SENSITIVE — safe under base conditions, unsafe under
+    //    perturbation across the environment set ℰ.
+    const humanReview = g.verdict === "ESCALATE" || g.requires_human_review === true;
     return {
       verdict: "INCONCLUSIVE",
       layer: g.layer || "V5",
-      reason: "Environment-sensitive trajectory — escalated for human review before execution.",
-      omega: "indeterminate",
-      runtimeStatus: "escalated for human review before execution",
-      category: g.omega_domain ?? "Environment-sensitive",
+      reason: humanReview
+        ? (g.reason || "Routed for human review before execution — clinician sign-off required.")
+        : "Environment-sensitive trajectory — escalated for human review before execution.",
+      omega: humanReview ? "human review required" : "indeterminate",
+      runtimeStatus: humanReview
+        ? "held for human review before execution"
+        : "escalated for human review before execution",
+      category: humanReview
+        ? (g.omega_domain ? `${g.omega_domain} · human review` : "Human review required")
+        : (g.omega_domain ?? "Environment-sensitive"),
       explanation:
-        (g.reason || "Safe under base conditions but unsafe under perturbation across the environment set ℰ.") +
+        (g.reason ||
+          (humanReview
+            ? "A clinician must review this trajectory before it runs: it touches patient data but reaches no forbidden state."
+            : "Safe under base conditions but unsafe under perturbation across the environment set ℰ.")) +
         distanceNote +
         engineNote,
       omegaReachable: false,
-      businessImpact: "Reachability is conditional on the environment. A human review is required before this trajectory runs.",
+      businessImpact: humanReview
+        ? "Neither clearly safe nor catastrophic — held for a human (clinician) sign-off before this trajectory runs."
+        : "Reachability is conditional on the environment. A human review is required before this trajectory runs.",
       protectedAssets: ["Pending human review"],
       confidence: "Escalate",
-      omegaReason: "The verdict flips under environmental perturbation, so Ω may become reachable depending on conditions.",
+      omegaReason: humanReview
+        ? "Involves patient data but does not modify records, prescribe, take a clinical action, or export PHI — so it is routed to a human rather than blocked."
+        : "The verdict flips under environmental perturbation, so Ω may become reachable depending on conditions.",
       estimatedConsequence: "Undetermined — escalated for human review before execution.",
       steps,
       trajectoryHash: g.trajectory_hash,

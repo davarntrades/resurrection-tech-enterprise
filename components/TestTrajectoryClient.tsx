@@ -152,6 +152,8 @@ export function TestTrajectoryClient() {
   const blocked = result?.verdict === "BLOCK";
   const inconclusive = result?.verdict === "INCONCLUSIVE";
   const statusClass = blocked ? "is-block" : inconclusive ? "is-inconclusive" : "is-permit";
+  // The third verdict surfaces to the user as ESCALATE / human review.
+  const verdictLabel = blocked ? "BLOCK" : inconclusive ? "ESCALATE" : "PERMIT";
 
   return (
     <section className="section section--tight tt" aria-label="Test a trajectory">
@@ -267,7 +269,7 @@ export function TestTrajectoryClient() {
                     </div>
                     <div className="tt-badge">
                       <span className="tt-badge-dot" aria-hidden="true" />
-                      {result.verdict}
+                      {verdictLabel}
                     </div>
                     <dl className="tt-exec-fields">
                       <div><dt>Risk category</dt><dd>{result.category}</dd></div>
@@ -326,7 +328,7 @@ export function TestTrajectoryClient() {
                       <span className="tt-tech-tag">engineering detail</span>
                     </div>
                     <dl className="tt-fields">
-                      <div><dt>Verdict</dt><dd>{result.verdict}</dd></div>
+                      <div><dt>Verdict</dt><dd>{verdictLabel}</dd></div>
                       <div><dt>Layer</dt><dd>{result.layer}</dd></div>
                       <div><dt>Reason</dt><dd>{result.reason}</dd></div>
                       <div>

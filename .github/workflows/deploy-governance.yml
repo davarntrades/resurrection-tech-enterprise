@@ -59,6 +59,9 @@ jobs:
       - name: Healthcare hardening (clinical-agent risk surface)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_healthcare_hardening.py
+      - name: Healthcare ESCALATE / human-review verdict policy
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_healthcare_escalation.py
       - name: Replay determinism + tamper-detection
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_replay.py
