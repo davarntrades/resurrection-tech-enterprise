@@ -271,6 +271,27 @@ export function TestTrajectoryClient() {
                       <span className="tt-badge-dot" aria-hidden="true" />
                       {verdictLabel}
                     </div>
+                    {inconclusive && result.humanReview && (
+                      <div className="tt-review" aria-label="Human review required">
+                        <div className="tt-review-row">
+                          <span className="tt-review-k">Reason</span>
+                          <span className="tt-review-v">{result.humanReview.reason}</span>
+                        </div>
+                        <div className="tt-review-row">
+                          <span className="tt-review-k">Required action</span>
+                          <span className="tt-review-v">{result.humanReview.requiredAction}</span>
+                        </div>
+                        <div className="tt-review-row">
+                          <span className="tt-review-k">Next step</span>
+                          <span className="tt-review-v tt-review-actions">
+                            <span className="tt-review-approve">Approve</span>
+                            <span className="tt-review-sep">/</span>
+                            <span className="tt-review-reject">Reject</span>
+                            <span className="tt-review-tail">{result.humanReview.nextStep.replace(/^Approve \/ Reject\s*/i, "")}</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <dl className="tt-exec-fields">
                       <div><dt>Risk category</dt><dd>{result.category}</dd></div>
                       <div><dt>Business impact</dt><dd>{result.businessImpact}</dd></div>
