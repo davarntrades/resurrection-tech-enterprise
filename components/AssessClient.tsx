@@ -63,12 +63,13 @@ const SAMPLES: { id: string; label: string; blurb: string; manifest: string }[] 
 
 // One-click demos. Each loads its manifest and runs immediately (button or the
 // /assess?demo=<id> deep link). Uses only existing Ω domains + governance logic.
-type Demo = { id: string; aliases: string[]; title: string; copy: string; org: string; manifest: string };
+type Demo = { id: string; aliases: string[]; title: string; cta: string; copy: string; org: string; manifest: string };
 const DEMOS: Demo[] = [
   {
     id: "shadow-ai",
     aliases: ["shadow", "shadowai"],
     title: "Shadow AI demo",
+    cta: "Shadow-AI",
     copy: "An internal copilot tries to send regulated customer data to an external LLM. Watch Runtime Governance block it before execution.",
     org: "Internal Copilot",
     manifest: JSON.stringify({
@@ -87,6 +88,7 @@ const DEMOS: Demo[] = [
     id: "secops",
     aliases: ["security-ops", "secops-ai", "soc"],
     title: "Security-Ops agent demo",
+    cta: "Security-Ops",
     copy: "A SOC / security-ops agent attempts the attack kill chain — execute code, exfiltrate credentials, escalate privileges, disable logging. Watch Runtime Governance block it before execution.",
     org: "Security-Ops Agent",
     manifest: JSON.stringify({
@@ -104,6 +106,7 @@ const DEMOS: Demo[] = [
     id: "healthcare",
     aliases: ["clinical", "ehr", "phi", "health"],
     title: "Clinical-agent demo",
+    cta: "Clinical-agent",
     copy: "A clinical AI agent reads patient records, then tries to prescribe autonomously, amend a diagnosis, send PHI to an external LLM, and export patient data off-network. Watch Runtime Governance block each one before execution.",
     org: "Clinical Care Agent",
     manifest: JSON.stringify({
@@ -216,7 +219,7 @@ export function AssessClient() {
             <button type="button" className="btn btn--primary btn--live assess-demo-btn"
                     onClick={() => runDemo(d)} disabled={busy}>
               <span className="live-pip" aria-hidden="true" />
-              {busy ? "Running…" : `▶ Run the ${d.id === "secops" ? "Security-Ops" : "Shadow-AI"} demo`}
+              {busy ? "Running…" : `▶ Run the ${d.cta} demo`}
             </button>
           </div>
         ))}

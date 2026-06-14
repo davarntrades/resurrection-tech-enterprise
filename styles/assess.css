@@ -192,16 +192,19 @@
 
 /* ── Print / "Download PDF": render a clean, branded, white report ── */
 @media print {
-  /* Show only the assessment report; drop nav, hero, footer, the input panel,
-     the toolbar button, the lead form, and the action CTAs. */
-  body * { visibility: hidden !important; }
-  .assess-report, .assess-report * { visibility: visible !important; }
-  .assess-report { position: absolute; left: 0; top: 0; width: 100%; }
-  .assess-input, .assess-hero, .assess-report-bar,
-  .assess-lead, .assess-cta-row, .nav, .site-footer, footer { display: none !important; }
+  /* Print only the assessment report, in NORMAL FLOW so it paginates across
+     pages. (The old rule absolutely-positioned the report, which clips
+     everything past page 1, and let wide tables scroll — which clips their
+     right-hand columns. Both are fixed below.) Hide page chrome + the report's
+     interactive bits. */
+  nav, .nav, footer, .footer, .site-footer, .sticky-bar,
+  .assess > *:not(.assess-report),
+  .assess-report-bar, .assess-cta-row, .assess-lead { display: none !important; }
 
   :root { color-scheme: light; }
   html, body { background: #fff !important; }
+  .assess, .assess-report { margin: 0 !important; padding: 0 !important; }
+  .assess-report { position: static; width: auto !important; max-width: 100% !important; }
   .assess-report, .assess-report * { color: #111 !important; background: transparent !important; }
 
   .assess-print-head {
@@ -211,15 +214,33 @@
   .assess-print-title { display: block; font-size: 18px; font-weight: 700; margin-top: 4px; }
   .assess-print-meta { display: block; font-size: 11px; color: #555 !important; margin-top: 2px; }
 
+  /* Cards / sections: lighten, and keep each one from splitting across pages. */
   .assess-headline, .assess-stat, .assess-table-wrap, .assess-blocks li, .assess-gaps, .assess-latency {
     border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid;
   }
+  .assess-h2 { break-after: avoid; }
+  .assess-cto, .assess-blocks { break-inside: avoid; }
+
+  /* Fit wide content horizontally: tables must WRAP to the page, never
+     scroll/clip. Fixed layout + word-break keeps long rule names / hashes in. */
+  .assess-table-wrap { overflow: visible !important; }
+  .assess-table { table-layout: fixed; width: 100% !important; font-size: 10px !important; }
+  .assess-table th, .assess-table td {
+    white-space: normal !important; overflow-wrap: anywhere; word-break: break-word;
+    padding: 0.4rem 0.5rem !important;
+  }
+  .assess-table code { white-space: normal !important; word-break: break-all; font-size: 9px !important; padding: 0.05rem 0.2rem !important; }
+  .assess-table tr { break-inside: avoid; }
   .assess-table th { color: #333 !important; }
   .assess-table code, .assess-pill, .assess-stat-n, .assess-cov-num { color: #111 !important; }
   .assess-pill { border: 1px solid #999 !important; }
-  .assess-h2 { break-after: avoid; }
+
+  /* Stats: a compact row that wraps within the page. */
+  .assess-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 8px !important; }
+  .assess-stat-n { font-size: 1.2rem !important; }
+
   a[href]:after { content: ""; } /* don't print raw URLs */
-  @page { margin: 16mm; }
+  @page { margin: 14mm; }
 }
 
 /* compliance link in the CTO read-out */
