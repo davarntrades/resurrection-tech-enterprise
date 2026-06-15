@@ -72,6 +72,7 @@ export const NAV_MENU = [
     group: "Technology",
     links: [
       { href: "/#middleware", label: "Runtime Governance architecture" },
+      { href: "/quickstart", label: "Developer quickstart (integrate)" },
       { href: "/#reachability", label: "Reachability & Ω" },
       { href: "/#reachability", label: "Safety as Geometry™" },
       { href: "/#threats", label: "Threat coverage" },

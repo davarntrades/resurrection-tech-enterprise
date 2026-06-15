@@ -372,7 +372,8 @@ export default function Page() {
             <div className="ig-card ig-card--accent"><h3>Accelerate AI Adoption</h3><p>Deploy AI with governance built in.</p></div>
           </div>
           <div className="ig-cta reveal">
-            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/quickstart" className="btn btn--primary">Developer quickstart — integrate in 15 min <span className="arr">→</span></Link>
+            <Link href="/book#assessment" className="btn btn--ghost">Book a Runtime Safety Assessment</Link>
             <Link href="/enterprise" className="btn btn--ghost">Enterprise readiness</Link>
             <Link href="/sample-audit" className="btn btn--ghost">See a sample report</Link>
           </div>
