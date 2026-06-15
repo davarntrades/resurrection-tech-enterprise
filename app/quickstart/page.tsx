@@ -16,25 +16,29 @@ Content-Type: application/json
 
 {
   "trajectory": [
-    { "tool": "transfer_funds", "args": { "amount": 50000, "to": "acct_991" } }
+    { "tool": "transfer_funds",
+      "args": { "amount": 50000, "to": "acct_991" } }
   ],
-  "domains": ["finance"]          // optional — defaults to the full Ω catalog
+  "domains": ["finance"]   // optional; defaults to all Ω
 }`;
 
 const RESPONSE = `{
-  "verdict": "BLOCK",             // PERMIT | ESCALATE | BLOCK
-  "permitted": false,            // execute only when true
+  "verdict": "BLOCK",     // PERMIT | ESCALATE | BLOCK
+  "permitted": false,     // execute only when true
   "blocked": true,
   "layer": "V5+",
-  "reason": "Single-step Ω violation: finance_high_value_unverified_transfer",
+  "reason": "Ω violation: finance_high_value_unverified_transfer",
   "omega_domain": "finance",
   "trajectory_hash": "9f3c1a8e7b22",
-  "attestation": { "engine_commit": "96ecd39…", "ruleset_hash": "7b1f…" }
+  "attestation": {
+    "engine_commit": "96ecd39…",
+    "ruleset_hash": "7b1f…"
+  }
 }`;
 
 const ESCALATE_RESPONSE = `{
   "verdict": "ESCALATE",
-  "permitted": false,            // held — not auto-executed
+  "permitted": false,           // held — not auto-executed
   "requires_human_review": true,
   "omega_domain": "healthcare",
   "review": {
@@ -49,34 +53,39 @@ const ESCALATE_RESPONSE = `{
 const CURL = `curl -s "$GOVERNANCE_URL/v1/evaluate" \\
   -H "content-type: application/json" \\
   -H "authorization: Bearer $GOVERNANCE_TOKEN" \\
-  -d '{ "trajectory": [
-        { "tool": "transfer_funds", "args": { "amount": 50000, "to": "acct_991" } }
-      ] }'`;
+  -d '{
+    "trajectory": [
+      { "tool": "transfer_funds",
+        "args": { "amount": 50000, "to": "acct_991" } }
+    ]
+  }'`;
 
 const TS = `import { guardedDispatch, GovernanceBlocked } from "./governanceGuard";
 
 // At your plan -> act boundary, gate the dispatch:
 try {
-  const result = await guardedDispatch(
+  await guardedDispatch(
     { tool: "transfer_funds", args: { amount: 50000, to: "acct_991" } },
-    (call) => runTool(call),                 // ALLOW   -> execute
-    (v) => routeToHuman(v.review),           // ESCALATE-> human sign-off
+    (call) => runTool(call),        // ALLOW -> execute
+    (v) => routeToHuman(v.review),  // ESCALATE -> human sign-off
     { domains: ["finance"] },
   );
 } catch (e) {
-  if (e instanceof GovernanceBlocked) deny(e.result.reason);  // BLOCK -> never runs
+  // BLOCK -> never runs
+  if (e instanceof GovernanceBlocked) deny(e.result.reason);
 }`;
 
 const PY = `from governance_guard import guard, GovernanceBlocked, GovernanceEscalation
 
 # Call immediately BEFORE executing a tool:
 try:
-    guard("transfer_funds", {"amount": 50000, "to": "acct_991"}, domains=["finance"])
-    run_tool(...)                                # ALLOW   -> execute
+    guard("transfer_funds", {"amount": 50000, "to": "acct_991"},
+          domains=["finance"])
+    run_tool(...)                 # ALLOW -> execute
 except GovernanceEscalation as e:
-    route_to_human(e.review)                     # ESCALATE-> human sign-off
+    route_to_human(e.review)      # ESCALATE -> human sign-off
 except GovernanceBlocked as e:
-    deny(str(e))                                 # BLOCK   -> never runs`;
+    deny(str(e))                  # BLOCK -> never runs`;
 
 const LANGCHAIN = `from governance_guard import govern_langchain_tool
 
