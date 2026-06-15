@@ -1,9 +1,9 @@
 {
   "schema": "rt.benchmark.v1",
-  "generated_utc": "2026-06-08 11:11:01Z",
+  "generated_utc": "2026-06-15 12:33:00Z",
   "environment": {
     "python": "3.12.13",
-    "platform": "Linux-6.17.0-1015-azure-x86_64-with-glibc2.39",
+    "platform": "Linux-6.17.0-1018-azure-x86_64-with-glibc2.39",
     "processor": "x86_64",
     "cpu_count": 4,
     "note": "Single-threaded, measured on this CI/build environment. Representative figures, not a production-hardware guarantee."
@@ -30,125 +30,125 @@
       "steps": 1,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0729,
+      "p50_ms": 0.0727,
       "p95_ms": 0.0957,
-      "p99_ms": 0.118,
-      "avg_ms": 0.0758,
-      "min_ms": 0.0705,
-      "max_ms": 0.1738,
-      "throughput_per_s": 13193.0
+      "p99_ms": 0.1067,
+      "avg_ms": 0.0754,
+      "min_ms": 0.0702,
+      "max_ms": 0.1962,
+      "throughput_per_s": 13263.0
     },
     "short_2": {
       "steps": 2,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.091,
-      "p95_ms": 0.1141,
-      "p99_ms": 0.1436,
-      "avg_ms": 0.0944,
-      "min_ms": 0.0882,
-      "max_ms": 0.2041,
-      "throughput_per_s": 10593.0
+      "p50_ms": 0.0897,
+      "p95_ms": 0.1133,
+      "p99_ms": 0.1418,
+      "avg_ms": 0.0931,
+      "min_ms": 0.0868,
+      "max_ms": 0.2088,
+      "throughput_per_s": 10741.0
     },
     "medium_4": {
       "steps": 4,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.1624,
-      "p95_ms": 0.1859,
-      "p99_ms": 0.2107,
-      "avg_ms": 0.1672,
-      "min_ms": 0.1572,
-      "max_ms": 0.4019,
-      "throughput_per_s": 5981.0
+      "p50_ms": 0.1598,
+      "p95_ms": 0.1831,
+      "p99_ms": 0.1912,
+      "avg_ms": 0.1639,
+      "min_ms": 0.1554,
+      "max_ms": 0.3485,
+      "throughput_per_s": 6101.0
     },
     "long_8": {
       "steps": 8,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.2985,
-      "p95_ms": 0.3237,
-      "p99_ms": 0.3548,
-      "avg_ms": 0.3051,
-      "min_ms": 0.2858,
-      "max_ms": 0.6416,
-      "throughput_per_s": 3278.0
+      "p50_ms": 0.297,
+      "p95_ms": 0.3248,
+      "p99_ms": 0.3521,
+      "avg_ms": 0.3041,
+      "min_ms": 0.2882,
+      "max_ms": 0.6202,
+      "throughput_per_s": 3288.0
     },
     "very_long_16": {
       "steps": 16,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.5851,
-      "p95_ms": 0.5987,
-      "p99_ms": 0.6787,
-      "avg_ms": 0.5834,
-      "min_ms": 0.5571,
-      "max_ms": 1.2698,
-      "throughput_per_s": 1714.0
+      "p50_ms": 0.5819,
+      "p95_ms": 0.6058,
+      "p99_ms": 0.8469,
+      "avg_ms": 0.5842,
+      "min_ms": 0.5557,
+      "max_ms": 1.3555,
+      "throughput_per_s": 1712.0
     },
     "multi_agent": {
       "steps": 3,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.1275,
-      "p95_ms": 0.1511,
-      "p99_ms": 0.1634,
-      "avg_ms": 0.1312,
-      "min_ms": 0.1232,
-      "max_ms": 0.29,
-      "throughput_per_s": 7622.0
+      "p50_ms": 0.1256,
+      "p95_ms": 0.1482,
+      "p99_ms": 0.1547,
+      "avg_ms": 0.1289,
+      "min_ms": 0.1222,
+      "max_ms": 0.2263,
+      "throughput_per_s": 7758.0
     }
   },
   "scaling_by_trajectory_length": {
     "1": {
       "steps": 1,
-      "avg_ms": 0.075
+      "avg_ms": 0.0741
     },
     "2": {
       "steps": 2,
-      "avg_ms": 0.0945
+      "avg_ms": 0.0927
     },
     "4": {
       "steps": 4,
-      "avg_ms": 0.1679
+      "avg_ms": 0.1647
     },
     "8": {
       "steps": 8,
-      "avg_ms": 0.308
+      "avg_ms": 0.3038
     },
     "16": {
       "steps": 16,
-      "avg_ms": 0.5873
+      "avg_ms": 0.577
     },
     "32": {
       "steps": 32,
-      "avg_ms": 1.1534
+      "avg_ms": 1.159
     }
   },
   "scaling_by_domain_count": {
     "1": {
       "domains": 1,
       "rules": 13,
-      "avg_ms": 0.1298,
-      "p95_ms": 0.1488
+      "avg_ms": 0.1384,
+      "p95_ms": 0.2294
     },
     "3": {
       "domains": 3,
       "rules": 17,
-      "avg_ms": 0.142,
-      "p95_ms": 0.1612
+      "avg_ms": 0.1394,
+      "p95_ms": 0.1587
     },
     "6": {
       "domains": 6,
       "rules": 25,
-      "avg_ms": 0.1562,
-      "p95_ms": 0.1748
+      "avg_ms": 0.1531,
+      "p95_ms": 0.1725
     },
     "9": {
       "domains": 9,
       "rules": 34,
-      "avg_ms": 0.1664,
-      "p95_ms": 0.1853
+      "avg_ms": 0.1641,
+      "p95_ms": 0.1832
     }
   }
 }
