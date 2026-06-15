@@ -113,53 +113,86 @@ const idxOf = (id: string) => SCENARIOS.findIndex((s) => s.id === id);
 /** First-visit tour order: one BLOCK, one ALLOW, one ESCALATE. */
 const TOUR_IDS = ["transfer", "safe", "regulatory"];
 
-/** Executive "Value Protected" copy (shared). */
-const VP_EXPLANATION =
-  "The blocked transaction represents only the initial risk. Enterprise incidents often trigger investigations, legal review, compliance obligations, regulatory scrutiny, operational disruption, and reputational damage that can significantly exceed the original loss.";
-const VP_NOTE =
-  "Runtime Governance protects more than the asset at risk. It prevents the downstream investigation, response, legal, regulatory, reputational, and operational costs that frequently exceed the original incident.";
-const VP_GENERIC_COSTS: { label: string; range?: string }[] = [
-  { label: "Direct financial loss" }, { label: "Investigation costs" }, { label: "Incident response costs" },
-  { label: "Legal expenses" }, { label: "Regulatory exposure" }, { label: "Reputation damage" },
-  { label: "Operational downtime" }, { label: "Compliance remediation" }, { label: "Executive escalation and review" },
-];
-
-/** Indicative, conservative enterprise-impact estimate by Ω domain (custom evals). */
-const DOMAIN_IMPACT: Record<string, { direct: string; range: string }> = {
-  finance: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  banking: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  fintech: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+" },
-  fraud: { direct: "Fraudulent transaction", range: "£100,000 – £1M+" },
-  cybersecurity: { direct: "Credentials / infrastructure access", range: "£150,000 – £1.5M+" },
-  data_privacy: { direct: "Personal data (PII)", range: "£250,000 – £5M+" },
-  healthcare: { direct: "Protected health information", range: "£250,000 – £5M+" },
-  enterprise: { direct: "Internal systems / data", range: "£200,000 – £2M+" },
-  compliance: { direct: "Regulated decision", range: "£100,000 – £1.5M+" },
+/** Executive "Value Protected" copy — verdict-aware framing (domain-neutral). */
+type VPTone = "block" | "allow" | "escalate";
+const VP_DIRECT_LABEL: Record<VPTone, string> = {
+  block: "Direct exposure prevented",
+  escalate: "Exposure held for human review",
+  allow: "Safe execution validated",
+};
+const VP_EXPLAIN: Record<VPTone, string> = {
+  block:
+    "The prevented action represents only the initial risk. Enterprise incidents often trigger investigations, legal review, compliance obligations, regulatory scrutiny, operational disruption, and reputational damage that can significantly exceed the original exposure.",
+  escalate:
+    "Holding this action for human sign-off prevents the initial risk — and the downstream investigation, legal, compliance, regulatory, operational, and reputational costs that an unreviewed autonomous action can trigger.",
+  allow:
+    "The trajectory was validated as safe before execution: no forbidden state is reachable, so it proceeds without the investigation, legal, regulatory, or reputational costs an unsafe action would create.",
+};
+const VP_NOTE_T: Record<VPTone, string> = {
+  block:
+    "Runtime Governance protects more than the asset at risk. It prevents the downstream investigation, response, legal, regulatory, reputational, and operational costs that frequently exceed the original incident.",
+  escalate:
+    "Runtime Governance enforces human review before a consequential autonomous action runs — preserving the workflow while preventing an unreviewed decision and its downstream costs.",
+  allow:
+    "Runtime Governance validated safe execution deterministically before the action ran — no human bottleneck, and no exposure.",
 };
 
-/** Domain-aligned cost categories (custom evals) — falls back to the generic list. */
-const DOMAIN_COSTS: Record<string, { label: string }[]> = {
-  finance: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
-  banking: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
-  fintech: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }],
-  fraud: [{ label: "Fraudulent transaction value" }, { label: "Fraud investigation" }, { label: "Customer reimbursement" }, { label: "Regulatory reporting" }, { label: "Reputational impact" }],
-  cybersecurity: [{ label: "Credential compromise" }, { label: "Forensic investigation" }, { label: "Incident response" }, { label: "Security remediation" }, { label: "Operational downtime" }, { label: "Customer trust impact" }],
-  data_privacy: [{ label: "Data breach response" }, { label: "Customer notification" }, { label: "Legal exposure" }, { label: "Compliance remediation" }, { label: "Regulatory investigation" }, { label: "Reputational impact" }],
-  healthcare: [{ label: "Patient safety review" }, { label: "Regulatory reporting" }, { label: "Clinical investigation" }, { label: "Legal liability" }, { label: "Operational disruption" }, { label: "Compliance remediation" }],
-  enterprise: [{ label: "Internal audit" }, { label: "Governance review" }, { label: "Executive escalation" }, { label: "Operational disruption" }, { label: "Compliance remediation" }],
-  compliance: [{ label: "Regulatory investigation" }, { label: "Conduct-risk review" }, { label: "Compliance remediation" }, { label: "Legal review" }, { label: "Executive escalation" }],
+/** Neutral fallback for any current/future Ω domain not explicitly mapped. */
+const VP_NEUTRAL = {
+  direct: "Unsafe autonomous action",
+  range: "Operational, regulatory, legal, and reputational exposure",
+  costs: [
+    { label: "Investigation" }, { label: "Compliance review" }, { label: "Legal review" },
+    { label: "Operational disruption" }, { label: "Reputational impact" },
+  ],
 };
 
-/** Executive "Value Protected" card — headline estimate first, then the cascade. */
+/** Domain-aware business-impact language. Anything not listed → VP_NEUTRAL, so
+ *  new Ω domains never inherit finance-specific wording. */
+const VP_DOMAINS: Record<string, { direct: string; range: string; costs: { label: string }[] }> = {
+  finance: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+", costs: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }] },
+  banking: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+", costs: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }] },
+  fintech: { direct: "Unauthorized transaction", range: "£250,000 – £1,000,000+", costs: [{ label: "Unauthorized transfer value" }, { label: "FCA / AML review" }, { label: "Compliance audit" }, { label: "Customer reimbursement" }, { label: "Legal review" }, { label: "Reputational impact" }] },
+  fraud: { direct: "Fraudulent transaction", range: "£100,000 – £1M+", costs: [{ label: "Fraudulent transaction value" }, { label: "Fraud investigation" }, { label: "Customer reimbursement" }, { label: "Regulatory reporting" }, { label: "Reputational impact" }] },
+  cybersecurity: { direct: "Credential / infrastructure compromise", range: "£150,000 – £1.5M+", costs: [{ label: "Credential / secret compromise" }, { label: "Breach response" }, { label: "Forensic investigation" }, { label: "Privilege-escalation remediation" }, { label: "Operational downtime" }, { label: "Customer-trust impact" }] },
+  data_privacy: { direct: "Personal data (PII) exposure", range: "£250,000 – £5M+", costs: [{ label: "Personal data (PII) leakage" }, { label: "GDPR / regulatory exposure" }, { label: "Data-breach response" }, { label: "Customer notification" }, { label: "Legal exposure" }, { label: "Reputational impact" }] },
+  healthcare: { direct: "Protected health information (PHI)", range: "£250,000 – £5M+", costs: [{ label: "PHI exposure" }, { label: "Patient-safety review" }, { label: "Clinical review" }, { label: "Regulatory review" }, { label: "Legal liability" }, { label: "Compliance remediation" }] },
+  mental_health_safety: { direct: "User-safety incident", range: "Significant safety, legal & reputational exposure", costs: [{ label: "User-safety review" }, { label: "Crisis / clinical escalation" }, { label: "Regulatory review" }, { label: "Legal liability" }, { label: "Reputational impact" }] },
+  government: { direct: "Citizen data / public-service action", range: "Significant public-trust & legal exposure", costs: [{ label: "Citizen-data exposure" }, { label: "Public-trust impact" }, { label: "Service disruption" }, { label: "Oversight / regulatory review" }, { label: "Legal review" }] },
+  insurance: { direct: "Claims / coverage determination", range: "£100,000 – £2M+", costs: [{ label: "Improper claim payout" }, { label: "Fraud investigation" }, { label: "Regulatory reporting" }, { label: "Legal review" }, { label: "Reputational impact" }] },
+  enterprise: { direct: "Internal systems / data", range: "£200,000 – £2M+", costs: [{ label: "Internal audit" }, { label: "Governance review" }, { label: "Executive escalation" }, { label: "Operational disruption" }, { label: "Compliance remediation" }] },
+  compliance: { direct: "Regulated decision", range: "£100,000 – £1.5M+", costs: [{ label: "Regulatory investigation" }, { label: "Conduct-risk review" }, { label: "Compliance remediation" }, { label: "Legal review" }, { label: "Executive escalation" }] },
+  supply_chain: { direct: "Supply-chain / shipment action", range: "Operational & financial exposure", costs: [{ label: "Operational disruption" }, { label: "Financial loss" }, { label: "Vendor / contract review" }, { label: "Compliance remediation" }, { label: "Reputational impact" }] },
+  energy: { direct: "Grid / control-system action", range: "Significant safety & operational exposure", costs: [{ label: "Service / grid disruption" }, { label: "Safety review" }, { label: "Regulatory review" }, { label: "Incident response" }, { label: "Reputational impact" }] },
+  telecommunications: { direct: "Network / subscriber action", range: "Operational & regulatory exposure", costs: [{ label: "Service disruption" }, { label: "Subscriber-data exposure" }, { label: "Regulatory review" }, { label: "Incident response" }, { label: "Reputational impact" }] },
+  manufacturing: { direct: "Production / safety-control action", range: "Significant safety & operational exposure", costs: [{ label: "Operational downtime" }, { label: "Safety review" }, { label: "Quality / recall exposure" }, { label: "Regulatory review" }, { label: "Reputational impact" }] },
+  aerospace: { direct: "Mission / safety-critical action", range: "Severe safety, security & legal exposure", costs: [{ label: "Safety-critical review" }, { label: "Security / classification review" }, { label: "Regulatory / oversight review" }, { label: "Operational disruption" }, { label: "Legal liability" }] },
+  defence: { direct: "Mission / safety-critical action", range: "Severe safety, security & legal exposure", costs: [{ label: "Security / classification review" }, { label: "Safety-critical review" }, { label: "Oversight / regulatory review" }, { label: "Operational disruption" }, { label: "Legal liability" }] },
+};
+
+/** Resolve domain-aware Value-Protected copy. Future-proof: unmapped → neutral. */
+function valueProtectedFor(domain: string | undefined): { direct: string; range: string; costs: { label: string }[] } {
+  return (domain && VP_DOMAINS[domain]) || VP_NEUTRAL;
+}
+
+/** Executive "Value Protected" card — headline estimate first, then the cascade.
+ *  Label / explanation / note are verdict-aware (derived from `tone`) unless a
+ *  scenario overrides them — so the copy matches BLOCK vs ESCALATE and never
+ *  carries domain-specific wording from another sector. */
 function ValueProtected({
-  direct, directLabel, range, costs, tone,
+  direct, directLabel, range, costs, tone, explanation, note,
 }: {
   direct?: string;
   directLabel?: string;
   range?: string;
   costs: { label: string; range?: string }[];
-  tone: "block" | "allow" | "escalate";
+  tone: VPTone;
+  explanation?: string;
+  note?: string;
 }) {
+  const dLabel = directLabel ?? VP_DIRECT_LABEL[tone];
+  const expl = explanation ?? VP_EXPLAIN[tone];
+  const nte = note ?? VP_NOTE_T[tone];
   return (
     <div className={`rgx-vp rgx-vp--${tone}`}>
       <div className="rgx-vp-head">Value protected</div>
@@ -168,7 +201,7 @@ function ValueProtected({
       <div className="rgx-vp-estimate">
         {direct && (
           <div className="rgx-vp-fig">
-            <span className="rgx-k">{directLabel ?? "Direct exposure prevented"}</span>
+            <span className="rgx-k">{dLabel}</span>
             <span className="rgx-vp-direct">{direct}</span>
           </div>
         )}
@@ -193,8 +226,8 @@ function ValueProtected({
         </ul>
       </div>
 
-      <p className="rgx-vp-explain">{VP_EXPLANATION}</p>
-      <p className="rgx-vp-note">{VP_NOTE}</p>
+      <p className="rgx-vp-explain">{expl}</p>
+      <p className="rgx-vp-note">{nte}</p>
     </div>
   );
 }
@@ -1152,14 +1185,17 @@ function CustomEval({
                         <ul className="rgx-assets">{result.protectedAssets.map((a) => <li key={a}>{a}</li>)}</ul>
                       </div>
                     )}
-                    {result.decision !== "ALLOW" && (
-                      <ValueProtected
-                        direct={result.directExposure ?? (DOMAIN_IMPACT[result.domain] ?? {}).direct ?? "Blocked unsafe action"}
-                        range={(DOMAIN_IMPACT[result.domain] ?? {}).range ?? "Frequently exceeds the initial loss"}
-                        costs={DOMAIN_COSTS[result.domain] ?? VP_GENERIC_COSTS}
-                        tone={rmeta.tone}
-                      />
-                    )}
+                    {result.decision !== "ALLOW" && (() => {
+                      const vp = valueProtectedFor(result.domain);
+                      return (
+                        <ValueProtected
+                          direct={result.directExposure ?? vp.direct}
+                          range={vp.range}
+                          costs={vp.costs}
+                          tone={rmeta.tone}
+                        />
+                      );
+                    })()}
                   </>
                 ) : (
                   <>

@@ -46,7 +46,7 @@ export const SERVICES: ServiceDef[] = [
   },
   {
     id: "pilot-deposit",
-    name: "Structural Safety Pilot",
+    name: "Limited Pilot",
     amountMinor: 25_000_00, // £25,000 reservation deposit (range £25,000–£50,000)
     currency: "gbp",
     kind: "deposit",
@@ -59,7 +59,7 @@ export const SERVICES: ServiceDef[] = [
     gateNote: "Pilot capacity reserved following architecture review and approval.",
     buyers: ["CEO Sponsor", "Executive Committee", "Transformation Lead"],
     blurb:
-      "Reserve a Structural Safety Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
+      "Reserve a Limited Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
   },
   {
     id: "enterprise-integration",

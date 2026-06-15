@@ -6,7 +6,7 @@ import { ConsultationSection } from "@/components/ConsultationSection";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Three ways to engage Resurrection Tech: the 48-Hour Runtime Governance Audit, the Structural Safety Pilot, and the Advisory Retainer. Priced against the cost of Ω becoming reachable.",
+    "Three ways to engage Resurrection Tech: the 48-Hour Runtime Governance Audit, the Limited Pilot, and the Advisory Retainer. Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -67,7 +67,7 @@ const VERDICTS: Verdict[] = [
 
 const PATHWAYS = [
   ["48-Hour Runtime Governance Audit", "Catastrophic trajectory exposure assessment", "48 hours", "£40K–£75K"],
-  ["Structural Safety Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
+  ["Limited Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
   ["Advisory Retainer", "Ongoing Ω governance, threat-surface monitoring, runtime governance maintenance, incident review & model/planner revalidation", "Monthly", "£35K–£100K/mo"],
 ];
 

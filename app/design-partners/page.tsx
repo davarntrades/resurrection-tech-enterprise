@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const GET = [
-  ["Preferential pilot pricing", "A Structural Safety Pilot at founding-partner terms — materially below the standard £250K+ band — locked for the engagement."],
+  ["Preferential pilot pricing", "A Limited Pilot at founding-partner terms — materially below the standard £250K+ band — locked for the engagement."],
   ["Direct access to the engine team", "A shared Slack/Teams channel and weekly working sessions with the people who build Morrison Runtime Governance — not a support queue."],
   ["A bespoke Ω registry for your domain", "We onboard your sector's forbidden states (Ω) to your threat model — geometry unchanged, Ω expands — so coverage maps to your real risk."],
   ["Attested, audit-ready evidence", "Every verdict is replayable with an engine-commit + ruleset-hash attestation. You leave with a board- and auditor-ready evidence pack."],

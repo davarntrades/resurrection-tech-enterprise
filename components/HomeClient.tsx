@@ -982,7 +982,7 @@ export function HomeClient() {
               <div className="en-divider" aria-hidden="true" />
               <p className="en-text">
                 Most organisations begin with a <b>Runtime Governance Audit</b>. If material Ω
-                exposure is identified, the next step is typically a <b>Structural Safety Pilot</b>.
+                exposure is identified, the next step is typically a <b>Limited Pilot</b>.
                 Successful pilots transition into deployment and operational <b>integration</b>.
                 After deployment, governance remains an ongoing process — <b>retainer</b> engagements
                 provide continuous revalidation, Ω governance, threat-surface monitoring, and

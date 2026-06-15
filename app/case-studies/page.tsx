@@ -183,7 +183,7 @@ export default function Page() {
 
           <CaseStudy
             n="04"
-            title="Structural Safety Pilot Example"
+            title="Limited Pilot Example"
             headline="Illustrative enterprise deployment pathway"
             status="Illustrative Enterprise Scenario"
             problem="Enterprise deploying autonomous agents into production environments."
