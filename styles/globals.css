@@ -26,6 +26,7 @@
 @import "./why.css";
 @import "./assess.css";
 @import "./programs.css";
+@import "./quickstart.css";
 
 @tailwind components;
 @tailwind utilities;
