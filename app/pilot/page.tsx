@@ -3,12 +3,12 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 
 export const metadata: Metadata = {
-  title: "Structural Safety Pilot — Scope of Work",
+  title: "Limited Pilot — Scope of Work",
   description:
     "The Morrison Runtime Governance pilot: a fixed-scope, 4–8 week engagement that puts pre-execution governance in front of your AI agent. Week-by-week deliverables, success criteria (0 FP / 0 FN), integrations, and a clear go/no-go exit gate.",
   alternates: { canonical: "/pilot" },
   openGraph: {
-    title: "Structural Safety Pilot — Scope of Work",
+    title: "Limited Pilot — Scope of Work",
     description:
       "Fixed-scope, 4–8 week pilot: pre-execution governance in front of your agent, with week-by-week deliverables and a clear exit gate.",
     url: "/pilot",
@@ -58,10 +58,10 @@ const PROVIDE = [
 export default function Page() {
   return (
     <PageShell>
-      <section className="section section--tight" aria-label="Structural Safety Pilot — Scope of Work">
+      <section className="section section--tight" aria-label="Limited Pilot — Scope of Work">
         <div className="wrap prog">
           <header className="prog-hero">
-            <p className="prog-eyebrow">Structural Safety Pilot · 4–8 weeks · fixed scope</p>
+            <p className="prog-eyebrow">Limited Pilot · 4–8 weeks · fixed scope</p>
             <h1 className="prog-title">Pilot Scope of Work</h1>
             <p className="prog-lede">
               A fixed-scope engagement that puts <strong>pre-execution governance</strong> in front of
