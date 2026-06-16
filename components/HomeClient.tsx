@@ -157,7 +157,37 @@ export function HomeClient() {
                   ))}
                 </div>
               </div>
-              <div className="devband-action">
+              <div className="devband-aside">
+                <svg className="devband-svg" viewBox="0 0 300 122" role="img"
+                     aria-label="A single API call sits between the agent's plan and tool execution, returning PERMIT, ESCALATE, or BLOCK before anything runs.">
+                  <defs>
+                    <marker id="dbfArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 z" className="dbf-arrowhead" />
+                    </marker>
+                  </defs>
+                  {/* connectors: plan -> gate -> act */}
+                  <line className="dbf-conn" x1="84" y1="33" x2="110" y2="33" markerEnd="url(#dbfArrow)" />
+                  <line className="dbf-conn" x1="190" y1="33" x2="216" y2="33" markerEnd="url(#dbfArrow)" />
+                  {/* gate -> verdicts */}
+                  <line className="dbf-conn" x1="150" y1="52" x2="150" y2="70" markerEnd="url(#dbfArrow)" />
+                  {/* nodes */}
+                  <rect className="dbf-node" x="4" y="14" width="80" height="38" rx="9" />
+                  <text className="dbf-label" x="44" y="37" textAnchor="middle">Agent plans</text>
+                  <rect className="dbf-gate" x="110" y="14" width="80" height="38" rx="9" />
+                  <text className="dbf-gate-label" x="150" y="31" textAnchor="middle">ℛ(t)</text>
+                  <text className="dbf-sub" x="150" y="43" textAnchor="middle">GOVERNANCE</text>
+                  <rect className="dbf-node" x="216" y="14" width="80" height="38" rx="9" />
+                  <text className="dbf-label" x="256" y="37" textAnchor="middle">Tool runs</text>
+                  {/* verdict chips */}
+                  <rect className="dbf-chip dbf-chip--allow" x="38" y="74" width="66" height="20" rx="10" />
+                  <text className="dbf-chip-t dbf-chip-t--allow" x="71" y="87" textAnchor="middle">PERMIT</text>
+                  <rect className="dbf-chip dbf-chip--esc" x="112" y="74" width="76" height="20" rx="10" />
+                  <text className="dbf-chip-t dbf-chip-t--esc" x="150" y="87" textAnchor="middle">ESCALATE</text>
+                  <rect className="dbf-chip dbf-chip--block" x="196" y="74" width="66" height="20" rx="10" />
+                  <text className="dbf-chip-t dbf-chip-t--block" x="229" y="87" textAnchor="middle">BLOCK</text>
+                  <text className="dbf-foot" x="150" y="113" textAnchor="middle">Pre-execution · deterministic · &lt; 1 ms</text>
+                </svg>
+                <p className="devband-caption">One API call between planning and execution.</p>
                 <Link
                   href="/quickstart"
                   className="btn btn--ghost devband-cta"
