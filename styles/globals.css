@@ -27,6 +27,7 @@
 @import "./assess.css";
 @import "./programs.css";
 @import "./quickstart.css";
+@import "./devband.css";
 
 @tailwind components;
 @tailwind utilities;

@@ -250,23 +250,6 @@ p { margin: 0; }
   max-width: 460px;
 }
 
-/* Developer entry point — surfaces the /quickstart integration path in the hero */
-.hero-dev {
-  margin-top: 16px; display: inline-flex; align-items: center; gap: 10px;
-  padding: 8px 14px; border: 1px solid var(--line-2); border-radius: 999px;
-  background: var(--panel); color: var(--ink-2); font-size: 13.5px;
-  text-decoration: none; transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-  max-width: 100%;
-}
-.hero-dev:hover { border-color: var(--accent-dim); background: var(--panel-2); color: var(--ink); }
-.hero-dev-badge {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--accent-bright); border: 1px solid var(--accent-dim); border-radius: 6px;
-  padding: 2px 7px; flex: none;
-}
-.hero-dev .arr { color: var(--accent-bright); }
-@media (max-width: 560px) { .hero-dev { font-size: 12.5px; gap: 8px; padding: 7px 12px; } }
-
 /* One-click "live verdict" chips — reduce time-to-first-verdict to one click */
 .hero-tryit { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .hero-tryit-label { font-size: 12.5px; color: var(--ink-3); margin-right: 2px; }
