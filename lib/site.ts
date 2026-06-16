@@ -23,6 +23,7 @@ export const SITE = {
 export const NAV_LINKS = [
   { href: "/assess", label: "Assess your agent" },
   { href: "/live-demo", label: "Live Demo" },
+  { href: "/quickstart", label: "Quickstart" },
   { href: "/why-runtime-governance", label: "Why us" },
   { href: "/integrations", label: "Integrations" },
   { href: "/enterprise-pathways", label: "Pricing" },
