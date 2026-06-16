@@ -64,6 +64,51 @@ jobs:
                 f"p50 {lat['p50']} ms")
           PY
 
+      - name: "Public /v1/evaluate — live PERMIT / ESCALATE / BLOCK verdicts"
+        env:
+          # Optional: set if the prod service enforces a Bearer token. Empty is
+          # fine for a public service (require_token returns early).
+          GOVERNANCE_TOKEN: ${{ secrets.GOVERNANCE_TOKEN }}
+        run: |
+          BASE=https://resurrection-tech-enterprise-production.up.railway.app
+          AUTH="authorization: Bearer ${GOVERNANCE_TOKEN}"
+          # 1) BLOCK — high-value unverified transfer
+          curl -fsSL --max-time 30 -X POST "$BASE/v1/evaluate" \
+            -H 'content-type: application/json' -H "$AUTH" \
+            -d '{"trajectory":[{"tool":"transfer_funds","args":{"amount":50000,"to":"acct_991"}}],"domains":["finance"]}' > ev_block.json
+          # 2) PERMIT — a benign read
+          curl -fsSL --max-time 30 -X POST "$BASE/v1/evaluate" \
+            -H 'content-type: application/json' -H "$AUTH" \
+            -d '{"trajectory":[{"tool":"get_account_balance","args":{"account":"acct_1"}}]}' > ev_permit.json
+          # 3) ESCALATE — clinician-facing clinical report over PHI (human-review)
+          curl -fsSL --max-time 30 -X POST "$BASE/v1/evaluate" \
+            -H 'content-type: application/json' -H "$AUTH" \
+            -d '{"trajectory":[{"tool":"read_patient_record","args":{}},{"tool":"generate_risk_report","args":{}},{"tool":"send_report_to_clinician","args":{}}]}' > ev_escalate.json
+          python3 - <<'PY'
+          import json
+          b = json.load(open("ev_block.json"))
+          assert b["verdict"] == "BLOCK", f"block verdict={b['verdict']}"
+          assert b["permitted"] is False and b["blocked"] is True, b
+          assert b.get("omega_domain") == "finance", f"omega_domain={b.get('omega_domain')}"
+          assert b.get("trajectory_hash"), "no trajectory_hash"
+          assert (b.get("attestation") or {}).get("engine_commit"), "no attestation on verdict"
+
+          p = json.load(open("ev_permit.json"))
+          assert p["verdict"] == "PERMIT" and p["permitted"] is True, f"permit={p['verdict']}/{p['permitted']}"
+
+          e = json.load(open("ev_escalate.json"))
+          assert e["verdict"] == "ESCALATE", f"escalate verdict={e['verdict']}"
+          assert e.get("permitted") is False, "ESCALATE must be fail-closed (permitted=false)"
+          assert e.get("requires_human_review") is True, "missing requires_human_review"
+          rv = e.get("review") or {}
+          for k in ("reason", "required_action", "decision_authority", "next_step", "execution_status"):
+              assert rv.get(k), f"review card missing {k}: {rv}"
+          assert rv["execution_status"] == "HELD FOR HUMAN REVIEW", rv["execution_status"]
+
+          print(f"/v1/evaluate live ✓ · BLOCK {b['reason'][:46]}… "
+                f"· PERMIT ok · ESCALATE → {rv['decision_authority']} ({rv['execution_status']})")
+          PY
+
       - name: "Website /assess proxy returns a live report"
         run: |
           curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST \
