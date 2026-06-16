@@ -1,0 +1,43 @@
+/* "For Developers" band — a compact, visually-distinct SECONDARY technical
+   pathway directly below the hero. Deliberately smaller and quieter than the
+   business CTAs (ghost action, muted, mono/terminal accents) so it never
+   competes with Assess / Live Demo / Book or repositions the product as a
+   developer tool. Scoped under .devband. */
+.devband { padding: 26px 0 6px; }
+
+.devband-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap;
+  border: 1px solid var(--line-2); border-left: 2px solid var(--accent-dim);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(76,125,255,0.045), transparent 60%), var(--panel);
+  padding: 20px 24px;
+}
+
+.devband-main { min-width: 0; flex: 1 1 460px; }
+.devband-eyebrow {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-bright); margin: 0 0 6px;
+}
+.devband-title { font-size: clamp(17px, 2.1vw, 21px); line-height: 1.25; color: var(--ink); margin: 0 0 6px; font-weight: 600; }
+.devband-sub { font-size: 13.5px; line-height: 1.5; color: var(--ink-3); margin: 0 0 13px; max-width: 62ch; }
+
+.devband-frameworks { display: flex; flex-wrap: wrap; gap: 7px; }
+.devband-chip {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+  border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 9px; background: var(--panel-2);
+  white-space: nowrap;
+}
+
+.devband-action { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.devband-cta { white-space: nowrap; }
+.devband-note {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+@media (max-width: 760px) {
+  .devband-card { flex-direction: column; align-items: flex-start; gap: 16px; padding: 18px 18px; }
+  .devband-action { width: 100%; align-items: stretch; }
+  .devband-cta { width: 100%; justify-content: center; }
+  .devband-note { text-align: center; }
+}

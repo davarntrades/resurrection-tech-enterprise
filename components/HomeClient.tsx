@@ -151,6 +151,36 @@ export function HomeClient() {
           </div>
         </header>
 
+        {/* ===== FOR DEVELOPERS — secondary technical-evaluation path (parallel to the business journey) ===== */}
+        <section className="devband" aria-label="For developers">
+          <div className="wrap">
+            <div className="devband-card reveal">
+              <div className="devband-main">
+                <p className="devband-eyebrow">For developers</p>
+                <h2 className="devband-title">Connect Runtime Governance to your agent in ~15 minutes</h2>
+                <p className="devband-sub">
+                  Copy-paste examples, framework hooks, and live API contracts. No engine modifications required.
+                </p>
+                <div className="devband-frameworks" aria-label="Supported integrations">
+                  {["LangChain", "LangGraph", "OpenAI Agents", "MCP", "Generic API"].map((f) => (
+                    <span key={f} className="devband-chip">{f}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="devband-action">
+                <Link
+                  href="/quickstart"
+                  className="btn btn--ghost devband-cta"
+                  onClick={() => track(Events.CTA_CLICK, { location: "devband", cta: "quickstart" })}
+                >
+                  View Developer Quickstart <span className="arr">→</span>
+                </Link>
+                <span className="devband-note">Technical evaluation path</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ===== EU AI ACT — DEPLOYER POSITIONING (buyer-facing differentiator) ===== */}
         <section className="eu-trust" aria-label="EU AI Act alignment">
           <div className="wrap">
