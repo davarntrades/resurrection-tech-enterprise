@@ -133,6 +133,16 @@ export function HomeClient() {
               <div className="hero-demo-hint reveal in" data-d="4">
                 Test it yourself in seconds. No signup.
               </div>
+              <Link
+                href="/quickstart"
+                className="hero-dev reveal in"
+                data-d="4"
+                onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "quickstart" })}
+              >
+                <span className="hero-dev-badge">Developers</span>
+                <span className="hero-dev-text">Connect it to your agent in ~15 min</span>
+                <span className="arr">→</span>
+              </Link>
               <div className="hero-meta reveal in" data-d="5">
                 <span className="line" />
                 SAFE TRAJECTORIES ROUTE AROUND Ω · UNSAFE TRAJECTORIES INTERCEPTED PRE-EXECUTION
