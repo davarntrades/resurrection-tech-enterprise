@@ -64,6 +64,71 @@ jobs:
                 f"p50 {lat['p50']} ms")
           PY
 
+      - name: "Live /v1/evaluate (via website proxy) — PERMIT / ESCALATE / BLOCK"
+        run: |
+          # /v1/evaluate is token-protected in prod; the public path is the
+          # website proxy, which injects the Bearer token server-side and calls
+          # the real engine. This exercises the live evaluate path for all three
+          # verdicts (ESCALATE surfaces as the UI's human-review state).
+          PROXY=https://resurrection-tech.com/api/evaluate-trajectory
+          ev() { curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST "$PROXY" \
+                   -H 'content-type: application/json' -d "$1"; }
+          ev '{"trajectory":[{"tool":"transfer_funds","args":{"amount":50000,"to":"acct_991"}}]}' > pe_block.json
+          ev '{"trajectory":[{"tool":"get_account_balance","args":{"account":"acct_1"}}]}' > pe_permit.json
+          ev '{"trajectory":[{"tool":"read_patient_record","args":{}},{"tool":"generate_risk_report","args":{}},{"tool":"send_report_to_clinician","args":{}}]}' > pe_escalate.json
+          python3 - <<'PY'
+          import json
+          b = json.load(open("pe_block.json"))
+          assert b.get("ok") is True and b.get("source") == "morrison", f"block: ok={b.get('ok')} source={b.get('source')}"
+          assert b["verdict"] == "BLOCK", f"block verdict={b['verdict']}"
+
+          p = json.load(open("pe_permit.json"))
+          assert p.get("source") == "morrison", f"permit source={p.get('source')}"
+          assert p["verdict"] == "PERMIT", f"permit verdict={p['verdict']}"
+
+          e = json.load(open("pe_escalate.json"))
+          assert e.get("source") == "morrison", f"escalate source={e.get('source')}"
+          assert e["verdict"] == "INCONCLUSIVE", f"escalate verdict={e['verdict']} (ESCALATE → human-review state)"
+          hr = e.get("humanReview") or {}
+          assert hr.get("requiredAction") and hr.get("reason"), f"missing human-review card: {hr}"
+          assert "human review" in (e.get("runtimeStatus") or "").lower(), e.get("runtimeStatus")
+
+          print(f"/v1/evaluate live (proxy) ✓ · BLOCK + PERMIT + ESCALATE → "
+                f"{hr['requiredAction']} · source=morrison")
+          PY
+
+      - name: "Direct /v1/evaluate raw contract (optional — needs GOVERNANCE_TOKEN secret)"
+        env:
+          GOVERNANCE_TOKEN: ${{ secrets.GOVERNANCE_TOKEN }}
+        run: |
+          BASE=https://resurrection-tech-enterprise-production.up.railway.app
+          if [ -z "${GOVERNANCE_TOKEN}" ]; then
+            echo "::notice::No GOVERNANCE_TOKEN secret set — /v1/evaluate is token-protected in prod."
+            echo "Skipping the direct raw-contract check (the live evaluate path is already covered via the website proxy above)."
+            exit 0
+          fi
+          AUTH="authorization: Bearer ${GOVERNANCE_TOKEN}"
+          curl -fsSL --max-time 30 -X POST "$BASE/v1/evaluate" \
+            -H 'content-type: application/json' -H "$AUTH" \
+            -d '{"trajectory":[{"tool":"transfer_funds","args":{"amount":50000,"to":"acct_991"}}],"domains":["finance"]}' > ev_block.json
+          curl -fsSL --max-time 30 -X POST "$BASE/v1/evaluate" \
+            -H 'content-type: application/json' -H "$AUTH" \
+            -d '{"trajectory":[{"tool":"read_patient_record","args":{}},{"tool":"generate_risk_report","args":{}},{"tool":"send_report_to_clinician","args":{}}]}' > ev_escalate.json
+          python3 - <<'PY'
+          import json
+          b = json.load(open("ev_block.json"))
+          assert b["verdict"] == "BLOCK" and b["permitted"] is False and b["blocked"] is True, b
+          assert b.get("omega_domain") == "finance" and b.get("trajectory_hash"), b
+          assert (b.get("attestation") or {}).get("engine_commit"), "no attestation on verdict"
+          e = json.load(open("ev_escalate.json"))
+          assert e["verdict"] == "ESCALATE" and e.get("permitted") is False and e.get("requires_human_review") is True, e
+          rv = e.get("review") or {}
+          for k in ("reason", "required_action", "decision_authority", "next_step", "execution_status"):
+              assert rv.get(k), f"review card missing {k}: {rv}"
+          assert rv["execution_status"] == "HELD FOR HUMAN REVIEW", rv["execution_status"]
+          print(f"direct /v1/evaluate raw contract ✓ · BLOCK + ESCALATE → {rv['decision_authority']}")
+          PY
+
       - name: "Website /assess proxy returns a live report"
         run: |
           curl -fsSL -L --post301 --post302 --post303 --max-time 30 -X POST \
