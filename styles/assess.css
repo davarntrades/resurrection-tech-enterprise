@@ -219,7 +219,11 @@
     border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid;
   }
   .assess-h2 { break-after: avoid; }
+  .assess-note { break-after: avoid; }      /* keep a section note with its content */
   .assess-cto { break-inside: avoid; }
+  /* Keep the Verified-blocks section whole so its heading + note never strand
+     at the foot of a page with the cards pushed to the next one. */
+  .assess-vblocks { break-inside: avoid; }
 
   /* Flex/grid lists are dropped by Chromium's print path (the block-level
      heading + note around them survive, the flex/grid children vanish). Force
