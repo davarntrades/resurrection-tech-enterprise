@@ -438,7 +438,7 @@ function Report({ report }: { report: AssessReport }) {
       </div>
 
       {report.grounded_blocks.length > 0 && (
-        <>
+        <div className="assess-vblocks">
           <h2 className="assess-h2">Verified blocks — grounded in the real engine</h2>
           <p className="assess-note">
             Each capability was exercised through the engine&apos;s own adversarial vocabulary.
@@ -455,7 +455,7 @@ function Report({ report }: { report: AssessReport }) {
               </li>
             ))}
           </ul>
-        </>
+        </div>
       )}
 
       {uncoveredTools.length > 0 && (
