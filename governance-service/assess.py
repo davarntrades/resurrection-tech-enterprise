@@ -509,10 +509,19 @@ def industry_guess(tools: list[dict]) -> str:
     return "enterprise"
 
 
+def _plural(n, singular: str, plural: str | None = None) -> str:
+    """`n noun`, with the noun agreeing with the count."""
+    return f"{n} {singular if n == 1 else (plural if plural is not None else singular + 's')}"
+
+
 def commercial(total, governed, uncovered, blocked) -> str:
-    return (f"Of your {total} tools, {governed} map to governed Ω domains today, "
-            f"{uncovered} require bespoke Ω extensions, and {blocked} high-risk "
-            f"trajectories would be blocked before execution.")
+    gov = (f"{governed} {'maps' if governed == 1 else 'map'} to governed Ω "
+           f"{'domain' if governed == 1 else 'domains'} today")
+    unc = (f"{uncovered} requires a bespoke Ω extension" if uncovered == 1
+           else f"{uncovered} require bespoke Ω extensions")
+    blk = _plural(blocked, "high-risk trajectory", "high-risk trajectories")
+    return (f"Of your {_plural(total, 'tool')}, {gov}, {unc}, and "
+            f"{blk} would be blocked before execution.")
 
 
 def measure_latency(tools: list[dict], layer, target: int = 60) -> Optional[dict]:

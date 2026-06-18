@@ -130,6 +130,10 @@ const STATUS_TONE: Record<string, string> = {
 
 function pct(n: number) { return `${n}%`; }
 
+/** Singular/plural noun agreement. The count is rendered separately, so this
+ *  returns just the noun phrase that should follow it. */
+function plur(n: number, one: string, many: string) { return n === 1 ? one : many; }
+
 export function AssessClient() {
   const [text, setText] = useState("");
   const [org, setOrg] = useState("");
@@ -362,9 +366,9 @@ function Report({ report }: { report: AssessReport }) {
             ))}
           </ul>
           <div className="assess-cto-metrics">
-            <span><strong>{s.tools}</strong> tools analysed</span>
-            <span><strong>{govDomains}</strong> governed Ω domains</span>
-            <span><strong>{blocks}</strong> high-risk trajectories</span>
+            <span><strong>{s.tools}</strong> {plur(s.tools, "tool analysed", "tools analysed")}</span>
+            <span><strong>{govDomains}</strong> {plur(govDomains, "governed Ω domain", "governed Ω domains")}</span>
+            <span><strong>{blocks}</strong> {plur(blocks, "high-risk trajectory", "high-risk trajectories")}</span>
             <span><strong>{blocks}</strong> blocked before execution</span>
           </div>
           <p className="assess-cto-compliance">
@@ -391,11 +395,11 @@ function Report({ report }: { report: AssessReport }) {
       </div>
 
       <div className="assess-stats">
-        <Stat n={s.tools} label="tools assessed" />
-        <Stat n={s.risky} label="carry governed-risk capabilities" />
+        <Stat n={s.tools} label={plur(s.tools, "tool assessed", "tools assessed")} />
+        <Stat n={s.risky} label={plur(s.risky, "carries governed-risk capability", "carry governed-risk capabilities")} />
         <Stat n={s.covered} label="covered by live Ω" tone="ok" />
-        <Stat n={s.uncovered} label="need a bespoke Ω extension" tone={s.uncovered ? "bad" : "muted"} />
-        <Stat n={s.verified_blocked_trajectories} label="verified BLOCK before execution" tone="accent" />
+        <Stat n={s.uncovered} label={plur(s.uncovered, "needs a bespoke Ω extension", "need bespoke Ω extensions")} tone={s.uncovered ? "bad" : "muted"} />
+        <Stat n={s.verified_blocked_trajectories} label={plur(s.verified_blocked_trajectories, "verified BLOCK before execution", "verified BLOCKs before execution")} tone="accent" />
       </div>
 
       {report.latency && (
