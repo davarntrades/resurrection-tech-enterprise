@@ -34,6 +34,7 @@ import json
 import os
 import re
 import sys
+import time
 from typing import Any, Optional
 
 import requests
@@ -231,12 +232,15 @@ def governance_evaluate(trajectory: list[dict],
     headers = {"content-type": "application/json"}
     if GOVERNANCE_TOKEN:
         headers["authorization"] = f"Bearer {GOVERNANCE_TOKEN}"
+    t0 = time.perf_counter()
     try:
         r = requests.post(f"{GOVERNANCE_URL}/v1/evaluate",
                           json=body, headers=headers, timeout=TIMEOUT)
+        dt = round((time.perf_counter() - t0) * 1000, 1)
         r.raise_for_status()
         resp = r.json()
         resp["_source"] = "live"
+        resp["_latency_ms"] = dt
         return resp
     except Exception as exc:  # noqa: BLE001  network / 5xx / timeout → fail closed
         return {
@@ -244,6 +248,7 @@ def governance_evaluate(trajectory: list[dict],
             "layer": "transport",
             "reason": f"governance endpoint unavailable — failing closed ({exc})",
             "omega_domain": None, "_source": "error",
+            "_latency_ms": round((time.perf_counter() - t0) * 1000, 1),
         }
 
 
@@ -252,6 +257,7 @@ def _mock_governance(trajectory: list[dict], domains: list[str]) -> dict:
     can exercise the harness offline before connecting the real endpoint. It only
     approximates the three-verdict shape; every field it returns is prefixed
     [MOCK]. Disable it (USE_MOCK_GOVERNANCE=False) for any real decision."""
+    t0 = time.perf_counter()
     tools = [str(s.get("tool", "")).lower() for s in trajectory]
 
     def reached(name: str) -> bool:
@@ -290,6 +296,7 @@ def _mock_governance(trajectory: list[dict], domains: list[str]) -> dict:
         "reason": f"[MOCK] {reason}",
         "omega_domain": domains[0] if domains else None,
         "_source": "mock",
+        "_latency_ms": round((time.perf_counter() - t0) * 1000, 1),
     }
 
 
@@ -353,27 +360,37 @@ def run_case(planner: Planner, case: dict) -> dict:
     print(f"  (expected governance hint: {case['expected_hint']})\n")
 
     plan = planner.plan(case["task"])
-    print("  HUGGING FACE PLANNER TRAJECTORY:")
+
+    # 1. Planner output (raw model text)
+    print("  1. PLANNER OUTPUT (raw model text):")
+    print("    " + plan["raw"].replace("\n", "\n    "))
     if not plan["ok"]:
-        print(f"    ⚠ planner error: {plan['error']}")
-        print(f"    raw model output: {plan['raw'][:400]}")
+        print(f"\n    ⚠ planner error: {plan['error']}")
         print("    → no valid trajectory; nothing is sent to governance, nothing runs.")
         return {**case, "verdict": "N/A (planner failed)", "outcome": "DENIED",
-                "source": "-", "trajectory": []}
-    print(json.dumps({"trajectory": plan["trajectory"]}, indent=6))
+                "source": "-", "latency_ms": None, "trajectory": []}
 
+    # 2. Trajectory payload (exactly what is POSTed)
+    payload = {"trajectory": plan["trajectory"], "domains": DOMAINS}
+    print("\n  2. TRAJECTORY PAYLOAD (sent to /v1/evaluate):")
+    print(json.dumps(payload, indent=6))
+
+    # 3. Governance response (full JSON)
     resp = governance_evaluate(plan["trajectory"], DOMAINS)
     src = resp.get("_source", "?")
-    print(f"\n  GOVERNANCE VERDICT  (source={src}):")
-    print(f"    verdict : {resp.get('verdict')}")
-    print(f"    layer   : {resp.get('layer')}")
-    print(f"    domain  : {resp.get('omega_domain')}")
-    print(f"    reason  : {resp.get('reason')}")
-    print("\n  EXECUTION GATE:")
+    print(f"\n  3. GOVERNANCE RESPONSE (source={src}):")
+    print(json.dumps({k: v for k, v in resp.items() if k != "_latency_ms"}, indent=6))
+
+    # 4. Final routing decision
+    print("\n  4. ROUTING DECISION:")
     outcome = route(resp, plan["trajectory"])
 
+    # 5. Latency
+    print(f"\n  5. LATENCY: {resp.get('_latency_ms')} ms  (governance round-trip)")
+
     return {**case, "verdict": resp.get("verdict"), "outcome": outcome,
-            "source": src, "trajectory": plan["trajectory"]}
+            "source": src, "latency_ms": resp.get("_latency_ms"),
+            "trajectory": plan["trajectory"]}
 
 
 def main() -> int:
@@ -410,13 +427,16 @@ def main() -> int:
     print("\n" + "█" * 74)
     print("  SUMMARY".center(74))
     print("█" * 74)
-    print(f"  {'scenario':<42} {'verdict':<10} {'execution':<13} src")
-    print("  " + "-" * 70)
+    print(f"  {'scenario':<42} {'verdict':<10} {'execution':<13} {'latency_ms':<11} src")
+    print("  " + "-" * 84)
     for r in rows:
-        print(f"  {r['name'][:42]:<42} {str(r['verdict']):<10} {r['outcome']:<13} {r['source']}")
+        print(f"  {r['name'][:42]:<42} {str(r['verdict']):<10} {r['outcome']:<13} "
+              f"{str(r.get('latency_ms')):<11} {r['source']}")
     print("\n  Blocked / escalated trajectories never reached the (simulated) runtime.")
     if USE_MOCK_GOVERNANCE:
         print("  ⚠ MOCK mode: verdicts above are a local stand-in, NOT the real engine.")
+    else:
+        print("  ✓ LIVE mode: verdicts above came from the real /v1/evaluate engine.")
     return 0
 
 
