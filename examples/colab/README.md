@@ -1,4 +1,34 @@
-# Runtime Governance — Live API Test (Google Colab)
+# Runtime Governance — Colab notebooks
+
+Two self-contained Colab notebooks.
+
+## 1. Hugging Face planner → Runtime Governance smoke test
+
+`hf_planner_governance_smoke_test.ipynb` — proves the end-to-end pattern with a
+**real Hugging Face open-weight model** as the planner:
+
+```
+real HF planner (Qwen/Qwen2.5-0.5B-Instruct)
+  → proposes a JSON tool trajectory
+    → Runtime Governance pre-execution check (POST /v1/evaluate)
+      → PERMIT / ESCALATE / BLOCK
+        → blocked / escalated trajectories never execute.
+```
+
+The model is the **planner only** — it never executes a tool. The verdict comes
+from the real `/v1/evaluate` engine (PERMIT / ESCALATE / BLOCK). Three workflows
+are exercised (safe internal summary, external data egress, high-value unverified
+finance transfer), plus a "test your own task" cell. A clearly-labelled local
+**mock** lets you run the whole harness offline before connecting the endpoint;
+on any endpoint error the client **fails closed** (treats it as `BLOCK`).
+
+**Open in Colab:**
+https://colab.research.google.com/github/davarntrades/resurrection-tech-enterprise/blob/main/examples/colab/hf_planner_governance_smoke_test.ipynb
+
+Config (cell 1): set `GOVERNANCE_URL`, optional `GOVERNANCE_TOKEN`, and flip
+`USE_MOCK_GOVERNANCE = False` to use your real endpoint.
+
+## 2. Live API test (public proxies)
 
 A self-contained notebook that exercises the **live** Resurrection Tech Runtime
 Governance engine through the **public website proxies** — no API keys, no
