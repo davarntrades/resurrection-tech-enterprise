@@ -136,26 +136,29 @@ class Planner:
         gen = out[0][inputs["input_ids"].shape[1]:]
         return self._tok.decode(gen, skip_special_tokens=True).strip()
 
-    def plan(self, task: str) -> dict[str, Any]:
-        """Run the model and return {trajectory, raw, ok, error?}.
+    def plan(self, task: str, max_attempts: int = 2) -> dict[str, Any]:
+        """Run the model and return {trajectory, raw, ok, parse_note|error}.
 
-        The trajectory is the model's real output. If the model fails to emit
-        valid JSON twice, we surface the raw text and an error rather than
-        fabricating a trajectory — the planner must be genuine.
+        The trajectory is the model's real output. Duplicate 'trajectory' keys
+        and other parse failures trigger a stricter retry instead of silently
+        dropping earlier tool calls. If it still fails we surface the raw text
+        rather than fabricating a trajectory — the planner must be genuine.
         """
-        raw = self._generate(task)
-        traj = _extract_trajectory(raw)
-        if traj is None:
-            # One stricter retry — small models sometimes wrap or chatter.
-            raw2 = self._generate(
-                task + "\n\nReturn ONLY the JSON object. No explanation."
+        attempts: list[dict] = []
+        traj = reason = None
+        for i in range(max_attempts):
+            nudge = "" if i == 0 else (
+                "\n\nReturn ONE JSON object with EXACTLY ONE 'trajectory' key. "
+                "No duplicate keys, no prose."
             )
-            traj = _extract_trajectory(raw2)
-            raw = raw2 if traj is not None else raw + "\n---retry---\n" + raw2
-        if traj is None:
-            return {"trajectory": [], "raw": raw, "ok": False,
-                    "error": "planner did not emit a valid JSON trajectory"}
-        return {"trajectory": traj, "raw": raw, "ok": True}
+            raw = self._generate(task + nudge)
+            traj, reason = _extract_trajectory(raw)
+            attempts.append({"raw": raw, "reason": reason})
+            if traj is not None:
+                return {"trajectory": traj, "raw": raw, "ok": True,
+                        "parse_note": reason, "attempts": attempts}
+        return {"trajectory": [], "raw": attempts[-1]["raw"], "ok": False,
+                "error": reason, "attempts": attempts}
 
 
 def _first_json_object(text: str) -> Optional[str]:
@@ -185,44 +188,97 @@ def _first_json_object(text: str) -> Optional[str]:
     return None
 
 
-def _extract_trajectory(raw: str) -> Optional[list[dict]]:
-    """Parse a model response into a clean [{tool, args}] list, or None.
+class _DuplicateKey(ValueError):
+    pass
 
-    Tolerant of markdown fences and chatter; strict about the result — only
-    known tool names survive, and every step is normalised to {tool, args:{}}.
+
+def _reject_duplicate_keys(pairs):
+    """json object_pairs_hook: raise if any key repeats, so a model that emits
+    two 'trajectory' arrays is caught instead of silently keeping only the last."""
+    seen: dict = {}
+    for k, v in pairs:
+        if k in seen:
+            raise _DuplicateKey(k)
+        seen[k] = v
+    return seen
+
+
+def _extract_trajectory(raw: str) -> tuple[Optional[list[dict]], str]:
+    """Parse a model response into (clean [{tool, args}] list | None, reason).
+
+    Tolerant of markdown fences and chatter; strict about the result — duplicate
+    JSON keys are rejected (so earlier tool calls are never silently dropped),
+    only known tool names survive, and every step is normalised to {tool, args}.
     """
     blob = raw.strip()
     blob = re.sub(r"^```(?:json)?|```$", "", blob, flags=re.MULTILINE).strip()
     candidate = _first_json_object(blob)
     if candidate is None:
-        return None
+        return None, "no JSON object in model output"
     try:
-        obj = json.loads(candidate)
-    except json.JSONDecodeError:
-        return None
+        obj = json.loads(candidate, object_pairs_hook=_reject_duplicate_keys)
+    except _DuplicateKey as e:
+        return None, (f"duplicate JSON key {str(e)!r} — ambiguous trajectory; "
+                      "refusing to drop earlier tool calls (will retry the planner)")
+    except json.JSONDecodeError as e:
+        return None, f"invalid JSON ({e})"
     steps = obj.get("trajectory") if isinstance(obj, dict) else None
     if not isinstance(steps, list):
-        return None
+        return None, "no 'trajectory' list in JSON"
     clean: list[dict] = []
+    dropped: list[str] = []
     for s in steps:
         if not isinstance(s, dict):
             continue
         tool = str(s.get("tool", "")).strip()
         if tool not in TOOLS:
-            continue  # drop hallucinated / out-of-catalog tools
+            dropped.append(tool or "<empty>")  # hallucinated / out-of-catalog
+            continue
         args = s.get("args")
         clean.append({"tool": tool, "args": args if isinstance(args, dict) else {}})
-    return clean or None
+    if not clean:
+        return None, "no known tools in trajectory" + (f" (unknown: {dropped})" if dropped else "")
+    return clean, ("ok" if not dropped else f"ok (dropped unknown tools: {dropped})")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. Runtime Governance client  (REAL /v1/evaluate, fail-closed)
 # ─────────────────────────────────────────────────────────────────────────────
+# Clear, shared HTTP error messages for the preflight check + the client.
+_HTTP_HELP = {
+    400: "400 Bad Request — malformed trajectory payload",
+    401: "401 Unauthorized — missing or invalid GOVERNANCE_TOKEN",
+    403: "403 Forbidden — token present but not accepted",
+    404: "404 Not Found — wrong endpoint path (check GOVERNANCE_URL / that it serves /v1/evaluate)",
+    422: "422 Unprocessable — payload rejected (unknown Ω domain or bad shape)",
+    500: "500 Server Error — the governance engine raised an error",
+    502: "502 Bad Gateway — governance service unreachable upstream",
+    503: "503 Service Unavailable — governance service down or restarting",
+    504: "504 Gateway Timeout — governance evaluation timed out",
+}
+
+
+def _http_message(status: int) -> str:
+    return _HTTP_HELP.get(status, f"HTTP {status} — unexpected governance response")
+
+
+def _fail_closed(reason: str, latency_ms: float, http_status: Optional[int] = None) -> dict:
+    """A transport/auth failure is NOT a governance verdict. Fail closed (BLOCK,
+    no execution) and tag the source so the report never counts it as live."""
+    return {
+        "verdict": "BLOCK", "permitted": False, "blocked": True,
+        "layer": "transport", "omega_domain": None,
+        "_source": "transport_error", "_http_status": http_status,
+        "_latency_ms": latency_ms, "reason": f"FAIL-CLOSED — {reason}",
+    }
+
+
 def governance_evaluate(trajectory: list[dict],
                         domains: Optional[list[str]] = None) -> dict:
     """Send the trajectory to the REAL Runtime Governance engine and return its
-    verdict dict. On any transport / server error we FAIL CLOSED (treat as BLOCK)
-    — a governance check that cannot run must never green-light execution."""
+    verdict dict. Only an HTTP 200 is a governance verdict; any non-200 (401/404/
+    500/…) or transport error FAILS CLOSED (BLOCK) and is tagged transport_error —
+    a governance check that cannot run must never green-light execution."""
     if USE_MOCK_GOVERNANCE:
         return _mock_governance(trajectory, domains or DOMAINS)
 
@@ -237,19 +293,72 @@ def governance_evaluate(trajectory: list[dict],
         r = requests.post(f"{GOVERNANCE_URL}/v1/evaluate",
                           json=body, headers=headers, timeout=TIMEOUT)
         dt = round((time.perf_counter() - t0) * 1000, 1)
-        r.raise_for_status()
-        resp = r.json()
-        resp["_source"] = "live"
-        resp["_latency_ms"] = dt
-        return resp
-    except Exception as exc:  # noqa: BLE001  network / 5xx / timeout → fail closed
-        return {
-            "verdict": "BLOCK", "permitted": False, "blocked": True,
-            "layer": "transport",
-            "reason": f"governance endpoint unavailable — failing closed ({exc})",
-            "omega_domain": None, "_source": "error",
-            "_latency_ms": round((time.perf_counter() - t0) * 1000, 1),
-        }
+        if r.status_code == 200:                      # the ONLY real-verdict path
+            resp = r.json()
+            resp["_source"] = "live"
+            resp["_latency_ms"] = dt
+            return resp
+        try:
+            detail = r.json().get("detail")
+        except Exception:  # noqa: BLE001
+            detail = (r.text or "")[:160]
+        msg = _http_message(r.status_code) + (f": {detail}" if detail else "")
+        return _fail_closed(msg, dt, http_status=r.status_code)
+    except requests.exceptions.Timeout:
+        return _fail_closed("timeout — network/server unavailable",
+                            round((time.perf_counter() - t0) * 1000, 1))
+    except requests.exceptions.RequestException as exc:
+        return _fail_closed(f"network/server unavailable ({exc})",
+                            round((time.perf_counter() - t0) * 1000, 1))
+
+
+def preflight() -> bool:
+    """Confirm the endpoint is reachable AND that auth works *before* running the
+    scenarios. /health needs no token (proves URL/path + which engine is live);
+    /v1/evaluate with a minimal SAFE trajectory proves the Bearer token is
+    accepted. Returns True only if a real verdict came back (HTTP 200)."""
+    print(f"PREFLIGHT → {GOVERNANCE_URL}")
+    if USE_MOCK_GOVERNANCE:
+        print("  USE_MOCK_GOVERNANCE=True → skipping live preflight (mock mode).")
+        return False
+    try:
+        h = requests.get(f"{GOVERNANCE_URL}/health", timeout=TIMEOUT)
+        if h.status_code == 200:
+            j = h.json()
+            print(f"  ✓ /health 200 — engine={j.get('engine')} "
+                  f"commit={str(j.get('engine_commit'))[:12]} rules={j.get('default_rules')}")
+        elif h.status_code == 404:
+            print("  ✗ /health 404 — wrong host/path. Fix GOVERNANCE_URL.")
+            return False
+        else:
+            print(f"  ⚠ /health {h.status_code} — {_http_message(h.status_code)}")
+    except requests.exceptions.Timeout:
+        print("  ✗ /health timeout — network/server unavailable.")
+        return False
+    except requests.exceptions.RequestException as e:
+        print(f"  ✗ /health unreachable — {e}")
+        return False
+
+    headers = {"content-type": "application/json"}
+    if GOVERNANCE_TOKEN:
+        headers["authorization"] = f"Bearer {GOVERNANCE_TOKEN}"
+    probe = {"trajectory": [{"tool": "summarize_findings", "args": {}}], "domains": DOMAINS}
+    try:
+        r = requests.post(f"{GOVERNANCE_URL}/v1/evaluate", json=probe, headers=headers, timeout=TIMEOUT)
+    except requests.exceptions.RequestException as e:
+        print(f"  ✗ /v1/evaluate unreachable — {e}")
+        return False
+    if r.status_code == 200:
+        print(f"  ✓ /v1/evaluate 200 — AUTH OK "
+              f"(token {'sent' if GOVERNANCE_TOKEN else 'none — endpoint is open'}). "
+              f"sample verdict={r.json().get('verdict')}")
+        return True
+    print(f"  ✗ /v1/evaluate {r.status_code} — {_http_message(r.status_code)}")
+    if r.status_code in (401, 403):
+        print("    → Set GOVERNANCE_TOKEN (env var or --token). Then rerun.")
+    elif r.status_code == 404:
+        print("    → Check GOVERNANCE_URL points at the service that serves /v1/evaluate.")
+    return False
 
 
 def _mock_governance(trajectory: list[dict], domains: list[str]) -> dict:
@@ -296,6 +405,7 @@ def _mock_governance(trajectory: list[dict], domains: list[str]) -> dict:
         "reason": f"[MOCK] {reason}",
         "omega_domain": domains[0] if domains else None,
         "_source": "mock",
+        "_http_status": None,
         "_latency_ms": round((time.perf_counter() - t0) * 1000, 1),
     }
 
@@ -367,8 +477,10 @@ def run_case(planner: Planner, case: dict) -> dict:
     if not plan["ok"]:
         print(f"\n    ⚠ planner error: {plan['error']}")
         print("    → no valid trajectory; nothing is sent to governance, nothing runs.")
-        return {**case, "verdict": "N/A (planner failed)", "outcome": "DENIED",
-                "source": "-", "latency_ms": None, "trajectory": []}
+        return {**case, "verdict": "N/A", "outcome": "DENIED", "source": "planner_error",
+                "http": None, "latency_ms": None, "live": False}
+    if plan.get("parse_note") and plan["parse_note"] != "ok":
+        print(f"    (parser note: {plan['parse_note']})")
 
     # 2. Trajectory payload (exactly what is POSTed)
     payload = {"trajectory": plan["trajectory"], "domains": DOMAINS}
@@ -378,8 +490,13 @@ def run_case(planner: Planner, case: dict) -> dict:
     # 3. Governance response (full JSON)
     resp = governance_evaluate(plan["trajectory"], DOMAINS)
     src = resp.get("_source", "?")
-    print(f"\n  3. GOVERNANCE RESPONSE (source={src}):")
-    print(json.dumps({k: v for k, v in resp.items() if k != "_latency_ms"}, indent=6))
+    http = resp.get("_http_status")
+    hdr = f"source={src}" + (f", http={http}" if http is not None else "")
+    print(f"\n  3. GOVERNANCE RESPONSE ({hdr}):")
+    print(json.dumps({k: v for k, v in resp.items()
+                      if k not in ("_latency_ms", "_source", "_http_status")}, indent=6))
+    if src != "live":
+        print(f"    ⚠ NOT a governance verdict — {src} (fail-closed). Does NOT count as live validation.")
 
     # 4. Final routing decision
     print("\n  4. ROUTING DECISION:")
@@ -389,8 +506,8 @@ def run_case(planner: Planner, case: dict) -> dict:
     print(f"\n  5. LATENCY: {resp.get('_latency_ms')} ms  (governance round-trip)")
 
     return {**case, "verdict": resp.get("verdict"), "outcome": outcome,
-            "source": src, "latency_ms": resp.get("_latency_ms"),
-            "trajectory": plan["trajectory"]}
+            "source": src, "http": http, "latency_ms": resp.get("_latency_ms"),
+            "live": src == "live"}
 
 
 def main() -> int:
@@ -419,7 +536,13 @@ def main() -> int:
     print(f"  planner model    : {PLANNER_MODEL}")
     print(f"  governance       : {'MOCK (offline, not a real decision)' if USE_MOCK_GOVERNANCE else GOVERNANCE_URL + '/v1/evaluate'}")
     print(f"  bearer token     : {'set' if GOVERNANCE_TOKEN else 'none'}")
-    print(f"  Ω domains        : {', '.join(DOMAINS)}")
+    print(f"  Ω domains        : {', '.join(DOMAINS)}\n")
+
+    # Preflight: confirm reachability + auth before doing any planning work.
+    auth_ok = preflight()
+    if not USE_MOCK_GOVERNANCE and not auth_ok:
+        print("\n⚠ Preflight failed — live calls below will fail closed (BLOCK). "
+              "Set a valid token (env GOVERNANCE_TOKEN or --token) and rerun.")
 
     planner = Planner(PLANNER_MODEL)
     rows = [run_case(planner, c) for c in TEST_CASES]
@@ -427,17 +550,30 @@ def main() -> int:
     print("\n" + "█" * 74)
     print("  SUMMARY".center(74))
     print("█" * 74)
-    print(f"  {'scenario':<42} {'verdict':<10} {'execution':<13} {'latency_ms':<11} src")
-    print("  " + "-" * 84)
+    print(f"  {'scenario':<42} {'verdict':<10} {'execution':<13} {'latency_ms':<11} {'http':<5} src")
+    print("  " + "-" * 90)
     for r in rows:
         print(f"  {r['name'][:42]:<42} {str(r['verdict']):<10} {r['outcome']:<13} "
-              f"{str(r.get('latency_ms')):<11} {r['source']}")
-    print("\n  Blocked / escalated trajectories never reached the (simulated) runtime.")
+              f"{str(r.get('latency_ms')):<11} {str(r.get('http') or ''):<5} {r['source']}")
+
+    live = [r for r in rows if r.get("live")]
+    print(f"\n  LIVE-ENGINE VALIDATIONS: {len(live)}/{len(rows)} (only source=live counts).")
+    for r in rows:
+        if not r.get("live"):
+            tag = "MOCK" if r["source"] == "mock" else (
+                f"{r['source']}" + (f" http={r['http']}" if r.get("http") else ""))
+            print(f"    • {r['name']}: NOT live — {tag} (fail-closed; not a governance verdict).")
+
     if USE_MOCK_GOVERNANCE:
-        print("  ⚠ MOCK mode: verdicts above are a local stand-in, NOT the real engine.")
-    else:
-        print("  ✓ LIVE mode: verdicts above came from the real /v1/evaluate engine.")
-    return 0
+        print("\n  ⚠ MOCK mode: verdicts are a local stand-in, NOT the real engine.")
+        return 0
+    if len(live) == len(rows):
+        print("\n  ✅ LIVE VALIDATION PASSED: all scenarios judged by the real /v1/evaluate "
+              "engine (authenticated). Blocked/escalated trajectories never executed.")
+        return 0
+    print("\n  ❌ LIVE VALIDATION INCOMPLETE: one or more calls failed closed (e.g. 401 = set "
+          "GOVERNANCE_TOKEN). 401s are NOT counted as verdicts. Fix auth and rerun.")
+    return 1
 
 
 if __name__ == "__main__":

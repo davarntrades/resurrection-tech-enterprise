@@ -25,8 +25,20 @@ on any endpoint error the client **fails closed** (treats it as `BLOCK`).
 **Open in Colab:**
 https://colab.research.google.com/github/davarntrades/resurrection-tech-enterprise/blob/main/examples/colab/hf_planner_governance_smoke_test.ipynb
 
-Config (cell 1): set `GOVERNANCE_URL`, optional `GOVERNANCE_TOKEN`, and flip
-`USE_MOCK_GOVERNANCE = False` to use your real endpoint.
+Config (cell 1): set `GOVERNANCE_URL` and `GOVERNANCE_TOKEN` (env var, Colab
+Secret `GOVERNANCE_TOKEN`, or pasted). It defaults to live mode. Cell **1b** runs
+a **preflight auth check** (`/health` + a minimal `/v1/evaluate` probe) so a
+`401 Unauthorized` is caught and explained *before* the scenarios.
+
+Auth / transport handling:
+- Sends `Authorization: Bearer <token>` when a token is set.
+- Only an HTTP **200** is treated as a governance verdict. `401` (bad/missing
+  token), `404` (wrong path), `500` (server), and timeouts are **failed closed**
+  (BLOCK, `source=transport_error`) and are **not** counted as live validations.
+- The final report prints `LIVE-ENGINE VALIDATIONS: n/3` and only passes when all
+  three came back from the real engine (`source=live`).
+- The planner parser rejects duplicate `trajectory` keys and retries, so earlier
+  tool calls are never silently dropped.
 
 ## 2. Live API test (public proxies)
 
