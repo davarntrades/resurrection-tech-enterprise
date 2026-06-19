@@ -97,6 +97,10 @@
 .twa-prov.is-live .bd { background: var(--ok); box-shadow: 0 0 0 0 rgba(63,178,127,0.6); animation: twa-pulse 2s infinite; }
 .twa-prov.is-warn { color: #e8a13a; border-color: rgba(232,161,58,0.5); background: rgba(232,161,58,0.08); }
 .twa-prov.is-warn .bd { background: #e8a13a; }
+.twa-prov.is-info { color: var(--accent-bright); border-color: rgba(76,125,255,0.5); background: rgba(76,125,255,0.08); }
+.twa-prov.is-info .bd { background: var(--accent-bright); }
+textarea.twa-code { font-family: var(--mono); resize: vertical; }
+textarea.twa-code::placeholder { color: var(--muted, #8a929c); }
 @keyframes twa-pulse { 0% { box-shadow: 0 0 0 0 rgba(63,178,127,0.55); } 70% { box-shadow: 0 0 0 7px rgba(63,178,127,0); } 100% { box-shadow: 0 0 0 0 rgba(63,178,127,0); } }
 
 .twa-fields { display: grid; gap: 8px; margin: 14px 0 0; }

@@ -104,14 +104,110 @@ function executionDecision(v: Verdict) {
   return { word: "DENIED", text: "Execution denied before any tool runs." };
 }
 
+interface ResultData {
+  source: "morrison" | "heuristic";
+  verdict: Verdict;
+  layer: string;
+  reason: string;
+  runtimeStatus: string;
+  humanReview?: HumanReview;
+  planner?: { source: "huggingface" | "heuristic"; model: string; note: string };
+}
+
+/** Shared verdict renderer — used by both the sample scenarios and the generator. */
+function ResultView({ data }: { data: ResultData }) {
+  const vClass = verdictClass(data.verdict);
+  const exec = executionDecision(data.verdict);
+  const live = data.source === "morrison";
+  return (
+    <div>
+      <div className="twa-verdict-row">
+        <span className={`twa-badge ${vClass}`}>
+          <span className="bd" aria-hidden="true" />
+          {verdictLabel(data.verdict)}
+        </span>
+        <span className={`twa-prov ${live ? "is-live" : "is-warn"}`}>
+          <span className="bd" aria-hidden="true" />
+          {live ? "LIVE ENGINE VALIDATED" : "HEURISTIC FALLBACK — NOT A LIVE VERDICT"}
+        </span>
+        {data.planner && (
+          <span className={`twa-prov ${data.planner.source === "huggingface" ? "is-info" : "is-warn"}`}>
+            <span className="bd" aria-hidden="true" />
+            {data.planner.source === "huggingface" ? `HF PLANNER · ${data.planner.model}` : "KEYWORD FALLBACK PLANNER"}
+          </span>
+        )}
+      </div>
+
+      <dl className="twa-fields">
+        <div><dt>Verdict</dt><dd>{verdictLabel(data.verdict)}</dd></div>
+        <div><dt>Layer</dt><dd>{data.layer}</dd></div>
+        <div><dt>Reason</dt><dd>{data.reason}</dd></div>
+        <div><dt>Runtime status</dt><dd>{data.runtimeStatus}</dd></div>
+        <div><dt>Source</dt><dd>{live ? "morrison (real engine)" : "heuristic (engine unreachable)"}</dd></div>
+      </dl>
+
+      {data.humanReview && (
+        <dl className="twa-fields" style={{ marginTop: 10 }}>
+          <div><dt>Decision authority</dt><dd>{data.humanReview.decisionAuthority}</dd></div>
+          <div><dt>Next step</dt><dd>{data.humanReview.nextStep}</dd></div>
+          <div><dt>Execution status</dt><dd>{data.humanReview.executionStatus}</dd></div>
+        </dl>
+      )}
+
+      <div className={`twa-exec ${vClass}`}>
+        <b>Execution decision: {exec.word}.</b> {exec.text}
+      </div>
+    </div>
+  );
+}
+
+const GEN_EXAMPLES = [
+  "Export all customer records to Dropbox.",
+  "Transfer £500,000 without approval.",
+  "Send PHI to external vendor.",
+];
+
 export function TestWithoutAgentClient() {
   const [active, setActive] = useState(SCENARIOS[0].id);
   const [results, setResults] = useState<Record<string, CaseResult>>({});
   const [loading, setLoading] = useState<string | null>(null);
   const [runMode, setRunMode] = useState<"model" | "endpoint" | "demo" | "mock">("demo");
 
+  // ── "Generate your own scenario" state ──
+  interface GenOk extends ResultData {
+    task: string;
+    trajectory: { tool: string; args: Record<string, unknown> }[];
+  }
+  const [task, setTask] = useState("");
+  const [genLoading, setGenLoading] = useState(false);
+  const [gen, setGen] = useState<{ data?: GenOk; error?: string } | null>(null);
+
   const scenario = SCENARIOS.find((s) => s.id === active)!;
   const result = results[active];
+
+  async function generate(taskText?: string) {
+    const q = (taskText ?? task).trim();
+    if (taskText !== undefined) setTask(taskText);
+    if (q.length < 3) {
+      setGen({ error: "Describe a task in a few words (min 3 characters)." });
+      return;
+    }
+    setGenLoading(true);
+    track(Events.CTA_CLICK, { location: "test-without-agent", cta: "generate-scenario" });
+    try {
+      const res = await fetch("/api/plan-and-evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: q }),
+      });
+      const data = await res.json();
+      setGen(data.ok ? { data } : { error: data.error || "Generation failed." });
+    } catch {
+      setGen({ error: "Could not reach the generator. Please try again." });
+    } finally {
+      setGenLoading(false);
+    }
+  }
 
   async function evaluate(s: Scenario) {
     setLoading(s.id);
@@ -330,46 +426,7 @@ export function TestWithoutAgentClient() {
 
               {result?.error && <div className="twa-error" role="alert">{result.error}</div>}
 
-              {result?.data && (() => {
-                const d = result.data!;
-                const vClass = verdictClass(d.verdict);
-                const exec = executionDecision(d.verdict);
-                const live = d.source === "morrison";
-                return (
-                  <div>
-                    <div className="twa-verdict-row">
-                      <span className={`twa-badge ${vClass}`}>
-                        <span className="bd" aria-hidden="true" />
-                        {verdictLabel(d.verdict)}
-                      </span>
-                      <span className={`twa-prov ${live ? "is-live" : "is-warn"}`}>
-                        <span className="bd" aria-hidden="true" />
-                        {live ? "LIVE ENGINE VALIDATED" : "HEURISTIC FALLBACK — NOT A LIVE VERDICT"}
-                      </span>
-                    </div>
-
-                    <dl className="twa-fields">
-                      <div><dt>Verdict</dt><dd>{verdictLabel(d.verdict)}</dd></div>
-                      <div><dt>Layer</dt><dd>{d.layer}</dd></div>
-                      <div><dt>Reason</dt><dd>{d.reason}</dd></div>
-                      <div><dt>Runtime status</dt><dd>{d.runtimeStatus}</dd></div>
-                      <div><dt>Source</dt><dd>{live ? "morrison (real engine)" : "heuristic (engine unreachable)"}</dd></div>
-                    </dl>
-
-                    {d.humanReview && (
-                      <dl className="twa-fields" style={{ marginTop: 10 }}>
-                        <div><dt>Decision authority</dt><dd>{d.humanReview.decisionAuthority}</dd></div>
-                        <div><dt>Next step</dt><dd>{d.humanReview.nextStep}</dd></div>
-                        <div><dt>Execution status</dt><dd>{d.humanReview.executionStatus}</dd></div>
-                      </dl>
-                    )}
-
-                    <div className={`twa-exec ${vClass}`}>
-                      <b>Execution decision: {exec.word}.</b> {exec.text}
-                    </div>
-                  </div>
-                );
-              })()}
+              {result?.data && <ResultView data={result.data} />}
             </div>
           </div>
 
@@ -396,6 +453,110 @@ export function TestWithoutAgentClient() {
               )}
             </>
           )}
+        </div>
+      </section>
+
+      {/* ════ GENERATE YOUR OWN SCENARIO ════ */}
+      <section className="twa-section" id="generate">
+        <div className="wrap">
+          <span className="eyebrow">Generate your own scenario</span>
+          <h2>Type a task — watch the planner and the live engine decide</h2>
+          <p className="twa-section-lede">
+            Describe any task in plain English. The same Hugging Face planner proposes a tool
+            trajectory, and that trajectory is sent to the live Runtime Governance engine. The
+            verdict always comes from the engine — it is never hardcoded.
+          </p>
+
+          <div className="twa-demo-note">
+            <span className="om" aria-hidden="true">Ω</span>
+            <span>
+              Flow: <b>User task → proposed trajectory → governance payload → live verdict →
+              execution decision.</b> The planner only proposes; nothing is executed. If the Hugging
+              Face planner isn&apos;t configured on this deployment, a transparent keyword fallback
+              proposes the trajectory (clearly labelled) — but the governance verdict is still the
+              live engine&apos;s.
+            </span>
+          </div>
+
+          <div className="twa-demo-grid">
+            {/* Input */}
+            <div className="twa-card">
+              <div className="twa-card-head">
+                <span className="twa-card-title">Your task</span>
+                <span className="twa-card-tag">plain English</span>
+              </div>
+              <textarea
+                className="twa-code"
+                style={{ width: "100%", minHeight: 96, whiteSpace: "pre-wrap" }}
+                placeholder="e.g. Export all customer records to Dropbox."
+                value={task}
+                onChange={(e) => setTask(e.target.value)}
+                maxLength={500}
+                aria-label="Describe a task"
+              />
+              <div className="twa-kv">Try one of these</div>
+              <div className="twa-scn-tabs">
+                {GEN_EXAMPLES.map((ex) => (
+                  <button key={ex} type="button" className="twa-scn-tab" onClick={() => generate(ex)} disabled={genLoading}>
+                    {ex}
+                  </button>
+                ))}
+              </div>
+              <div className="twa-actions">
+                <button className="btn btn--primary" onClick={() => generate()} disabled={genLoading || task.trim().length < 3}>
+                  {genLoading ? "Planning + evaluating…" : "Generate & evaluate"} <span className="arr">→</span>
+                </button>
+                {(gen || task) && (
+                  <button className="btn btn--ghost btn--sm" onClick={() => { setTask(""); setGen(null); }} disabled={genLoading}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              {gen?.error && <div className="twa-error" role="alert">{gen.error}</div>}
+
+              {gen?.data && (
+                <>
+                  <div className="twa-kv">Proposed trajectory</div>
+                  <pre className="twa-code">{JSON.stringify(gen.data.trajectory, null, 2)}</pre>
+                  <div className="twa-kv">Governance request payload</div>
+                  <pre className="twa-code">{JSON.stringify({ trajectory: gen.data.trajectory }, null, 2)}</pre>
+                </>
+              )}
+            </div>
+
+            {/* Result */}
+            <div className="twa-card" aria-live="polite">
+              <div className="twa-card-head">
+                <span className="twa-card-title">Live governance verdict</span>
+                <span className="twa-card-tag">pre-execution</span>
+              </div>
+
+              {!gen?.data && !genLoading && (
+                <div className="twa-result-empty">
+                  Type a task (or pick an example) to generate a trajectory and see the live verdict.
+                </div>
+              )}
+              {genLoading && <div className="twa-result-empty">Running the planner, then the live engine…</div>}
+
+              {gen?.data && (
+                <>
+                  <div className="twa-kv">User task</div>
+                  <p className="twa-task">{gen.data.task}</p>
+                  <ResultView data={gen.data} />
+                  {gen.data.planner?.note && gen.data.planner.note !== "ok" && (
+                    <p className="twa-task" style={{ fontSize: "0.84rem", opacity: 0.75, marginTop: 12 }}>
+                      Planner note: {gen.data.planner.note}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <p className="twa-section-lede" style={{ fontSize: "0.86rem", opacity: 0.7, marginTop: 14 }}>
+            The planner is a small open-weight model and may under- or over-plan a task; the verdict
+            is always evaluated on the trajectory it actually proposed. No tools are ever executed.
+          </p>
         </div>
       </section>
 
