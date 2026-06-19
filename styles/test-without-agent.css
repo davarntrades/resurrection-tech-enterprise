@@ -176,6 +176,13 @@ textarea.twa-code::placeholder { color: var(--muted, #8a929c); }
 }
 .twa-share-h { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 4px; }
 .twa-share p { color: var(--muted, #aab2bd); font-size: 0.9rem; line-height: 1.45; margin: 0 0 10px; }
+.twa-share-input {
+  width: 100%; box-sizing: border-box; margin-bottom: 10px;
+  font-family: var(--mono); font-size: 0.78rem; color: #cdd6e0;
+  background: #0a0c0f; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 9px 11px; overflow-x: auto; white-space: nowrap;
+}
+.twa-share-input:focus { outline: none; border-color: var(--accent); }
 .twa-share-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* ════ Report page (standalone, light, print-optimised) ════ */

@@ -36,7 +36,9 @@ function toBase64Url(json: string): string {
 }
 
 function fromBase64Url(s: string): string {
-  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  let b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  // Restore '=' padding — Safari/iOS atob() throws on unpadded input.
+  while (b64.length % 4) b64 += "=";
   const bin = atob(b64);
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
   return new TextDecoder().decode(bytes);

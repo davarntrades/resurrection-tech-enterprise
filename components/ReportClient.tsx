@@ -149,12 +149,29 @@ function CopyLinkButton() {
     <button
       className="btn btn--ghost btn--sm"
       onClick={async () => {
+        const url = window.location.href;
+        let ok = false;
         try {
-          await navigator.clipboard.writeText(window.location.href);
+          await navigator.clipboard.writeText(url);
+          ok = true;
+        } catch {
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = url;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+          } catch {
+            ok = false;
+          }
+        }
+        if (ok) {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
-        } catch {
-          /* clipboard blocked — no-op */
         }
       }}
     >

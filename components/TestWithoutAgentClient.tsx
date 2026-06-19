@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { track, Events } from "@/lib/analytics";
 import { reportPath, reportUrl, type ShareableResult } from "@/lib/share";
 
@@ -126,6 +126,7 @@ function ResultView({ data }: { data: ResultData }) {
   const exec = executionDecision(data.verdict);
   const live = data.source === "morrison";
   const [copied, setCopied] = useState(false);
+  const linkRef = useRef<HTMLInputElement>(null);
 
   const shareable: ShareableResult | null = useMemo(() => {
     if (!data.task || !data.trajectory) return null;
@@ -146,14 +147,33 @@ function ResultView({ data }: { data: ResultData }) {
     };
   }, [data]);
 
+  const shareUrl = useMemo(() => (shareable ? reportUrl(shareable) : ""), [shareable]);
+
   async function copyShareLink() {
     if (!shareable) return;
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(reportUrl(shareable));
+      await navigator.clipboard.writeText(shareUrl);
+      ok = true;
+    } catch {
+      // Fallback for browsers/webviews where the async Clipboard API is blocked:
+      // select the visible field and use the legacy copy command.
+      try {
+        const el = linkRef.current;
+        if (el) {
+          el.removeAttribute("readonly");
+          el.focus();
+          el.setSelectionRange(0, el.value.length);
+          ok = document.execCommand("copy");
+          el.setAttribute("readonly", "");
+        }
+      } catch {
+        ok = false;
+      }
+    }
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked — no-op */
     }
     track(Events.CTA_CLICK, { location: "test-without-agent", cta: "share-copy-link" });
   }
@@ -201,6 +221,15 @@ function ResultView({ data }: { data: ResultData }) {
         <div className="twa-share">
           <div className="twa-share-h">Share this result</div>
           <p>Send the verdict to a CTO, CISO, AI lead, or compliance officer — no meeting needed.</p>
+          <input
+            ref={linkRef}
+            className="twa-share-input"
+            readOnly
+            value={shareUrl}
+            aria-label="Shareable report link"
+            onFocus={(e) => e.currentTarget.select()}
+            onClick={(e) => e.currentTarget.select()}
+          />
           <div className="twa-share-actions">
             <button className="btn btn--primary btn--sm" onClick={copyShareLink}>
               {copied ? "Link copied ✓" : "Copy shareable link"}
