@@ -269,6 +269,7 @@ export function TestWithoutAgentClient() {
   const [active, setActive] = useState(SCENARIOS[0].id);
   const [results, setResults] = useState<Record<string, CaseResult>>({});
   const [loading, setLoading] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
   const [runMode, setRunMode] = useState<"model" | "endpoint" | "demo" | "mock">("demo");
 
   // ── "Generate your own scenario" state ──
@@ -329,11 +330,20 @@ export function TestWithoutAgentClient() {
   }
 
   async function runAll() {
-    for (const s of SCENARIOS) {
-      // eslint-disable-next-line no-await-in-loop
-      await evaluate(s);
+    setBulkRunning(true);
+    track(Events.CTA_CLICK, { location: "test-without-agent", cta: "run-all" });
+    try {
+      for (const s of SCENARIOS) {
+        setActive(s.id); // advance the detail view so progress is visible
+        // eslint-disable-next-line no-await-in-loop
+        await evaluate(s);
+      }
+    } finally {
+      setBulkRunning(false);
     }
   }
+
+  const verdictTone = (v: Verdict) => (v === "BLOCK" ? "block" : v === "INCONCLUSIVE" ? "escalate" : "permit");
 
   // Aggregate live-validation tally across whatever has been run.
   const ran = SCENARIOS.filter((s) => results[s.id]?.data);
@@ -467,19 +477,29 @@ export function TestWithoutAgentClient() {
           </div>
 
           <div className="twa-scn-tabs" role="tablist" aria-label="Sample scenarios">
-            {SCENARIOS.map((s) => (
-              <button
-                key={s.id}
-                role="tab"
-                aria-selected={s.id === active}
-                data-kind={s.kind}
-                className={`twa-scn-tab${s.id === active ? " is-active" : ""}`}
-                onClick={() => setActive(s.id)}
-              >
-                <span className="dot" aria-hidden="true" />
-                {s.label}
-              </button>
-            ))}
+            {SCENARIOS.map((s) => {
+              const rd = results[s.id]?.data;
+              const tone = rd ? verdictTone(rd.verdict) : null;
+              return (
+                <button
+                  key={s.id}
+                  role="tab"
+                  aria-selected={s.id === active}
+                  data-kind={s.kind}
+                  data-verdict={tone ?? undefined}
+                  className={`twa-scn-tab${s.id === active ? " is-active" : ""}`}
+                  onClick={() => setActive(s.id)}
+                >
+                  <span className="dot" aria-hidden="true" />
+                  {s.label}
+                  {loading === s.id ? (
+                    <span className="twa-scn-tag">…</span>
+                  ) : tone ? (
+                    <span className={`twa-scn-tag is-${tone}`}>{verdictLabel(rd!.verdict)}</span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
           <div className="twa-demo-grid">
@@ -500,11 +520,11 @@ export function TestWithoutAgentClient() {
               <pre className="twa-code">{JSON.stringify({ trajectory: scenario.trajectory }, null, 2)}</pre>
 
               <div className="twa-actions">
-                <button className="btn btn--primary" onClick={() => evaluate(scenario)} disabled={loading === scenario.id}>
+                <button className="btn btn--primary" onClick={() => evaluate(scenario)} disabled={loading !== null || bulkRunning}>
                   {loading === scenario.id ? "Evaluating…" : "Send to Runtime Governance"} <span className="arr">→</span>
                 </button>
-                <button className="btn btn--ghost btn--sm" onClick={runAll} disabled={loading !== null}>
-                  Run all 5
+                <button className="btn btn--ghost btn--sm" onClick={runAll} disabled={loading !== null || bulkRunning}>
+                  {bulkRunning ? `Evaluating… (${ran.length}/${SCENARIOS.length})` : "Run all 5"}
                 </button>
               </div>
             </div>
@@ -537,6 +557,45 @@ export function TestWithoutAgentClient() {
               )}
             </div>
           </div>
+
+          {/* All-scenarios results summary (so "Run all 5" produces a visible, comparable view) */}
+          {ran.length > 0 && (
+            <div className="twa-runall" style={{ marginTop: 20 }}>
+              <div className="twa-runall-head">
+                <span className="twa-card-title">Results · {ran.length}/{SCENARIOS.length} run</span>
+                <span className="twa-card-tag">click a row to view detail</span>
+              </div>
+              <div className="twa-runall-rows">
+                {SCENARIOS.map((s) => {
+                  const d = results[s.id]?.data;
+                  const err = results[s.id]?.error;
+                  if (!d && !err) return null;
+                  const tone = d ? verdictTone(d.verdict) : "block";
+                  const exec = d ? executionDecision(d.verdict).word : "DENIED";
+                  return (
+                    <button
+                      key={s.id}
+                      className={`twa-runall-row${s.id === active ? " is-active" : ""}`}
+                      onClick={() => setActive(s.id)}
+                    >
+                      <span className="twa-runall-name">{s.label}</span>
+                      {d ? (
+                        <>
+                          <span className={`twa-runall-verdict is-${tone}`}>{verdictLabel(d.verdict)}</span>
+                          <span className="twa-runall-exec">{exec}</span>
+                          <span className={`twa-runall-src ${d.source === "morrison" ? "is-live" : "is-warn"}`}>
+                            {d.source === "morrison" ? "live" : "fallback"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="twa-runall-verdict is-block">error</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Aggregate live tally + provenance callouts */}
           {ran.length > 0 && (
