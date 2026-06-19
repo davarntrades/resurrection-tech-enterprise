@@ -69,6 +69,18 @@ export function HomeClient() {
           <div className="hero-veil" aria-hidden="true" />
           <div className="wrap">
             <div className="hero-inner">
+              <Link
+                href="/test-without-agent"
+                className="hero-announce reveal in"
+                data-d="1"
+                onClick={() => track(Events.CTA_CLICK, { location: "hero-announce", cta: "test-without-agent" })}
+              >
+                <span className="hero-announce-badge">NEW</span>
+                <span className="hero-announce-text">
+                  Test Runtime Governance <b>without your own agent</b> — real planner → live verdict
+                </span>
+                <span className="arr" aria-hidden="true">→</span>
+              </Link>
               <h1 className="reveal in" data-d="1">
                 Preventing <span className="hero-cat">Catastrophic</span> Outcomes
                 <br />
