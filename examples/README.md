@@ -26,6 +26,24 @@ export GOVERNANCE_TOKEN="<your token>"   # omit if the service has auth disabled
 | LangChain | `langchain_guard.py` | `langchain` (only to run the agent; the guard itself is stdlib) |
 | LangGraph | `langgraph_guard.py` | `langgraph` |
 | MCP client | `mcp_guard.py` | your MCP client lib |
+| Hugging Face planner smoke test | `hf_planner_smoke_test.py` | `transformers`, `torch`, `accelerate`, `requests` |
+| Hugging Face planner (Colab) | `colab/hf_planner_governance_smoke_test.ipynb` | runs in Google Colab |
+
+### Hugging Face planner → governance smoke test
+
+`hf_planner_smoke_test.py` (and its Colab notebook) prove the full pattern with a
+**real open-weight model** as the planner: a small Hugging Face instruct model
+(`Qwen/Qwen2.5-0.5B-Instruct`) proposes a JSON tool trajectory, the trajectory is
+sent to the real `/v1/evaluate`, and only a `PERMIT` proceeds — `ESCALATE` and
+`BLOCK` never execute. Three workflows are exercised (safe internal summary,
+external data egress, high-value unverified finance transfer). A clearly-labelled
+local mock lets you run it offline first:
+
+```bash
+pip install transformers torch accelerate requests
+python examples/hf_planner_smoke_test.py --mock          # offline, mock verdicts
+python examples/hf_planner_smoke_test.py                 # real planner + real /v1/evaluate
+```
 
 Run the dependency-free one first to confirm connectivity:
 

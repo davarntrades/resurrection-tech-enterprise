@@ -36,6 +36,7 @@ export const NAV_MENU = [
     group: "Solutions",
     links: [
       { href: "/assess", label: "Assess your agent (Day-1)" },
+      { href: "/test-without-agent", label: "Test without your own agent" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/enterprise", label: "Enterprise readiness" },
@@ -67,6 +68,7 @@ export const NAV_MENU = [
       { href: "/sample-audit", label: "Sample audit report" },
       { href: "/compliance", label: "EU AI Act & compliance" },
       { href: "/test-trajectory", label: "Test a trajectory" },
+      { href: "/test-without-agent", label: "Test without your own agent" },
     ],
   },
   {
