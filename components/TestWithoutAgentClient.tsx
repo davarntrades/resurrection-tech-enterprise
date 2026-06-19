@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { track, Events } from "@/lib/analytics";
+import { reportPath, reportUrl, type ShareableResult } from "@/lib/share";
 
 /* ── Public links (canonical = main branch) ──────────────────────────────── */
 const REPO = "https://github.com/davarntrades/resurrection-tech-enterprise";
@@ -112,6 +113,11 @@ interface ResultData {
   runtimeStatus: string;
   humanReview?: HumanReview;
   planner?: { source: "huggingface" | "heuristic"; model: string; note: string };
+  // Optional context so the result can be shared/exported.
+  task?: string;
+  trajectory?: { tool: string; args: Record<string, unknown> }[];
+  label?: string;
+  origin?: "sample" | "generated";
 }
 
 /** Shared verdict renderer — used by both the sample scenarios and the generator. */
@@ -119,6 +125,39 @@ function ResultView({ data }: { data: ResultData }) {
   const vClass = verdictClass(data.verdict);
   const exec = executionDecision(data.verdict);
   const live = data.source === "morrison";
+  const [copied, setCopied] = useState(false);
+
+  const shareable: ShareableResult | null = useMemo(() => {
+    if (!data.task || !data.trajectory) return null;
+    return {
+      v: 1,
+      task: data.task,
+      trajectory: data.trajectory,
+      verdict: data.verdict,
+      layer: data.layer,
+      reason: data.reason,
+      runtimeStatus: data.runtimeStatus,
+      source: data.source,
+      planner: data.planner ? { source: data.planner.source, model: data.planner.model } : undefined,
+      humanReview: data.humanReview,
+      origin: data.origin ?? "generated",
+      label: data.label,
+      ts: Date.now(),
+    };
+  }, [data]);
+
+  async function copyShareLink() {
+    if (!shareable) return;
+    try {
+      await navigator.clipboard.writeText(reportUrl(shareable));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — no-op */
+    }
+    track(Events.CTA_CLICK, { location: "test-without-agent", cta: "share-copy-link" });
+  }
+
   return (
     <div>
       <div className="twa-verdict-row">
@@ -157,6 +196,36 @@ function ResultView({ data }: { data: ResultData }) {
       <div className={`twa-exec ${vClass}`}>
         <b>Execution decision: {exec.word}.</b> {exec.text}
       </div>
+
+      {shareable && (
+        <div className="twa-share">
+          <div className="twa-share-h">Share this result</div>
+          <p>Send the verdict to a CTO, CISO, AI lead, or compliance officer — no meeting needed.</p>
+          <div className="twa-share-actions">
+            <button className="btn btn--primary btn--sm" onClick={copyShareLink}>
+              {copied ? "Link copied ✓" : "Copy shareable link"}
+            </button>
+            <a
+              className="btn btn--ghost btn--sm"
+              href={reportPath(shareable)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track(Events.CTA_CLICK, { location: "test-without-agent", cta: "share-open-report" })}
+            >
+              Open report
+            </a>
+            <a
+              className="btn btn--ghost btn--sm"
+              href={reportPath(shareable, { print: true })}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track(Events.CTA_CLICK, { location: "test-without-agent", cta: "share-pdf" })}
+            >
+              Download PDF
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -426,7 +495,17 @@ export function TestWithoutAgentClient() {
 
               {result?.error && <div className="twa-error" role="alert">{result.error}</div>}
 
-              {result?.data && <ResultView data={result.data} />}
+              {result?.data && (
+                <ResultView
+                  data={{
+                    ...result.data,
+                    task: scenario.task,
+                    trajectory: scenario.trajectory,
+                    label: scenario.label,
+                    origin: "sample",
+                  }}
+                />
+              )}
             </div>
           </div>
 
