@@ -341,7 +341,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ THREE PATHS ════ */}
-      <section className="twa-section" id="paths">
+      <section className="twa-section reveal" id="paths">
         <div className="wrap">
           <span className="eyebrow">Three ways to test</span>
           <h2>Pick the path that fits your team</h2>
@@ -416,7 +416,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ SAMPLE-SCENARIO DEMO ════ */}
-      <section className="twa-section" id="sample-scenarios">
+      <section className="twa-section reveal" id="sample-scenarios">
         <div className="wrap">
           <span className="eyebrow">No agent required · live demo</span>
           <h2>Try sample agent scenarios</h2>
@@ -536,7 +536,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ GENERATE YOUR OWN SCENARIO ════ */}
-      <section className="twa-section" id="generate">
+      <section className="twa-section reveal" id="generate">
         <div className="wrap">
           <span className="eyebrow">Generate your own scenario</span>
           <h2>Type a task — watch the planner and the live engine decide</h2>
@@ -640,7 +640,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ WHAT THIS PROVES ════ */}
-      <section className="twa-section" id="what-this-proves">
+      <section className="twa-section reveal" id="what-this-proves">
         <div className="wrap">
           <span className="eyebrow">What this proves</span>
           <h2>The middleware pattern, demonstrated end to end</h2>
@@ -655,7 +655,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ FOR TEAMS WITH NO AGENTS YET ════ */}
-      <section className="twa-section" id="no-agents-yet">
+      <section className="twa-section reveal" id="no-agents-yet">
         <div className="wrap">
           <span className="eyebrow">For teams with no agents yet</span>
           <h2>You don&apos;t need a production agent to test the architecture</h2>
@@ -668,7 +668,7 @@ export function TestWithoutAgentClient() {
       </section>
 
       {/* ════ RUN IT YOURSELF ════ */}
-      <section className="twa-section" id="run-it-yourself">
+      <section className="twa-section reveal" id="run-it-yourself">
         <div className="wrap">
           <span className="eyebrow">Run it yourself</span>
           <h2>Your model, your endpoint, or our demo endpoint</h2>
@@ -781,7 +781,7 @@ python hf_planner_smoke_test.py`}</pre>
       </section>
 
       {/* ════ PATHWAY ════ */}
-      <section className="twa-section" id="pathway">
+      <section className="twa-section reveal" id="pathway">
         <div className="wrap">
           <span className="eyebrow">Where this leads</span>
           <h2>From demo → assessment → pilot → integration</h2>
