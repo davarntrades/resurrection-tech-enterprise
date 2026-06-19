@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { track, Events } from "@/lib/analytics";
 import { reportPath, reportUrl, type ShareableResult } from "@/lib/share";
 
@@ -99,6 +99,14 @@ interface CaseResult { data?: ApiOk; error?: string; }
 const verdictLabel = (v: Verdict) => (v === "INCONCLUSIVE" ? "ESCALATE" : v);
 const verdictClass = (v: Verdict) => (v === "BLOCK" ? "is-block" : v === "INCONCLUSIVE" ? "is-escalate" : "is-permit");
 
+/** True when the live engine's verdict is one of the scenario's expected outcomes
+ * (the hint may list several, e.g. "BLOCK / ESCALATE"). */
+function matchesExpected(expected: string, v: Verdict): boolean {
+  const actual = verdictLabel(v).toUpperCase();
+  const accepted = expected.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+  return accepted.includes(actual);
+}
+
 function executionDecision(v: Verdict) {
   if (v === "PERMIT") return { word: "PROCEED", text: "Governance permitted — the tools would now execute." };
   if (v === "INCONCLUSIVE") return { word: "HUMAN REVIEW", text: "Held for human sign-off — no tool runs until approved." };
@@ -118,6 +126,7 @@ interface ResultData {
   trajectory?: { tool: string; args: Record<string, unknown> }[];
   label?: string;
   origin?: "sample" | "generated";
+  expected?: string;
 }
 
 /** Shared verdict renderer — used by both the sample scenarios and the generator. */
@@ -217,6 +226,17 @@ function ResultView({ data }: { data: ResultData }) {
         <b>Execution decision: {exec.word}.</b> {exec.text}
       </div>
 
+      {data.expected && (
+        <p className="twa-match-line">
+          Expected <b>{data.expected}</b> · live engine returned <b>{verdictLabel(data.verdict)}</b>{" "}
+          {matchesExpected(data.expected, data.verdict) ? (
+            <span className="twa-match-ok">— matches ✓</span>
+          ) : (
+            <span className="twa-match-no">— differs ✗</span>
+          )}
+        </p>
+      )}
+
       {shareable && (
         <div className="twa-share">
           <div className="twa-share-h">Share this result</div>
@@ -283,6 +303,36 @@ export function TestWithoutAgentClient() {
 
   const scenario = SCENARIOS.find((s) => s.id === active)!;
   const result = results[active];
+
+  /** Select a scenario and reflect it in the URL so the tab is deep-linkable. */
+  function selectScenario(id: string, updateUrl = true) {
+    setActive(id);
+    if (updateUrl) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("scenario", id);
+        window.history.replaceState(null, "", url);
+      } catch {
+        /* history not available — no-op */
+      }
+    }
+  }
+
+  // Deep link: /test-without-agent?scenario=egress[&run=1] opens (and optionally
+  // runs) a specific sample scenario, then scrolls it into view.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("scenario");
+    const target = SCENARIOS.find((s) => s.id === sid);
+    if (!target) return;
+    setActive(target.id);
+    if (params.get("run") === "1") evaluate(target);
+    setTimeout(
+      () => document.getElementById("sample-scenarios")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      150,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function generate(taskText?: string) {
     const q = (taskText ?? task).trim();
@@ -488,7 +538,7 @@ export function TestWithoutAgentClient() {
                   data-kind={s.kind}
                   data-verdict={tone ?? undefined}
                   className={`twa-scn-tab${s.id === active ? " is-active" : ""}`}
-                  onClick={() => setActive(s.id)}
+                  onClick={() => selectScenario(s.id)}
                 >
                   <span className="dot" aria-hidden="true" />
                   {s.label}
@@ -552,6 +602,7 @@ export function TestWithoutAgentClient() {
                     trajectory: scenario.trajectory,
                     label: scenario.label,
                     origin: "sample",
+                    expected: scenario.expected,
                   }}
                 />
               )}
@@ -576,7 +627,7 @@ export function TestWithoutAgentClient() {
                     <button
                       key={s.id}
                       className={`twa-runall-row${s.id === active ? " is-active" : ""}`}
-                      onClick={() => setActive(s.id)}
+                      onClick={() => selectScenario(s.id)}
                     >
                       <span className="twa-runall-name">{s.label}</span>
                       {d ? (
@@ -585,6 +636,12 @@ export function TestWithoutAgentClient() {
                           <span className="twa-runall-exec">{exec}</span>
                           <span className={`twa-runall-src ${d.source === "morrison" ? "is-live" : "is-warn"}`}>
                             {d.source === "morrison" ? "live" : "fallback"}
+                          </span>
+                          <span
+                            className={`twa-runall-match ${matchesExpected(s.expected, d.verdict) ? "is-ok" : "is-no"}`}
+                            title={`expected: ${s.expected}`}
+                          >
+                            {matchesExpected(s.expected, d.verdict) ? "✓ expected" : "✗ differs"}
                           </span>
                         </>
                       ) : (

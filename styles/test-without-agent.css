@@ -90,6 +90,15 @@
 .twa-runall-src { flex: none; font-family: var(--mono); font-size: 0.68rem; padding: 1px 8px; border-radius: 999px; border: 1px solid; }
 .twa-runall-src.is-live { color: var(--ok); border-color: rgba(63,178,127,0.5); }
 .twa-runall-src.is-warn { color: #e8a13a; border-color: rgba(232,161,58,0.5); }
+.twa-runall-match { flex: none; font-family: var(--mono); font-size: 0.68rem; }
+.twa-runall-match.is-ok { color: var(--ok); }
+.twa-runall-match.is-no { color: var(--omega); }
+
+/* Expected-vs-actual line in the detail verdict card */
+.twa-match-line { margin-top: 12px; font-size: 0.88rem; color: var(--muted, #aab2bd); line-height: 1.45; }
+.twa-match-line b { color: var(--ink); }
+.twa-match-ok { color: var(--ok); font-weight: 600; }
+.twa-match-no { color: var(--omega); font-weight: 600; }
 
 .twa-demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 @media (max-width: 900px) { .twa-demo-grid { grid-template-columns: 1fr; } }
