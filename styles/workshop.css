@@ -1,0 +1,62 @@
+/* ============================================================
+   Paid Discovery Workshop™ — enterprise-pathways section (.dw-*)
+   Reuses design-system tokens + the existing .scale-grid / .tbl.
+   ============================================================ */
+
+.dw-intro {
+  max-width: 70ch;
+  margin: 0 0 28px;
+}
+.dw-intro p {
+  color: var(--muted, #aab2bd);
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.dw-range { margin-top: 28px; }
+.dw-range-k,
+.dw-ladder-k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 12px;
+}
+
+.dw-ladder {
+  margin-top: 28px;
+  background: linear-gradient(180deg, rgba(76,125,255,0.06), rgba(76,125,255,0.02));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: clamp(18px, 3vw, 28px);
+}
+.dw-ladder ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 9px;
+  counter-reset: dw;
+}
+.dw-ladder li {
+  color: var(--muted, #aab2bd);
+  line-height: 1.5;
+  font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+}
+.dw-ladder li b { color: var(--ink); font-weight: 600; }
+
+.dw-note {
+  margin: 18px 0 0;
+  max-width: 72ch;
+  color: var(--muted, #8a929c);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.dw-note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 560px) {
+  .dw-ladder ol { padding-left: 1.1rem; }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+}

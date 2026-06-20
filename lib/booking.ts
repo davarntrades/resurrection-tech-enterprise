@@ -5,7 +5,7 @@
  * fall back to the live production booking links, so the CTAs always work.
  */
 
-export type BookingType = "discovery" | "assessment" | "strategy";
+export type BookingType = "discovery" | "workshop" | "assessment" | "strategy";
 
 export interface BookingSession {
   id: BookingType;
@@ -35,6 +35,12 @@ export const CALENDLY_URLS: Record<BookingType, string> = {
   discovery:
     process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ??
     "https://calendly.com/davarn-resurrection-tech/30min",
+  // The Paid Discovery Workshop is a bespoke, invoice-only scoping engagement.
+  // Until a dedicated Calendly exists it falls back to the strategy session.
+  workshop:
+    process.env.NEXT_PUBLIC_CALENDLY_WORKSHOP ??
+    process.env.NEXT_PUBLIC_CALENDLY_STRATEGY ??
+    "https://calendly.com/davarn-resurrection-tech/enterprise-ai-governance-strategy-session",
   assessment:
     process.env.NEXT_PUBLIC_CALENDLY_ASSESSMENT ??
     "https://calendly.com/davarn-resurrection-tech/runtime-safety-assessment",
@@ -55,6 +61,23 @@ export const BOOKING_SESSIONS: BookingSession[] = [
     audience: ["Researchers", "Investors", "Collaborators", "Media"],
     cta: "Book Discovery Call",
     calendlyUrl: CALENDLY_URLS.discovery,
+  },
+  {
+    id: "workshop",
+    anchor: "workshop",
+    title: "Paid Discovery Workshop™",
+    duration: "1–2 days",
+    description:
+      "A structured scoping engagement before an Audit, Pilot, or Integration. We map your agent architecture, tool exposure, data flows, compliance requirements, and governance readiness, then recommend a pathway. Typical range: £5K–£50K+ (invoice-only).",
+    audienceLabel: "For teams that need",
+    audience: [
+      "Scoping before an audit",
+      "Tool & data-flow mapping",
+      "Governance-readiness review",
+      "A recommended pathway & proposal",
+    ],
+    cta: "Book Discovery Workshop",
+    calendlyUrl: CALENDLY_URLS.workshop,
   },
   {
     id: "assessment",
