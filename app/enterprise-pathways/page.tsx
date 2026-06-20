@@ -199,8 +199,14 @@ export default function Page() {
             </ol>
           </div>
 
+          <p className="dw-note reveal" data-d="1">
+            The workshop is <b>optional</b> — it may be skipped if the questionnaire already provides
+            sufficient information. In some cases, Resurrection Tech may recommend moving directly to
+            an Audit, Pilot, or Integration discussion.
+          </p>
+
           <div className="hero-actions reveal" style={{ marginTop: 40 }}>
-            <Link href="/book#strategy" className="btn btn--primary">Book Discovery Workshop <span className="arr">→</span></Link>
+            <Link href="/book#workshop" className="btn btn--primary">Book Discovery Workshop <span className="arr">→</span></Link>
             <Link href="/contact" className="btn btn--ghost">Discuss Workshop Scope</Link>
           </div>
         </div>

@@ -47,6 +47,15 @@
 }
 .dw-ladder li b { color: var(--ink); font-weight: 600; }
 
+.dw-note {
+  margin: 18px 0 0;
+  max-width: 72ch;
+  color: var(--muted, #8a929c);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.dw-note b { color: var(--ink); font-weight: 600; }
+
 @media (max-width: 560px) {
   .dw-ladder ol { padding-left: 1.1rem; }
   .hero-actions .btn { width: 100%; justify-content: center; }

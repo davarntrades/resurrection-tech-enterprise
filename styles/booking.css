@@ -67,7 +67,7 @@
 /* ---------- Booking cards ---------- */
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
   gap: 18px;
   margin-top: clamp(34px, 5vw, 52px);
 }
