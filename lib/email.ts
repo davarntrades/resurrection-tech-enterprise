@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 import type { AuditRequestInput } from "./validation";
 import type { LeadInput } from "./leadValidation";
+import type { AssessmentData, Recommendation, Scores } from "./assessment";
+import {
+  crmSummary, labelsFor, TOOL_ACCESS, CONTROLS, COMPLIANCE, SUCCESS_CRITERIA, STAGES,
+} from "./assessment";
 
 /**
  * Transactional email via Resend.
@@ -17,6 +21,8 @@ function getResend(): Resend | null {
 const FROM = process.env.EMAIL_FROM ?? "Resurrection Tech <hello@resurrection-tech.com>";
 const NOTIFY_TO = process.env.AUDIT_NOTIFY_TO ?? "hello@resurrection-tech.com";
 const LEAD_NOTIFY_TO = process.env.LEAD_NOTIFY_TO ?? NOTIFY_TO;
+// Runtime Governance Assessment lands in the founder inbox by default.
+const ASSESSMENT_NOTIFY_TO = process.env.ASSESSMENT_NOTIFY_TO ?? "davarnmorrison1@gmail.com";
 
 const shell = (inner: string) => `
   <div style="background:#08090b;padding:32px;font-family:'Geist Mono',ui-monospace,monospace;color:#aab2bd">
@@ -33,6 +39,12 @@ const shell = (inner: string) => `
 
 const row = (k: string, v: string) =>
   `<tr><td style="padding:7px 0;color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;width:42%">${k}</td><td style="padding:7px 0;color:#f3f5f7;font-size:14px">${v || "—"}</td></tr>`;
+
+/** Escape user-supplied text before embedding it in HTML email bodies. */
+const esc = (s: string) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 export async function sendAuditEmails(data: AuditRequestInput, reference: string) {
   const resend = getResend();
@@ -202,4 +214,118 @@ export async function sendLeadEmail(data: LeadInput, reference: string) {
     prospect_sent: !prospectErr,        // prospect-facing report to the submitted address
     prospect_reason: prospectErr,
   };
+}
+
+/**
+ * Runtime Governance Assessment emails:
+ *   1) Internal structured report (scores + CRM-paste block) to the team.
+ *   2) Prospect confirmation with the recommended pathway (no internal scores).
+ * Skipped gracefully when RESEND_API_KEY is unset.
+ */
+export async function sendAssessmentEmails(
+  d: AssessmentData, s: Scores, rec: Recommendation, reference: string,
+) {
+  const resend = getResend();
+  if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
+
+  const stamp = new Date().toUTCString();
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com";
+  const yn = (v: string) => (v === "yes" ? "Yes" : v === "no" ? "No" : "—");
+  const list = (vals: string[], opts: Parameters<typeof labelsFor>[0]) =>
+    vals?.length ? labelsFor(opts, vals).join(", ") : "—";
+  const stageLabel = STAGES.find((x) => x.value === d.stage)?.label ?? "—";
+  const crm = crmSummary(d, s, rec, reference, stamp);
+
+  // 1) Internal report
+  const internal = shell(`
+    <div style="color:#6f97ff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px">Runtime Governance Assessment &middot; ${reference}</div>
+    <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(111,151,255,0.3);border-radius:10px">
+      <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
+      <div style="color:#f3f5f7;font-size:16px;font-weight:600">${rec.title}</div>
+      <div style="color:#aab2bd;font-size:13px;margin-top:4px">${rec.tagline}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      ${row("Maturity score", `${s.maturity}/100 (${s.maturityBand})`)}
+      ${row("Complexity score", `${s.complexity}/100`)}
+      ${row("Ω exposure score", `${s.exposure}/100 (${s.exposureBand})`)}
+    </table>
+    <div style="height:14px"></div>
+    <table style="width:100%;border-collapse:collapse">
+      ${row("Company", d.companyName)}
+      ${row("Contact", `${d.fullName} &middot; ${d.jobTitle}`)}
+      ${row("Email", d.email)}
+      ${row("Phone", d.phone)}
+      ${row("Industry", d.industry)}
+      ${row("Company size", d.companySize)}
+      ${row("Country", d.country)}
+      ${row("Stage", stageLabel)}
+      ${row("In production", yn(d.inProduction))}
+      ${row("Customer-facing", yn(d.customerFacing))}
+      ${row("Connected to tools", yn(d.connectedToTools))}
+      ${row("Can take actions", yn(d.canTakeActions))}
+      ${row("Multiple agents", yn(d.multipleAgents))}
+      ${row("Number of agents", d.numAgents)}
+      ${row("Tool access", list(d.toolAccess, TOOL_ACCESS))}
+      ${row("Controls", list(d.controls, CONTROLS))}
+      ${row("Compliance", list(d.compliance, COMPLIANCE))}
+      ${row("Success criteria", list(d.successCriteria, SUCCESS_CRITERIA))}
+      ${row("Submitted", stamp)}
+    </table>
+    ${d.unsafePrevention ? `<div style="margin-top:16px"><div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">How unsafe actions are prevented</div><p style="font-size:13px;line-height:1.6;color:#f3f5f7;margin:0;white-space:pre-wrap">${esc(d.unsafePrevention)}</p></div>` : ""}
+    ${d.incidents ? `<div style="margin-top:14px"><div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Incidents / near misses</div><p style="font-size:13px;line-height:1.6;color:#f3f5f7;margin:0;white-space:pre-wrap">${esc(d.incidents)}</p></div>` : ""}
+    ${d.successNotes ? `<div style="margin-top:14px"><div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Success notes</div><p style="font-size:13px;line-height:1.6;color:#f3f5f7;margin:0;white-space:pre-wrap">${esc(d.successNotes)}</p></div>` : ""}
+    <div style="margin-top:18px">
+      <div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">CRM export (copy/paste)</div>
+      <pre style="font-size:11px;line-height:1.5;color:#cdd6e0;background:#0a0c0f;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;white-space:pre-wrap;overflow-x:auto">${esc(crm)}</pre>
+    </div>`);
+
+  // 2) Prospect confirmation (no internal scores)
+  const btn = (href: string, label: string) =>
+    `<a href="${href}" style="display:inline-block;background:#6f97ff;color:#08090b;text-decoration:none;font-weight:600;font-size:14px;padding:11px 18px;border-radius:10px">${label}</a>`;
+  const confirm = shell(`
+    <div style="color:#f3f5f7;font-size:20px;margin-bottom:10px">Your Runtime Governance Assessment</div>
+    <p style="font-size:14px;line-height:1.6;color:#aab2bd;margin:0 0 18px">
+      Hi ${esc(d.fullName) || "there"} — thanks for completing the assessment for ${esc(d.companyName) || "your team"}.
+      Based on your answers, here is the engagement pathway we recommend.
+    </p>
+    <div style="margin:0 0 18px;padding:16px;background:#0b0d11;border:1px solid rgba(111,151,255,0.3);border-radius:10px">
+      <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
+      <div style="color:#f3f5f7;font-size:17px;font-weight:600">${rec.title}</div>
+      <div style="color:#aab2bd;font-size:13px;margin-top:4px">${rec.tagline}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      ${row("Reference", reference)}
+      ${row("Submitted", stamp)}
+      ${row("Expected response", "1–3 business days")}
+    </table>
+    <div style="margin:0 0 18px">${btn(`${site}${rec.ctaHref}`, `${rec.ctaLabel} →`)}&nbsp;&nbsp;${btn(`${site}/book#assessment`, "Book a call →")}</div>
+    <p style="font-size:12px;color:#6b7480;margin:0;line-height:1.6">
+      A member of Resurrection Tech will review your assessment and follow up. Reply to this email to reach the team directly.
+    </p>`);
+
+  const [internalRes, confirmRes] = await Promise.allSettled([
+    resend.emails.send({
+      from: FROM,
+      to: ASSESSMENT_NOTIFY_TO,
+      subject: `Assessment — ${d.companyName} → ${rec.title} (Ω ${s.exposure}/${s.exposureBand}) · ${reference}`,
+      html: internal,
+      replyTo: d.email,
+    }),
+    resend.emails.send({
+      from: FROM,
+      to: d.email,
+      subject: "Your Runtime Governance Assessment — Resurrection Tech™",
+      html: confirm,
+      replyTo: ASSESSMENT_NOTIFY_TO,
+    }),
+  ]);
+
+  const internalErr = internalRes.status === "rejected"
+    ? String(internalRes.reason) : internalRes.value?.error?.message;
+  const confirmErr = confirmRes.status === "rejected"
+    ? String(confirmRes.reason) : confirmRes.value?.error?.message;
+  if (internalErr) console.error("[assessment] resend internal error:", internalErr);
+  if (confirmErr) console.error("[assessment] resend confirm error:", confirmErr);
+
+  return { sent: !internalErr, reason: internalErr || confirmErr, confirm_sent: !confirmErr };
 }

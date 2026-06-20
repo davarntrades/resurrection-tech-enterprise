@@ -21,7 +21,7 @@ export const SITE = {
 
 // Curated links shown inline in the desktop navbar — conversion-focused, no jargon.
 export const NAV_LINKS = [
-  { href: "/assess", label: "Assess your agent" },
+  { href: "/assessment", label: "Assess your agent" },
   { href: "/live-demo", label: "Live Demo" },
   { href: "/quickstart", label: "Quickstart" },
   { href: "/why-runtime-governance", label: "Why us" },
@@ -35,7 +35,8 @@ export const NAV_MENU = [
   {
     group: "Solutions",
     links: [
-      { href: "/assess", label: "Assess your agent (Day-1)" },
+      { href: "/assessment", label: "Assess your agent (questionnaire)" },
+      { href: "/assess", label: "Ω exposure (upload a manifest)" },
       { href: "/test-without-agent", label: "Test without your own agent" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },

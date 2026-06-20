@@ -245,8 +245,8 @@ export default function Page() {
             </div>
           </div>
           <div className="hero-actions reveal" style={{ marginTop: 44 }}>
-            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
-            <Link href="/book#strategy" className="btn btn--ghost">Book Strategy Session</Link>
+            <Link href="/assessment" className="btn btn--primary">Assess Your Agent <span className="arr">→</span></Link>
+            <Link href="/book#assessment" className="btn btn--ghost">Book a Runtime Safety Assessment</Link>
           </div>
         </div>
       </section>

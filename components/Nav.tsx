@@ -82,7 +82,7 @@ export function Nav() {
 
         <div className="nav-cta">
           <Link
-            href="/assess"
+            href="/assessment"
             className="btn btn--primary btn--sm"
             onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
           >
@@ -113,7 +113,7 @@ export function Nav() {
           {/* Conversion actions first — top on mobile */}
           <div className="nav-menu-cta">
             <Link
-              href="/assess"
+              href="/assessment"
               className="btn btn--primary"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "assess" }); setMenuOpen(false); }}
             >

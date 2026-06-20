@@ -102,7 +102,7 @@ export function HomeClient() {
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
-                  href="/assess"
+                  href="/assessment"
                   className="btn btn--primary btn--live"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "assess" })}
                 >
