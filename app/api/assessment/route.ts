@@ -75,6 +75,8 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
         maturity_score: scores.maturity,
         complexity_score: scores.complexity,
         exposure_score: scores.exposure,
+        referral_code: data.referralCode,
+        referral_source: data.referralSource,
         payload: data,
         source_ip: ip,
         user_agent: req.headers.get("user-agent") ?? "",
@@ -99,7 +101,7 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   console.log(JSON.stringify({
     evt: "assessment", reference, recommendation: recommendation.id,
     exposure: scores.exposure, maturity: scores.maturity, complexity: scores.complexity,
-    stored, emailed,
+    referral_code: data.referralCode || "direct", stored, emailed,
   }));
 
   return NextResponse.json({ ok: true, reference, recommendation, delivery: { emailed, stored } });

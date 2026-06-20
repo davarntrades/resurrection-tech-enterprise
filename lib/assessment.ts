@@ -6,6 +6,8 @@
  * surfaced in the emailed report, never on the public page.
  */
 
+import { referralPath } from "./referral";
+
 export interface Option {
   value: string;
   label: string;
@@ -108,6 +110,9 @@ export interface AssessmentData {
   // Section 7 — Success criteria
   successCriteria: string[];
   successNotes: string;
+  // Referral attribution (captured from ?ref= on /assessment)
+  referralCode: string;
+  referralSource: string;
 }
 
 export interface Scores {
@@ -288,6 +293,11 @@ export function crmSummary(
     `— RECOMMENDED PATHWAY —`,
     L("Recommendation", rec.title),
     L("Rationale", rec.why.join(" ")),
+    ``,
+    `— REFERRAL ATTRIBUTION —`,
+    L("Referral source", d.referralSource || "Direct / Unknown"),
+    L("Referral code", d.referralCode || "—"),
+    L("Referral link", d.referralCode ? referralPath(d.referralCode) : "—"),
     ``,
     `— INTERNAL SCORES (do not share) —`,
     L("Governance Maturity", `${s.maturity}/100 (${s.maturityBand})`),

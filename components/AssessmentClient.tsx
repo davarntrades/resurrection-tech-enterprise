@@ -7,6 +7,7 @@ import {
   INDUSTRIES, COMPANY_SIZES, STAGES, TOOL_ACCESS, CONTROLS, COMPLIANCE,
   SUCCESS_CRITERIA, NUM_AGENTS, type AssessmentData, type Recommendation, type YesNo,
 } from "@/lib/assessment";
+import { slugifyRef, humanizeRef, DIRECT_SOURCE } from "@/lib/referral";
 
 const STORAGE_KEY = "rt-assessment-v1";
 
@@ -20,6 +21,7 @@ const EMPTY: AssessmentData = {
   numAgents: "", sharedMemory: "", sharedTools: "", autonomousCoordination: "", crossAgentComm: "",
   compliance: [],
   successCriteria: [], successNotes: "",
+  referralCode: "", referralSource: "",
 };
 
 const SECTIONS = [
@@ -46,16 +48,21 @@ export function AssessmentClient() {
   const restored = useRef(false);
   const topRef = useRef<HTMLDivElement>(null);
 
-  // Restore saved progress.
+  // Restore saved progress + capture referral (?ref=). A fresh referral link
+  // always wins; otherwise we keep a previously-captured one; else Direct/Unknown.
   useEffect(() => {
+    let saved: { data?: Partial<AssessmentData>; step?: number } = {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as { data?: Partial<AssessmentData>; step?: number };
-        if (saved.data) setData((d) => ({ ...d, ...saved.data }));
-        if (typeof saved.step === "number") setStep(Math.min(Math.max(0, saved.step), TOTAL - 2));
-      }
+      if (raw) saved = JSON.parse(raw);
     } catch { /* ignore */ }
+
+    const fresh = slugifyRef(new URLSearchParams(window.location.search).get("ref") ?? "");
+    const referralCode = fresh || saved.data?.referralCode || "";
+    const referralSource = referralCode ? humanizeRef(referralCode) : DIRECT_SOURCE;
+
+    setData((d) => ({ ...d, ...(saved.data ?? {}), referralCode, referralSource }));
+    if (typeof saved.step === "number") setStep(Math.min(Math.max(0, saved.step), TOTAL - 2));
     restored.current = true;
   }, []);
 
@@ -152,7 +159,13 @@ export function AssessmentClient() {
             Complete a Runtime Governance Assessment and receive a recommended engagement pathway.
             Takes <b>5–10 minutes</b> · progress is saved on this device.
           </p>
+          {data.referralCode && (
+            <p className="rgq-referral" aria-live="polite">Referred by <b>{data.referralSource}</b></p>
+          )}
         </div>
+        {/* Hidden referral attribution — captured from ?ref=, submitted with the form. */}
+        <input type="hidden" name="referral_source" value={data.referralSource} />
+        <input type="hidden" name="referral_code" value={data.referralCode} />
 
         {result ? (
           <ResultView result={result} onRestart={startOver} />
