@@ -1,0 +1,32 @@
+/* ============================================================
+   Internal admin (/admin/leads). Minimal dark utility styling.
+   ============================================================ */
+.adm { max-width: 1200px; margin: 0 auto; padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 40px) 64px; color: var(--ink); }
+.adm-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+.adm-eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); }
+.adm-head h1 { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.02em; margin: 6px 0 0; }
+.adm-count { font-family: var(--mono); font-size: 0.85rem; color: var(--muted, #8a929c); }
+
+.adm-note { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px; color: var(--muted, #aab2bd); font-size: 0.9rem; line-height: 1.5; margin: 12px 0; }
+.adm-note code { font-family: var(--mono); color: var(--accent-bright); }
+
+.adm-tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); margin: 10px 0 8px; -webkit-overflow-scrolling: touch; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 720px; }
+.adm-table th { text-align: left; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted, #8a929c); padding: 11px 14px; border-bottom: 1px solid var(--line); background: #0b0d11; position: sticky; top: 0; }
+.adm-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
+.adm-table tr:hover td { background: rgba(255,255,255,0.02); }
+.adm-mono { font-family: var(--mono); font-size: 0.82rem; }
+.adm-num { font-family: var(--mono); text-align: right; }
+.adm-strong { color: var(--ink); font-weight: 600; }
+.adm-sub { display: block; color: var(--muted, #8a929c); font-size: 0.76rem; margin-top: 3px; }
+
+.adm-status { display: inline-block; font-size: 0.74rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted, #aab2bd); white-space: nowrap; }
+.adm-status.s-new-lead { color: var(--accent-bright); border-color: rgba(76,125,255,0.5); background: rgba(76,125,255,0.08); }
+.adm-status.s-workshop, .adm-status.s-audit { color: #e8a13a; border-color: rgba(232,161,58,0.5); background: rgba(232,161,58,0.08); }
+.adm-status.s-pilot, .adm-status.s-integration, .adm-status.s-won { color: var(--ok); border-color: rgba(63,178,127,0.5); background: rgba(63,178,127,0.08); }
+.adm-status.s-lost { color: var(--omega); border-color: rgba(229,72,77,0.5); background: rgba(229,72,77,0.08); }
+
+.adm-section { margin-top: 38px; }
+.adm-section h2 { font-size: 1.2rem; letter-spacing: -0.01em; margin: 0 0 4px; }
+.adm-section-sub { color: var(--muted, #8a929c); font-size: 0.86rem; margin: 0 0 12px; line-height: 1.5; }
+.adm-foot { margin-top: 26px; color: var(--muted, #6b7480); font-size: 0.82rem; line-height: 1.55; }

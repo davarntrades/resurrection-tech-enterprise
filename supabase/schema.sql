@@ -90,3 +90,77 @@ begin
   new.created_at = new.created_at; -- no-op guard
   return new;
 end; $$;
+
+-- ============================================================
+-- Runtime Governance Assessments (questionnaire intake).
+-- Every completed /assessment submission is stored here so referral
+-- attribution, conversion tracking, and partner reporting work
+-- automatically. Written by the API route via the service role.
+-- ============================================================
+create table if not exists public.assessments (
+  id uuid primary key default gen_random_uuid(),
+  reference text unique not null,
+  submitted_at timestamptz not null default now(),
+
+  -- Contact / company
+  company text not null,
+  contact_name text not null,
+  contact_email text not null,
+  job_title text default '',
+  company_size text default '',
+  phone text default '',
+  industry text default '',
+  country text default '',
+
+  -- Recommendation + internal scores
+  recommended_pathway text default '',     -- workshop | audit | pilot | integration
+  maturity_score int,
+  complexity_score int,
+  omega_exposure_score int,
+
+  -- Referral attribution
+  referral_source text default 'Direct / Unknown',
+  referral_code text default '',
+  referral_link text default '',
+
+  -- Pipeline
+  status text not null default 'New Lead',  -- New Lead | Workshop | Audit | Pilot | Integration | Won | Lost
+
+  -- Full payload + ops metadata
+  payload jsonb,
+  source_ip text default '',
+  user_agent text default ''
+);
+
+create index if not exists assessments_submitted_at_idx on public.assessments (submitted_at desc);
+create index if not exists assessments_status_idx on public.assessments (status);
+create index if not exists assessments_referral_code_idx on public.assessments (referral_code);
+
+-- RLS on, no anon policies (same posture as audit_requests / leads). The API
+-- route writes with the service role, which bypasses RLS; the browser anon key
+-- cannot read or write this table.
+alter table public.assessments enable row level security;
+
+-- ── Partner analytics foundation ────────────────────────────
+-- Per-referral-source rollup that can power a future partner dashboard.
+-- "leads" counts every assessment; the stage columns count pipeline status,
+-- and rec_* count the recommended pathway at submission time.
+create or replace view public.referral_summary as
+select
+  coalesce(nullif(referral_code, ''), 'direct')              as referral_code,
+  coalesce(nullif(referral_source, ''), 'Direct / Unknown')  as referral_source,
+  count(*)                                                   as leads,
+  count(*) filter (where status = 'Workshop')                as workshops,
+  count(*) filter (where status = 'Audit')                   as audits,
+  count(*) filter (where status = 'Pilot')                   as pilots,
+  count(*) filter (where status = 'Integration')             as integrations,
+  count(*) filter (where status = 'Won')                     as won,
+  count(*) filter (where status = 'Lost')                    as lost,
+  count(*) filter (where recommended_pathway = 'workshop')   as rec_workshop,
+  count(*) filter (where recommended_pathway = 'audit')      as rec_audit,
+  count(*) filter (where recommended_pathway = 'pilot')      as rec_pilot,
+  count(*) filter (where recommended_pathway = 'integration') as rec_integration,
+  max(submitted_at)                                          as last_lead_at
+from public.assessments
+group by 1, 2
+order by leads desc;

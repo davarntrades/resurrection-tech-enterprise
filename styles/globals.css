@@ -32,6 +32,7 @@
 @import "./workshop.css";
 @import "./assessment.css";
 @import "./referral.css";
+@import "./admin.css";
 
 @tailwind components;
 @tailwind utilities;
