@@ -216,28 +216,16 @@ export async function sendLeadEmail(data: LeadInput, reference: string) {
   };
 }
 
-/**
- * Runtime Governance Assessment emails:
- *   1) Internal structured report (scores + CRM-paste block) to the team.
- *   2) Prospect confirmation with the recommended pathway (no internal scores).
- * Skipped gracefully when RESEND_API_KEY is unset.
- */
-export async function sendAssessmentEmails(
-  d: AssessmentData, s: Scores, rec: Recommendation, reference: string,
-) {
-  const resend = getResend();
-  if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
-
-  const stamp = new Date().toUTCString();
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com";
+/** Exact HTML for the internal assessment report (also used for previews/tests). */
+export function buildAssessmentInternalHtml(
+  d: AssessmentData, s: Scores, rec: Recommendation, reference: string, stamp: string,
+): string {
   const yn = (v: string) => (v === "yes" ? "Yes" : v === "no" ? "No" : "—");
   const list = (vals: string[], opts: Parameters<typeof labelsFor>[0]) =>
     vals?.length ? labelsFor(opts, vals).join(", ") : "—";
   const stageLabel = STAGES.find((x) => x.value === d.stage)?.label ?? "—";
   const crm = crmSummary(d, s, rec, reference, stamp);
-
-  // 1) Internal report
-  const internal = shell(`
+  return shell(`
     <div style="color:#6f97ff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px">Runtime Governance Assessment &middot; ${reference}</div>
     <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(111,151,255,0.3);border-radius:10px">
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
@@ -278,11 +266,16 @@ export async function sendAssessmentEmails(
       <div style="color:#6b7480;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">CRM export (copy/paste)</div>
       <pre style="font-size:11px;line-height:1.5;color:#cdd6e0;background:#0a0c0f;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;white-space:pre-wrap;overflow-x:auto">${esc(crm)}</pre>
     </div>`);
+}
 
-  // 2) Prospect confirmation (no internal scores)
+/** Exact HTML for the prospect confirmation (no internal scores). */
+export function buildAssessmentConfirmHtml(
+  d: AssessmentData, rec: Recommendation, reference: string, stamp: string,
+): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com";
   const btn = (href: string, label: string) =>
     `<a href="${href}" style="display:inline-block;background:#6f97ff;color:#08090b;text-decoration:none;font-weight:600;font-size:14px;padding:11px 18px;border-radius:10px">${label}</a>`;
-  const confirm = shell(`
+  return shell(`
     <div style="color:#f3f5f7;font-size:20px;margin-bottom:10px">Your Runtime Governance Assessment</div>
     <p style="font-size:14px;line-height:1.6;color:#aab2bd;margin:0 0 18px">
       Hi ${esc(d.fullName) || "there"} — thanks for completing the assessment for ${esc(d.companyName) || "your team"}.
@@ -302,6 +295,23 @@ export async function sendAssessmentEmails(
     <p style="font-size:12px;color:#6b7480;margin:0;line-height:1.6">
       A member of Resurrection Tech will review your assessment and follow up. Reply to this email to reach the team directly.
     </p>`);
+}
+
+/**
+ * Runtime Governance Assessment emails:
+ *   1) Internal structured report (scores + CRM-paste block) to the team.
+ *   2) Prospect confirmation with the recommended pathway (no internal scores).
+ * Skipped gracefully when RESEND_API_KEY is unset.
+ */
+export async function sendAssessmentEmails(
+  d: AssessmentData, s: Scores, rec: Recommendation, reference: string,
+) {
+  const resend = getResend();
+  if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
+
+  const stamp = new Date().toUTCString();
+  const internal = buildAssessmentInternalHtml(d, s, rec, reference, stamp);
+  const confirm = buildAssessmentConfirmHtml(d, rec, reference, stamp);
 
   const [internalRes, confirmRes] = await Promise.allSettled([
     resend.emails.send({

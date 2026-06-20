@@ -46,8 +46,9 @@ export const assessmentSchema = z.object({
   successCriteria: strArr,
   successNotes: z.string().trim().max(4000).optional().default(""),
 
-  // Honeypot — must be empty.
-  company_url_confirm: z.string().max(0).optional().default(""),
+  // Honeypot — bots fill it. Accepted by the schema so the route can silently
+  // accept (200, no processing) without signalling the trap.
+  company_url_confirm: z.string().max(200).optional().default(""),
 });
 
 export type AssessmentInput = z.infer<typeof assessmentSchema>;
