@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assessmentSchema } from "@/lib/assessmentValidation";
 import { score, recommend, type Recommendation } from "@/lib/assessment";
+import { referralPath } from "@/lib/referral";
 import { sendAssessmentEmails } from "@/lib/email";
 import { getServiceSupabase } from "@/lib/supabase";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
@@ -63,20 +64,22 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
     try {
       const { error } = await supabase.from("assessments").insert({
         reference,
-        full_name: data.fullName,
+        company: data.companyName,
+        contact_name: data.fullName,
+        contact_email: data.email,
         job_title: data.jobTitle,
-        company_name: data.companyName,
-        email: data.email,
+        company_size: data.companySize,
         phone: data.phone,
         industry: data.industry,
-        company_size: data.companySize,
         country: data.country,
-        recommendation: recommendation.id,
+        recommended_pathway: recommendation.id,
         maturity_score: scores.maturity,
         complexity_score: scores.complexity,
-        exposure_score: scores.exposure,
-        referral_code: data.referralCode,
+        omega_exposure_score: scores.exposure,
         referral_source: data.referralSource,
+        referral_code: data.referralCode,
+        referral_link: data.referralCode ? referralPath(data.referralCode) : "",
+        // status defaults to 'New Lead' in the DB
         payload: data,
         source_ip: ip,
         user_agent: req.headers.get("user-agent") ?? "",
