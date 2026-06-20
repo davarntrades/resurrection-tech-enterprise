@@ -29,6 +29,7 @@
 @import "./programs.css";
 @import "./quickstart.css";
 @import "./devband.css";
+@import "./workshop.css";
 
 @tailwind components;
 @tailwind utilities;

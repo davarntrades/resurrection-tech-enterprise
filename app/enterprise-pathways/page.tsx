@@ -6,7 +6,7 @@ import { ConsultationSection } from "@/components/ConsultationSection";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Three ways to engage Resurrection Tech: the 48-Hour Runtime Governance Audit, the Limited Pilot, and the Advisory Retainer. Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, and the Advisory Retainer. Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -66,6 +66,7 @@ const VERDICTS: Verdict[] = [
 ];
 
 const PATHWAYS = [
+  ["Paid Discovery Workshop™", "Structured scoping before an audit, pilot, or integration", "1–2 days", "£5K–£50K+"],
   ["48-Hour Runtime Governance Audit", "Catastrophic trajectory exposure assessment", "48 hours", "£40K–£75K"],
   ["Limited Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
   ["Advisory Retainer", "Ongoing Ω governance, threat-surface monitoring, runtime governance maintenance, incident review & model/planner revalidation", "Monthly", "£35K–£100K/mo"],
@@ -78,8 +79,8 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Enterprise pathways</span>
-            <h2>Three ways to engage.</h2>
-            <p>The audit is the entry point. The pilot is validation. The integration is operational embedment. The retainer is ongoing assurance.</p>
+            <h2>Ways to engage.</h2>
+            <p>The Paid Discovery Workshop defines scope. The audit measures exposure. The pilot is validation. The integration is operational embedment. The retainer is ongoing assurance.</p>
           </div>
           <div className="tbl-wrap reveal" data-rowreveal>
             <table className="tbl">
@@ -112,6 +113,95 @@ export default function Page() {
               system updates, new tools, model changes, workflow changes, or regulatory
               requirements.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== PAID DISCOVERY WORKSHOP (new tier: scoping before audit) ===== */}
+      <section className="section section--tight" id="discovery-workshop">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">New engagement tier</span>
+            <h2>Paid Discovery Workshop™</h2>
+            <p>For teams that need structured scoping before an audit, pilot, or integration.</p>
+          </div>
+
+          <div className="dw-intro reveal" data-d="1">
+            <p>
+              This workshop goes deeper than a discovery call. We review the organisation&rsquo;s
+              agent architecture, tool inventory, data flows, compliance requirements, multi-agent
+              interactions, existing controls, and deployment plans.
+            </p>
+          </div>
+
+          <div className="scale-grid">
+            <div className="scale-col is reveal">
+              <h3>What we review</h3>
+              {[
+                "Agent architecture",
+                "Tool inventories",
+                "Data flows",
+                "Compliance requirements",
+                "Multi-agent interactions",
+                "Existing controls",
+                "Deployment plans",
+              ].map((t) => (
+                <div className="scale-li" key={t}>
+                  <span className="ic">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 L6.5 12 L13 4" stroke="#6f97ff" strokeWidth="1.6" /></svg>
+                  </span>
+                  <span className="txt">{t}</span>
+                </div>
+              ))}
+            </div>
+            <div className="scale-col is reveal" data-d="1">
+              <h3>Deliverables</h3>
+              {[
+                "Risk summary",
+                "Recommended pathway",
+                "Preliminary Ω exposure analysis",
+                "Commercial proposal",
+              ].map((t) => (
+                <div className="scale-li" key={t}>
+                  <span className="ic">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 L6.5 12 L13 4" stroke="#6f97ff" strokeWidth="1.6" /></svg>
+                  </span>
+                  <span className="txt">{t}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dw-range reveal" data-d="1">
+            <span className="dw-range-k">Typical range</span>
+            <div className="tbl-wrap" data-rowreveal>
+              <table className="tbl">
+                <thead>
+                  <tr><th>Organisation</th><th>Typical range</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td data-l="Organisation" className="t-main">Small company</td><td data-l="Typical range" className="t-price">£5K–£15K</td></tr>
+                  <tr><td data-l="Organisation" className="t-main">Mid-market</td><td data-l="Typical range" className="t-price">£15K–£25K</td></tr>
+                  <tr><td data-l="Organisation" className="t-main">Enterprise</td><td data-l="Typical range" className="t-price">£25K–£50K+</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="dw-ladder reveal" data-d="1">
+            <span className="dw-ladder-k">Where it sits in the ladder</span>
+            <ol>
+              <li><b>Free discovery</b> helps determine whether there is a fit.</li>
+              <li><b>The Paid Discovery Workshop</b> helps define the scope.</li>
+              <li><b>The Audit</b> measures exposure.</li>
+              <li><b>The Pilot</b> validates Runtime Governance in the client environment.</li>
+              <li><b>Integration</b> deploys governance into production.</li>
+            </ol>
+          </div>
+
+          <div className="hero-actions reveal" style={{ marginTop: 40 }}>
+            <Link href="/book#strategy" className="btn btn--primary">Book Discovery Workshop <span className="arr">→</span></Link>
+            <Link href="/contact" className="btn btn--ghost">Discuss Workshop Scope</Link>
           </div>
         </div>
       </section>
