@@ -46,6 +46,10 @@ export const assessmentSchema = z.object({
   successCriteria: strArr,
   successNotes: z.string().trim().max(4000).optional().default(""),
 
+  // Referral attribution (captured client-side from ?ref=)
+  referralCode: z.string().trim().max(80).optional().default(""),
+  referralSource: z.string().trim().max(160).optional().default(""),
+
   // Honeypot — bots fill it. Accepted by the schema so the route can silently
   // accept (200, no processing) without signalling the trap.
   company_url_confirm: z.string().max(200).optional().default(""),

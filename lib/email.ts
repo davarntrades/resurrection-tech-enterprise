@@ -5,6 +5,7 @@ import type { AssessmentData, Recommendation, Scores } from "./assessment";
 import {
   crmSummary, labelsFor, TOOL_ACCESS, CONTROLS, COMPLIANCE, SUCCESS_CRITERIA, STAGES,
 } from "./assessment";
+import { referralPath } from "./referral";
 
 /**
  * Transactional email via Resend.
@@ -231,6 +232,16 @@ export function buildAssessmentInternalHtml(
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
       <div style="color:#f3f5f7;font-size:16px;font-weight:600">${rec.title}</div>
       <div style="color:#aab2bd;font-size:13px;margin-top:4px">${rec.tagline}</div>
+    </div>
+    <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Referral attribution</div>
+      <table style="width:100%;border-collapse:collapse">
+        ${row("Referral source", d.referralSource || "Direct / Unknown")}
+        ${row("Referral code", d.referralCode || "—")}
+        ${row("Referral link", d.referralCode ? referralPath(d.referralCode) : "—")}
+        ${row("Recommended pathway", rec.title)}
+        ${row("Reference", reference)}
+      </table>
     </div>
     <table style="width:100%;border-collapse:collapse">
       ${row("Maturity score", `${s.maturity}/100 (${s.maturityBand})`)}

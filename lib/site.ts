@@ -88,6 +88,7 @@ export const NAV_MENU = [
     links: [
       { href: "/company", label: "About Resurrection Tech™" },
       { href: "/partners", label: "Partners" },
+      { href: "/referral", label: "Referral link generator" },
       { href: "/licensing", label: "Licensing" },
       { href: "/contact", label: "Contact" },
     ],

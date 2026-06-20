@@ -1,0 +1,54 @@
+/* ============================================================
+   Referral link generator (.ref) + assessment "referred by" chip
+   Dark, enterprise, mobile-first. Reuses design-system tokens.
+   ============================================================ */
+
+.ref { padding: clamp(40px, 7vw, 88px) 0 clamp(48px, 8vw, 96px); }
+.ref .wrap { max-width: 760px; margin-inline: auto; padding-inline: var(--gutter); }
+
+.ref-head { margin-bottom: 24px; }
+.ref-head h1 { font-size: clamp(2rem, 4.2vw, 2.9rem); letter-spacing: -0.02em; line-height: 1.06; margin: 12px 0 14px; }
+.ref-lede { color: var(--muted, #aab2bd); font-size: clamp(1rem, 1.5vw, 1.14rem); line-height: 1.6; max-width: 58ch; }
+
+.ref-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(20px, 3vw, 30px); }
+.ref-field { display: block; }
+.ref-label { display: block; font-size: 0.9rem; color: var(--ink); margin-bottom: 7px; font-weight: 500; }
+.ref-input, .ref-linkfield {
+  width: 100%; box-sizing: border-box; background: #0a0c0f; color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 0.98rem; transition: border-color .15s var(--ease);
+}
+.ref-input:focus, .ref-linkfield:focus { outline: none; border-color: var(--accent); }
+.ref-hint { display: block; margin-top: 6px; font-size: 0.8rem; color: var(--muted, #8a929c); }
+
+.ref-out { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.ref-out-k { display: block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }
+.ref-linkfield { font-family: var(--mono); font-size: 0.86rem; color: #cdd6e0; white-space: nowrap; overflow-x: auto; }
+.ref-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.ref-code-note { margin-top: 12px; font-size: 0.86rem; color: var(--muted, #8a929c); }
+.ref-code-note b { color: var(--ink); font-family: var(--mono); }
+.ref-empty { margin-top: 18px; color: var(--muted, #8a929c); font-size: 0.92rem; }
+
+.ref-terms {
+  margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line);
+  font-size: 0.82rem; color: var(--muted, #8a929c); line-height: 1.5;
+}
+
+.ref-how { margin-top: 28px; }
+.ref-how-k { display: block; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 10px; }
+.ref-how ol { margin: 0; padding-left: 18px; display: grid; gap: 9px; }
+.ref-how li { color: var(--muted, #aab2bd); line-height: 1.5; font-size: 0.95rem; }
+.ref-foot { margin-top: 16px; font-size: 0.9rem; color: var(--muted, #8a929c); }
+.ref-foot a { color: var(--accent-bright); }
+
+@media (max-width: 560px) {
+  .ref-actions .btn { width: 100%; justify-content: center; }
+}
+
+/* Assessment "Referred by" acknowledgment chip */
+.rgq-referral {
+  display: inline-block; margin: 12px 0 0; font-size: 0.86rem; color: var(--muted, #aab2bd);
+  background: rgba(76,125,255,0.08); border: 1px solid rgba(76,125,255,0.3);
+  border-radius: 999px; padding: 5px 13px;
+}
+.rgq-referral b { color: var(--accent-bright); }
