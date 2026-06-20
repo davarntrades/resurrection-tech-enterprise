@@ -68,7 +68,7 @@ export const BOOKING_SESSIONS: BookingSession[] = [
     title: "Paid Discovery Workshop™",
     duration: "1–2 days",
     description:
-      "A structured scoping engagement before an Audit, Pilot, or Integration. We map your agent architecture, tool exposure, data flows, compliance requirements, and governance readiness, then recommend a pathway. Typical range: £5K–£50K+ (invoice-only).",
+      "An optional, structured scoping engagement before an Audit, Pilot, or Integration. The questionnaire remains the primary qualification — skip the workshop if it already provides enough. We map your agent architecture, tool exposure, data flows, compliance requirements, and governance readiness, then recommend a pathway. Typical range: £5K–£50K+ (invoice-only).",
     audienceLabel: "For teams that need",
     audience: [
       "Scoping before an audit",

@@ -200,9 +200,10 @@ export default function Page() {
           </div>
 
           <p className="dw-note reveal" data-d="1">
-            The workshop is <b>optional</b> — it may be skipped if the questionnaire already provides
-            sufficient information. In some cases, Resurrection Tech may recommend moving directly to
-            an Audit, Pilot, or Integration discussion.
+            The workshop is <b>optional and never mandatory</b>. The questionnaire remains the
+            primary qualification mechanism — if sufficient information is already available, we can
+            move directly into an Audit, Pilot, or Integration discussion. In some cases,
+            Resurrection Tech may recommend exactly that.
           </p>
 
           <div className="hero-actions reveal" style={{ marginTop: 40 }}>
