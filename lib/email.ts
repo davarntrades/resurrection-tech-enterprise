@@ -21,8 +21,8 @@ function getResend(): Resend | null {
 const FROM = process.env.EMAIL_FROM ?? "Resurrection Tech <hello@resurrection-tech.com>";
 const NOTIFY_TO = process.env.AUDIT_NOTIFY_TO ?? "hello@resurrection-tech.com";
 const LEAD_NOTIFY_TO = process.env.LEAD_NOTIFY_TO ?? NOTIFY_TO;
-// Runtime Governance Assessment lands in the founder inbox by default.
-const ASSESSMENT_NOTIFY_TO = process.env.ASSESSMENT_NOTIFY_TO ?? "davarnmorrison1@gmail.com";
+// Runtime Governance Assessment notifications route to the team inbox.
+const ASSESSMENT_NOTIFY_TO = process.env.ASSESSMENT_NOTIFY_TO ?? "hello@resurrection-tech.com";
 
 const shell = (inner: string) => `
   <div style="background:#08090b;padding:32px;font-family:'Geist Mono',ui-monospace,monospace;color:#aab2bd">
