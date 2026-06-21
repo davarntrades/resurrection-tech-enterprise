@@ -33,6 +33,7 @@
 @import "./assessment.css";
 @import "./referral.css";
 @import "./admin.css";
+@import "./partner.css";
 
 @tailwind components;
 @tailwind utilities;

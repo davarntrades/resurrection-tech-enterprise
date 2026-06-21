@@ -58,3 +58,15 @@ export async function getReferralSummary(): Promise<Query<ReferralSummaryRow>> {
   if (error) return { ok: false, rows: [], error: error.message };
   return { ok: true, rows: (data ?? []) as ReferralSummaryRow[] };
 }
+
+/** Single referral source's rollup (partner visibility page). Returns null row
+ * when the code has no leads yet, so the partner sees zeros rather than an error. */
+export async function getPartnerSummary(
+  code: string,
+): Promise<{ ok: true; row: ReferralSummaryRow | null } | { ok: false; error: string }> {
+  const sb = getServiceSupabase();
+  if (!sb) return { ok: false, error: "Supabase is not configured." };
+  const { data, error } = await sb.from("referral_summary").select("*").eq("referral_code", code).limit(1);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, row: (data && data[0] ? (data[0] as ReferralSummaryRow) : null) };
+}

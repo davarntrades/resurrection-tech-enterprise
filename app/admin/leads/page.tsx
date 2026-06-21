@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getLeads, getReferralSummary } from "@/lib/assessmentsStore";
 
 export const dynamic = "force-dynamic";
@@ -70,7 +71,7 @@ export default async function Page() {
 
       <section className="adm-section">
         <h2>Referral analytics</h2>
-        <p className="adm-section-sub">Per-source rollup (partner-reporting foundation). Stage counts reflect pipeline status; “Rec.” columns reflect the recommended pathway at submission.</p>
+        <p className="adm-section-sub">Per-source rollup (partner-reporting foundation). Stage counts reflect pipeline status; “Rec.” columns reflect the recommended pathway at submission. For per-partner detail and shareable links, see the <Link href="/admin/partners">partner dashboard →</Link></p>
         {!summary.ok && <div className="adm-note">{summary.error}</div>}
         {summary.ok && summary.rows.length === 0 && <div className="adm-note">No referral data yet.</div>}
         {summary.ok && summary.rows.length > 0 && (
