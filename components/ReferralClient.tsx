@@ -37,8 +37,8 @@ export function ReferralClient() {
           <span className="eyebrow">Referral programme</span>
           <h1>Generate your referral link</h1>
           <p className="ref-lede">
-            Share Runtime Governance with your network. Enter your name or a chosen code and we&apos;ll
-            create a link that attributes every assessment back to you.
+            Introduce a company and generate a tracked referral link. Every assessment completed
+            through your link is attributed back to your referral code.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function ReferralClient() {
               className="ref-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. Gabriel Smith, Raj, or AI Safety Event"
+              placeholder="e.g. John, Bob, or AI Safety Summit"
               maxLength={80}
               aria-describedby="ref-help"
               autoFocus

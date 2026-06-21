@@ -27,6 +27,7 @@ export const NAV_LINKS = [
   { href: "/why-runtime-governance", label: "Why us" },
   { href: "/integrations", label: "Integrations" },
   { href: "/enterprise-pathways", label: "Pricing" },
+  { href: "/referral", label: "Partner Referrals" },
 ] as const;
 
 // Full enterprise IA — rendered in the menu panel (desktop + mobile), in
