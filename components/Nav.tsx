@@ -108,9 +108,21 @@ export function Nav() {
         onClick={() => setMenuOpen(false)}
         aria-hidden="true"
       />
-      <div id="nav-menu-panel" className={`nav-menu-panel${menuOpen ? " is-open" : ""}`} role="dialog" aria-label="Site menu" aria-modal="true" hidden={!menuOpen}>
+      <div id="nav-menu-panel" className={`nav-menu-panel${menuOpen ? " is-open" : ""}`} role="dialog" aria-label="Site menu" aria-modal="true">
         <div className="wrap">
-          {/* Conversion actions first — top on mobile */}
+          <div className="nav-menu-grid">
+            {NAV_MENU.map((g) => (
+              <div className="nav-menu-col" key={g.group}>
+                <div className="nav-menu-h">{g.group}</div>
+                {g.links.map((l) => (
+                  <Link key={l.href + l.label} href={l.href} onClick={() => setMenuOpen(false)}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+          {/* Conversion actions — pinned to the foot of the panel */}
           <div className="nav-menu-cta">
             <Link
               href="/assessment"
@@ -124,23 +136,8 @@ export function Nav() {
               className="btn btn--ghost"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "book" }); setMenuOpen(false); }}
             >
-              Book a Runtime Safety Assessment <span className="arr">→</span>
+              Book a call <span className="arr">→</span>
             </Link>
-            <Link href="/enterprise-pathways" className="btn btn--ghost" onClick={() => setMenuOpen(false)}>
-              Enterprise pathways
-            </Link>
-          </div>
-          <div className="nav-menu-grid">
-            {NAV_MENU.map((g) => (
-              <div className="nav-menu-col" key={g.group}>
-                <div className="nav-menu-h">{g.group}</div>
-                {g.links.map((l) => (
-                  <Link key={l.href + l.label} href={l.href} onClick={() => setMenuOpen(false)}>
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-            ))}
           </div>
         </div>
       </div>

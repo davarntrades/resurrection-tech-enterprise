@@ -19,69 +19,57 @@ export const SITE = {
   ],
 } as const;
 
-// Curated links shown inline in the desktop navbar — conversion-focused, no jargon.
+// Curated links shown inline in the desktop navbar. Kept short and free of
+// duplication — "Assess your agent" lives in the primary CTA; the full index is
+// one tap away under Menu.
 export const NAV_LINKS = [
-  { href: "/assessment", label: "Assess your agent" },
   { href: "/live-demo", label: "Live Demo" },
-  { href: "/quickstart", label: "Quickstart" },
-  { href: "/why-runtime-governance", label: "Why us" },
   { href: "/integrations", label: "Integrations" },
   { href: "/enterprise-pathways", label: "Pricing" },
   { href: "/referral", label: "Partner Referrals" },
 ] as const;
 
-// Full enterprise IA — rendered in the menu panel (desktop + mobile), in
-// mobile priority order. Technical concepts live under "Technology" only.
+// Full enterprise IA — rendered in the drop-down menu (desktop + mobile).
+// Each destination appears exactly once; grouped by intent.
 export const NAV_MENU = [
   {
-    group: "Solutions",
+    group: "Product",
     links: [
-      { href: "/assessment", label: "Assess your agent (questionnaire)" },
-      { href: "/assess", label: "Ω exposure (upload a manifest)" },
-      { href: "/test-without-agent", label: "Test without your own agent" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
-      { href: "/enterprise", label: "Enterprise readiness" },
       { href: "/integrations", label: "How it integrates" },
-      { href: "/pilot", label: "Pilot scope of work" },
-      { href: "/design-partners", label: "Design Partner Program" },
-      { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
-      { href: "/pay", label: "Pricing & engagements" },
+      { href: "/quickstart", label: "Developer quickstart" },
+      { href: "/enterprise", label: "Enterprise readiness" },
     ],
   },
   {
-    group: "Who it's for",
+    group: "Try it",
     links: [
-      { href: "/why-runtime-governance", label: "Executives — CEO / CFO / CRO" },
-      { href: "/enterprise", label: "Technical leaders — CTO / CISO" },
-      { href: "/security", label: "Risk & compliance" },
-      { href: "/compliance", label: "EU AI Act positioning" },
-      { href: "/test-trajectory", label: "AI & engineering teams" },
-      { href: "/#domains", label: "Target sectors" },
+      { href: "/assessment", label: "Assess your agent" },
+      { href: "/live-demo", label: "Live demo" },
+      { href: "/test-without-agent", label: "Test without your own agent" },
+      { href: "/assess", label: "Ω exposure — upload a manifest" },
+      { href: "/test-trajectory", label: "Test a trajectory" },
+    ],
+  },
+  {
+    group: "Engage",
+    links: [
+      { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
+      { href: "/pilot", label: "Pilot scope of work" },
+      { href: "/pay", label: "Pricing & engagements" },
+      { href: "/design-partners", label: "Design Partner Program" },
+      { href: "/referral", label: "Partner referrals" },
     ],
   },
   {
     group: "Evidence",
     links: [
-      { href: "/live-demo", label: "Live Demo" },
       { href: "/evidence", label: "Validation results" },
       { href: "/case-studies", label: "Case studies" },
-      { href: "/security", label: "Security & deployment" },
       { href: "/sample-audit", label: "Sample audit report" },
       { href: "/compliance", label: "EU AI Act & compliance" },
-      { href: "/test-trajectory", label: "Test a trajectory" },
-      { href: "/test-without-agent", label: "Test without your own agent" },
-    ],
-  },
-  {
-    group: "Technology",
-    links: [
-      { href: "/#middleware", label: "Runtime Governance architecture" },
-      { href: "/quickstart", label: "Developer quickstart (integrate)" },
-      { href: "/#reachability", label: "Reachability & Ω" },
-      { href: "/#reachability", label: "Safety as Geometry™" },
-      { href: "/#threats", label: "Threat coverage" },
-      { href: "/#model", label: "Morrison Framework™" },
+      { href: "/security", label: "Security & deployment" },
     ],
   },
   {
@@ -89,7 +77,6 @@ export const NAV_MENU = [
     links: [
       { href: "/company", label: "About Resurrection Tech™" },
       { href: "/partners", label: "Partners" },
-      { href: "/referral", label: "Referral link generator" },
       { href: "/licensing", label: "Licensing" },
       { href: "/contact", label: "Contact" },
     ],
