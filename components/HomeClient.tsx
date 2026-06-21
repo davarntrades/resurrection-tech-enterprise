@@ -153,6 +153,25 @@ export function HomeClient() {
           </div>
         </header>
 
+        {/* ===== PARTNER REFERRAL BAND — discoverability for partners / advisors / introducers ===== */}
+        <section className="home-referral reveal" aria-label="Partner referrals">
+          <div className="wrap">
+            <div className="home-referral-card">
+              <div className="home-referral-text">
+                <h2>Know a company deploying AI agents?</h2>
+                <p>Generate a tracked referral link in seconds. Every assessment completed through your link is attributed back to your referral code.</p>
+              </div>
+              <Link
+                href="/referral"
+                className="btn btn--primary"
+                onClick={() => track(Events.CTA_CLICK, { location: "home-referral-band", cta: "referral" })}
+              >
+                Generate Referral Link <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* ===== FOR DEVELOPERS — secondary technical-evaluation path (parallel to the business journey) ===== */}
         <section className="devband" aria-label="For developers">
           <div className="wrap">
