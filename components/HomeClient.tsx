@@ -158,16 +158,53 @@ export function HomeClient() {
           <div className="wrap">
             <div className="home-referral-card">
               <div className="home-referral-text">
+                <span className="home-referral-eyebrow">Partner referrals</span>
                 <h2>Know a company deploying AI agents?</h2>
                 <p>Generate a tracked referral link in seconds. Every assessment completed through your link is attributed back to your referral code.</p>
+                <Link
+                  href="/referral"
+                  className="btn btn--primary home-referral-btn"
+                  onClick={() => track(Events.CTA_CLICK, { location: "home-referral-band", cta: "referral" })}
+                >
+                  Generate Referral Link <span className="arr">→</span>
+                </Link>
               </div>
-              <Link
-                href="/referral"
-                className="btn btn--primary"
-                onClick={() => track(Events.CTA_CLICK, { location: "home-referral-band", cta: "referral" })}
-              >
-                Generate Referral Link <span className="arr">→</span>
-              </Link>
+              <div className="home-referral-visual" aria-hidden="true">
+                <svg className="rfl-svg" viewBox="0 0 320 188" role="img"
+                     aria-label="Your referral link routes new companies into a tracked assessment, attributed back to you.">
+                  <defs>
+                    <marker id="rflArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 z" className="rfl-arrowhead" />
+                    </marker>
+                  </defs>
+                  {/* shareable link chip */}
+                  <rect className="rfl-bar" x="40" y="20" width="240" height="38" rx="11" />
+                  <circle className="rfl-link-dot" cx="62" cy="39" r="4.5" />
+                  <text className="rfl-url" x="80" y="43">/assessment?ref=<tspan className="rfl-url-ref">you</tspan></text>
+                  {/* connectors fanning to the three companies */}
+                  <path className="rfl-conn" d="M160 58 C160 78, 86 80, 86 104" fill="none" markerEnd="url(#rflArrow)" />
+                  <path className="rfl-conn" d="M160 58 L160 104" fill="none" markerEnd="url(#rflArrow)" />
+                  <path className="rfl-conn" d="M160 58 C160 78, 234 80, 234 104" fill="none" markerEnd="url(#rflArrow)" />
+                  {/* company cards */}
+                  <g>
+                    <rect className="rfl-co" x="50" y="108" width="72" height="46" rx="10" />
+                    <rect className="rfl-co-bar" x="62" y="120" width="34" height="4" rx="2" />
+                    <rect className="rfl-co-bar rfl-co-bar--sm" x="62" y="130" width="22" height="4" rx="2" />
+                  </g>
+                  <g>
+                    {/* attributed (highlighted) */}
+                    <rect className="rfl-co rfl-co--on" x="124" y="108" width="72" height="46" rx="10" />
+                    <circle className="rfl-check-bg" cx="160" cy="131" r="11" />
+                    <path className="rfl-check" d="M155 131 l3.5 3.5 l6 -7" fill="none" />
+                  </g>
+                  <g>
+                    <rect className="rfl-co" x="198" y="108" width="72" height="46" rx="10" />
+                    <rect className="rfl-co-bar" x="210" y="120" width="34" height="4" rx="2" />
+                    <rect className="rfl-co-bar rfl-co-bar--sm" x="210" y="130" width="22" height="4" rx="2" />
+                  </g>
+                  <text className="rfl-foot" x="160" y="178" textAnchor="middle">Tracked &amp; attributed to your code</text>
+                </svg>
+              </div>
             </div>
           </div>
         </section>

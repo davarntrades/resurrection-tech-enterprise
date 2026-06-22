@@ -1,49 +1,56 @@
-/* "For Developers" band — a compact, visually-distinct SECONDARY technical
-   pathway directly below the hero. Deliberately smaller and quieter than the
-   business CTAs (ghost action, muted, mono/terminal accents) so it never
-   competes with Assess / Live Demo / Book or repositions the product as a
-   developer tool. Scoped under .devband. */
-.devband { padding: 26px 0 6px; }
+/* "For Developers" band — a refined, enterprise SECONDARY technical pathway
+   below the hero. Calm, spacious, Apple-clean: generous padding, restrained
+   colour, a quiet ghost CTA so it never competes with the business CTAs.
+   Scoped under .devband. */
+.devband { padding: clamp(20px, 4vw, 40px) 0 clamp(6px, 1vw, 12px); }
 
 .devband-card {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; flex-wrap: wrap;
-  border: 1px solid var(--line-2); border-left: 2px solid var(--accent-dim);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(76,125,255,0.045), transparent 60%), var(--panel);
-  padding: 20px 24px;
+  display: grid; grid-template-columns: 1.15fr 0.85fr; align-items: center;
+  gap: clamp(28px, 4vw, 56px);
+  border: 1px solid var(--line-2); border-radius: 18px;
+  background:
+    radial-gradient(110% 130% at 0% 0%, rgba(76,125,255,0.06), transparent 52%),
+    var(--panel);
+  padding: clamp(26px, 4vw, 48px);
 }
 
-.devband-main { min-width: 0; flex: 1 1 420px; }
+.devband-main { min-width: 0; }
 .devband-eyebrow {
-  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--accent-bright); margin: 0 0 6px;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent-bright); margin: 0 0 12px;
 }
-.devband-title { font-size: clamp(17px, 2.1vw, 21px); line-height: 1.25; color: var(--ink); margin: 0 0 6px; font-weight: 600; }
-.devband-sub { font-size: 13.5px; line-height: 1.5; color: var(--ink-3); margin: 0 0 13px; max-width: 62ch; }
+.devband-title {
+  font-size: clamp(20px, 2.6vw, 27px); line-height: 1.16; letter-spacing: -0.02em;
+  color: var(--ink); margin: 0 0 12px; font-weight: 600;
+}
+.devband-sub { font-size: clamp(14px, 1.5vw, 15.5px); line-height: 1.6; color: var(--ink-2); margin: 0 0 22px; max-width: 52ch; }
 
-.devband-frameworks { display: flex; flex-wrap: wrap; gap: 7px; }
+.devband-frameworks { display: flex; flex-wrap: wrap; gap: 9px; }
 .devband-chip {
-  font-family: var(--mono); font-size: 12px; color: var(--ink-2);
-  border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 9px; background: var(--panel-2);
-  white-space: nowrap;
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink-2);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 13px; background: var(--panel-2);
+  white-space: nowrap; transition: color 0.16s var(--ease), border-color 0.16s var(--ease), background 0.16s var(--ease);
 }
+.devband-chip:hover { color: var(--ink); border-color: var(--line-strong); background: var(--panel-3); }
 
 /* Right column: the plan -> govern -> act diagram + the secondary CTA */
-.devband-aside { flex: 0 1 300px; display: flex; flex-direction: column; gap: 11px; min-width: 0; }
+.devband-aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .devband-svg {
   width: 100%; height: auto; display: block;
-  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); padding: 10px 8px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel-2), var(--bg-1));
+  padding: 18px 16px;
 }
-.devband-caption { font-size: 12.5px; line-height: 1.4; color: var(--ink-3); text-align: center; margin: 0; }
-.devband-cta { width: 100%; justify-content: center; }
+.devband-caption { font-size: 13px; line-height: 1.45; color: var(--ink-3); text-align: center; margin: 0; }
+.devband-cta { width: 100%; justify-content: center; min-height: 46px; }
 .devband-note {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--ink-4); text-align: center;
 }
 
 /* SVG flow theming */
 .dbf-node { fill: var(--panel-2); stroke: var(--line-2); }
-.dbf-gate { fill: rgba(76,125,255,0.10); stroke: var(--accent-dim); }
+.dbf-gate { fill: rgba(76,125,255,0.12); stroke: var(--accent-dim); }
 .dbf-label { fill: var(--ink-2); font-family: var(--mono); font-size: 9.5px; }
 .dbf-gate-label { fill: var(--accent-bright); font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .dbf-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 6.5px; letter-spacing: 0.12em; }
@@ -60,8 +67,7 @@
 .dbf-foot { fill: var(--ink-4); font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.06em; }
 
 @media (max-width: 760px) {
-  .devband-card { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px 18px; }
-  .devband-main { flex: 1 1 auto; }        /* fix: flex-basis must not set column height */
-  .devband-aside { flex: 1 1 auto; width: 100%; }
-  .devband-svg { max-width: 360px; margin: 0 auto; }
+  .devband-card { grid-template-columns: 1fr; gap: clamp(22px, 5vw, 28px); }
+  .devband-svg { max-width: 380px; margin: 0 auto; }
+  .devband-aside { width: 100%; }
 }
