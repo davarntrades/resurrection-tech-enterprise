@@ -5,7 +5,7 @@ import { getServiceSupabase } from "@/lib/supabase";
  * Assessment persistence health check.
  * GET /api/health → at-a-glance status of the assessment storage stack:
  *   1. Supabase connected   2. assessments table   3. referral_summary view
- *   4. /admin/leads can read records
+ *   4. /admin/leads can read records   5. referrers table (referral registry)
  * Returns only statuses (no record counts / PII), so it is safe to call openly.
  */
 export const runtime = "nodejs";
@@ -31,6 +31,7 @@ export async function GET(): Promise<NextResponse> {
     assessments_table: "Missing env",
     referral_summary_view: "Missing env",
     admin_leads_readable: "Missing env",
+    referrers_table: "Missing env",
   };
   const detail: Record<string, string> = {};
 
@@ -74,6 +75,13 @@ export async function GET(): Promise<NextResponse> {
     const { error } = await sb.from("assessments").select("reference,status,submitted_at").limit(1);
     if (!error) checks.admin_leads_readable = "OK";
     else { checks.admin_leads_readable = classify(error); detail.admin = error.message; }
+  }
+
+  // referrers table (referral-link registry — optional referrer email storage)
+  {
+    const { error } = await sb.from("referrers").select("referral_code").limit(1);
+    if (!error) checks.referrers_table = "OK";
+    else { checks.referrers_table = classify(error); detail.referrers = error.message; }
   }
 
   const ok = Object.values(checks).every((s) => s === "OK");
