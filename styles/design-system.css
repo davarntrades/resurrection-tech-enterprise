@@ -288,9 +288,26 @@ p { margin: 0; }
 .nav-cta { display: flex; align-items: center; gap: 10px; }
 .nav-burger { display: none; }
 
+/* Compact referral entry — surfaced in the bar on mobile, where .nav-links
+   (which already carries "Partner Referrals") is hidden. Styled to match the
+   Menu button so the bar stays clean. */
+.nav-refer {
+  display: none; align-items: center; height: 34px; padding: 0 12px;
+  border: 1px solid var(--line-2); border-radius: 8px; background: transparent;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-2); white-space: nowrap;
+  transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.nav-refer:hover { color: var(--ink); border-color: var(--line-strong); background: rgba(255,255,255,0.04); }
+
 @media (max-width: 900px) {
   .nav-links { display: none; }
   .nav-cta .btn:not(.btn--primary) { display: none; }
+  .nav-refer { display: inline-flex; }
+}
+@media (max-width: 380px) {
+  /* Very narrow phones: keep the bar from crowding — drop the eyebrow label. */
+  .nav-cta { gap: 8px; }
 }
 
 /* ---------- Hero ---------- */
