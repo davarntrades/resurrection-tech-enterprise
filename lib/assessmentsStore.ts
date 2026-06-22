@@ -59,6 +59,24 @@ export async function getReferralSummary(): Promise<Query<ReferralSummaryRow>> {
   return { ok: true, rows: (data ?? []) as ReferralSummaryRow[] };
 }
 
+/** Optional referrer emails (admin-only), keyed by referral_code. Empty when the
+ * referrers table doesn't exist yet (pre-migration) or Supabase isn't configured
+ * — callers degrade gracefully rather than erroring. */
+export async function getReferrerEmails(): Promise<Record<string, string>> {
+  const sb = getServiceSupabase();
+  if (!sb) return {};
+  const { data, error } = await sb.from("referrers").select("referral_code,referrer_email");
+  if (error) {
+    console.error("[referrers] read failed:", error.message);
+    return {};
+  }
+  const map: Record<string, string> = {};
+  for (const r of (data ?? []) as { referral_code: string; referrer_email: string | null }[]) {
+    if (r.referrer_email) map[r.referral_code] = r.referrer_email;
+  }
+  return map;
+}
+
 /** Single referral source's rollup (partner visibility page). Returns null row
  * when the code has no leads yet, so the partner sees zeros rather than an error. */
 export async function getPartnerSummary(
