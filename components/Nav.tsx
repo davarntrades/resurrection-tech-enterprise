@@ -82,6 +82,14 @@ export function Nav() {
 
         <div className="nav-cta">
           <Link
+            href="/referral"
+            className="nav-refer"
+            aria-label="Partner referrals"
+            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "referral" })}
+          >
+            Refer
+          </Link>
+          <Link
             href="/assessment"
             className="btn btn--primary btn--sm"
             onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
