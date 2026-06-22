@@ -20,6 +20,9 @@
 }
 .ref-input:focus, .ref-linkfield:focus { outline: none; border-color: var(--accent); }
 .ref-hint { display: block; margin-top: 6px; font-size: 0.8rem; color: var(--muted, #8a929c); }
+.ref-hint--err { color: var(--omega, #e5484d); }
+.ref-optional { color: var(--muted, #8a929c); font-weight: 400; }
+.ref-input[aria-invalid="true"] { border-color: var(--omega, #e5484d); }
 
 .ref-out { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
 .ref-out-k { display: block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }

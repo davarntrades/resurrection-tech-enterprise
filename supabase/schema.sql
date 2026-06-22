@@ -164,3 +164,23 @@ select
 from public.assessments
 group by 1, 2
 order by leads desc;
+
+-- ============================================================
+-- Referrers (referral-link registry). Future-proofing for partner
+-- onboarding / notifications: when someone generates a referral link at
+-- /referral, the code (and an OPTIONAL referrer email) is captured here so we
+-- can later connect partner visibility, onboarding, and communication without
+-- rebuilding the flow. No commission/payment data lives here. Written by the
+-- API route via the service role; one row per referral code (upsert).
+-- ============================================================
+create table if not exists public.referrers (
+  referral_code text primary key,
+  referral_source text default '',
+  referrer_email text default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- RLS on, no anon policies (same posture as assessments). The browser anon key
+-- cannot read or write this table; only the service role (API route) can.
+alter table public.referrers enable row level security;

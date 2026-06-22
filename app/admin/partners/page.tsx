@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getReferralSummary } from "@/lib/assessmentsStore";
+import { getReferralSummary, getReferrerEmails } from "@/lib/assessmentsStore";
 import { partnerUrl, partnerLinksEnabled } from "@/lib/partnerToken";
 import { SITE } from "@/lib/site";
 import { CopyButton } from "@/components/CopyButton";
@@ -21,7 +21,7 @@ function fmtDate(iso: string | null): string {
 }
 
 export default async function Page() {
-  const summary = await getReferralSummary();
+  const [summary, emails] = await Promise.all([getReferralSummary(), getReferrerEmails()]);
   const linksOn = partnerLinksEnabled();
 
   return (
@@ -61,6 +61,7 @@ export default async function Page() {
               <tr>
                 <th>Referral source</th>
                 <th>Code</th>
+                <th>Referrer email</th>
                 <th>Leads</th>
                 <th>Workshops</th>
                 <th>Audits</th>
@@ -80,6 +81,7 @@ export default async function Page() {
                   <tr key={r.referral_code + r.referral_source}>
                     <td className="adm-strong">{r.referral_source}</td>
                     <td className="adm-mono">{r.referral_code}</td>
+                    <td className="adm-mono">{emails[r.referral_code] ?? <span className="adm-sub">—</span>}</td>
                     <td className="adm-num adm-strong">{r.leads}</td>
                     <td className="adm-num">{r.workshops}</td>
                     <td className="adm-num">{r.audits}</td>

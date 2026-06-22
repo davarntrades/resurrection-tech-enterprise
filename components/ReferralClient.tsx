@@ -6,13 +6,35 @@ import { track, Events } from "@/lib/analytics";
 import { SITE } from "@/lib/site";
 import { slugifyRef, referralUrl, referralPath } from "@/lib/referral";
 
+// Basic email shape check (matches the server-side rule).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function ReferralClient() {
   const [input, setInput] = useState("");
+  const [email, setEmail] = useState("");
   const [copied, setCopied] = useState(false);
   const linkRef = useRef<HTMLInputElement>(null);
 
   const code = useMemo(() => slugifyRef(input), [input]);
   const url = code ? referralUrl(code, SITE.url) : "";
+  const trimmedEmail = email.trim();
+  const emailValid = trimmedEmail === "" || EMAIL_RE.test(trimmedEmail);
+
+  // Best-effort registration of the code (+ optional email) for future partner
+  // onboarding/notifications. Fire-and-forget — never blocks copying the link.
+  function register() {
+    if (!code) return;
+    try {
+      fetch("/api/referral", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, referrer_email: emailValid ? trimmedEmail : "" }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* ignore — registration is optional */
+    }
+  }
 
   async function copy() {
     if (!code) return;
@@ -27,6 +49,7 @@ export function ReferralClient() {
       } catch { ok = false; }
     }
     if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    register();
     track(Events.CTA_CLICK, { location: "referral", cta: "copy-link", code });
   }
 
@@ -56,6 +79,27 @@ export function ReferralClient() {
             />
             <span id="ref-help" className="ref-hint">
               Lowercased and cleaned automatically — letters, numbers and hyphens only.
+            </span>
+          </label>
+
+          <label className="ref-field" style={{ marginTop: 16 }}>
+            <span className="ref-label">Your email <span className="ref-optional">(optional)</span></span>
+            <input
+              className="ref-input"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              maxLength={254}
+              aria-invalid={!emailValid}
+              aria-describedby="ref-email-help"
+            />
+            <span id="ref-email-help" className={`ref-hint${!emailValid ? " ref-hint--err" : ""}`}>
+              {!emailValid
+                ? "Please enter a valid email address."
+                : "Optional. Stored privately so we can reach you about your referrals later — never shown on your link."}
             </span>
           </label>
 
