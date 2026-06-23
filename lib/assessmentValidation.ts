@@ -16,6 +16,9 @@ export const assessmentSchema = z.object({
   country: z.string().trim().min(1, "Country is required").max(80),
 
   // Section 2 — AI deployment profile
+  intent: z.string().trim().max(40).optional().default(""),
+  partnerType: z.string().trim().max(40).optional().default(""),
+  customerBase: z.string().trim().max(4000).optional().default(""),
   stage: z.string().trim().max(40).optional().default(""),
   agentsDeployed: yesNo,
   customerFacing: yesNo,
