@@ -13,6 +13,9 @@ const PATHWAY_LABEL: Record<string, string> = {
   audit: "48-Hour Audit",
   pilot: "Limited Pilot",
   integration: "Enterprise Integration",
+  managed_partner: "Managed Governance Partner™",
+  embedded_licensing: "Embedded Licensing™",
+  distribution_partner: "Strategic Alliance Partner™",
 };
 
 function fmtDate(iso: string): string {

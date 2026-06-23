@@ -6,7 +6,7 @@ import { ConsultationSection } from "@/components/ConsultationSection";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, and the Advisory Retainer. Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -210,6 +210,62 @@ export default function Page() {
             <Link href="/book#workshop" className="btn btn--primary">Book Discovery Workshop <span className="arr">→</span></Link>
             <Link href="/contact" className="btn btn--ghost">Discuss Workshop Scope</Link>
           </div>
+        </div>
+      </section>
+
+      {/* ===== PARTNER & LICENSING PATHWAYS (channel / OEM motion) ===== */}
+      <section className="section section--tight" id="partner-licensing">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Partner &amp; licensing pathways</span>
+            <h2>Bring Runtime Governance to your own customers.</h2>
+            <p>
+              For firms that want to package, resell, embed, or distribute Runtime Governance — not
+              only deploy it internally. Commercial terms are set by assessment, not fixed public pricing.
+            </p>
+          </div>
+
+          <div className="plp-grid reveal" data-d="1">
+            {[
+              {
+                title: "Strategic Alliance Partner™",
+                pos: "Qualified enterprise introductions and strategic market access.",
+                terms: "Partnership-dependent",
+                cta: "Discuss Partnership",
+                href: "/contact",
+              },
+              {
+                title: "Managed Governance Partner™",
+                pos: "Runtime Governance packaged into MSP, MSSP, cybersecurity, compliance, or AI assurance services.",
+                terms: "By assessment / commercial review",
+                cta: "Discuss Partnership",
+                href: "/contact",
+              },
+              {
+                title: "Embedded Runtime Governance Licensing™",
+                pos: "Runtime Governance embedded into platforms, products, or customer-facing AI infrastructure.",
+                terms: "Partnership-dependent",
+                cta: "Discuss Licensing",
+                href: "/contact",
+              },
+            ].map((c) => (
+              <div className="plp-card" key={c.title}>
+                <h3 className="plp-title">{c.title}</h3>
+                <p className="plp-pos">{c.pos}</p>
+                <div className="plp-foot">
+                  <span className="plp-terms"><span className="plp-terms-k">Commercial</span>{c.terms}</span>
+                  <Link href={c.href} className="btn btn--ghost btn--sm">{c.cta} <span className="arr">→</span></Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="dw-note reveal" data-d="1">
+            Selecting a partner, channel, or licensing option in the{" "}
+            <Link href="/assessment">Runtime Governance Assessment</Link> routes you to the matching
+            pathway. Pricing for these motions is partnership-dependent and confirmed after a
+            commercial review.
+          </p>
         </div>
       </section>
 

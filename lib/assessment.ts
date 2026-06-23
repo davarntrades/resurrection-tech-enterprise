@@ -73,6 +73,44 @@ export const SUCCESS_CRITERIA: Option[] = [
 
 export const NUM_AGENTS: string[] = ["0", "1", "2–5", "6–20", "20+"];
 
+/** Why a prospect is exploring Resurrection Tech. Drives partner/channel routing;
+ * an empty value falls through to the existing scoring-based recommendation, so
+ * internal-governance journeys are unchanged. */
+export const ENGAGEMENT_INTENTS: Option[] = [
+  { value: "assess_own", label: "We need to assess risk in our own AI/agent environment." },
+  { value: "audit_exposure", label: "We need a 48-hour audit of our current agentic risk exposure." },
+  { value: "validate_workflows", label: "We want to validate Runtime Governance against real workflows." },
+  { value: "production_deploy", label: "We are preparing for production deployment." },
+  { value: "ongoing_assurance", label: "We want ongoing governance assurance." },
+  { value: "offer_clients", label: "We want to offer Runtime Governance to our own clients/customers." },
+  { value: "embed_product", label: "We want to embed Runtime Governance inside our platform/product." },
+  { value: "partnership", label: "We are exploring a strategic partnership, reseller, MSP/MSSP, or channel relationship." },
+];
+
+/** Estimated reach of a partner's customer base — a major driver of licensing
+ * value, so captured for partner/channel/licensing leads. */
+export const CUSTOMER_REACH: Option[] = [
+  { value: "under_10", label: "Under 10 customers" },
+  { value: "10_50", label: "10–50" },
+  { value: "50_250", label: "50–250" },
+  { value: "250_1000", label: "250–1,000" },
+  { value: "1000_plus", label: "1,000+" },
+];
+
+/** Company type for partner/channel/licensing leads (internal qualification). */
+export const PARTNER_TYPES: Option[] = [
+  { value: "msp_mssp", label: "MSP / MSSP" },
+  { value: "cybersecurity", label: "Cybersecurity provider" },
+  { value: "ai_platform", label: "AI platform / vendor" },
+  { value: "compliance_grc", label: "Compliance / GRC provider" },
+  { value: "consultant", label: "Consultant / advisor" },
+  { value: "enterprise_software", label: "Enterprise software provider" },
+  { value: "other", label: "Other" },
+];
+
+/** Partner/channel/licensing intents that route away from internal deployment. */
+export const PARTNER_INTENTS = ["offer_clients", "embed_product", "partnership"] as const;
+
 export type YesNo = "yes" | "no" | "";
 
 export interface AssessmentData {
@@ -86,6 +124,10 @@ export interface AssessmentData {
   companySize: string;
   country: string;
   // Section 2 — AI deployment profile
+  intent: string;          // why exploring (ENGAGEMENT_INTENTS) — drives partner routing
+  partnerType: string;     // company type (PARTNER_TYPES) — partner leads only
+  customerReach: string;   // estimated customer reach (CUSTOMER_REACH) — partner leads only
+  customerBase: string;    // who they'd offer/embed governance for — partner leads only
   stage: string;
   agentsDeployed: YesNo;
   customerFacing: YesNo;
@@ -125,7 +167,13 @@ export interface Scores {
 
 export type Band = "Low" | "Moderate" | "High" | "Critical";
 
-export type PathwayId = "workshop" | "audit" | "pilot" | "integration";
+export type PathwayId =
+  | "workshop" | "audit" | "pilot" | "integration"
+  | "managed_partner" | "embedded_licensing" | "distribution_partner";
+
+/** Partner / channel / licensing pathways — flagged separately in reporting. */
+export const PARTNER_PATHWAYS: PathwayId[] = ["managed_partner", "embedded_licensing", "distribution_partner"];
+export const isPartnerPathway = (id: PathwayId): boolean => PARTNER_PATHWAYS.includes(id);
 
 export interface Pathway {
   id: PathwayId;
@@ -133,6 +181,8 @@ export interface Pathway {
   tagline: string;
   ctaLabel: string;
   ctaHref: string;
+  eyebrow?: string;          // overrides the default "Recommended engagement pathway"
+  secondaryLabel?: string;   // overrides the default "Book a call"
 }
 
 export interface Recommendation extends Pathway {
@@ -167,6 +217,30 @@ export const PATHWAYS: Record<PathwayId, Pathway> = {
     tagline: "Deploy Runtime Governance into production.",
     ctaLabel: "Discuss Integration",
     ctaHref: "/contact",
+  },
+  managed_partner: {
+    id: "managed_partner",
+    title: "Managed Governance Partner™",
+    tagline: "Package Runtime Governance into your cybersecurity, compliance, AI assurance, or managed service offering.",
+    ctaLabel: "Discuss Partnership",
+    ctaHref: "/contact",
+    eyebrow: "Partner / channel evaluation",
+  },
+  embedded_licensing: {
+    id: "embedded_licensing",
+    title: "Embedded Runtime Governance Licensing™",
+    tagline: "Embed pre-execution Runtime Governance into your platform, product, or customer-facing AI infrastructure.",
+    ctaLabel: "Discuss Licensing",
+    ctaHref: "/contact",
+    eyebrow: "Licensing evaluation",
+  },
+  distribution_partner: {
+    id: "distribution_partner",
+    title: "Strategic Alliance Partner™",
+    tagline: "Qualified enterprise introductions and strategic market access.",
+    ctaLabel: "Discuss Partnership",
+    ctaHref: "/contact",
+    eyebrow: "Partner / channel evaluation",
   },
 };
 
@@ -239,6 +313,43 @@ export function score(d: AssessmentData): Scores {
 }
 
 export function recommend(d: AssessmentData, s: Scores): Recommendation {
+  // ── Partner / channel / licensing routing ──
+  // These intents describe a distribution, channel, or embedded-governance
+  // motion rather than a single internal deployment, so they short-circuit the
+  // scoring logic below. An empty/other intent falls through unchanged, keeping
+  // Workshop / Audit / Pilot / Integration routing exactly as before.
+  if (d.intent === "offer_clients") {
+    return { ...PATHWAYS.managed_partner, why: [
+      "You indicated that you may want to offer Runtime Governance to your own clients or customers.",
+      "This is a distribution, channel, or embedded-governance motion rather than a single internal deployment.",
+      "The next step is to understand your customer base, existing service model, deployment capabilities, and partnership structure.",
+    ] };
+  }
+  if (d.intent === "embed_product") {
+    return { ...PATHWAYS.embedded_licensing, why: [
+      "You indicated interest in embedding Runtime Governance into an existing product or platform.",
+      "This may require licensing, technical integration, usage boundaries, support terms, and deployment architecture review.",
+      "The next step is a licensing and technical-fit discussion.",
+    ] };
+  }
+  if (d.intent === "partnership") {
+    // Managed-service / security / compliance firms fit the Managed Governance
+    // Partner motion; everyone else fits the Strategic Alliance motion.
+    const managed = ["msp_mssp", "cybersecurity", "compliance_grc"].includes(d.partnerType);
+    if (managed) {
+      return { ...PATHWAYS.managed_partner, why: [
+        "You indicated you are exploring a managed-service, MSP/MSSP, security, or compliance channel relationship.",
+        "Your profile fits packaging Runtime Governance into your existing security, compliance, or assurance services.",
+        "The next step is to understand your customer base, service model, deployment capabilities, and partnership structure.",
+      ] };
+    }
+    return { ...PATHWAYS.distribution_partner, why: [
+      "You indicated you are exploring a strategic partnership, reseller, or channel relationship.",
+      "This is a market-access and qualified-introduction motion rather than a single internal deployment.",
+      "The next step is to align on target accounts, deal structure, and partnership terms.",
+    ] };
+  }
+
   const tools = d.toolAccess ?? [];
   const success = d.successCriteria ?? [];
   const production = yes(d.inProduction);
@@ -285,14 +396,30 @@ export function crmSummary(
   const L = (k: string, v: string) => `${k}: ${v || "—"}`;
   const yn = (v: YesNo) => (v === "yes" ? "Yes" : v === "no" ? "No" : "—");
   const list = (vals: string[], opts: Option[]) => (vals?.length ? labelsFor(opts, vals).join(", ") : "—");
+  const one = (val: string, opts: Option[]) => opts.find((o) => o.value === val)?.label ?? (val || "—");
+  const partner = isPartnerPathway(rec.id);
+  const partnerBlock = partner
+    ? [
+        `*** PARTNERSHIP / CHANNEL / LICENSING CANDIDATE ***`,
+        L("Engagement reason", one(d.intent, ENGAGEMENT_INTENTS)),
+        L("Company type", one(d.partnerType, PARTNER_TYPES)),
+        L("Estimated customer reach", one(d.customerReach, CUSTOMER_REACH)),
+        L("Customer base", d.customerBase),
+        ``,
+      ]
+    : [];
   return [
     `RESURRECTION TECH — RUNTIME GOVERNANCE ASSESSMENT`,
     `Reference: ${reference}`,
     `Submitted: ${ts}`,
     ``,
+    ...partnerBlock,
     `— RECOMMENDED PATHWAY —`,
     L("Recommendation", rec.title),
     L("Rationale", rec.why.join(" ")),
+    ``,
+    `— ENGAGEMENT INTENT —`,
+    L("Why exploring", one(d.intent, ENGAGEMENT_INTENTS)),
     ``,
     `— REFERRAL ATTRIBUTION —`,
     L("Referral source", d.referralSource || "Direct / Unknown"),

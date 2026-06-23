@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { track, Events } from "@/lib/analytics";
 import {
   INDUSTRIES, COMPANY_SIZES, STAGES, TOOL_ACCESS, CONTROLS, COMPLIANCE,
-  SUCCESS_CRITERIA, NUM_AGENTS, type AssessmentData, type Recommendation, type YesNo,
+  SUCCESS_CRITERIA, NUM_AGENTS, ENGAGEMENT_INTENTS, PARTNER_TYPES, CUSTOMER_REACH, PARTNER_INTENTS,
+  type AssessmentData, type Recommendation, type YesNo,
 } from "@/lib/assessment";
 import { slugifyRef, humanizeRef, DIRECT_SOURCE } from "@/lib/referral";
 
@@ -14,6 +15,7 @@ const STORAGE_KEY = "rt-assessment-v1";
 const EMPTY: AssessmentData = {
   fullName: "", jobTitle: "", companyName: "", email: "", phone: "",
   industry: "", companySize: "", country: "",
+  intent: "", partnerType: "", customerReach: "", customerBase: "",
   stage: "", agentsDeployed: "", customerFacing: "", connectedToTools: "",
   canTakeActions: "", multipleAgents: "", inProduction: "",
   toolAccess: [],
@@ -236,7 +238,7 @@ function ResultView({ result, onRestart }: { result: { recommendation: Recommend
   const r = result.recommendation;
   return (
     <div className="rgq-result">
-      <span className="rgq-result-eyebrow">Recommended engagement pathway</span>
+      <span className="rgq-result-eyebrow">{r.eyebrow ?? "Recommended engagement pathway"}</span>
       <h2 className="rgq-result-title">{r.title}</h2>
       <p className="rgq-result-tagline">{r.tagline}</p>
 
@@ -249,7 +251,7 @@ function ResultView({ result, onRestart }: { result: { recommendation: Recommend
         <Link href={r.ctaHref} className="btn btn--primary" onClick={() => track(Events.CTA_CLICK, { location: "assessment-result", cta: r.id })}>
           {r.ctaLabel} <span className="arr">→</span>
         </Link>
-        <Link href="/book#assessment" className="btn btn--ghost">Book a call <span className="arr">→</span></Link>
+        <Link href="/book#assessment" className="btn btn--ghost">{r.secondaryLabel ?? "Book a call"} <span className="arr">→</span></Link>
       </div>
 
       <div className="rgq-result-meta">
@@ -331,8 +333,36 @@ function CompanyStep({ data, set, errors }: { data: AssessmentData; set: SetFn; 
 }
 
 function DeploymentStep({ data, set }: { data: AssessmentData; set: SetFn }) {
+  const isPartner = (PARTNER_INTENTS as readonly string[]).includes(data.intent);
   return (
     <div>
+      <Field label="What best describes why you are exploring Resurrection Tech?">
+        <select className="rgq-input" value={data.intent} onChange={(e) => set("intent", e.target.value)}>
+          <option value="">Select…</option>
+          {ENGAGEMENT_INTENTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </Field>
+
+      {isPartner && (
+        <div className="rgq-partner" data-partner>
+          <Field label="Which best describes your organisation?" hint="Helps us route partnership, channel, or licensing conversations.">
+            <select className="rgq-input" value={data.partnerType} onChange={(e) => set("partnerType", e.target.value)}>
+              <option value="">Select…</option>
+              {PARTNER_TYPES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Estimated customer reach" hint="Roughly how many customers could you offer or embed Runtime Governance for?">
+            <select className="rgq-input" value={data.customerReach} onChange={(e) => set("customerReach", e.target.value)}>
+              <option value="">Select…</option>
+              {CUSTOMER_REACH.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Who would you offer or embed Runtime Governance for?" hint="Optional — your customer base, service model, or the product you'd embed it in.">
+            <textarea className="rgq-input rgq-textarea" rows={3} value={data.customerBase} onChange={(e) => set("customerBase", e.target.value)} placeholder="e.g. mid-market financial-services clients via our MSSP offering; or embedded in our agent platform." />
+          </Field>
+        </div>
+      )}
+
       <Field label="Where are you in your governance journey?">
         <select className="rgq-input" value={data.stage} onChange={(e) => set("stage", e.target.value)}>
           <option value="">Select…</option>
@@ -446,6 +476,13 @@ function ReviewStep({ data, goto }: { data: AssessmentData; goto: (s: number) =>
 
       <button className="rgq-rev-group" type="button" onClick={() => goto(1)}>
         <span className="rgq-rev-h">Deployment <span className="rgq-edit">Edit</span></span>
+        <Rrow k="Reason for exploring" v={ENGAGEMENT_INTENTS.find((o) => o.value === data.intent)?.label ?? "—"} />
+        {(PARTNER_INTENTS as readonly string[]).includes(data.intent) && (
+          <>
+            <Rrow k="Organisation type" v={PARTNER_TYPES.find((o) => o.value === data.partnerType)?.label ?? "—"} />
+            <Rrow k="Customer reach" v={CUSTOMER_REACH.find((o) => o.value === data.customerReach)?.label ?? "—"} />
+          </>
+        )}
         <Rrow k="Stage" v={STAGES.find((s) => s.value === data.stage)?.label ?? "—"} />
         <Rrow k="In production" v={yn(data.inProduction)} />
         <Rrow k="Takes actions" v={yn(data.canTakeActions)} />

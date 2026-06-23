@@ -150,3 +150,24 @@
 .ent-closing .ent-cta { justify-content: center; }
 
 @media (prefers-reduced-motion: reduce) { .ent-fw { transition: none; } }
+
+/* ── Partner & Licensing Pathways (channel / OEM motion) ───────────── */
+.plp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 8px; }
+.plp-card {
+  display: flex; flex-direction: column; gap: 12px;
+  background: linear-gradient(180deg, rgba(76,125,255,0.05), transparent 60%), var(--panel);
+  border: 1px solid var(--line-2); border-radius: 16px; padding: clamp(20px, 2.4vw, 28px);
+}
+.plp-title { font-size: clamp(1.02rem, 1.6vw, 1.18rem); letter-spacing: -0.01em; line-height: 1.2; margin: 0; color: var(--ink); }
+.plp-pos { font-size: 0.95rem; line-height: 1.55; color: var(--ink-2); margin: 0; flex: 1; }
+.plp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.plp-terms { display: flex; flex-direction: column; gap: 2px; font-size: 0.86rem; color: var(--ink); font-weight: 500; }
+.plp-terms-k { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); font-weight: 400; }
+.plp-foot .btn { flex: none; }
+@media (max-width: 900px) { .plp-grid { grid-template-columns: 1fr; } }
+
+/* Conditional partner sub-block inside the assessment deployment step */
+.rgq-partner {
+  margin: 4px 0 8px; padding: 16px; border-radius: 12px;
+  background: rgba(76,125,255,0.05); border: 1px solid rgba(76,125,255,0.22);
+}

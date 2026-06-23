@@ -4,6 +4,7 @@ import type { LeadInput } from "./leadValidation";
 import type { AssessmentData, Recommendation, Scores } from "./assessment";
 import {
   crmSummary, labelsFor, TOOL_ACCESS, CONTROLS, COMPLIANCE, SUCCESS_CRITERIA, STAGES,
+  ENGAGEMENT_INTENTS, PARTNER_TYPES, CUSTOMER_REACH, isPartnerPathway,
 } from "./assessment";
 import { referralPath } from "./referral";
 
@@ -225,9 +226,24 @@ export function buildAssessmentInternalHtml(
   const list = (vals: string[], opts: Parameters<typeof labelsFor>[0]) =>
     vals?.length ? labelsFor(opts, vals).join(", ") : "—";
   const stageLabel = STAGES.find((x) => x.value === d.stage)?.label ?? "—";
+  const one = (val: string, opts: { value: string; label: string }[]) =>
+    opts.find((o) => o.value === val)?.label ?? (val || "—");
   const crm = crmSummary(d, s, rec, reference, stamp);
+  const partner = isPartnerPathway(rec.id);
+  const partnerBanner = partner
+    ? `<div style="margin:0 0 16px;padding:14px 16px;background:#2a1a0b;border:1px solid #e0a93f;border-radius:10px">
+         <div style="color:#e0a93f;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;margin-bottom:8px">⚑ Partnership / channel / licensing candidate</div>
+         <table style="width:100%;border-collapse:collapse">
+           ${row("Engagement reason", esc(one(d.intent, ENGAGEMENT_INTENTS)))}
+           ${row("Company type", esc(one(d.partnerType, PARTNER_TYPES)))}
+           ${row("Estimated customer reach", esc(one(d.customerReach, CUSTOMER_REACH)))}
+           ${row("Customer base", esc(d.customerBase))}
+         </table>
+       </div>`
+    : "";
   return shell(`
     <div style="color:#6f97ff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px">Runtime Governance Assessment &middot; ${reference}</div>
+    ${partnerBanner}
     <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(111,151,255,0.3);border-radius:10px">
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
       <div style="color:#f3f5f7;font-size:16px;font-weight:600">${rec.title}</div>
@@ -323,12 +339,13 @@ export async function sendAssessmentEmails(
   const stamp = new Date().toUTCString();
   const internal = buildAssessmentInternalHtml(d, s, rec, reference, stamp);
   const confirm = buildAssessmentConfirmHtml(d, rec, reference, stamp);
+  const flag = isPartnerPathway(rec.id) ? "[PARTNER/CHANNEL/LICENSING] " : "";
 
   const [internalRes, confirmRes] = await Promise.allSettled([
     resend.emails.send({
       from: FROM,
       to: ASSESSMENT_NOTIFY_TO,
-      subject: `Assessment — ${d.companyName} → ${rec.title} (Ω ${s.exposure}/${s.exposureBand}) · ${reference}`,
+      subject: `${flag}Assessment — ${d.companyName} → ${rec.title} (Ω ${s.exposure}/${s.exposureBand}) · ${reference}`,
       html: internal,
       replyTo: d.email,
     }),
