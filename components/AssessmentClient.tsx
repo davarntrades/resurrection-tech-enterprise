@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { track, Events } from "@/lib/analytics";
 import {
-  INDUSTRIES, COMPANY_SIZES, STAGES, TOOL_ACCESS, CONTROLS, COMPLIANCE,
+  INDUSTRIES, COMPANY_SIZES, COUNTRIES, STAGES, TOOL_ACCESS, CONTROLS, COMPLIANCE,
   SUCCESS_CRITERIA, NUM_AGENTS, ENGAGEMENT_INTENTS, PARTNER_TYPES, CUSTOMER_REACH, PARTNER_INTENTS,
   type AssessmentData, type Recommendation, type YesNo,
 } from "@/lib/assessment";
@@ -314,7 +314,10 @@ function CompanyStep({ data, set, errors }: { data: AssessmentData; set: SetFn; 
         <input className="rgq-input" value={data.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel" />
       </Field>
       <Field label="Country" error={errors.country}>
-        <input className="rgq-input" value={data.country} onChange={(e) => set("country", e.target.value)} autoComplete="country-name" />
+        <select className="rgq-input" value={data.country} onChange={(e) => set("country", e.target.value)} autoComplete="country-name">
+          <option value="">Select…</option>
+          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
       </Field>
       <Field label="Industry" error={errors.industry}>
         <select className="rgq-input" value={data.industry} onChange={(e) => set("industry", e.target.value)}>
