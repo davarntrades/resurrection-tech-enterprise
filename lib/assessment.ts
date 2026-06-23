@@ -314,14 +314,14 @@ export function score(d: AssessmentData): Scores {
 
 export function recommend(d: AssessmentData, s: Scores): Recommendation {
   // ── Partner / channel / licensing routing ──
-  // These intents describe a distribution, channel, or embedded-governance
+  // These intents describe a partnership, channel, or embedded-governance
   // motion rather than a single internal deployment, so they short-circuit the
   // scoring logic below. An empty/other intent falls through unchanged, keeping
   // Workshop / Audit / Pilot / Integration routing exactly as before.
   if (d.intent === "offer_clients") {
     return { ...PATHWAYS.managed_partner, why: [
       "You indicated that you may want to offer Runtime Governance to your own clients or customers.",
-      "This is a distribution, channel, or embedded-governance motion rather than a single internal deployment.",
+      "This is a partnership, channel, or embedded-governance opportunity rather than a single internal deployment.",
       "The next step is to understand your customer base, existing service model, deployment capabilities, and partnership structure.",
     ] };
   }
