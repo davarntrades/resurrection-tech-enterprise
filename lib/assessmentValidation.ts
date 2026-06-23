@@ -18,6 +18,7 @@ export const assessmentSchema = z.object({
   // Section 2 — AI deployment profile
   intent: z.string().trim().max(40).optional().default(""),
   partnerType: z.string().trim().max(40).optional().default(""),
+  customerReach: z.string().trim().max(40).optional().default(""),
   customerBase: z.string().trim().max(4000).optional().default(""),
   stage: z.string().trim().max(40).optional().default(""),
   agentsDeployed: yesNo,

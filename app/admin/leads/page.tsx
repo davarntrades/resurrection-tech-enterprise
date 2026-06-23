@@ -15,7 +15,7 @@ const PATHWAY_LABEL: Record<string, string> = {
   integration: "Enterprise Integration",
   managed_partner: "Managed Governance Partner™",
   embedded_licensing: "Embedded Licensing™",
-  distribution_partner: "Strategic Distribution Partner™",
+  distribution_partner: "Strategic Alliance Partner™",
 };
 
 function fmtDate(iso: string): string {

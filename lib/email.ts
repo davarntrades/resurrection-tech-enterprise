@@ -4,7 +4,7 @@ import type { LeadInput } from "./leadValidation";
 import type { AssessmentData, Recommendation, Scores } from "./assessment";
 import {
   crmSummary, labelsFor, TOOL_ACCESS, CONTROLS, COMPLIANCE, SUCCESS_CRITERIA, STAGES,
-  ENGAGEMENT_INTENTS, PARTNER_TYPES, isPartnerPathway,
+  ENGAGEMENT_INTENTS, PARTNER_TYPES, CUSTOMER_REACH, isPartnerPathway,
 } from "./assessment";
 import { referralPath } from "./referral";
 
@@ -236,6 +236,7 @@ export function buildAssessmentInternalHtml(
          <table style="width:100%;border-collapse:collapse">
            ${row("Engagement reason", esc(one(d.intent, ENGAGEMENT_INTENTS)))}
            ${row("Company type", esc(one(d.partnerType, PARTNER_TYPES)))}
+           ${row("Estimated customer reach", esc(one(d.customerReach, CUSTOMER_REACH)))}
            ${row("Customer base", esc(d.customerBase))}
          </table>
        </div>`

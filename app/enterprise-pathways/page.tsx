@@ -6,7 +6,7 @@ import { ConsultationSection } from "@/components/ConsultationSection";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, the Advisory Retainer, and Partner & Licensing pathways (Strategic Distribution, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -228,7 +228,7 @@ export default function Page() {
           <div className="plp-grid reveal" data-d="1">
             {[
               {
-                title: "Strategic Distribution Partner™",
+                title: "Strategic Alliance Partner™",
                 pos: "Qualified enterprise introductions and strategic market access.",
                 terms: "Partnership-dependent",
                 cta: "Discuss Partnership",

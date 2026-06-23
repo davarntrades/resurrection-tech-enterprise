@@ -87,6 +87,16 @@ export const ENGAGEMENT_INTENTS: Option[] = [
   { value: "partnership", label: "We are exploring a strategic partnership, reseller, MSP/MSSP, or channel relationship." },
 ];
 
+/** Estimated reach of a partner's customer base — a major driver of licensing
+ * value, so captured for partner/channel/licensing leads. */
+export const CUSTOMER_REACH: Option[] = [
+  { value: "under_10", label: "Under 10 customers" },
+  { value: "10_50", label: "10–50" },
+  { value: "50_250", label: "50–250" },
+  { value: "250_1000", label: "250–1,000" },
+  { value: "1000_plus", label: "1,000+" },
+];
+
 /** Company type for partner/channel/licensing leads (internal qualification). */
 export const PARTNER_TYPES: Option[] = [
   { value: "msp_mssp", label: "MSP / MSSP" },
@@ -116,6 +126,7 @@ export interface AssessmentData {
   // Section 2 — AI deployment profile
   intent: string;          // why exploring (ENGAGEMENT_INTENTS) — drives partner routing
   partnerType: string;     // company type (PARTNER_TYPES) — partner leads only
+  customerReach: string;   // estimated customer reach (CUSTOMER_REACH) — partner leads only
   customerBase: string;    // who they'd offer/embed governance for — partner leads only
   stage: string;
   agentsDeployed: YesNo;
@@ -225,7 +236,7 @@ export const PATHWAYS: Record<PathwayId, Pathway> = {
   },
   distribution_partner: {
     id: "distribution_partner",
-    title: "Strategic Distribution Partner™",
+    title: "Strategic Alliance Partner™",
     tagline: "Qualified enterprise introductions and strategic market access.",
     ctaLabel: "Discuss Partnership",
     ctaHref: "/contact",
@@ -323,7 +334,7 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
   }
   if (d.intent === "partnership") {
     // Managed-service / security / compliance firms fit the Managed Governance
-    // Partner motion; everyone else fits Strategic Distribution.
+    // Partner motion; everyone else fits the Strategic Alliance motion.
     const managed = ["msp_mssp", "cybersecurity", "compliance_grc"].includes(d.partnerType);
     if (managed) {
       return { ...PATHWAYS.managed_partner, why: [
@@ -392,6 +403,7 @@ export function crmSummary(
         `*** PARTNERSHIP / CHANNEL / LICENSING CANDIDATE ***`,
         L("Engagement reason", one(d.intent, ENGAGEMENT_INTENTS)),
         L("Company type", one(d.partnerType, PARTNER_TYPES)),
+        L("Estimated customer reach", one(d.customerReach, CUSTOMER_REACH)),
         L("Customer base", d.customerBase),
         ``,
       ]
