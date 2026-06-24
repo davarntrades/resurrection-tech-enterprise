@@ -86,8 +86,8 @@ export default function Page() {
               <div><dt>Customer responsibilities</dt><dd>Access to the agent&rsquo;s action/tool definitions and a scoping session to define Ω</dd></div>
             </div>
             <p className="tp-prose" style={{ marginTop: 14 }}>
-              If material Ω exposure is identified, the typical next step is a <b>Limited Pilot</b> (£250K–£750K+, 4–8 weeks) that validates interception on your own traffic,
-              followed by Integration and an Advisory Retainer (£35K–£100K/mo) that keeps Ω current
+              If material Ω exposure is identified, the typical next step is a <b>Limited Pilot</b> (£250K–£750K+, 30–60 days) that validates interception on your own traffic,
+              followed by Integration, an Annual Runtime Governance™ License (£75K–£500K+ / yr), and an Advisory Retainer (£35K–£100K+ / mo) that keeps Ω current
               as models, tools, and regulations change.
             </p>
             <PricingDisclaimer variant="short" />

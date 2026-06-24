@@ -7,7 +7,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: the Paid Discovery Workshop, the 48-Hour Runtime Governance Audit, the Limited Pilot, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -67,10 +67,13 @@ const VERDICTS: Verdict[] = [
 ];
 
 const PATHWAYS = [
-  ["Paid Discovery Workshop™", "Structured scoping before an audit, pilot, or integration", "1–2 days", "£5K–£50K+"],
-  ["48-Hour Runtime Governance Audit", "Catastrophic trajectory exposure assessment", "48 hours", "£40K–£75K"],
-  ["Limited Pilot", "Staging deployment & operational governance integration", "4–8 weeks", "£250K–£750K+"],
-  ["Advisory Retainer", "Ongoing Ω governance, threat-surface monitoring, runtime governance maintenance, incident review & model/planner revalidation", "Monthly", "£35K–£100K/mo"],
+  ["Free Discovery / Questionnaire Review", "Establish fit and high-level risk context", "Discovery call", "No charge"],
+  ["Paid Discovery Workshop™", "Structured scoping before audit, pilot, or integration", "Short engagement", "£5K–£50K+"],
+  ["Runtime Governance Audit", "Identify catastrophic trajectory exposure and governance gaps", "48 hours", "£40K–£75K"],
+  ["Limited Pilot™", "Validate governance against real workflows and operational environments", "30–60 days", "£250K–£750K+"],
+  ["Enterprise Integration™", "One-time production deployment into operational systems", "Deployment dependent", "By commercial review"],
+  ["Annual Runtime Governance™ License™", "Ongoing runtime governance, monitoring, updates, support, and revalidation", "Annual", "£75K–£500K+ / yr"],
+  ["Advisory Retainer™", "Ongoing governance evolution, validation, and oversight", "Monthly", "£35K–£100K+ / mo"],
 ];
 
 export default function Page() {
@@ -81,20 +84,20 @@ export default function Page() {
           <div className="section-head reveal">
             <span className="eyebrow">Enterprise pathways</span>
             <h2>Ways to engage.</h2>
-            <p>The Paid Discovery Workshop defines scope. The audit measures exposure. The pilot is validation. The integration is operational embedment. The retainer is ongoing assurance.</p>
+            <p>Free discovery establishes fit. The Paid Discovery Workshop defines scope. The audit measures exposure. The pilot is validation. The integration is operational embedment. The annual License and the retainer are ongoing assurance.</p>
           </div>
           <div className="tbl-wrap reveal" data-rowreveal>
             <table className="tbl">
               <thead>
-                <tr><th>Pathway</th><th>Positioned as</th><th>Timeline</th><th>Investment</th></tr>
+                <tr><th>Pathway</th><th>Purpose</th><th>Timeline</th><th>Indicative scale</th></tr>
               </thead>
               <tbody>
                 {PATHWAYS.map(([p, pos, t, inv]) => (
                   <tr key={p}>
                     <td data-l="Pathway" className="t-main">{p}</td>
-                    <td data-l="Positioned as">{pos}</td>
+                    <td data-l="Purpose">{pos}</td>
                     <td data-l="Timeline" className="t-time">{t}</td>
-                    <td data-l="Investment" className="t-price">{inv}</td>
+                    <td data-l="Indicative scale" className="t-price">{inv}</td>
                   </tr>
                 ))}
               </tbody>
@@ -195,11 +198,13 @@ export default function Page() {
           <div className="dw-ladder reveal" data-d="1">
             <span className="dw-ladder-k">Where it sits in the ladder</span>
             <ol>
-              <li><b>Free discovery</b> helps determine whether there is a fit.</li>
-              <li><b>The Paid Discovery Workshop</b> helps define the scope.</li>
-              <li><b>The Audit</b> measures exposure.</li>
-              <li><b>The Pilot</b> validates Runtime Governance in the client environment.</li>
-              <li><b>Integration</b> deploys governance into production.</li>
+              <li><b>Free Discovery / Questionnaire Review</b> establishes fit and high-level risk context.</li>
+              <li><b>The Paid Discovery Workshop</b> defines the scope.</li>
+              <li><b>The Runtime Governance Audit</b> measures exposure.</li>
+              <li><b>The Limited Pilot</b> validates Runtime Governance in the client environment.</li>
+              <li><b>Enterprise Integration</b> deploys governance into production.</li>
+              <li><b>The Annual Runtime Governance™ License</b> sustains governance — monitoring, updates, support, and revalidation.</li>
+              <li><b>The Advisory Retainer</b> provides ongoing governance evolution, validation, and oversight.</li>
             </ol>
           </div>
 
