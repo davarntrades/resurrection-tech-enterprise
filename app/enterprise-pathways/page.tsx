@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { ConsultationSection } from "@/components/ConsultationSection";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
@@ -114,6 +115,8 @@ export default function Page() {
               requirements.
             </p>
           </div>
+
+          <PricingDisclaimer variant="full" />
         </div>
       </section>
 
@@ -186,6 +189,7 @@ export default function Page() {
                 </tbody>
               </table>
             </div>
+            <PricingDisclaimer variant="short" />
           </div>
 
           <div className="dw-ladder reveal" data-d="1">
@@ -266,6 +270,7 @@ export default function Page() {
             pathway. Pricing for these motions is partnership-dependent and confirmed after a
             commercial review.
           </p>
+          <PricingDisclaimer variant="short" />
         </div>
       </section>
 

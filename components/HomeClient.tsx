@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 import { FinancialComparison } from "@/components/FinancialComparison";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
@@ -481,6 +482,7 @@ export function HomeClient() {
               and potential market scope. They are not claims regarding existing
               customers or contracts.
             </p>
+            <PricingDisclaimer variant="short" />
           </div>
         </section>
 

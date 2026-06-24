@@ -9,6 +9,7 @@ import {
   type AssessmentData, type Recommendation, type YesNo,
 } from "@/lib/assessment";
 import { slugifyRef, humanizeRef, DIRECT_SOURCE } from "@/lib/referral";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 const STORAGE_KEY = "rt-assessment-v1";
 
@@ -262,6 +263,7 @@ function ResultView({ result, onRestart }: { result: { recommendation: Recommend
         This is a recommendation based on your answers. The questionnaire is the primary qualification —
         if we already have enough, we may suggest moving straight to an Audit, Pilot, or Integration discussion.
       </p>
+      <PricingDisclaimer variant="short" />
       <button className="rgq-restart" onClick={onRestart} type="button">Start a new assessment</button>
     </div>
   );

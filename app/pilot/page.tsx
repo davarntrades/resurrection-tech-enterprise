@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
   title: "Limited Pilot — Scope of Work",
@@ -110,6 +111,7 @@ export default function Page() {
               receive preferential terms. The 48-Hour Runtime Governance Audit (£40K–£75K) is a faster,
               lower-commitment entry point that de-risks the pilot.
             </p>
+            <PricingDisclaimer variant="short" />
             <div className="prog-cta">
               <Link href="/assess" className="btn btn--primary">Assess your agent — free <span className="arr">→</span></Link>
               <Link href="/enterprise-pathways" className="btn btn--ghost">All engagement options →</Link>

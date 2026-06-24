@@ -7,6 +7,7 @@ import {
   ENGAGEMENT_INTENTS, PARTNER_TYPES, CUSTOMER_REACH, isPartnerPathway,
 } from "./assessment";
 import { referralPath } from "./referral";
+import { PRICING_DISCLAIMER } from "./pricing";
 
 /**
  * Transactional email via Resend.
@@ -319,6 +320,9 @@ export function buildAssessmentConfirmHtml(
       ${row("Expected response", "1–3 business days")}
     </table>
     <div style="margin:0 0 18px">${btn(`${site}${rec.ctaHref}`, `${rec.ctaLabel} →`)}&nbsp;&nbsp;${btn(`${site}/book#assessment`, "Book a call →")}</div>
+    <p style="font-size:11px;color:#6b7480;margin:0 0 12px;line-height:1.6;padding:12px 14px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      ${PRICING_DISCLAIMER.short}
+    </p>
     <p style="font-size:12px;color:#6b7480;margin:0;line-height:1.6">
       A member of Resurrection Tech will review your assessment and follow up. Reply to this email to reach the team directly.
     </p>`);

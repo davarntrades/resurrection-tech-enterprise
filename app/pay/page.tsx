@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { SERVICES } from "@/lib/paymentProviders/services";
 import { PayClient } from "@/components/PayClient";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
   title: "Payments",
@@ -69,6 +70,7 @@ export default function Page() {
               Enterprise engagements are typically contracted and invoiced. Online deposits are used
               to reserve capacity, accelerate onboarding, and secure project availability.
             </p>
+            <PricingDisclaimer variant="medium" />
           </div>
 
           {/* Who typically buys this */}
