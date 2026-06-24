@@ -77,6 +77,22 @@ export const SERVICES: ServiceDef[] = [
       "Custom-scoped deployment of Morrison Runtime Governance™ within enterprise environments. Pricing determined after architecture review, governance mapping, integration requirements, and deployment scope.",
   },
   {
+    id: "annual-governance-license",
+    name: "Annual Runtime Governance™ License",
+    amountMinor: null,
+    currency: "gbp",
+    kind: "invoice",
+    online: false,
+    providers: [],
+    engagementValue: "£75,000–£500,000+ / yr",
+    priceLabel: "£75,000–£500,000+ / yr",
+    statusLabel: "Invoice workflow only",
+    gateNote: "Approved engagements only.",
+    buyers: ["Platform / Product Owner", "Enterprise Architecture", "Procurement"],
+    blurb:
+      "Annual licence for ongoing Runtime Governance — continuous monitoring, updates, support, and revalidation as systems, tools, models, and regulations change. Scope and term confirmed after commercial and architecture review.",
+  },
+  {
     id: "advisory-retainer",
     name: "Advisory Retainer",
     amountMinor: null, // recurring mandate setup; billed monthly on agreed terms
@@ -85,7 +101,7 @@ export const SERVICES: ServiceDef[] = [
     online: true,
     providers: ["gocardless"],
     recurring: true,
-    priceLabel: "£35,000–£100,000 / mo",
+    priceLabel: "£35,000–£100,000+ / mo",
     statusLabel: "Recurring payments enabled",
     gateNote: "Available for approved clients only.",
     buyers: ["Executive Leadership", "Risk & Governance Teams"],
