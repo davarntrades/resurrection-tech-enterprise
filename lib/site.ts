@@ -55,9 +55,9 @@ export const NAV_MENU = [
   {
     group: "Engage",
     links: [
-      { href: "/enterprise-pathways", label: "Runtime Safety Assessment" },
+      { href: "/enterprise-pathways", label: "Enterprise pathways & pricing" },
       { href: "/pilot", label: "Pilot scope of work" },
-      { href: "/pay", label: "Pricing & engagements" },
+      { href: "/pay", label: "Payments & invoicing" },
       { href: "/design-partners", label: "Design Partner Program" },
       { href: "/referral", label: "Partner referrals" },
     ],
