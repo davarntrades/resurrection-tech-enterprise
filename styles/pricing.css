@@ -1,0 +1,37 @@
+/* ============================================================
+   Pricing / commercial-qualification disclaimer (.pricing-disc)
+   Quiet, conservative, enterprise. Reuses design-system tokens.
+   ============================================================ */
+.pricing-disc {
+  color: var(--ink-3);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  max-width: 78ch;
+  margin: 14px 0 0;
+}
+
+/* Full, headed variant for primary pricing pages */
+.pricing-disc--full {
+  margin: 28px 0 0;
+  padding: clamp(18px, 2.4vw, 24px) clamp(18px, 2.4vw, 26px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.pricing-disc--full .pricing-disc-k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 12px;
+}
+.pricing-disc--full p {
+  color: var(--ink-2);
+  font-size: 0.86rem;
+  line-height: 1.65;
+  margin: 0 0 10px;
+  max-width: 80ch;
+}
+.pricing-disc--full p:last-child { margin-bottom: 0; }

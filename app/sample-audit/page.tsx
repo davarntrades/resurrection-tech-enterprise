@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
   title: "Sample Audit Report",
@@ -89,6 +90,7 @@ export default function Page() {
               followed by Integration and an Advisory Retainer (£35K–£100K/mo) that keeps Ω current
               as models, tools, and regulations change.
             </p>
+            <PricingDisclaimer variant="short" />
           </div>
 
           <div className="tp-cta">

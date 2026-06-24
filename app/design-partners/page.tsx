@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
   title: "Design Partner Program — 3 Founding Enterprise Partners",
@@ -99,6 +100,7 @@ export default function Page() {
               <Link href="/assess" className="btn btn--primary">Assess your agent — free <span className="arr">→</span></Link>
               <Link href="/pilot" className="btn btn--ghost">See the pilot scope →</Link>
             </div>
+            <PricingDisclaimer variant="short" />
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
@@ -218,6 +219,7 @@ export function FinancialComparison() {
           reference documented industry incidents and regulatory maxima; comparisons use a
           £75K audit baseline.
         </p>
+        <PricingDisclaimer variant="short" className="fc-pricing-disc" />
 
         {/* 6 — Conversion CTA */}
         <div className="fc-cta reveal">

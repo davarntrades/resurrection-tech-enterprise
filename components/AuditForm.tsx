@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { CanvasScript } from "@/components/CanvasScript";
+import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 import {
   INDUSTRIES,
   capabilitiesFor,
@@ -417,6 +418,7 @@ export function AuditForm() {
                         <div className="scope-stat accent"><div className="k">Estimated investment</div><div className="v">{investment}</div></div>
                       </div>
                     </div>
+                    <PricingDisclaimer variant="short" />
                   </section>
                 )}
               </div>
