@@ -56,10 +56,12 @@ export const NAV_MENU = [
     group: "Engage",
     links: [
       { href: "/enterprise-pathways", label: "Enterprise pathways & pricing" },
+      { href: "/request-audit", label: "Request an audit" },
       { href: "/pilot", label: "Pilot scope of work" },
       { href: "/pay", label: "Payments & invoicing" },
       { href: "/design-partners", label: "Design Partner Program" },
       { href: "/referral", label: "Partner referrals" },
+      { href: "/book", label: "Book a consultation" },
     ],
   },
   {
