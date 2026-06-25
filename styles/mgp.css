@@ -25,6 +25,13 @@
 .mgp-flow-verdict .v-esc { color: #e0a93f; border-color: rgba(224,169,63,0.5); }
 .mgp-flow-verdict .v-block { color: var(--omega); border-color: rgba(229,72,77,0.5); }
 .mgp-flow-arrow { color: var(--ink-3); text-align: center; line-height: 1; padding: 6px 0; font-size: 1rem; }
+.mgp-flow-node--key { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.10), rgba(76,125,255,0.02)); }
+.mgp-flow-node--key b, .mgp-flow-node--gov b { color: var(--accent-bright); }
+
+/* Worked example journey — left-aligned narrative flow */
+.mgp-story { display: flex; flex-direction: column; gap: 0; max-width: 580px; margin: 8px auto 0; }
+.mgp-story .mgp-flow-node { text-align: left; }
+.mgp-story-k { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 3px; }
 
 /* Who is this for — card grid */
 .mgp-who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
