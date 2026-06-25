@@ -247,6 +247,17 @@ export default function Page() {
             </table>
           </div>
           <PricingDisclaimer variant="full" />
+          <div className="mgp-note reveal" data-d="1" role="note">
+            <span className="mgp-note-k">Not raw code · ownership retained</span>
+            <p>
+              Embedded licensing is not a transfer of unrestricted code. Resurrection Tech retains
+              ownership of the Runtime Governance engine, governance logic, intellectual property,
+              updates, and core infrastructure. Partners receive commercial rights to use, deploy,
+              package, or integrate Runtime Governance only under agreed terms — with usage reporting,
+              audit rights, and deployment boundaries retained.{" "}
+              <Link href="/managed-governance-partner#integration-models">Compare integration models →</Link>
+            </p>
+          </div>
         </div>
       </section>
 

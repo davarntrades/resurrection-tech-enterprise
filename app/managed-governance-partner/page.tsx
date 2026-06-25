@@ -75,6 +75,34 @@ const COMMERCIAL = [
   ["Minimum annual commitment", "Baseline annual commitment for the partnership.", "By commercial review"],
 ];
 
+const INTEGRATION: { h: string; desc: string; flow: string; commercial: string; bestFor: string; warn?: string }[] = [
+  {
+    h: "Hosted API Model",
+    desc: "The partner or customer sends agent plans, tool calls, or proposed actions to the Resurrection Tech Runtime Governance API.",
+    flow: "Partner / customer agent → Runtime Governance API → ALLOW / BLOCK / ESCALATE → partner / customer system executes or stops",
+    commercial: "Setup + monthly / annual licence + usage / support.",
+    bestFor: "Partners who want the fastest route to validation and deployment without hosting governance infrastructure themselves.",
+  },
+  {
+    h: "Private Deployment",
+    desc: "Resurrection Tech deploys the governance layer inside the customer's cloud, private environment, or approved infrastructure.",
+    flow: "Customer infrastructure → Runtime Governance container / service → governed tool execution",
+    commercial: "Integration fee + annual licence + support.",
+    bestFor: "Regulated customers and sensitive environments — private cloud, healthcare, finance, defence, or enterprise deployments where data residency, compliance, or infrastructure control matters.",
+  },
+  {
+    h: "Embedded / Licensing Model",
+    desc: "The partner packages Runtime Governance into their own MSP / MSSP, compliance, AI assurance, or managed security service.",
+    flow: "Partner product / service → embedded Runtime Governance → governed customer agents",
+    commercial: "Annual licence + per-customer commercial bands + minimum annual commitment + audit rights.",
+    bestFor: "MSSPs, cybersecurity companies, compliance firms, AI assurance providers, and platform vendors that want to offer Runtime Governance to customers while Resurrection Tech retains ownership of the engine.",
+    warn: "This does not mean handing over unrestricted code. Resurrection Tech licenses Runtime Governance under commercial terms that preserve ownership, audit rights, usage reporting, and deployment boundaries.",
+  },
+];
+
+const OWNERSHIP_NOTE =
+  "Resurrection Tech retains ownership of the Runtime Governance engine, governance logic, intellectual property, updates, and core infrastructure. Partners receive commercial rights to use, deploy, package, or integrate Runtime Governance only under agreed terms. Usage reporting, audit rights, and deployment boundaries are retained.";
+
 export default function Page() {
   return (
     <PageShell>
@@ -262,6 +290,57 @@ export default function Page() {
             </table>
           </div>
           <PricingDisclaimer variant="full" />
+        </div>
+      </section>
+
+      {/* ===== WHAT PARTNERS LICENSE ===== */}
+      <section className="section section--tight" id="licensing">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">What you license</span>
+            <h2>What partners are actually licensing.</h2>
+          </div>
+          <div className="mgp-prose reveal">
+            <p>
+              Resurrection Tech does not simply hand over unrestricted raw code. Partners license access
+              to Runtime Governance infrastructure, evidence generation, deployment support, monitoring,
+              updates, and commercial rights to use Runtime Governance within approved customer
+              deployments.
+            </p>
+            <p>
+              Integration can be delivered through different models depending on the partner&rsquo;s
+              environment, customer requirements, compliance burden, and deployment model.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== INTEGRATION MODELS ===== */}
+      <section className="section section--tight" id="integration-models">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Integration models</span>
+            <h2>Three ways to deliver it.</h2>
+            <p>Hosted is the simple default; private deployment suits sensitive environments; embedded licensing packages governance into your own service.</p>
+          </div>
+          <div className="mgp-int-grid reveal" data-d="1">
+            {INTEGRATION.map((m) => (
+              <div className="mgp-int-card" key={m.h}>
+                <h3 className="mgp-int-h">{m.h}</h3>
+                <p className="mgp-int-desc">{m.desc}</p>
+                <div className="mgp-int-flow"><span className="mgp-int-k">Flow</span>{m.flow}</div>
+                {m.warn && <p className="mgp-int-warn"><b>Important:</b> {m.warn}</p>}
+                <div className="mgp-int-meta">
+                  <p><span className="mgp-int-k">Commercial structure</span>{m.commercial}</p>
+                  <p><span className="mgp-int-k">Best for</span>{m.bestFor}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mgp-note reveal" data-d="1" role="note">
+            <span className="mgp-note-k">Ownership &amp; control</span>
+            <p>{OWNERSHIP_NOTE}</p>
+          </div>
         </div>
       </section>
 
