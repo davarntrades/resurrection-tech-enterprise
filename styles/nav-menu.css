@@ -83,6 +83,7 @@
 .nav-menu-panel.is-open .nav-menu-col:nth-child(3) { transition-delay: 0.12s; }
 .nav-menu-panel.is-open .nav-menu-col:nth-child(4) { transition-delay: 0.16s; }
 .nav-menu-panel.is-open .nav-menu-col:nth-child(5) { transition-delay: 0.20s; }
+.nav-menu-panel.is-open .nav-menu-col:nth-child(6) { transition-delay: 0.24s; }
 @media (max-width: 460px) {
   .nav-menu-col { border-top: 1px solid var(--line); padding-top: 12px; }
   .nav-menu-col:first-child { border-top: 0; padding-top: 0; }
