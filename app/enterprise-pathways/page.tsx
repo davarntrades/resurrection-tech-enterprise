@@ -119,6 +119,14 @@ export default function Page() {
             </p>
           </div>
 
+          <p className="retainer-note reveal" data-d="1" style={{ marginTop: 24 }}>
+            <span className="rn-k">Included across engagements — Runtime Governance Executive Reports™</span>
+            Every Pilot, Integration, Annual Runtime Governance Licence™, and Managed Governance
+            Partner™ engagement includes board-ready evidence: what was protected, what was prevented,
+            what changed, and recommended next actions. The API protects the system; the report proves
+            the value. <Link href="/managed-governance-partner#executive-reports">See what a report contains →</Link>
+          </p>
+
           <PricingDisclaimer variant="full" />
         </div>
       </section>

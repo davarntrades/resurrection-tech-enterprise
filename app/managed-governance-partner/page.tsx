@@ -4,6 +4,8 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 import { DeploymentModels } from "@/components/DeploymentModels";
+import { IntegrationArchitecture } from "@/components/IntegrationArchitecture";
+import { ExecutiveReports } from "@/components/ExecutiveReports";
 
 export const metadata: Metadata = {
   title: "Managed Governance Partner™",
@@ -43,6 +45,9 @@ const RT_PROVIDES = [
   "Integration guidance",
   "Documentation",
   "Governance updates",
+  "Runtime Governance Executive Reports™",
+  "Monthly governance evidence",
+  "Board-ready summaries",
   "Commercial enablement",
   "Partner support",
 ];
@@ -51,7 +56,9 @@ const PARTNER_PROVIDES = [
   "Customer relationships",
   "Sales",
   "Deployment",
-  "Customer success",
+  "Customer review meetings",
+  "Renewal conversations",
+  "Customer success follow-up",
   "First-line support",
   "Managed security services",
 ];
@@ -70,7 +77,7 @@ const STORY: { t: string; k?: string; tone?: "key" | "gov" }[] = [
 ];
 
 const COMMERCIAL = [
-  ["Partner onboarding", "One-time integration, enablement, and access setup.", "£10K–£35K+"],
+  ["Partner onboarding", "Strategic onboarding to sell & deliver — not a discount on enterprise pricing.", "£25K–£50K (rec. £35K)"],
   ["Annual platform access", "Runtime Governance API, governance updates, and partner support.", "£25K–£75K+ / yr"],
   ["Per-customer commercial bands", "Scales with each customer's reach and deployment.", "Banded by reach / volume"],
   ["Minimum annual commitment", "Baseline annual commitment for the partnership.", "By commercial review"],
@@ -263,6 +270,9 @@ export default function Page() {
         </div>
       </section>
 
+      {/* ===== EXECUTIVE REPORTS (value layer) ===== */}
+      <ExecutiveReports />
+
       {/* ===== COMMERCIAL MODEL ===== */}
       <section className="section section--tight" id="commercial">
         <div className="wrap">
@@ -349,6 +359,9 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* ===== INTEGRATION ARCHITECTURE ===== */}
+      <IntegrationArchitecture />
 
       {/* ===== DEPLOYMENT FLEXIBILITY ===== */}
       <DeploymentModels />

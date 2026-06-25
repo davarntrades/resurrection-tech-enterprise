@@ -70,6 +70,7 @@ const COMMERCIAL = [
   ["Minimum annual guarantee", "Baseline annual commitment.", "By commercial review"],
   ["Usage scaling", "Self-hosted / embedded deployments scale above hosted.", "Usage-based"],
   ["White-label / exclusivity / territory", "Determined during partnership discovery.", "By commercial review"],
+  ["OEM / Enterprise Licensing™", "Large-scale, sovereign, or white-label embedded licensing.", "By commercial review · min. guarantee"],
 ];
 
 export default function Page() {
