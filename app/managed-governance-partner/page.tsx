@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
@@ -52,6 +53,19 @@ const PARTNER_PROVIDES = [
   "Customer success",
   "First-line support",
   "Managed security services",
+];
+
+const STORY: { t: string; k?: string; tone?: "key" | "gov" }[] = [
+  { t: "Manufacturing company", k: "Customer" },
+  { t: "Needs AI governance for autonomous agents." },
+  { t: "Already works with ABC Cybersecurity (MSSP)." },
+  { t: "ABC Cybersecurity becomes a Managed Governance Partner™.", tone: "key" },
+  { t: "ABC integrates the Resurrection Tech Runtime Governance API." },
+  { t: "The manufacturing company continues buying from ABC." },
+  { t: "Runtime Governance runs invisibly behind the scenes.", tone: "gov" },
+  { t: "ABC invoices the customer." },
+  { t: "ABC keeps the customer relationship." },
+  { t: "Resurrection Tech provides the governance platform.", tone: "key" },
 ];
 
 const COMMERCIAL = [
@@ -119,6 +133,32 @@ export default function Page() {
               <div className="mgp-flow-arrow" aria-hidden="true">↓</div>
               <div className="mgp-flow-node">Tool Execution</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== EXAMPLE CUSTOMER JOURNEY ===== */}
+      <section className="section section--tight" id="example">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Worked example</span>
+            <h2>Example customer journey</h2>
+            <p>How the partnership looks in practice — the partner keeps the customer; Resurrection Tech provides the governance.</p>
+          </div>
+          <div className="mgp-story reveal" data-d="1" aria-label="Example customer journey">
+            {STORY.map((s, i) => (
+              <Fragment key={s.t}>
+                {i > 0 && <div className="mgp-flow-arrow" aria-hidden="true">↓</div>}
+                <div
+                  className={`mgp-flow-node${
+                    s.tone === "key" ? " mgp-flow-node--key" : s.tone === "gov" ? " mgp-flow-node--gov" : ""
+                  }`}
+                >
+                  {s.k && <span className="mgp-story-k">{s.k}</span>}
+                  {s.tone ? <b>{s.t}</b> : s.t}
+                </div>
+              </Fragment>
+            ))}
           </div>
         </div>
       </section>
