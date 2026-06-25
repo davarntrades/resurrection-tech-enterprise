@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
+import { DeploymentModels } from "@/components/DeploymentModels";
 
 export const metadata: Metadata = {
   title: "Managed Governance Partner™",
@@ -311,6 +312,11 @@ export default function Page() {
               Integration can be delivered through different models depending on the partner&rsquo;s
               environment, customer requirements, compliance burden, and deployment model.
             </p>
+            <p>
+              Licensing does not require customers to use Resurrection Tech hosting. Organisations may
+              choose a fully managed Runtime Governance API or deploy approved Runtime Governance
+              infrastructure within their own cloud environment where appropriate.
+            </p>
           </div>
         </div>
       </section>
@@ -343,6 +349,9 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* ===== DEPLOYMENT FLEXIBILITY ===== */}
+      <DeploymentModels />
 
       {/* ===== WHY ===== */}
       <section className="section section--tight" id="why">

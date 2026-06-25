@@ -101,3 +101,9 @@
 .mgp-int-meta p { font-size: 0.86rem; line-height: 1.5; color: var(--ink); margin: 0; }
 .mgp-int-warn { font-size: 0.84rem; line-height: 1.55; color: var(--ink-2); margin: 0; padding: 10px 12px; border-left: 2px solid var(--accent-dim); background: rgba(224,169,63,0.06); border-radius: 0 8px 8px 0; }
 .mgp-int-warn b { color: var(--accent-bright); }
+
+/* Deployment-model card bullet list */
+.mgp-deploy-list { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 7px; }
+.mgp-deploy-list li { position: relative; padding-left: 17px; font-size: 0.88rem; line-height: 1.5; color: var(--ink-2); }
+.mgp-deploy-list li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.mgp-int-foot { font-size: 0.84rem; line-height: 1.55; color: var(--ink-3); margin: 4px 0 0; }
