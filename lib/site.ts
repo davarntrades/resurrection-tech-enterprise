@@ -60,6 +60,7 @@ export const NAV_MENU = [
       { href: "/pilot", label: "Pilot scope of work" },
       { href: "/pay", label: "Payments & invoicing" },
       { href: "/design-partners", label: "Design Partner Program" },
+      { href: "/managed-governance-partner", label: "Managed Governance Partner™" },
       { href: "/referral", label: "Partner referrals" },
       { href: "/book", label: "Book a consultation" },
     ],
