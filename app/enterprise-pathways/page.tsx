@@ -275,6 +275,13 @@ export default function Page() {
             pathway. Pricing for these motions is partnership-dependent and confirmed after a
             commercial review.
           </p>
+          <p className="dw-note reveal" data-d="1">
+            Partners license Runtime Governance infrastructure, evidence, deployment support,
+            monitoring, updates, and commercial rights — <b>not unrestricted raw code</b>. Integration
+            is available as a hosted API, a private deployment, or embedded under licence, and
+            Resurrection Tech retains ownership of the governance engine.{" "}
+            <Link href="/managed-governance-partner#integration-models">See how integration works →</Link>
+          </p>
           <PricingDisclaimer variant="short" />
         </div>
       </section>
