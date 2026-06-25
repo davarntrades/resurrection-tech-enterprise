@@ -240,8 +240,8 @@ export default function Page() {
                 title: "Strategic Alliance Partner™",
                 pos: "Qualified enterprise introductions and strategic market access.",
                 terms: "Partnership-dependent",
-                cta: "Discuss Partnership",
-                href: "/contact",
+                cta: "Explore the partnership",
+                href: "/strategic-alliance-partner",
               },
               {
                 title: "Managed Governance Partner™",
@@ -254,8 +254,8 @@ export default function Page() {
                 title: "Embedded Runtime Governance Licensing™",
                 pos: "Runtime Governance embedded into platforms, products, or customer-facing AI infrastructure.",
                 terms: "Partnership-dependent",
-                cta: "Discuss Licensing",
-                href: "/contact",
+                cta: "Explore licensing",
+                href: "/embedded-runtime-governance-licensing",
               },
             ].map((c) => (
               <div className="plp-card" key={c.title}>

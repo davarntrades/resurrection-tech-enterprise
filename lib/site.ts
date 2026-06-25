@@ -59,10 +59,17 @@ export const NAV_MENU = [
       { href: "/request-audit", label: "Request an audit" },
       { href: "/pilot", label: "Pilot scope of work" },
       { href: "/pay", label: "Payments & invoicing" },
-      { href: "/design-partners", label: "Design Partner Program" },
-      { href: "/managed-governance-partner", label: "Managed Governance Partner™" },
-      { href: "/referral", label: "Partner referrals" },
       { href: "/book", label: "Book a consultation" },
+    ],
+  },
+  {
+    group: "Partner & licensing",
+    links: [
+      { href: "/strategic-alliance-partner", label: "Strategic Alliance Partner™" },
+      { href: "/managed-governance-partner", label: "Managed Governance Partner™" },
+      { href: "/embedded-runtime-governance-licensing", label: "Embedded Runtime Governance Licensing™" },
+      { href: "/design-partners", label: "Design Partner Program" },
+      { href: "/referral", label: "Partner referrals" },
     ],
   },
   {
