@@ -109,6 +109,7 @@ export function BookClient() {
                     label={s.cta}
                     source={`book_card_${s.id}`}
                     className="btn btn--primary btn--block"
+                    fallbackHref="#enquire"
                   />
                 </div>
               </div>

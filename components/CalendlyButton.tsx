@@ -1,6 +1,5 @@
 "use client";
 
-import { CALENDLY_PENDING } from "@/lib/booking";
 import { track } from "@/lib/analytics";
 
 declare global {
@@ -16,26 +15,32 @@ declare global {
  * Calendly script has loaded; otherwise falls back to opening the link in a
  * new tab — so it works even if the external script is blocked.
  *
- * When no URL is configured, renders a non-actionable "pending" state instead
- * of a dead link.
+ * When no URL is configured, the CTA stays actionable and routes to the
+ * enquiry/contact flow (fallbackHref) instead of embedding a guessed link
+ * (which would show Calendly's "URL is not valid" error).
  */
 export function CalendlyButton({
   url,
   label,
   source,
   className = "btn btn--primary",
+  fallbackHref = "/contact",
 }: {
   url: string;
   label: string;
   source: string;
   className?: string;
+  fallbackHref?: string;
 }) {
   if (!url) {
     return (
-      <span className="cal-pending" role="status">
-        <span className="cal-pending-dot" aria-hidden="true" />
-        {CALENDLY_PENDING}
-      </span>
+      <a
+        href={fallbackHref}
+        className={className}
+        onClick={() => track("calendly_fallback", { source })}
+      >
+        {label} <span className="arr" aria-hidden="true">→</span>
+      </a>
     );
   }
 
