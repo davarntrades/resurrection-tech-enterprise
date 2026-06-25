@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
+import { DeploymentModels } from "@/components/DeploymentModels";
 
 export const metadata: Metadata = {
   title: "Embedded Runtime Governance Licensing™",
@@ -115,6 +116,11 @@ export default function Page() {
                 discovery; &ldquo;Powered by Resurrection Tech&trade;&rdquo; attribution applies unless
                 white-label rights are separately licensed. Resurrection Tech maintains the engine,
                 reachability analysis, and updates.
+              </p>
+              <p>
+                Licensing does not require customers to use Resurrection Tech hosting. Organisations may
+                choose a fully managed Runtime Governance API or deploy approved Runtime Governance
+                infrastructure within their own cloud environment where appropriate.
               </p>
             </div>
             <div className="mgp-flow reveal" data-d="1" aria-label="How embedded governance sits inside a partner product">
@@ -260,6 +266,9 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* ===== DEPLOYMENT FLEXIBILITY ===== */}
+      <DeploymentModels />
 
       {/* ===== WHY ===== */}
       <section className="section section--tight" id="why">
