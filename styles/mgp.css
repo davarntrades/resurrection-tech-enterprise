@@ -107,3 +107,32 @@
 .mgp-deploy-list li { position: relative; padding-left: 17px; font-size: 0.88rem; line-height: 1.5; color: var(--ink-2); }
 .mgp-deploy-list li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .mgp-int-foot { font-size: 0.84rem; line-height: 1.55; color: var(--ink-3); margin: 4px 0 0; }
+
+/* Integration architecture diagram: sources → adapter → engine → verdict */
+.mgp-arch { max-width: 620px; margin: 14px auto 0; }
+.mgp-arch-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.mgp-arch-chip {
+  font-family: var(--mono); font-size: 0.76rem; color: var(--ink-2);
+  background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 9px;
+  padding: 9px 8px; text-align: center;
+}
+.mgp-arch-cap { text-align: center; font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); padding: 10px 0 2px; }
+.mgp-arch-mid { display: flex; flex-direction: column; align-items: stretch; max-width: 360px; margin: 0 auto; }
+
+/* Connection models — compact cards */
+.mgp-conn { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px; }
+@media (max-width: 760px) { .mgp-conn { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .mgp-conn { grid-template-columns: 1fr; } }
+.mgp-conn-card { background: linear-gradient(180deg, rgba(224,169,63,0.05), transparent 60%), var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px; }
+.mgp-conn-h { font-size: 0.96rem; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
+.mgp-conn-p { font-size: 0.84rem; color: var(--ink-3); line-height: 1.5; margin: 0; }
+
+/* Executive Reports */
+.mgp-reports-lead {
+  font-size: clamp(1.05rem, 1.8vw, 1.3rem); line-height: 1.4; color: var(--ink);
+  font-weight: 500; letter-spacing: -0.01em; margin: 6px 0 14px;
+}
+.mgp-reports-lead::before { content: "“"; color: var(--accent-bright); }
+.mgp-reports-lead::after { content: "”"; color: var(--accent-bright); }
+.mgp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.mgp-tag { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 13px; background: var(--panel-2); }
