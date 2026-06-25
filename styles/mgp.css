@@ -1,0 +1,49 @@
+/* ============================================================
+   Managed Governance Partner™ programme page (.mgp)
+   Enterprise documentation tone. Reuses design-system tokens.
+   ============================================================ */
+.mgp-lede { color: var(--ink-2); font-size: clamp(1rem, 1.5vw, 1.14rem); line-height: 1.6; max-width: 64ch; }
+.mgp-prose p { color: var(--ink-2); font-size: 1rem; line-height: 1.7; margin: 0 0 14px; max-width: 70ch; }
+.mgp-prose p:last-child { margin-bottom: 0; }
+
+/* Architecture flow: customer → partner → governance → execution */
+.mgp-flow {
+  display: flex; flex-direction: column; align-items: stretch; gap: 0; max-width: 480px; margin: 8px 0 0;
+}
+.mgp-flow-node {
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  padding: 14px 18px; text-align: center; font-size: 0.96rem; color: var(--ink);
+}
+.mgp-flow-node--gov { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.10), rgba(76,125,255,0.02)); }
+.mgp-flow-node--gov b { color: var(--accent-bright); }
+.mgp-flow-verdict {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 8px 0;
+  font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em;
+}
+.mgp-flow-verdict span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line-2); }
+.mgp-flow-verdict .v-allow { color: var(--ok); border-color: rgba(63,178,127,0.5); }
+.mgp-flow-verdict .v-esc { color: #e0a93f; border-color: rgba(224,169,63,0.5); }
+.mgp-flow-verdict .v-block { color: var(--omega); border-color: rgba(229,72,77,0.5); }
+.mgp-flow-arrow { color: var(--ink-3); text-align: center; line-height: 1; padding: 6px 0; font-size: 1rem; }
+
+/* Who is this for — card grid */
+.mgp-who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+@media (max-width: 760px) { .mgp-who { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .mgp-who { grid-template-columns: 1fr; } }
+.mgp-who-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 16px; }
+.mgp-who-h { font-size: 0.98rem; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
+.mgp-who-p { font-size: 0.86rem; color: var(--ink-3); line-height: 1.5; margin: 0; }
+
+/* Engagement journey — numbered steps */
+.mgp-journey { display: grid; gap: 10px; margin: 8px 0 0; padding: 0; list-style: none; counter-reset: mgp; }
+.mgp-journey li {
+  display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px;
+}
+.mgp-journey li::before {
+  counter-increment: mgp; content: counter(mgp, decimal-leading-zero);
+  font-family: var(--mono); font-size: 0.8rem; color: var(--accent-bright);
+  border: 1px solid var(--accent-dim); border-radius: 7px; padding: 4px 8px; line-height: 1;
+}
+.mgp-journey-h { color: var(--ink); font-size: 0.98rem; display: block; margin-bottom: 2px; }
+.mgp-journey-p { color: var(--ink-3); font-size: 0.86rem; line-height: 1.5; }

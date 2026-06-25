@@ -247,8 +247,8 @@ export default function Page() {
                 title: "Managed Governance Partner™",
                 pos: "Runtime Governance packaged into MSP, MSSP, cybersecurity, compliance, or AI assurance services.",
                 terms: "By assessment / commercial review",
-                cta: "Discuss Partnership",
-                href: "/contact",
+                cta: "Explore the partnership",
+                href: "/managed-governance-partner",
               },
               {
                 title: "Embedded Runtime Governance Licensing™",
