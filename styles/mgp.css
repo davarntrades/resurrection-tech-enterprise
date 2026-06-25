@@ -2,6 +2,23 @@
    Managed Governance Partner™ programme page (.mgp)
    Enterprise documentation tone. Reuses design-system tokens.
    ============================================================ */
+
+/* Premium gold accent — scoped to this page. Redefining the accent custom
+   properties cascades gold to eyebrows, the primary CTA, flow highlights,
+   journey numbers, and the pricing-disclaimer heading in one place. */
+.mgp-page {
+  --accent: #e0a93f;
+  --accent-bright: #f2c66a;
+  --accent-dim: #6b4f1c;
+  --accent-glow: rgba(224,169,63,0.40);
+}
+.mgp-page .eyebrow { color: var(--accent-bright); }
+/* Gold CTA reads premium with dark foil-style text rather than white-on-gold. */
+.mgp-page .btn--primary { color: #14100a; }
+.mgp-page .btn--primary .arr { color: #14100a; }
+/* Warm sheen at the top of the hero. */
+.mgp-page .section.mgp { background: radial-gradient(120% 80% at 50% 0%, rgba(224,169,63,0.07), transparent 60%); }
+
 .mgp-lede { color: var(--ink-2); font-size: clamp(1rem, 1.5vw, 1.14rem); line-height: 1.6; max-width: 64ch; }
 .mgp-prose p { color: var(--ink-2); font-size: 1rem; line-height: 1.7; margin: 0 0 14px; max-width: 70ch; }
 .mgp-prose p:last-child { margin-bottom: 0; }
@@ -14,7 +31,7 @@
   background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius-sm);
   padding: 14px 18px; text-align: center; font-size: 0.96rem; color: var(--ink);
 }
-.mgp-flow-node--gov { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.10), rgba(76,125,255,0.02)); }
+.mgp-flow-node--gov { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(224,169,63,0.12), rgba(224,169,63,0.02)); }
 .mgp-flow-node--gov b { color: var(--accent-bright); }
 .mgp-flow-verdict {
   display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 8px 0;
@@ -25,7 +42,7 @@
 .mgp-flow-verdict .v-esc { color: #e0a93f; border-color: rgba(224,169,63,0.5); }
 .mgp-flow-verdict .v-block { color: var(--omega); border-color: rgba(229,72,77,0.5); }
 .mgp-flow-arrow { color: var(--ink-3); text-align: center; line-height: 1; padding: 6px 0; font-size: 1rem; }
-.mgp-flow-node--key { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.10), rgba(76,125,255,0.02)); }
+.mgp-flow-node--key { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(224,169,63,0.12), rgba(224,169,63,0.02)); }
 .mgp-flow-node--key b, .mgp-flow-node--gov b { color: var(--accent-bright); }
 
 /* Worked example journey — left-aligned narrative flow */

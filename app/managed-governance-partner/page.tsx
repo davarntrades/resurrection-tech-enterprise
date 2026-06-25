@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 const Check = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3 8.5 L6.5 12 L13 4" stroke="#6f97ff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 8.5 L6.5 12 L13 4" stroke="#e0a93f" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -78,6 +78,7 @@ const COMMERCIAL = [
 export default function Page() {
   return (
     <PageShell>
+      <div className="mgp-page">
       {/* ===== HERO ===== */}
       <section className="section mgp" id="managed-governance-partner">
         <div className="wrap">
@@ -291,6 +292,7 @@ export default function Page() {
           </div>
         </div>
       </section>
+      </div>
     </PageShell>
   );
 }
