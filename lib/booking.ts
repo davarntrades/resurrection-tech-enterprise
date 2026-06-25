@@ -27,26 +27,22 @@ export interface BookingSession {
 export const CALENDLY_PENDING = "Calendly link pending configuration.";
 
 /**
- * NEXT_PUBLIC_* vars are statically inlined by Next at build time. Each falls
- * back to the live Calendly link so booking works out of the box, while still
- * being overridable per environment.
+ * NEXT_PUBLIC_* vars are statically inlined by Next at build time. Set these to
+ * your real Calendly event links to enable in-page scheduling. When a link is
+ * not configured the booking CTA degrades gracefully to the enquiry/contact
+ * flow — we never embed a guessed slug, which would surface Calendly's
+ * "This Calendly URL is not valid" error.
  */
 export const CALENDLY_URLS: Record<BookingType, string> = {
-  discovery:
-    process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ??
-    "https://calendly.com/davarn-resurrection-tech/30min",
-  // The Paid Discovery Workshop is a bespoke, invoice-only scoping engagement.
-  // Until a dedicated Calendly exists it falls back to the strategy session.
+  discovery: process.env.NEXT_PUBLIC_CALENDLY_DISCOVERY ?? "",
+  // The Paid Discovery Workshop is a bespoke, invoice-only scoping engagement;
+  // falls back to the strategy session link when no dedicated event is set.
   workshop:
     process.env.NEXT_PUBLIC_CALENDLY_WORKSHOP ??
     process.env.NEXT_PUBLIC_CALENDLY_STRATEGY ??
-    "https://calendly.com/davarn-resurrection-tech/enterprise-ai-governance-strategy-session",
-  assessment:
-    process.env.NEXT_PUBLIC_CALENDLY_ASSESSMENT ??
-    "https://calendly.com/davarn-resurrection-tech/runtime-safety-assessment",
-  strategy:
-    process.env.NEXT_PUBLIC_CALENDLY_STRATEGY ??
-    "https://calendly.com/davarn-resurrection-tech/enterprise-ai-governance-strategy-session",
+    "",
+  assessment: process.env.NEXT_PUBLIC_CALENDLY_ASSESSMENT ?? "",
+  strategy: process.env.NEXT_PUBLIC_CALENDLY_STRATEGY ?? "",
 };
 
 export const BOOKING_SESSIONS: BookingSession[] = [
