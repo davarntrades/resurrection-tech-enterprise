@@ -77,13 +77,32 @@ const CSS = `
   .note { background:linear-gradient(180deg, rgba(224,169,63,0.07), transparent); border:1px solid #6b4f1c; border-radius:12px; padding:16px 18px; margin-top:18px; }
   .note h3 { color:#e0a93f; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; margin:0 0 8px; }
   .note ul { margin:0; padding-left:18px; } .note li { color:#cdd6e0; font-size:11px; margin-bottom:4px; }
+  /* one-page overview */
+  .ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+  .ov-card { background:#0b0d10; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:13px 15px; break-inside:avoid; }
+  .ov-card.full { grid-column:1 / -1; }
+  .ov-k { font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:#e0a93f; margin-bottom:8px; display:block; }
+  .ov-list { margin:0; padding:0; list-style:none; display:grid; gap:5px; }
+  .ov-list li { font-size:10.5px; color:#cdd6e0; line-height:1.4; }
+  .ov-list b { color:#f3f5f7; }
+  .ov-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .ov-3 ul { margin:0; padding-left:14px; } .ov-3 li { font-size:9.5px; color:#cdd6e0; line-height:1.5; }
+  .ov-3 .ov-col-h { font-size:10.5px; color:#f3f5f7; margin:0 0 5px; }
+  /* single-sheet tightening */
+  .tight .wrap { padding:26px 40px; }
+  .tight .band { padding:15px 18px; margin-bottom:12px; }
+  .tight .band h1 { font-size:23px; margin:6px 0 5px; }
+  .tight .ov-grid { gap:10px; margin-top:10px; }
+  .tight .ov-card { padding:11px 13px; }
+  .tight .ov-list { gap:4px; }
+  .tight .foot { margin-top:14px; padding-top:10px; }
 `;
 
 const brand = `<div class="brand"><span class="brand-name"><span class="brand-r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</span><span class="brand-tag">Runtime Governance</span></div>`;
 const foot = (label) => `<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(label)}</span><span>Patent GB2600765.8</span></div>`;
 
-function page(title, inner) {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body><div class="wrap">${inner}</div></body></html>`;
+function page(title, inner, bodyClass) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body class="${bodyClass || ""}"><div class="wrap">${inner}</div></body></html>`;
 }
 
 /* ---------- Executive Report ---------- */
@@ -322,6 +341,62 @@ function render(name, html) {
   console.log("wrote", pdfPath, kb + "KB");
 }
 
+/* ---------- One-page Partner Overview ---------- */
+const overviewHtml = page("Resurrection Tech Partner Overview", `
+  ${brand}
+  <div class="band">
+    <span class="eyebrow">Partner overview</span>
+    <h1>Bring governed AI to your customers.</h1>
+    <p style="color:#aab2bd;margin:0">Runtime Governance evaluates an agent&rsquo;s proposed actions <b>before</b> they execute and returns ALLOW, BLOCK, or ESCALATE — keeping reachable trajectories out of forbidden states (&#937;). Partners deliver it to their customers without building the technology.</p>
+  </div>
+  <div class="ov-grid">
+    <div class="ov-card">
+      <span class="ov-k">Partnership models</span>
+      <ul class="ov-list">
+        <li><b>Strategic Alliance / Referral</b> — qualified introductions; commission on realised revenue, no fee to join.</li>
+        <li><b>Managed Governance Partner&trade;</b> — MSSPs &amp; consultancies sell, deploy, and support governed AI.</li>
+        <li><b>Embedded / OEM Licensing&trade;</b> — platforms embed governance into their own product.</li>
+        <li><b>Channel / Reseller</b> — resell and transact; deployment via us or a Managed Partner.</li>
+      </ul>
+    </div>
+    <div class="ov-card">
+      <span class="ov-k">Commercials (indicative)</span>
+      <ul class="ov-list">
+        <li><b>Managed onboarding</b> — £25K–£50K (rec. £35K), strategic enablement (not a discount).</li>
+        <li><b>Annual platform</b> — £25K–£75K+/yr · per-customer banded · min. annual commitment.</li>
+        <li><b>Embedded licence</b> — £100K+/yr + minimum guarantee · by commercial review.</li>
+        <li><b>Alliance</b> — commission on realised revenue · no fee to join.</li>
+      </ul>
+    </div>
+    <div class="ov-card full">
+      <span class="ov-k">Who provides what</span>
+      <div class="ov-3">
+        <div><p class="ov-col-h">Resurrection Tech</p><ul><li>Governance engine &amp; API</li><li>Updates &amp; security</li><li>Executive reports</li><li>Technical onboarding</li></ul></div>
+        <div><p class="ov-col-h">Partner</p><ul><li>Customer relationship</li><li>Sales &amp; deployment</li><li>First-line support</li><li>Renewals &amp; success</li></ul></div>
+        <div><p class="ov-col-h">End customer</p><ul><li>Consumes governed AI</li><li>Owns compliance posture</li><li>Receives evidence</li></ul></div>
+      </div>
+    </div>
+    <div class="ov-card">
+      <span class="ov-k">Integration</span>
+      <ul class="ov-list">
+        <li>Hosted API, customer cloud (AWS/Azure/GCP), private cloud, embedded SDK, network proxy/sidecar.</li>
+        <li>Format-agnostic — anything that can make an HTTPS POST can connect.</li>
+        <li>Adapters for LangChain, OpenAI Agents, Anthropic tool use, Bedrock, Azure AI, MCP (roadmap), custom.</li>
+      </ul>
+    </div>
+    <div class="ov-card">
+      <span class="ov-k">Executive reports &amp; why partner</span>
+      <ul class="ov-list">
+        <li><b>Runtime Governance Executive Reports&trade;</b> — monthly board-ready evidence, included with engagements.</li>
+        <li>Extend cybersecurity / compliance services into AI Runtime Governance without inventing the technology.</li>
+        <li>Resurrection Tech retains ownership of the engine, IP, and updates regardless of deployment.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Resurrection Tech&trade;</span><span>resurrection-tech.com/partner-portal · hello@resurrection-tech.com</span><span>Patent GB2600765.8</span></div>
+`, "tight");
+
 render("sample-executive-report", reportHtml);
 render("partner-discovery-questionnaire", questHtml);
+render("partner-overview", overviewHtml);
 console.log("done");

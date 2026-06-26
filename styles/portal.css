@@ -70,3 +70,20 @@
 .portal-faq details[open] summary::after { content: "–"; }
 .portal-faq details[open] summary { border-bottom: 1px solid var(--line); }
 .portal-faq-a { padding: 12px 0 16px; font-size: 0.9rem; line-height: 1.6; color: var(--ink-2); margin: 0; }
+
+/* ROI calculator */
+.roi { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 8px; align-items: start; }
+@media (max-width: 760px) { .roi { grid-template-columns: 1fr; gap: 22px; } }
+.roi-controls { display: grid; gap: 18px; }
+.roi-field label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.86rem; color: var(--ink-2); margin-bottom: 8px; }
+.roi-field label b { color: var(--accent-bright); font-family: var(--mono); font-size: 0.9rem; white-space: nowrap; }
+.roi-range { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; background: var(--line-2); outline: none; }
+.roi-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-bright); border: 2px solid var(--bg-1); cursor: pointer; box-shadow: 0 0 0 1px var(--accent-dim); }
+.roi-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--accent-bright); border: 2px solid var(--bg-1); cursor: pointer; box-shadow: 0 0 0 1px var(--accent-dim); }
+.roi-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.roi-kpi { background: linear-gradient(180deg, rgba(224,169,63,0.05), transparent 60%), var(--panel); border: 1px solid var(--line-2); border-radius: 12px; padding: 16px; }
+.roi-kpi-v { display: block; font-size: 1.45rem; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.roi-kpi-v.gold { color: var(--accent-bright); }
+.roi-kpi-v.pos { color: var(--ok); }
+.roi-kpi-k { font-size: 0.76rem; color: var(--ink-3); line-height: 1.4; }
+.roi-summary { margin: 16px 0 0; font-size: 0.92rem; line-height: 1.6; color: var(--ink-2); }

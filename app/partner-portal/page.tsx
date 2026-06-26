@@ -5,6 +5,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 import { IntegrationArchitecture } from "@/components/IntegrationArchitecture";
 import { DeploymentModels } from "@/components/DeploymentModels";
 import { ExecutiveReports } from "@/components/ExecutiveReports";
+import { RoiCalculator } from "@/components/RoiCalculator";
 
 export const metadata: Metadata = {
   title: "Partner Portal",
@@ -20,6 +21,7 @@ const TOC = [
   ["Who provides what", "#responsibilities"],
   ["Commercial", "#commercial"],
   ["Pricing", "#pricing"],
+  ["ROI", "#roi"],
   ["Integration", "#integration-architecture"],
   ["Executive reports", "#executive-reports"],
   ["Customer journey", "#journey"],
@@ -132,8 +134,9 @@ const ASSETS: { h: string; p: string; status: string; href?: string }[] = [
   { h: "Discovery questionnaire", p: "Reusable partner-call questionnaire (designed PDF).", status: "Download PDF", href: "/partner-resources/partner-discovery-questionnaire.pdf" },
   { h: "Architecture diagrams", p: "Integration, deployment, and verdict-flow diagrams.", status: "On this page" },
   { h: "Example executive report", p: "A representative monthly Runtime Governance report.", status: "View", href: "/sample-executive-report" },
+  { h: "Partner overview (one-pager)", p: "Single-sheet leave-behind for emails and decks.", status: "Download PDF", href: "/partner-resources/partner-overview.pdf" },
   { h: "Sales deck", p: "Partner-facing pitch and positioning.", status: "On request" },
-  { h: "ROI calculator", p: "Model prevented-incident value vs governance cost.", status: "On request" },
+  { h: "ROI calculator", p: "Model prevented-incident value vs governance cost.", status: "Use it", href: "#roi" },
   { h: "Compliance mappings", p: "EU AI Act, SOC 2, ISO 27001, NIST alignment.", status: "On request" },
   { h: "Demo videos", p: "Engine in action: ALLOW / BLOCK / ESCALATE.", status: "On request" },
   { h: "API documentation", p: "Endpoints, schema, auth, and adapters.", status: "On request" },
@@ -312,6 +315,9 @@ export default function Page() {
             <PricingDisclaimer variant="full" />
           </div>
         </section>
+
+        {/* ===== ROI CALCULATOR ===== */}
+        <RoiCalculator />
 
         {/* ===== INTEGRATION (reused components) ===== */}
         <IntegrationArchitecture />
