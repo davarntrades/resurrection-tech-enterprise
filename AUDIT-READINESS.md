@@ -28,12 +28,12 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 
 | Item | Status | Notes |
 |---|---|---|
-| Automated Ω coverage + exposure (`/v1/assess`) | 🟡 | Code done; live output **unverified** (engine unreachable here) |
-| Automated verified-blocked-trajectories + hashes | 🟡 | From `/v1/assess.grounded_blocks`; unverified live |
-| Automated ALLOW/BLOCK/ESCALATE stats (`/v1/evaluate`) | 🟡 | Code done; unverified live |
-| Automated prevented categories | 🟡 | Derived from blocked verdicts |
-| Automated replay/determinism verification | ✅ (code) 🟡 (live) | Each trajectory evaluated twice and compared |
-| Attestation capture (engine commit, ruleset hash) | 🟡 | From `/v1/assess.attestation`; unverified live |
+| Automated Ω coverage + exposure (`/v1/assess`) | ✅ | **Verified** on the Meridian end-to-end run |
+| Automated verified-blocked-trajectories + hashes | ✅ | `grounded_blocks` populated on the run |
+| Automated ALLOW/BLOCK/ESCALATE stats (`/v1/evaluate`) | ✅ | Verified — 8 trajectories replayed |
+| Automated prevented categories | ✅ | Populated from blocked verdicts |
+| Automated replay/determinism verification | ✅ | **8/8 deterministic** on the run |
+| Attestation capture (engine commit, ruleset hash) | ✅ | Present on the run |
 | Recommendations | ✅ | Generated |
 | PDF rendering time | ✅ | Seconds |
 | Analyst review + read-out | ✅ (process) | ~0.5–1.5 day human time per engagement |
@@ -54,7 +54,8 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 
 | Gap | Status | Effort |
 |---|---|---|
-| Run ONE full end-to-end (engine + Chromium present) and eyeball the populated PDFs | 🟡 | ~1–2 hrs — engine ✓ and Chromium ✓ are now both unblocked; just needs one clean render in a connected env (e.g. `apt-get install -y chromium` in Colab, or set `CHROME_BIN`) |
+| Run ONE full end-to-end (engine + Chromium) — all fields ✅ | ✅ | **Done** — Meridian Health Systems run: 11/11 fields ✅, replay 8/8, audit.pdf + executive-report.pdf + run-summary.json produced |
+| Eyeball the populated PDFs for content quality on a *real* customer manifest | 🟡 | ~1 hr — sample passed; swap in the real customer's manifest and read the output before sending |
 | Decide Ω model for first customer (engine defaults vs custom) | 🟡 | ~0.5 day — **defaults are sufficient for a first audit**; custom Ω is pilot-depth |
 | Signable SOW / engagement letter | 🟡 | ~0.5 day |
 | (Optional) customer intake form to collect the manifest | 🟡 | not required — email a JSON/file works |
@@ -76,9 +77,13 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 Automated: assess, evaluate, replay/determinism, metrics, categories, recommendations, attestation capture, both PDFs, evidence JSON, field validation.
 **Manual (by design):** (1) receive customer info, (2) review the generated report, (3) present findings. ✅ matches target.
 
-### Status
-Engine ✅ (verified in Colab) and Chromium ✅ (portable). The remaining item is a
-single clean end-to-end render in an environment that has **both** — run:
-`node scripts/delivery-kit.cjs --check`  then
-`node scripts/delivery-kit.cjs scripts/delivery-kit.sample-healthcare.json`
-and eyeball the two populated PDFs. After that, you are delivery-ready.
+### Status — GO ✅
+Verified end-to-end in a Codespace: engine reachable, Chromium portable, and a
+full healthcare run produced **all 11 Priority-1 fields ✅** with **8/8 replay
+determinism** and three deliverables. **The pipeline is delivery-ready.**
+
+Remaining before invoicing a specific customer (none are engineering blockers):
+1. Run with the **real customer's manifest** and read the output PDFs (~1 hr).
+2. Confirm engine-default Ω is acceptable for them, or scope custom Ω as a pilot.
+3. 1-page SOW / engagement letter (~0.5 day).
+4. Per engagement: analyst review + read-out call (~0.5–1.5 day).
