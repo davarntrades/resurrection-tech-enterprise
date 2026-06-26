@@ -1,0 +1,66 @@
+/* ============================================================
+   Sample Runtime Governance Executive Report™ (.rep)
+   A board-ready "document" artifact. Gold .mgp-page theme.
+   ============================================================ */
+.rep { padding: clamp(28px, 5vw, 56px) 0; }
+.rep-doc {
+  max-width: 880px; margin: 0 auto;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 18px; overflow: hidden;
+}
+
+/* Header band */
+.rep-band {
+  background: linear-gradient(180deg, rgba(224,169,63,0.12), rgba(224,169,63,0.03));
+  border-bottom: 1px solid var(--accent-dim);
+  padding: clamp(22px, 4vw, 36px);
+}
+.rep-band-k { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); }
+.rep-band-title { font-size: clamp(1.3rem, 3vw, 1.9rem); letter-spacing: -0.02em; line-height: 1.12; margin: 8px 0 4px; color: var(--ink); }
+.rep-band-sub { color: var(--ink-2); font-size: 0.95rem; margin: 0; }
+.rep-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+.rep-meta-k { display: block; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 3px; }
+.rep-meta-v { color: var(--ink); font-size: 0.9rem; }
+
+/* Sections */
+.rep-sec { padding: clamp(22px, 3vw, 32px) clamp(20px, 4vw, 40px); border-top: 1px solid var(--line); }
+.rep-eyebrow { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); }
+.rep-h2 { font-size: clamp(1.05rem, 2vw, 1.25rem); letter-spacing: -0.01em; margin: 8px 0 12px; color: var(--ink); }
+.rep-p { color: var(--ink-2); font-size: 0.92rem; line-height: 1.65; margin: 0 0 12px; }
+.rep-p:last-child { margin-bottom: 0; }
+
+/* KPI row */
+.rep-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 640px) { .rep-kpis { grid-template-columns: repeat(2, 1fr); } }
+.rep-kpi { background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px; }
+.rep-kpi-v { display: block; font-size: 1.45rem; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.rep-kpi-k { font-size: 0.76rem; color: var(--ink-3); line-height: 1.4; }
+
+/* Verdict bar */
+.rep-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); margin: 4px 0 0; }
+.rep-bar i { display: block; height: 100%; }
+.rep-bar .b-allow { background: var(--ok); }
+.rep-bar .b-block { background: var(--omega); }
+.rep-bar .b-esc { background: #e0a93f; }
+.rep-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-family: var(--mono); font-size: 0.78rem; color: var(--ink-2); }
+.rep-legend span { display: inline-flex; align-items: center; }
+.rep-legend i { width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; }
+
+/* Recommendations + priority tags */
+.rep-rec { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rep-rec li { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 13px 15px; }
+.rep-pri { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; line-height: 1; white-space: nowrap; }
+.rep-pri--high { color: var(--omega); border: 1px solid rgba(229,72,77,0.5); background: rgba(229,72,77,0.08); }
+.rep-pri--med { color: #e0a93f; border: 1px solid rgba(224,169,63,0.5); background: rgba(224,169,63,0.08); }
+.rep-pri--low { color: var(--ok); border: 1px solid rgba(63,178,127,0.5); background: rgba(63,178,127,0.08); }
+.rep-rec-t { color: var(--ink); font-size: 0.92rem; line-height: 1.5; }
+
+/* Evidence appendix rows */
+.rep-ev { display: grid; gap: 8px; }
+.rep-ev-row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.86rem; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.rep-ev-row:last-child { border-bottom: 0; }
+.rep-ev-k { color: var(--ink-3); font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.04em; }
+.rep-ev-v { color: var(--ink); text-align: right; }
+.rep-ev-ok { color: var(--ok); }
+.rep-redact { background: var(--line-2); color: transparent; border-radius: 4px; padding: 0 6px; user-select: none; }
+
+.rep-disc { padding: 18px clamp(20px, 4vw, 40px); border-top: 1px dashed var(--line); color: var(--ink-3); font-size: 0.8rem; line-height: 1.55; }

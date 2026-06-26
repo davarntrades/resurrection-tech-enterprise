@@ -37,6 +37,7 @@
 @import "./pricing.css";
 @import "./mgp.css";
 @import "./portal.css";
+@import "./report.css";
 
 @tailwind components;
 @tailwind utilities;

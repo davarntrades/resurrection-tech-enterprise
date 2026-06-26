@@ -79,6 +79,7 @@ export const NAV_MENU = [
       { href: "/evidence", label: "Validation results" },
       { href: "/case-studies", label: "Case studies" },
       { href: "/sample-audit", label: "Sample audit report" },
+      { href: "/sample-executive-report", label: "Sample executive report" },
       { href: "/compliance", label: "EU AI Act & compliance" },
       { href: "/security", label: "Security & deployment" },
     ],
