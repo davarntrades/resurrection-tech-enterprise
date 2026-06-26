@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 /**
  * Interactive ROI calculator — models prevented-incident value against the
@@ -80,6 +81,14 @@ export function RoiCalculator() {
               <b>{gbp(incidentCost)}</b> each against a <b>{gbp(investment)}</b> investment returns <b>{gbp(net)}</b> in net
               annual value{roi > 0 ? <> — a <b>{roi >= 100 ? "100×+" : `${roi.toFixed(1)}×`}</b> return.</> : "."}
             </p>
+            <Link
+              className="btn btn--primary roi-export"
+              href={`/roi-report?type=${encodeURIComponent(SECTORS[sector].k)}&cost=${incidentCost}&per=${perYear}&inv=${investment}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Generate Executive ROI Report <span className="arr" aria-hidden="true">↗</span>
+            </Link>
           </div>
         </div>
 

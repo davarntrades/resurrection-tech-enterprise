@@ -87,3 +87,4 @@
 .roi-kpi-v.pos { color: var(--ok); }
 .roi-kpi-k { font-size: 0.76rem; color: var(--ink-3); line-height: 1.4; }
 .roi-summary { margin: 16px 0 0; font-size: 0.92rem; line-height: 1.6; color: var(--ink-2); }
+.roi-export { margin-top: 18px; }
