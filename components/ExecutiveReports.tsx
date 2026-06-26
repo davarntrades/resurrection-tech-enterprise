@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 /**
  * Runtime Governance Executive Reports™ — the evidence/value layer of Runtime
  * Governance. Gold .mgp-page theme of its host page. Not priced separately.
@@ -89,7 +91,8 @@ export function ExecutiveReports() {
           <p>
             Runtime Governance Executive Reports™ are part of the platform, not an add-on. They are
             included as part of <b>Managed Governance Partner™</b>, <b>Limited Pilot™</b>,{" "}
-            <b>Enterprise Integration™</b>, and <b>Annual Runtime Governance Licence™</b> engagements.
+            <b>Enterprise Integration™</b>, and <b>Annual Runtime Governance Licence™</b> engagements.{" "}
+            <Link href="/sample-executive-report">See a sample report →</Link>
           </p>
         </div>
       </div>
