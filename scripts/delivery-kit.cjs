@@ -33,11 +33,13 @@ const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "customer";
 
 // ---- engine calls (isolated, fail-soft) -------------------------------------
-async function assess(manifest, org, format) {
+async function assess(body) {
   try {
     const res = await fetch(`${GOV}/v1/assess`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ manifest, org, format: format || "generic" }),
+      // body accepts { manifest } (parsed array/object) or { manifest_text } (the
+      // customer's raw file, in any supported format) — no manual reshaping.
+      body: JSON.stringify({ format: "generic", ...body }),
       signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) throw new Error(`assess ${res.status}`);
@@ -63,6 +65,23 @@ const toVerdict = (v) => {
   if (x === "ESCALATE" || x === "ENVIRONMENT_SENSITIVE") return "ESCALATE";
   return "BLOCK"; // BLOCK / NO_VALID_SOLUTION / unknown → treat as blocked
 };
+
+// ---- preflight: one-command connectivity + field check ----------------------
+async function preflight() {
+  console.log(`\nResurrection Tech — Delivery Kit · PREFLIGHT\n  engine: ${GOV}\n`);
+  let ok = true;
+  console.log("• /v1/assess");
+  const a = await assess({ manifest: [{ name: "probe_tool", description: "probe", capabilities: ["payment", "external"] }], org: "Preflight" });
+  if (!a) { console.log("    UNREACHABLE ✗"); ok = false; }
+  else for (const f of ["summary", "exposure", "tools", "grounded_blocks", "attestation"])
+    console.log(`    - ${f}: ${a[f] != null ? "present ✓" : "MISSING ✗"}${f === "attestation" && a[f] == null ? "  (engine may omit on probe)" : ""}`);
+  console.log("• /v1/evaluate");
+  const e = await evaluate([{ tool: "probe_tool", args: {} }], ["finance"]);
+  if (!e || e.__error) { console.log(`    UNREACHABLE ✗ ${e && e.__error ? "(" + e.__error + ")" : ""}`); ok = false; }
+  else for (const f of ["verdict", "reason", "omega_domain", "trajectory_hash", "layer"])
+    console.log(`    - ${f}: ${e[f] != null ? "present ✓" : "MISSING ✗"}`);
+  console.log(`\n  Result: ${ok ? "ENGINE REACHABLE — ready to run an audit ✓" : "ENGINE NOT REACHABLE from here ✗ (check GOVERNANCE_URL/token + network egress)"}\n`);
+}
 
 // ---- shared brand CSS (compact subset of gen-pdfs.cjs) ----------------------
 const CSS = `
@@ -178,27 +197,38 @@ function render(htmlPath, pdfPath) {
 }
 
 (async () => {
-  const inPath = process.argv[2] || path.join(__dirname, "delivery-kit.sample.json");
+  if (process.argv.includes("--check")) { await preflight(); return; }
+
+  const inPath = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) || path.join(__dirname, "delivery-kit.sample.json");
   if (!fs.existsSync(inPath)) { console.error("Input not found:", inPath); process.exit(1); }
   const input = JSON.parse(fs.readFileSync(inPath, "utf8"));
   const c = input.customer || { name: "Customer" };
   const outDir = path.join(__dirname, "..", "deliverables", `${slug(c.name)}-${slug(c.period || c.reference || "report")}`);
   const tmp = "/tmp/rt-delivery"; fs.mkdirSync(outDir, { recursive: true }); fs.mkdirSync(tmp, { recursive: true });
+  const auditPdf = path.join(outDir, "audit.pdf");
+  const reportPdf = path.join(outDir, "executive-report.pdf");
   const status = { assess: false, evaluate: false };
+  const replay = { checked: 0, deterministic: 0 };
 
   console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${inPath}\n  engine: ${GOV}\n  output: ${outDir}\n`);
 
-  // AUDIT
+  // AUDIT (/v1/assess) — accepts a parsed manifest array OR raw manifest_text
   let report = null;
-  if (Array.isArray(input.manifest) && input.manifest.length) {
+  const haveManifest = (Array.isArray(input.manifest) && input.manifest.length) ||
+    (typeof input.manifest_text === "string" && input.manifest_text.trim());
+  if (haveManifest) {
     console.log("• Audit: assessing manifest via /v1/assess …");
-    report = await assess(input.manifest, c.name, input.format);
+    report = await assess({
+      manifest: Array.isArray(input.manifest) && input.manifest.length ? input.manifest : undefined,
+      manifest_text: input.manifest_text,
+      org: c.name, format: input.format || "generic",
+    });
     status.assess = !!report;
   } else console.log("• Audit: no manifest supplied — skipping assess.");
   fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report));
-  render(path.join(tmp, "audit.html"), path.join(outDir, "audit.pdf"));
+  render(path.join(tmp, "audit.html"), auditPdf);
 
-  // EXEC REPORT metrics
+  // EXEC REPORT metrics (+ replay verification)
   const m = { total: 0, allow: 0, block: 0, escalate: 0, categories: {}, source: "none" };
   if (Array.isArray(input.decisions) && input.decisions.length) {
     m.source = "decisions";
@@ -207,22 +237,51 @@ function render(htmlPath, pdfPath) {
       if (v === "BLOCK") { const k = d.category || d.reason || "Unspecified"; m.categories[k] = (m.categories[k] || 0) + 1; }
     }
   } else if (Array.isArray(input.trajectories) && input.trajectories.length) {
-    console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate …`);
+    console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate (+ determinism check) …`);
     for (const traj of input.trajectories) {
       const g = await evaluate(traj, input.domains);
       if (g && !g.__error) {
         status.evaluate = true; const v = toVerdict(g.verdict); m.total++; m[v.toLowerCase()]++;
         if (v === "BLOCK") { const k = g.omega_domain || g.reason || "Blocked"; m.categories[k] = (m.categories[k] || 0) + 1; }
+        const g2 = await evaluate(traj, input.domains); // replay verification
+        if (g2 && !g2.__error) { replay.checked++; if (g2.verdict === g.verdict && g2.trajectory_hash === g.trajectory_hash) replay.deterministic++; }
       }
     }
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
   fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m));
-  render(path.join(tmp, "report.html"), path.join(outDir, "executive-report.pdf"));
+  render(path.join(tmp, "report.html"), reportPdf);
 
-  // SUMMARY — the point of the skeleton: what the engine gave us
-  console.log("\n— Engine data check —");
-  console.log(`  /v1/assess (audit coverage/exposure/attestation): ${status.assess ? "PRESENT ✓" : "MISSING ✗ (placeholder used)"}`);
-  console.log(`  /v1/evaluate (runtime verdicts for report):        ${status.evaluate ? "PRESENT ✓" : (m.source === "decisions" ? "supplied via decision logs ✓" : "MISSING ✗")}`);
-  console.log(`\nDeliverables written:\n  ${path.join(outDir, "audit.pdf")}\n  ${path.join(outDir, "executive-report.pdf")}\n`);
+  // FIELD MATRIX — every Priority-1 output, present or missing
+  const blocks = (report && report.grounded_blocks) || [];
+  const fields = [
+    ["Ω exposure coverage", report && report.summary && report.summary.coverage_pct != null],
+    ["Exposure by risk class", !!(report && report.exposure && Object.keys(report.exposure).length)],
+    ["Verified blocked trajectories", blocks.length > 0],
+    ["ALLOW / BLOCK / ESCALATE statistics", m.total > 0],
+    ["Prevented categories", Object.keys(m.categories).length > 0],
+    ["Recommendations", true],
+    ["Audit hashes", blocks.some((b) => b && b.hash)],
+    ["Replay verification", replay.checked > 0],
+    ["Attestation", !!(report && report.attestation)],
+    ["Branded Audit PDF", fs.existsSync(auditPdf)],
+    ["Branded Executive Report PDF", fs.existsSync(reportPdf)],
+  ];
+  console.log("\n— Priority-1 field matrix —");
+  for (const [name, ok] of fields) console.log(`  ${ok ? "✅" : "🔴"} ${name}`);
+  if (replay.checked) console.log(`     replay determinism: ${replay.deterministic}/${replay.checked}`);
+
+  const missing = fields.filter(([, ok]) => !ok).map(([n]) => n);
+  console.log(`\n— Engine —\n  /v1/assess:   ${status.assess ? "reachable ✓" : "unreachable ✗ (audit fields blank)"}\n  /v1/evaluate: ${status.evaluate ? "reachable ✓" : (m.source === "decisions" ? "n/a — used decision logs ✓" : "unreachable ✗")}`);
+  if (missing.length) console.log(`\n  ⚠ Missing: ${missing.join(", ")}\n    → almost always engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
+
+  // machine-readable evidence written alongside the PDFs
+  fs.writeFileSync(path.join(outDir, "run-summary.json"), JSON.stringify({
+    customer: c, engine: GOV, status, replay,
+    metrics: m, fields: Object.fromEntries(fields), missing,
+    assess_summary: report ? report.summary : null,
+    attestation: report ? report.attestation || null : null,
+  }, null, 2));
+
+  console.log(`\nDeliverables:\n  ${auditPdf}\n  ${reportPdf}\n  ${path.join(outDir, "run-summary.json")}\n`);
 })();
