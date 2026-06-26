@@ -64,3 +64,16 @@
 .rep-redact { background: var(--line-2); color: transparent; border-radius: 4px; padding: 0 6px; user-select: none; }
 
 .rep-disc { padding: 18px clamp(20px, 4vw, 40px); border-top: 1px dashed var(--line); color: var(--ink-3); font-size: 0.8rem; line-height: 1.55; }
+
+/* ROI report (calculator export) */
+.roi-report { padding: clamp(24px, 4vw, 48px) 0; }
+.roi-toolbar { max-width: 880px; margin: 0 auto 18px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.roi-toolbar--foot { margin: 26px auto 0; justify-content: center; }
+
+@media print {
+  .roi-toolbar, .sticky-book, .nav, .footer { display: none !important; }
+  .roi-report { padding: 0; }
+  .roi-report .rep-doc { max-width: none; border: 0; border-radius: 0; }
+  body { background: #08090b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 10mm; }
+}
