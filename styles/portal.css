@@ -1,0 +1,72 @@
+/* ============================================================
+   Universal Partner Portal (.portal) — single source of truth.
+   Enterprise docs feel; inherits the gold .mgp-page theme.
+   ============================================================ */
+
+/* Sticky section nav (pills) under the main navbar */
+.portal-toc {
+  position: sticky; top: 66px; z-index: 30;
+  background: rgba(8,9,11,0.92);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+.portal-toc-row {
+  max-width: var(--maxw); margin-inline: auto; padding: 10px var(--gutter);
+  display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.portal-toc-row::-webkit-scrollbar { display: none; }
+.portal-toc a {
+  white-space: nowrap; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 13px;
+  transition: color 0.16s var(--ease), border-color 0.16s var(--ease), background 0.16s var(--ease);
+}
+.portal-toc a:hover { color: var(--ink); border-color: var(--accent-dim); background: rgba(224,169,63,0.06); }
+
+/* Hero */
+.portal-hero .eyebrow { color: var(--accent-bright); }
+.portal-kpis { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.portal-kpi { background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; padding: 14px 18px; min-width: 150px; }
+.portal-kpi-v { display: block; font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; color: var(--accent-bright); }
+.portal-kpi-k { font-size: 0.8rem; color: var(--ink-3); }
+
+/* Partnership-model cards */
+.portal-models { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 8px; }
+@media (max-width: 820px) { .portal-models { grid-template-columns: 1fr; } }
+.portal-model {
+  background: linear-gradient(180deg, rgba(224,169,63,0.05), transparent 60%), var(--panel);
+  border: 1px solid var(--line-2); border-radius: 16px; padding: clamp(18px, 2.2vw, 24px);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.portal-model-h { font-size: 1.06rem; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
+.portal-model-row { display: grid; grid-template-columns: 116px 1fr; gap: 10px; font-size: 0.86rem; line-height: 1.5; }
+.portal-model-k { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-bright); padding-top: 2px; }
+.portal-model-v { color: var(--ink-2); }
+.portal-model a { color: var(--accent-bright); }
+@media (max-width: 440px) { .portal-model-row { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Commercial pathway rows + enablement assets reuse a simple list grid */
+.portal-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
+@media (max-width: 760px) { .portal-list { grid-template-columns: 1fr; } }
+.portal-item { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; }
+.portal-item-h { font-size: 0.98rem; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
+.portal-item-p { font-size: 0.86rem; color: var(--ink-3); line-height: 1.55; margin: 0; }
+.portal-item-tag { display: inline-block; margin-top: 9px; font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); border: 1px solid var(--accent-dim); border-radius: 999px; padding: 3px 9px; }
+.portal-item a.portal-item-tag:hover { background: rgba(224,169,63,0.08); }
+
+/* FAQ accordion */
+.portal-faqgroup { margin-top: 18px; }
+.portal-faqgroup-h { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 10px; }
+.portal-faq details {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 0 16px; margin-bottom: 8px;
+}
+.portal-faq summary {
+  cursor: pointer; list-style: none; padding: 14px 0; font-size: 0.95rem; color: var(--ink);
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.portal-faq summary::-webkit-details-marker { display: none; }
+.portal-faq summary::after { content: "+"; color: var(--accent-bright); font-family: var(--mono); flex: none; }
+.portal-faq details[open] summary::after { content: "–"; }
+.portal-faq details[open] summary { border-bottom: 1px solid var(--line); }
+.portal-faq-a { padding: 12px 0 16px; font-size: 0.9rem; line-height: 1.6; color: var(--ink-2); margin: 0; }
