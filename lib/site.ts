@@ -65,6 +65,7 @@ export const NAV_MENU = [
   {
     group: "Partner & licensing",
     links: [
+      { href: "/partner-portal", label: "Partner Portal" },
       { href: "/strategic-alliance-partner", label: "Strategic Alliance Partner™" },
       { href: "/managed-governance-partner", label: "Managed Governance Partner™" },
       { href: "/embedded-runtime-governance-licensing", label: "Embedded Runtime Governance Licensing™" },
