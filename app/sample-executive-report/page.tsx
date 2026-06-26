@@ -170,7 +170,8 @@ export default function Page() {
           </div>
 
           <div className="hero-actions reveal" style={{ marginTop: 36, justifyContent: "center" }}>
-            <Link href="/managed-governance-partner#executive-reports" className="btn btn--primary">How Executive Reports work <span className="arr">→</span></Link>
+            <a href="/partner-resources/sample-executive-report.pdf" className="btn btn--primary" target="_blank" rel="noopener noreferrer">Download PDF <span className="arr">↓</span></a>
+            <Link href="/managed-governance-partner#executive-reports" className="btn btn--ghost">How Executive Reports work <span className="arr">→</span></Link>
             <Link href="/contact" className="btn btn--ghost">Discuss Partnership <span className="arr">→</span></Link>
           </div>
         </div>

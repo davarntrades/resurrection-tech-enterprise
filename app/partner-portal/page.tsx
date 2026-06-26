@@ -129,7 +129,7 @@ const JOURNEY = [
 
 const ASSETS: { h: string; p: string; status: string; href?: string }[] = [
   { h: "Partner FAQ (full)", p: "60+ answers across general, technical, and commercial.", status: "Download", href: "/partner-resources/partner-faq.md" },
-  { h: "Discovery questionnaire", p: "Reusable partner-call questionnaire (internal/shared).", status: "Download", href: "/partner-resources/partner-discovery-questionnaire.md" },
+  { h: "Discovery questionnaire", p: "Reusable partner-call questionnaire (designed PDF).", status: "Download PDF", href: "/partner-resources/partner-discovery-questionnaire.pdf" },
   { h: "Architecture diagrams", p: "Integration, deployment, and verdict-flow diagrams.", status: "On this page" },
   { h: "Example executive report", p: "A representative monthly Runtime Governance report.", status: "View", href: "/sample-executive-report" },
   { h: "Sales deck", p: "Partner-facing pitch and positioning.", status: "On request" },
