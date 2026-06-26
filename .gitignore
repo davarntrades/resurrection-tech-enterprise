@@ -55,3 +55,6 @@ __pycache__/
 
 # assess-agent output
 /assessment/
+
+# Delivery-kit output (customer data — do not commit)
+/deliverables/

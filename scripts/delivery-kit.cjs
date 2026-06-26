@@ -1,0 +1,228 @@
+/* ============================================================
+ * Resurrection Tech™ — Delivery Kit (skeleton)
+ *
+ * Customer manifest/logs IN  →  branded Audit + Executive Report PDFs OUT.
+ * Uses the live governance engine (/v1/assess + /v1/evaluate) and the same
+ * Chromium print pipeline as scripts/gen-pdfs.cjs.
+ *
+ *   node scripts/delivery-kit.cjs [input.json]
+ *
+ * Input (see scripts/delivery-kit.sample.json):
+ *   {
+ *     "customer": { "name", "environment", "period", "reference" },
+ *     "manifest": [ { "name","description","capabilities":[...] }, ... ],  // → audit
+ *     "format":   "generic" | "openai" | "mcp" | ...,                      // optional
+ *     "domains":  ["finance", ...],                                        // optional
+ *     "trajectories": [ [ { "tool","args" }, ... ], ... ],                 // → exec report (replayed)
+ *     "decisions":    [ { "verdict","category","tool","reason" }, ... ]    // → exec report (pre-aggregated)
+ *   }
+ *
+ * The engine connection is the ONLY real unknown. Each engine call is isolated
+ * and fails soft: if unreachable, the script marks the section
+ * "[ENGINE NOT REACHED]" and continues, so you can see exactly what data is
+ * present vs missing before a real engagement.
+ * ============================================================ */
+const { execFileSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const CHROME = process.env.CHROME_BIN || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const GOV = (process.env.GOVERNANCE_URL || "https://resurrection-tech-enterprise-production.up.railway.app").replace(/\/$/, "");
+const TOKEN = process.env.GOVERNANCE_TOKEN;
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "customer";
+
+// ---- engine calls (isolated, fail-soft) -------------------------------------
+async function assess(manifest, org, format) {
+  try {
+    const res = await fetch(`${GOV}/v1/assess`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ manifest, org, format: format || "generic" }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) throw new Error(`assess ${res.status}`);
+    return await res.json();
+  } catch (e) { console.warn("  ! /v1/assess unreachable:", e.message); return null; }
+}
+async function evaluate(trajectory, domains) {
+  try {
+    const headers = { "content-type": "application/json" };
+    if (TOKEN) headers.authorization = `Bearer ${TOKEN}`;
+    const res = await fetch(`${GOV}/v1/evaluate`, {
+      method: "POST", headers,
+      body: JSON.stringify(domains && domains.length ? { trajectory, domains } : { trajectory }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`evaluate ${res.status}`);
+    return await res.json();
+  } catch (e) { return { __error: e.message }; }
+}
+const toVerdict = (v) => {
+  const x = String(v || "").toUpperCase();
+  if (x === "PERMIT" || x === "ALLOW") return "ALLOW";
+  if (x === "ESCALATE" || x === "ENVIRONMENT_SENSITIVE") return "ESCALATE";
+  return "BLOCK"; // BLOCK / NO_VALID_SOLUTION / unknown → treat as blocked
+};
+
+// ---- shared brand CSS (compact subset of gen-pdfs.cjs) ----------------------
+const CSS = `
+@page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:#08090b;color:#aab2bd;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px;line-height:1.55}
+.wrap{padding:40px 46px}
+.brand{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px;margin-bottom:20px}
+.brand b{color:#f3f5f7;font-size:14px}.brand .r{color:#e0a93f}.brand .t{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480}
+.band{background:linear-gradient(180deg,rgba(224,169,63,.14),rgba(224,169,63,.03));border:1px solid #6b4f1c;border-radius:14px;padding:22px 24px;margin-bottom:18px}
+.eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#e0a93f}
+h1{color:#f3f5f7;font-size:24px;letter-spacing:-.02em;margin:8px 0 4px}h2{color:#f3f5f7;font-size:15px;margin:0 0 10px}
+.meta{display:flex;flex-wrap:wrap;gap:16px 26px;margin-top:14px}.meta .k{display:block;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b7480}.meta .v{color:#f3f5f7}
+.sec{border-top:1px solid rgba(255,255,255,.08);padding:18px 0;break-inside:avoid}.sec:first-of-type{border-top:0}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.kpi{flex:1 1 120px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 14px}.kpi .v{display:block;color:#f3f5f7;font-size:20px;font-weight:600}.kpi .k{color:#6b7480;font-size:10px}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-align:left;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#6b7480;padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.1)}td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.06);color:#cdd6e0;vertical-align:top}td.m{color:#f3f5f7}td.n{font-family:ui-monospace,Menlo,monospace;color:#e0a93f;text-align:right}
+.tag{font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:2px 7px;border-radius:5px}.cov{color:#3fb27f;border:1px solid rgba(63,178,127,.5)}.par{color:#e0a93f;border:1px solid rgba(224,169,63,.5)}.unc{color:#e5484d;border:1px solid rgba(229,72,77,.5)}
+.bar{display:flex;height:13px;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-top:6px}.bar i{display:block;height:100%}.a{background:#3fb27f}.b{background:#e5484d}.e{background:#e0a93f}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px}.legend i{width:9px;height:9px;border-radius:2px;margin-right:6px;display:inline-block}
+.warn{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.4);border-radius:8px;padding:10px 12px;color:#f0b4b6;font-size:11px;margin-top:8px}
+.disc{margin-top:16px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.1);color:#6b7480;font-size:10px}
+.foot{margin-top:20px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#474e58}
+`;
+const brand = `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
+const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
+const bandBlock = (k, h, sub, meta) => `<div class="band"><span class="eyebrow">${esc(k)}</span><h1>${esc(h)}</h1><p style="color:#aab2bd;margin:0">${esc(sub)}</p><div class="meta">${meta.map(([a, b]) => `<div><span class="k">${esc(a)}</span><span class="v">${esc(b)}</span></div>`).join("")}</div></div>`;
+const STATUS_CLASS = { Covered: "cov", COVERED: "cov", Partial: "par", PARTIAL: "par", Uncovered: "unc", UNCOVERED: "unc" };
+
+// ---- AUDIT html from AssessReport ------------------------------------------
+function auditHtml(c, report) {
+  const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
+  if (!report) {
+    return page("Runtime Safety Audit", bandBlock("48-Hour Runtime Governance Audit", c.name, "Reachable exposure assessment", meta) +
+      `<div class="sec"><span class="eyebrow">1 · Status</span><h2>Engine assessment unavailable.</h2><div class="warn">[ENGINE NOT REACHED] /v1/assess did not return a report. Set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run, or supply a cached assess report. The audit's coverage, exposure, and verified-blocked-trajectory sections come directly from the engine.</div></div>`);
+  }
+  const s = report.summary || {};
+  const exposure = report.exposure || {};
+  const tools = report.tools || [];
+  const blocks = report.grounded_blocks || [];
+  const att = report.attestation;
+  return page("Runtime Safety Audit", bandBlock("48-Hour Runtime Governance Audit", c.name, `Reachable exposure assessment · ${report.industry || "general"}`, meta) + `
+    <div class="sec"><span class="eyebrow">1 · Executive summary</span><h2>Coverage of reachable forbidden states (&#937;).</h2>
+      <div class="kpis">
+        <div class="kpi"><span class="v">${s.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
+        <div class="kpi"><span class="v">${s.risky ?? "—"}</span><span class="k">Risk-bearing tools</span></div>
+        <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
+        <div class="kpi"><span class="v">${s.verified_blocked_trajectories ?? "—"}</span><span class="k">Verified blocked trajectories</span></div>
+      </div>
+      <p style="margin-top:12px">Covered ${s.covered ?? "—"} · Partial ${s.partial ?? "—"} · Uncovered ${s.uncovered ?? "—"} of ${s.risky ?? "—"} risk-bearing tools. Catalog rules applied: ${report.catalog_rules ?? "—"}.</p>
+    </div>
+    <div class="sec"><span class="eyebrow">2 · &#937; exposure by risk class</span><h2>Where exposure is reachable.</h2>
+      <table><thead><tr><th>Risk class</th><th>Status</th><th>Tools</th><th>Rules</th></tr></thead><tbody>
+      ${Object.entries(exposure).map(([rc, x]) => `<tr><td class="m">${esc(rc)}</td><td><span class="tag ${STATUS_CLASS[x.status] || "unc"}">${esc(x.status)}</span></td><td class="n">${x.tools ?? "—"}</td><td>${esc((x.rules || []).join(", ") || "—")}</td></tr>`).join("") || `<tr><td colspan="4">No risk classes reported.</td></tr>`}
+      </tbody></table>
+    </div>
+    <div class="sec"><span class="eyebrow">3 · Tool risk surface</span><h2>What each tool can reach.</h2>
+      <table><thead><tr><th>Tool</th><th>Capabilities</th><th>Status</th></tr></thead><tbody>
+      ${tools.map((t) => `<tr><td class="m">${esc(t.tool)}</td><td>${esc((t.capabilities || []).join(", ") || "—")}</td><td><span class="tag ${STATUS_CLASS[t.status] || "cov"}">${esc(t.status)}</span></td></tr>`).join("") || `<tr><td colspan="3">No tools reported.</td></tr>`}
+      </tbody></table>
+    </div>
+    <div class="sec"><span class="eyebrow">4 · Verified blocked trajectories</span><h2>Catastrophic actions the engine would block.</h2>
+      <table><thead><tr><th>Trajectory</th><th>Risk class</th><th>&#937; domain</th><th>Evidence hash</th></tr></thead><tbody>
+      ${blocks.map((b) => `<tr><td class="m">${esc(b.label)}</td><td>${esc(b.risk_class)}</td><td>${esc(b.omega_domain || "—")}</td><td style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#6b7480">${esc((b.hash || "").slice(0, 16))}</td></tr>`).join("") || `<tr><td colspan="4">None reported.</td></tr>`}
+      </tbody></table>
+    </div>
+    <div class="sec"><span class="eyebrow">5 · Attestation</span><h2>Reproducible, pinned to a build.</h2>
+      ${att ? `<table><tbody>
+        <tr><td class="m">Engine commit</td><td style="font-family:ui-monospace,Menlo,monospace">${esc(att.engine_commit)}</td></tr>
+        <tr><td class="m">Ruleset hash</td><td style="font-family:ui-monospace,Menlo,monospace">${esc(att.ruleset_hash)}</td></tr>
+        <tr><td class="m">Service version</td><td>${esc(att.service_version)}</td></tr>
+        <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)}</td></tr>
+      </tbody></table>` : `<div class="warn">No attestation block returned by the engine for this run.</div>`}
+    </div>
+    <div class="sec"><span class="eyebrow">6 · Recommended next step</span><h2>Limited Pilot™.</h2>
+      <p>${(s.uncovered ?? 0) > 0 ? `${s.uncovered} risk-bearing tool(s) are uncovered or partial. ` : ""}A Limited Pilot validates interception on your own traffic and closes remaining &#937; coverage before production.</p>
+    </div>
+    <div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Pricing indicative and non-binding; final terms follow assessment and deployment review.</div>`);
+}
+
+// ---- EXEC REPORT html from aggregated metrics -------------------------------
+function reportHtml(c, m) {
+  const total = m.total || 0;
+  const pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
+  const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
+  const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]);
+  return page("Runtime Governance Executive Report", bandBlock("Runtime Governance Executive Report™", c.name, "Monthly governance evidence", meta) + `
+    ${m.source === "none" ? `<div class="sec"><div class="warn">[NO ACTIVITY DATA] Provide "trajectories" (replayed through /v1/evaluate) or pre-aggregated "decisions" to populate runtime metrics. Structure shown below.</div></div>` : ""}
+    <div class="sec"><span class="eyebrow">1 · Executive summary</span><h2>The period at a glance.</h2>
+      <div class="kpis">
+        <div class="kpi"><span class="v">${total.toLocaleString()}</span><span class="k">Actions governed${m.source === "engine" ? " (replayed)" : ""}</span></div>
+        <div class="kpi"><span class="v">${(m.block || 0).toLocaleString()}</span><span class="k">Unsafe actions prevented</span></div>
+        <div class="kpi"><span class="v">${(m.escalate || 0).toLocaleString()}</span><span class="k">Escalated for review</span></div>
+        <div class="kpi"><span class="v">${m.source === "engine" ? "Live" : m.source}</span><span class="k">Data source</span></div>
+      </div>
+    </div>
+    <div class="sec"><span class="eyebrow">2 · Runtime activity</span><h2>Every action resolved to a verdict.</h2>
+      <div class="bar"><i class="a" style="width:${pct(m.allow)}%"></i><i class="b" style="width:${pct(m.block)}%"></i><i class="e" style="width:${pct(m.escalate)}%"></i></div>
+      <div class="legend"><span><i class="a"></i>ALLOW · ${(m.allow || 0).toLocaleString()} (${pct(m.allow)}%)</span><span><i class="b"></i>BLOCK · ${(m.block || 0).toLocaleString()} (${pct(m.block)}%)</span><span><i class="e"></i>ESCALATE · ${(m.escalate || 0).toLocaleString()} (${pct(m.escalate)}%)</span></div>
+    </div>
+    <div class="sec"><span class="eyebrow">3 · Actions prevented</span><h2>What was blocked before it executed.</h2>
+      <table><thead><tr><th>Category / &#937; domain</th><th>Count</th></tr></thead><tbody>
+      ${cats.map(([k, v]) => `<tr><td class="m">${esc(k)}</td><td class="n">${v}</td></tr>`).join("") || `<tr><td colspan="2">No prevented actions in this period.</td></tr>`}
+      </tbody></table>
+    </div>
+    <div class="sec"><span class="eyebrow">4 · Recommendations</span><h2>Prioritised next actions.</h2>
+      <p>${(m.block || 0) > 0 ? "Review the top prevented categories with the security team and confirm policy thresholds. " : ""}Schedule the quarterly &#937; revalidation and bring any newly integrated tools under governance at onboarding.</p>
+    </div>
+    <div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : m.source === "decisions" ? "Aggregated from supplied decision logs." : "Awaiting activity data."} Figures reflect the supplied period only.</div>`);
+}
+
+// ---- render via Chromium ----------------------------------------------------
+function render(htmlPath, pdfPath) {
+  execFileSync(CHROME, ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer", "--print-to-pdf=" + pdfPath, "file://" + htmlPath], { stdio: "ignore" });
+}
+
+(async () => {
+  const inPath = process.argv[2] || path.join(__dirname, "delivery-kit.sample.json");
+  if (!fs.existsSync(inPath)) { console.error("Input not found:", inPath); process.exit(1); }
+  const input = JSON.parse(fs.readFileSync(inPath, "utf8"));
+  const c = input.customer || { name: "Customer" };
+  const outDir = path.join(__dirname, "..", "deliverables", `${slug(c.name)}-${slug(c.period || c.reference || "report")}`);
+  const tmp = "/tmp/rt-delivery"; fs.mkdirSync(outDir, { recursive: true }); fs.mkdirSync(tmp, { recursive: true });
+  const status = { assess: false, evaluate: false };
+
+  console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${inPath}\n  engine: ${GOV}\n  output: ${outDir}\n`);
+
+  // AUDIT
+  let report = null;
+  if (Array.isArray(input.manifest) && input.manifest.length) {
+    console.log("• Audit: assessing manifest via /v1/assess …");
+    report = await assess(input.manifest, c.name, input.format);
+    status.assess = !!report;
+  } else console.log("• Audit: no manifest supplied — skipping assess.");
+  fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report));
+  render(path.join(tmp, "audit.html"), path.join(outDir, "audit.pdf"));
+
+  // EXEC REPORT metrics
+  const m = { total: 0, allow: 0, block: 0, escalate: 0, categories: {}, source: "none" };
+  if (Array.isArray(input.decisions) && input.decisions.length) {
+    m.source = "decisions";
+    for (const d of input.decisions) {
+      const v = toVerdict(d.verdict); m.total++; m[v.toLowerCase()]++;
+      if (v === "BLOCK") { const k = d.category || d.reason || "Unspecified"; m.categories[k] = (m.categories[k] || 0) + 1; }
+    }
+  } else if (Array.isArray(input.trajectories) && input.trajectories.length) {
+    console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate …`);
+    for (const traj of input.trajectories) {
+      const g = await evaluate(traj, input.domains);
+      if (g && !g.__error) {
+        status.evaluate = true; const v = toVerdict(g.verdict); m.total++; m[v.toLowerCase()]++;
+        if (v === "BLOCK") { const k = g.omega_domain || g.reason || "Blocked"; m.categories[k] = (m.categories[k] || 0) + 1; }
+      }
+    }
+    m.source = status.evaluate ? "engine" : "none";
+  } else console.log("• Report: no trajectories or decisions supplied.");
+  fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m));
+  render(path.join(tmp, "report.html"), path.join(outDir, "executive-report.pdf"));
+
+  // SUMMARY — the point of the skeleton: what the engine gave us
+  console.log("\n— Engine data check —");
+  console.log(`  /v1/assess (audit coverage/exposure/attestation): ${status.assess ? "PRESENT ✓" : "MISSING ✗ (placeholder used)"}`);
+  console.log(`  /v1/evaluate (runtime verdicts for report):        ${status.evaluate ? "PRESENT ✓" : (m.source === "decisions" ? "supplied via decision logs ✓" : "MISSING ✗")}`);
+  console.log(`\nDeliverables written:\n  ${path.join(outDir, "audit.pdf")}\n  ${path.join(outDir, "executive-report.pdf")}\n`);
+})();
