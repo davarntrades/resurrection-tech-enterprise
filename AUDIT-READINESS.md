@@ -21,7 +21,8 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 | Branded Executive Report PDF generator | ✅ | same pipeline |
 | Pricing / engagement positioning public | ✅ | `/enterprise-pathways`, `/sample-audit` |
 | Commercial: SOW / engagement letter template | 🟡 | Pricing is public; a signable 1-page SOW would speed close (≈0.5 day) |
-| **Engine reachable from your delivery environment** | 🔴 *(unverified here)* | Sandbox egress blocks the engine host (403). **Must run `--check` from your machine/Vercel/server.** This is the gate. |
+| **Engine reachable from your delivery environment** | ✅ | Verified in Colab — `/v1/assess` + `/v1/evaluate` reachable, audit run started. (Blocked only inside the build sandbox.) |
+| **Portable Chromium discovery for PDF rendering** | ✅ | `CHROME_BIN` → common paths → bundled; clear error if absent. `--check-chrome` to verify. |
 
 ## 2. Can I generate the audit within 48 hours?
 
@@ -45,14 +46,15 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 | Node runtime + script | ✅ | `node -c` clean; runs end-to-end |
 | Field-validation matrix + `run-summary.json` | ✅ | Every Priority-1 field marked present/missing per run |
 | Preflight `--check` | ✅ | Probes both endpoints + lists fields |
-| **Governance engine `/v1/assess` + `/v1/evaluate`** | 🔴 *(unverified)* | Blocked from this environment; **verify from a connected one** |
-| `GOVERNANCE_TOKEN` valid for `/v1/evaluate` | 🟡 | Set + confirm via `--check` |
+| **Governance engine `/v1/assess` + `/v1/evaluate`** | ✅ | Verified reachable in Colab |
+| `GOVERNANCE_TOKEN` valid for `/v1/evaluate` | ✅ | Confirmed via Colab `--check` |
+| **Chromium for PDF rendering** | ✅ | Portable discovery; install chromium or set `CHROME_BIN` in your run env |
 
 ## 4. What is still missing?
 
 | Gap | Status | Effort |
 |---|---|---|
-| Confirm engine returns all fields for a **real** manifest | 🔴 | ~2–4 hrs (run `--check` + one real manifest from a connected env) |
+| Run ONE full end-to-end (engine + Chromium present) and eyeball the populated PDFs | 🟡 | ~1–2 hrs — engine ✓ and Chromium ✓ are now both unblocked; just needs one clean render in a connected env (e.g. `apt-get install -y chromium` in Colab, or set `CHROME_BIN`) |
 | Decide Ω model for first customer (engine defaults vs custom) | 🟡 | ~0.5 day — **defaults are sufficient for a first audit**; custom Ω is pilot-depth |
 | Signable SOW / engagement letter | 🟡 | ~0.5 day |
 | (Optional) customer intake form to collect the manifest | 🟡 | not required — email a JSON/file works |
@@ -74,5 +76,9 @@ Operational readiness to deliver a paid £40K–£75K audit. Status keys:
 Automated: assess, evaluate, replay/determinism, metrics, categories, recommendations, attestation capture, both PDFs, evidence JSON, field validation.
 **Manual (by design):** (1) receive customer info, (2) review the generated report, (3) present findings. ✅ matches target.
 
-### The single gate
-Everything except **live engine reachability + field completeness** is ✅ or a sub-day task. That one item is 🔴 *only because it cannot be tested from this build sandbox* — run `node scripts/delivery-kit.cjs --check` from an environment that can reach the engine and it flips to ✅ or tells you the exact missing field.
+### Status
+Engine ✅ (verified in Colab) and Chromium ✅ (portable). The remaining item is a
+single clean end-to-end render in an environment that has **both** — run:
+`node scripts/delivery-kit.cjs --check`  then
+`node scripts/delivery-kit.cjs scripts/delivery-kit.sample-healthcare.json`
+and eyeball the two populated PDFs. After that, you are delivery-ready.
