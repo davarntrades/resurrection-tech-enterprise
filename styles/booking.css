@@ -55,6 +55,8 @@
 .fcontact span { color: var(--ink-2); }
 .fcontact a { color: var(--ink-3); text-decoration: none; transition: color 0.25s var(--ease); }
 .fcontact a:hover { color: var(--accent-bright); }
+.fsocial { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
+.fsocial svg { flex: none; }
 
 /* ---------- Page header ---------- */
 .book-hero { padding-top: clamp(48px, 8vw, 88px); }
