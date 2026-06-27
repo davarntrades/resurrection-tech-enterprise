@@ -1,0 +1,11 @@
+{
+  "name": "Resurrection Tech",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [8787, 3000],
+  "portsAttributes": {
+    "8787": { "label": "Analyst Console", "onAutoForward": "openBrowser" },
+    "3000": { "label": "Marketing Site", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "npm install",
+  "postAttachCommand": "bash .devcontainer/start-console.sh"
+}
