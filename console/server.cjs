@@ -202,11 +202,22 @@ function runAudit(req, res, body) {
   req.on("close", () => { if (child.exitCode == null) child.kill(); });
 }
 
+// ---- resolve a deliverable path, scoped strictly under /deliverables --------
+// `dir` may be repo-root-relative ("deliverables/<slug>", as the run emits) or
+// DELIVERABLES-relative ("<slug>"). Always returns an absolute path inside
+// DELIVERABLES, or null (out of scope / traversal). Single source of truth so
+// preview, download, and share all resolve identically.
+function resolveDeliverable(dir, file) {
+  const within = (p) => p === DELIVERABLES || p.startsWith(DELIVERABLES + path.sep);
+  let abs = path.resolve(ROOT, dir || "", file || "");      // handles "deliverables/<slug>"
+  if (!within(abs)) abs = path.resolve(DELIVERABLES, dir || "", file || ""); // handles bare "<slug>"
+  return within(abs) ? abs : null;
+}
+
 // ---- serve a deliverable file (scoped strictly under /deliverables) ---------
 function serveDeliverable(res, dir, file, download) {
-  const abs = path.resolve(DELIVERABLES, dir || "", file || "");
-  const within = abs === DELIVERABLES || abs.startsWith(DELIVERABLES + path.sep);
-  if (!within || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return send(res, 404, { error: "not found" });
+  const abs = resolveDeliverable(dir, file);
+  if (!abs || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return send(res, 404, { error: "not found" });
   const data = fs.readFileSync(abs);
   const headers = { "content-type": MIME[path.extname(abs)] || "application/octet-stream", "content-length": data.length, "cache-control": "no-store" };
   if (download) headers["content-disposition"] = `attachment; filename="${path.basename(abs)}"`;
@@ -245,9 +256,8 @@ function handleShare(req, res, u) {
 
   if (action === "download") {
     if (!pwOk) { res.writeHead(403, { "content-type": "text/html", "cache-control": "no-store" }); return res.end(sharePage("Password required", `<div class="eyebrow">Secure delivery</div><h1>Password required</h1><p class="sub warn">Incorrect or missing password.</p>`)); }
-    const abs = path.resolve(DELIVERABLES, s.dir || "", s.file || "");
-    const within = abs === DELIVERABLES || abs.startsWith(DELIVERABLES + path.sep);
-    if (!within || !fs.existsSync(abs)) { res.writeHead(404, { "content-type": "text/html" }); return res.end(sharePage("Unavailable", `<h1>File unavailable</h1>`)); }
+    const abs = resolveDeliverable(s.dir, s.file);
+    if (!abs || !fs.existsSync(abs)) { res.writeHead(404, { "content-type": "text/html" }); return res.end(sharePage("Unavailable", `<h1>File unavailable</h1>`)); }
     s.downloads = (s.downloads || 0) + 1; s.last_download = new Date().toISOString(); saveShares(shares);
     const data = fs.readFileSync(abs);
     res.writeHead(200, { "content-type": MIME[path.extname(abs)] || "application/octet-stream", "content-length": data.length, "content-disposition": `attachment; filename="${path.basename(abs)}"`, "cache-control": "no-store" });
@@ -319,9 +329,8 @@ const server = http.createServer(async (req, res) => {
     // --- secure delivery: create / list / revoke share links ---------------
     if (req.method === "POST" && p === "/api/share") {
       const b = await readBody(req);
-      const abs = path.resolve(DELIVERABLES, b.dir || "", b.file || "");
-      const within = abs === DELIVERABLES || abs.startsWith(DELIVERABLES + path.sep);
-      if (!within || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return send(res, 400, { error: "deliverable not found" });
+      const abs = resolveDeliverable(b.dir, b.file);
+      if (!abs || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return send(res, 400, { error: "deliverable not found" });
       const days = Math.min(Math.max(parseInt(b.days, 10) || 14, 1), 90);
       const rec = {
         id: crypto.randomBytes(4).toString("hex"),
