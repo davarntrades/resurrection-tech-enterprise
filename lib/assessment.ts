@@ -200,7 +200,7 @@ export interface Scores {
 export type Band = "Low" | "Moderate" | "High" | "Critical";
 
 export type PathwayId =
-  | "workshop" | "audit" | "pilot" | "integration"
+  | "workshop" | "audit" | "enterprise_assessment" | "pilot" | "integration"
   | "managed_partner" | "embedded_licensing" | "distribution_partner";
 
 /** Partner / channel / licensing pathways — flagged separately in reporting. */
@@ -235,6 +235,13 @@ export const PATHWAYS: Record<PathwayId, Pathway> = {
     tagline: "A catastrophic-trajectory exposure assessment of your live agent.",
     ctaLabel: "Request the Audit",
     ctaHref: "/request-audit",
+  },
+  enterprise_assessment: {
+    id: "enterprise_assessment",
+    title: "Enterprise Runtime Governance Assessment™",
+    tagline: "Multi-agent, cross-system governance review with board-ready executive evidence.",
+    ctaLabel: "Explore the Enterprise Assessment",
+    ctaHref: "/enterprise-runtime-governance-assessment",
   },
   pilot: {
     id: "pilot",
@@ -405,11 +412,25 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
     if (sensitive) why.push("Sensitive tool access makes a bounded, observable pilot the right next step.");
     why.push("The pilot runs governance against your real trajectories with attested verdicts.");
   } else if ((production && actionsTools && sensitive && regulated) || s.exposure >= 70) {
-    id = "audit";
-    if (production) why.push("Agents are in production with tool access and the ability to take actions.");
-    if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
-    if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced.");
-    if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — a 48-hour audit quantifies it fast.`);
+    // High-complexity / multi-agent / cross-system estates outgrow the fixed,
+    // single-environment 48-hour Audit — route them to the Enterprise Assessment.
+    const enterpriseScale =
+      complexMulti || s.complexity >= 70 || ["6–20", "20+"].includes(d.numAgents) ||
+      yes(d.crossAgentComm) || d.companySize === "1000+";
+    if (enterpriseScale) {
+      id = "enterprise_assessment";
+      if (complexMulti) why.push("You operate a multi-agent environment, so exposure must be mapped across agents and the systems they touch — not a single environment.");
+      if (production) why.push("Agents are in production with tool access and the ability to take actions.");
+      if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
+      if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced for the board.");
+      why.push("The Enterprise Runtime Governance Assessment maps reachable Ω across the estate and delivers board-ready evidence, a governance roadmap, and an integration blueprint.");
+    } else {
+      id = "audit";
+      if (production) why.push("Agents are in production with tool access and the ability to take actions.");
+      if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
+      if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced.");
+      if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — a 48-hour audit quantifies it fast.`);
+    }
   } else {
     id = "workshop";
     why.push("You are early in the journey, so structured scoping comes before a full audit, pilot, or integration.");
