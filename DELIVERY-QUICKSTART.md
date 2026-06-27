@@ -32,7 +32,19 @@ every section populated before you deliver. `--open` previews the audit PDF.
 ## Flags
 `--manifest <file>` raw manifest · `--name` · `--industry` · `--period` · `--reference`
 `--format` (generic|openai|mcp|…) · `--domains a,b` · `--trajectories <file>` ·
-`--decisions <file>` · `--open` · `--check` · `--check-chrome`
+`--decisions <file>` · `--open` · `--check` · `--check-chrome` · `--selftest` · `--print-chrome`
+
+## Chromium / PDF generation
+PDFs are rendered with headless Chromium. `npm run audit:setup` installs it
+automatically, but if you ever see `Chromium not found`:
+```bash
+npm run audit:chrome:install   # installs Chromium (apt → Playwright → Puppeteer),
+                               # verifies a real PDF render, writes CHROME_BIN
+npm run audit:selftest         # confirms PDF generation works
+```
+The kit also auto-installs Chromium on first run if it's missing (set
+`AUDIT_NO_AUTO_INSTALL=1` to disable). To pin a binary, set
+`CHROME_BIN=/path/to/chrome` in `.env.delivery`.
 
 ## Notes
 - `.env.delivery` and `/deliverables/` are gitignored (secrets + customer data).

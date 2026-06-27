@@ -21,17 +21,12 @@ else
   echo "  • node_modules present ✓"
 fi
 
-# 3) Chromium (best-effort; the kit also auto-discovers / accepts CHROME_BIN)
-if node scripts/delivery-kit.cjs --check-chrome >/dev/null 2>&1; then
-  echo "  • Chromium found ✓"
+# 3) Chromium — install + verify a real PDF render, persist CHROME_BIN
+if node scripts/delivery-kit.cjs --selftest >/dev/null 2>&1; then
+  echo "  • Chromium PDF rendering verified ✓"
 else
-  echo "  • Chromium not found — attempting install …"
-  if command -v apt-get >/dev/null 2>&1; then
-    sudo apt-get update -qq && (sudo apt-get install -y chromium || sudo apt-get install -y chromium-browser) || true
-  elif command -v brew >/dev/null 2>&1; then
-    brew install --cask chromium || true
-  fi
-  node scripts/delivery-kit.cjs --check-chrome || echo "    ↳ still missing — set CHROME_BIN=/path/to/chrome in .env.delivery"
+  echo "  • Chromium missing/unverified — running installer …"
+  bash scripts/install-chromium.sh || echo "    ↳ see messages above; set CHROME_BIN in .env.delivery if needed"
 fi
 
 echo ""
