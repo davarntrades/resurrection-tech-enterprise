@@ -156,10 +156,14 @@ $("r_run").addEventListener("click", async () => {
 async function showDeliverables(final, eng) {
   const d = $("deliverables"); d.classList.add("on");
   const s = final.summary || {};
-  const matrix = s.fields ? Object.entries(s.fields).map(([k, v]) => `${v ? "✅" : "🔴"} ${k}`).join(" · ") : "";
+  const pending = s.pending || [];
+  const matrix = s.fields ? Object.entries(s.fields).map(([k, v]) => `${v ? "✅" : pending.includes(k) ? "⏳" : "🔴"} ${k}`).join(" · ") : "";
+  const modeLabel = s.mode === "live" ? "🟢 Live Runtime Evidence" : s.mode === "deployment-ready" ? "🟡 Deployment Ready" : s.mode === "incomplete" ? "🔴 Incomplete" : "";
   $("deliv_meta").innerHTML = `Output: <span style="font-family:var(--mono);color:var(--ink-2)">${esc(final.dir)}</span>` +
+    (modeLabel ? `<br><span style="font-size:11px">Executive Report: <b>${esc(modeLabel)}</b></span>` : "") +
     (matrix ? `<br><span style="font-size:11px">${esc(matrix)}</span>` : "") +
-    (s.missing && s.missing.length ? `<br><span style="color:var(--omega);font-size:11px">Missing: ${esc(s.missing.join(", "))} — check engine connectivity.</span>` : "");
+    (pending.length ? `<br><span style="color:var(--ink-3);font-size:11px">⏳ Pending live evidence (by design): ${esc(pending.join(", "))} — populate after trajectories are replayed.</span>` : "") +
+    (s.missing && s.missing.length ? `<br><span style="color:var(--omega);font-size:11px">Missing structural evidence: ${esc(s.missing.join(", "))} — check engine connectivity.</span>` : "");
   $("files").innerHTML = final.files.map((f) => {
     const isPdf = f.endsWith(".pdf");
     const u = (dl) => `/api/file?dir=${encodeURIComponent(final.dir)}&file=${encodeURIComponent(f)}${dl ? "&dl=1" : ""}`;

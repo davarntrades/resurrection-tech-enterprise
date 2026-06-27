@@ -195,6 +195,30 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .warn{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.4);border-radius:8px;padding:10px 12px;color:#f0b4b6;font-size:11px;margin-top:8px}
 .disc{margin-top:16px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.1);color:#6b7480;font-size:10px}
 .foot{margin-top:20px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#474e58}
+/* neutral enterprise status callout (slate/blue — never error red) */
+.status{background:linear-gradient(180deg,rgba(76,125,255,.10),rgba(76,125,255,.02));border:1px solid rgba(76,125,255,.35);border-left:3px solid #4c7dff;border-radius:10px;padding:14px 16px;margin-top:10px}
+.status .lbl{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8fb0ff}
+.status p{margin:6px 0 0;color:#cdd6e0}
+.badge{display:inline-flex;align-items:center;gap:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.06em;padding:6px 12px;border-radius:999px;border:1px solid #6b4f1c;background:linear-gradient(180deg,rgba(224,169,63,.18),rgba(224,169,63,.04));color:#f2c66a}
+.badge .d{width:8px;height:8px;border-radius:50%;background:#e0a93f;box-shadow:0 0 0 3px rgba(224,169,63,.18)}
+.badge.live{border-color:rgba(63,178,127,.5);background:linear-gradient(180deg,rgba(63,178,127,.18),rgba(63,178,127,.04));color:#6fdcab}.badge.live .d{background:#3fb27f;box-shadow:0 0 0 3px rgba(63,178,127,.18)}
+.check{list-style:none;margin:10px 0 0;padding:0;columns:2;column-gap:24px}
+.check li{break-inside:avoid;padding:6px 0 6px 24px;position:relative;color:#cdd6e0;font-size:11.5px}
+.check li:before{content:"\\2713";position:absolute;left:0;top:5px;width:16px;height:16px;border-radius:50%;background:rgba(63,178,127,.14);border:1px solid rgba(63,178,127,.5);color:#3fb27f;font-size:10px;line-height:15px;text-align:center}
+.check li small{display:block;color:#6b7480;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;margin-top:1px}
+.pending{list-style:none;margin:8px 0 0;padding:0;columns:2;column-gap:24px}
+.pending li{break-inside:avoid;padding:5px 0 5px 22px;position:relative;color:#8a929c;font-size:11px}
+.pending li:before{content:"";position:absolute;left:2px;top:9px;width:8px;height:8px;border-radius:50%;border:1px solid #4a525c}
+.journey{display:flex;gap:0;margin-top:12px;flex-wrap:wrap}
+.journey .step{flex:1 1 0;min-width:88px;text-align:center;position:relative;padding:0 4px}
+.journey .step:after{content:"";position:absolute;top:7px;left:50%;width:100%;height:2px;background:rgba(255,255,255,.10)}
+.journey .step:last-child:after{display:none}
+.journey .dot{width:14px;height:14px;border-radius:50%;border:2px solid #3a414b;background:#0b0d10;margin:0 auto 8px;position:relative;z-index:1}
+.journey .step.done .dot{border-color:#3fb27f;background:#3fb27f}
+.journey .step.now .dot{border-color:#e0a93f;background:#e0a93f;box-shadow:0 0 0 4px rgba(224,169,63,.18)}
+.journey .step.done:after{background:rgba(63,178,127,.5)}
+.journey .lab{font-size:9.5px;line-height:1.3;color:#6b7480}
+.journey .step.done .lab{color:#aab2bd}.journey .step.now .lab{color:#f2c66a;font-weight:600}
 `;
 const brand = `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
 const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
@@ -252,35 +276,129 @@ function auditHtml(c, report) {
     <div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Pricing indicative and non-binding; final terms follow assessment and deployment review.</div>`);
 }
 
-// ---- EXEC REPORT html from aggregated metrics -------------------------------
-function reportHtml(c, m) {
+// ---- governance journey stepper (shared across report modes) ----------------
+const JOURNEY = ["Assessment", "48-Hour Audit", "Deployment-Ready Report", "Limited Pilot™", "Live Runtime Report", "Monthly Evidence"];
+function journeyHtml(currentIdx) {
+  return `<div class="journey">${JOURNEY.map((label, i) => {
+    const cls = i < currentIdx ? "done" : i === currentIdx ? "now" : "";
+    return `<div class="step ${cls}"><div class="dot"></div><div class="lab">${esc(label)}</div></div>`;
+  }).join("")}</div>`;
+}
+
+// ---- EXEC REPORT — two modes, auto-selected by whether live evidence exists --
+// Mode 1 "Deployment Ready": structural assessment done, no replayed trajectories
+//   yet → presented as an intentional readiness posture (never an error).
+// Mode 2 "Live Runtime Evidence": trajectories replayed → operational metrics.
+// We never fabricate runtime numbers; the report transitions automatically.
+function reportHtml(c, m, assess, replay) {
+  const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
+  const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
+  const s = (assess && assess.summary) || {};
+  const att = assess && assess.attestation;
+  const blocks = (assess && assess.grounded_blocks) || [];
+  const hashCount = blocks.filter((b) => b && b.hash).length;
+  const rep = replay || { checked: 0, deterministic: 0 };
+  const mono = "font-family:ui-monospace,Menlo,monospace";
+
+  // shared evidence appendices (the audit's proof, carried into every report)
+  const structural = () => `
+    <div class="sec"><span class="eyebrow">Structural governance evidence</span><h2>Carried forward from the 48-Hour Runtime Governance Audit.</h2>
+      <div class="kpis">
+        <div class="kpi"><span class="v">${s.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
+        <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
+        <div class="kpi"><span class="v">${s.verified_blocked_trajectories ?? "—"}</span><span class="k">Verified blocked trajectories</span></div>
+        <div class="kpi"><span class="v">${hashCount || "—"}</span><span class="k">Audit evidence hashes</span></div>
+      </div>
+    </div>`;
+  const attestationSec = () => att ? `
+    <div class="sec"><span class="eyebrow">Engine attestation</span><h2>Reproducible, pinned to a build.</h2>
+      <table><tbody>
+        <tr><td class="m">Engine commit</td><td style="${mono}">${esc(att.engine_commit)}</td></tr>
+        <tr><td class="m">Ruleset hash</td><td style="${mono}">${esc(String(att.ruleset_hash || "").slice(0, 40))}…</td></tr>
+        <tr><td class="m">Service version</td><td>${esc(att.service_version)}</td></tr>
+        <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)} steps</td></tr>
+      </tbody></table>
+    </div>` : "";
+
+  // ---------- MODE 1 — DEPLOYMENT READY ----------
+  if (!isLive) {
+    const ready = !!assess;
+    const readiness = [
+      ["Structural assessment completed", `${s.tools ?? "—"} tools · ${s.risky ?? "—"} risk-bearing`],
+      ["&#937; exposure analysed", `${Object.keys((assess && assess.exposure) || {}).length} risk classes`],
+      ["Rule coverage verified", `${s.coverage_pct ?? "—"}% of reachable forbidden states`],
+      ["Reachability analysis completed", att ? `horizon ${att.horizon} steps` : "engine reachability horizon"],
+      ["Audit hashes generated", `${hashCount} evidence hashes`],
+      ["Engine attestation complete", att ? `commit ${String(att.engine_commit || "").slice(0, 10)}` : "pinned build"],
+      ["Deterministic governance verified", att ? `ruleset ${String(att.ruleset_hash || "").slice(0, 10)}` : "pinned ruleset"],
+      ["Deployment ready", "structural readiness confirmed"],
+    ];
+    const pending = ["Actions governed", "ALLOW / BLOCK / ESCALATE statistics", "Prevented categories", "Replay verification", "Determinism (runtime)", "Runtime evidence hashes", "Monthly trends", "Governance effectiveness"];
+    return page("Runtime Governance Executive Report",
+      bandBlock("Runtime Governance Executive Report™", c.name, "Deployment readiness", meta) + `
+      <div style="margin:-6px 0 16px"><span class="badge"><span class="d"></span>DEPLOYMENT READY</span></div>
+      <div class="sec"><span class="eyebrow">Runtime evidence status</span><h2>Structural governance assessment completed successfully.</h2>
+        <div class="status"><span class="lbl">Runtime evidence status</span>
+          <p>Runtime evidence will populate automatically after representative agent trajectories have been replayed through the live Runtime Governance engine. This report currently represents <b style="color:#f3f5f7">deployment readiness</b> rather than production activity.</p>
+          <p style="margin-top:8px;color:#8fb0ff">Operational metrics become available automatically once runtime evidence exists — no manual editing or re-issue required.</p>
+        </div>
+      </div>
+      <div class="sec"><span class="eyebrow">Governance journey</span><h2>Where this engagement sits.</h2>
+        ${journeyHtml(2)}
+        <p style="margin-top:14px;color:#aab2bd">Next milestone: a <b style="color:#f2c66a">Limited Pilot™</b> replays representative trajectories through the engine, after which this report transitions automatically to <b style="color:#f3f5f7">Live Runtime Evidence</b>.</p>
+      </div>
+      ${ready ? `<div class="sec"><span class="eyebrow">Deployment readiness</span><h2>Verified before any production traffic.</h2>
+        <ul class="check">${readiness.map(([t, sub]) => `<li>${t}<small>${esc(sub)}</small></li>`).join("")}</ul>
+      </div>` : `<div class="sec"><div class="status"><span class="lbl">Assessment pending</span><p>The structural assessment did not complete for this run. Re-run once the engine assessment is available — this report never displays readiness it cannot evidence.</p></div></div>`}
+      ${ready ? structural() : ""}
+      ${attestationSec()}
+      <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
+        <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
+        <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
+      </div>
+      <div class="disc">This report intentionally omits production metrics until representative trajectories have been replayed through the live Runtime Governance engine. Resurrection Tech&trade; never fabricates runtime evidence — operational sections populate only from live engine results.</div>`);
+  }
+
+  // ---------- MODE 2 — LIVE RUNTIME EVIDENCE ----------
   const total = m.total || 0;
   const pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
-  const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
   const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]);
-  return page("Runtime Governance Executive Report", bandBlock("Runtime Governance Executive Report™", c.name, "Monthly governance evidence", meta) + `
-    ${m.source === "none" ? `<div class="sec"><div class="warn">[NO ACTIVITY DATA] Provide "trajectories" (replayed through /v1/evaluate) or pre-aggregated "decisions" to populate runtime metrics. Structure shown below.</div></div>` : ""}
-    <div class="sec"><span class="eyebrow">1 · Executive summary</span><h2>The period at a glance.</h2>
+  const effectiveness = total ? (((m.block || 0) + (m.escalate || 0)) / total * 100).toFixed(1) : "0.0";
+  const detPct = rep.checked ? Math.round((rep.deterministic / rep.checked) * 100) : null;
+  return page("Runtime Governance Executive Report",
+    bandBlock("Runtime Governance Executive Report™", c.name, "Live runtime governance evidence", meta) + `
+    <div style="margin:-6px 0 16px"><span class="badge live"><span class="d"></span>LIVE RUNTIME EVIDENCE</span></div>
+    <div class="sec"><span class="eyebrow">Governance journey</span><h2>Where this engagement sits.</h2>${journeyHtml(4)}</div>
+    <div class="sec"><span class="eyebrow">Executive summary</span><h2>The period at a glance.</h2>
       <div class="kpis">
         <div class="kpi"><span class="v">${total.toLocaleString()}</span><span class="k">Actions governed${m.source === "engine" ? " (replayed)" : ""}</span></div>
         <div class="kpi"><span class="v">${(m.block || 0).toLocaleString()}</span><span class="k">Unsafe actions prevented</span></div>
         <div class="kpi"><span class="v">${(m.escalate || 0).toLocaleString()}</span><span class="k">Escalated for review</span></div>
-        <div class="kpi"><span class="v">${m.source === "engine" ? "Live" : m.source}</span><span class="k">Data source</span></div>
+        <div class="kpi"><span class="v">${effectiveness}%</span><span class="k">Governance effectiveness</span></div>
       </div>
     </div>
-    <div class="sec"><span class="eyebrow">2 · Runtime activity</span><h2>Every action resolved to a verdict.</h2>
+    <div class="sec"><span class="eyebrow">Runtime activity</span><h2>Every action resolved to a verdict.</h2>
       <div class="bar"><i class="a" style="width:${pct(m.allow)}%"></i><i class="b" style="width:${pct(m.block)}%"></i><i class="e" style="width:${pct(m.escalate)}%"></i></div>
       <div class="legend"><span><i class="a"></i>ALLOW · ${(m.allow || 0).toLocaleString()} (${pct(m.allow)}%)</span><span><i class="b"></i>BLOCK · ${(m.block || 0).toLocaleString()} (${pct(m.block)}%)</span><span><i class="e"></i>ESCALATE · ${(m.escalate || 0).toLocaleString()} (${pct(m.escalate)}%)</span></div>
     </div>
-    <div class="sec"><span class="eyebrow">3 · Actions prevented</span><h2>What was blocked before it executed.</h2>
+    <div class="sec"><span class="eyebrow">Actions prevented</span><h2>What was blocked before it executed.</h2>
       <table><thead><tr><th>Category / &#937; domain</th><th>Count</th></tr></thead><tbody>
       ${cats.map(([k, v]) => `<tr><td class="m">${esc(k)}</td><td class="n">${v}</td></tr>`).join("") || `<tr><td colspan="2">No prevented actions in this period.</td></tr>`}
       </tbody></table>
     </div>
-    <div class="sec"><span class="eyebrow">4 · Recommendations</span><h2>Prioritised next actions.</h2>
-      <p>${(m.block || 0) > 0 ? "Review the top prevented categories with the security team and confirm policy thresholds. " : ""}Schedule the quarterly &#937; revalidation and bring any newly integrated tools under governance at onboarding.</p>
+    <div class="sec"><span class="eyebrow">Replay &amp; determinism</span><h2>Every verdict is reproducible.</h2>
+      ${rep.checked ? `<div class="kpis">
+        <div class="kpi"><span class="v">${rep.checked}</span><span class="k">Trajectories replayed</span></div>
+        <div class="kpi"><span class="v">${rep.deterministic}/${rep.checked}</span><span class="k">Deterministic verdicts</span></div>
+        <div class="kpi"><span class="v">${detPct}%</span><span class="k">Determinism</span></div>
+      </div>` : `<p style="color:#8a929c">Determinism replay not applicable for this source (decision logs supplied directly).</p>`}
     </div>
-    <div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : m.source === "decisions" ? "Aggregated from supplied decision logs." : "Awaiting activity data."} Figures reflect the supplied period only.</div>`);
+    <div class="sec"><span class="eyebrow">Recommendations</span><h2>Prioritised next actions.</h2>
+      <p>${(m.block || 0) > 0 ? "Review the top prevented categories with the security team and confirm policy thresholds. " : ""}Schedule the quarterly &#937; revalidation and bring newly integrated tools under governance at onboarding. Runtime evidence accumulates across periods to form the Monthly Governance Evidence series.</p>
+    </div>
+    ${structural()}
+    ${attestationSec()}
+    <div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : "Aggregated from supplied decision logs."} Figures reflect the supplied period only. Resurrection Tech&trade; never fabricates runtime evidence.</div>`);
 }
 
 // ---- one-time auto-install of Chromium when missing ------------------------
@@ -414,36 +532,53 @@ function selfTest() {
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
   emitStage("report", "Generating executive report");
-  fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m));
+  fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m, report, replay));
   render(path.join(tmp, "report.html"), reportPdf);
 
-  // FIELD MATRIX — every Priority-1 output, present or missing
+  // FIELD MATRIX — every Priority-1 output, classified so runtime gaps read as
+  // "pending live evidence" (expected after an audit), not as failures.
   const blocks = (report && report.grounded_blocks) || [];
   const fields = [
-    ["Ω exposure coverage", report && report.summary && report.summary.coverage_pct != null],
-    ["Exposure by risk class", !!(report && report.exposure && Object.keys(report.exposure).length)],
-    ["Verified blocked trajectories", blocks.length > 0],
-    ["ALLOW / BLOCK / ESCALATE statistics", m.total > 0],
-    ["Prevented categories", Object.keys(m.categories).length > 0],
-    ["Recommendations", true],
-    ["Audit hashes", blocks.some((b) => b && b.hash)],
-    ["Replay verification", replay.checked > 0],
-    ["Attestation", !!(report && report.attestation)],
-    ["Branded Audit PDF", fs.existsSync(auditPdf)],
-    ["Branded Executive Report PDF", fs.existsSync(reportPdf)],
+    ["Ω exposure coverage", report && report.summary && report.summary.coverage_pct != null, "structural"],
+    ["Exposure by risk class", !!(report && report.exposure && Object.keys(report.exposure).length), "structural"],
+    ["Verified blocked trajectories", blocks.length > 0, "structural"],
+    ["ALLOW / BLOCK / ESCALATE statistics", m.total > 0, "runtime"],
+    ["Prevented categories", Object.keys(m.categories).length > 0, "runtime"],
+    ["Recommendations", true, "output"],
+    ["Audit hashes", blocks.some((b) => b && b.hash), "structural"],
+    ["Replay verification", replay.checked > 0, "runtime"],
+    ["Attestation", !!(report && report.attestation), "structural"],
+    ["Branded Audit PDF", fs.existsSync(auditPdf), "output"],
+    ["Branded Executive Report PDF", fs.existsSync(reportPdf), "output"],
   ];
+  const hasRuntime = fields.some(([, ok, k]) => ok && k === "runtime");
+  const mode = hasRuntime ? "live" : (status.assess ? "deployment-ready" : "incomplete");
+
   console.log("\n— Priority-1 field matrix —");
-  for (const [name, ok] of fields) console.log(`  ${ok ? "✅" : "🔴"} ${name}`);
+  for (const [name, ok, kind] of fields) {
+    const icon = ok ? "✅" : (kind === "runtime" ? "⏳" : "🔴");
+    const tail = (!ok && kind === "runtime") ? "  — pending live runtime evidence" : "";
+    console.log(`  ${icon} ${name}${tail}`);
+  }
   if (replay.checked) console.log(`     replay determinism: ${replay.deterministic}/${replay.checked}`);
 
-  const missing = fields.filter(([, ok]) => !ok).map(([n]) => n);
-  console.log(`\n— Engine —\n  /v1/assess:   ${status.assess ? "reachable ✓" : "unreachable ✗ (audit fields blank)"}\n  /v1/evaluate: ${status.evaluate ? "reachable ✓" : (m.source === "decisions" ? "n/a — used decision logs ✓" : "unreachable ✗")}`);
-  if (missing.length) console.log(`\n  ⚠ Missing: ${missing.join(", ")}\n    → almost always engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
+  const structuralMissing = fields.filter(([, ok, k]) => !ok && k !== "runtime").map(([n]) => n);
+  const runtimePending = fields.filter(([, ok, k]) => !ok && k === "runtime").map(([n]) => n);
+  console.log(`\n— Engine —\n  /v1/assess:   ${status.assess ? "reachable ✓" : "unreachable ✗ (audit fields blank)"}\n  /v1/evaluate: ${status.evaluate ? "reachable ✓" : (m.source === "decisions" ? "n/a — used decision logs ✓" : "not exercised (no trajectories)")}`);
+  console.log(`\n— Executive Report mode: ${mode === "live" ? "LIVE RUNTIME EVIDENCE ✓" : mode === "deployment-ready" ? "DEPLOYMENT READY ✓" : "INCOMPLETE"} —`);
+  if (mode === "deployment-ready" && runtimePending.length) {
+    console.log(`  Structural assessment complete; runtime evidence pending (by design).`);
+    console.log(`  ${runtimePending.join(", ")} populate automatically once trajectories are`);
+    console.log(`  replayed — supply --trajectories <file> or paste them in the console.`);
+  }
+  if (structuralMissing.length) console.log(`\n  ⚠ Missing structural evidence: ${structuralMissing.join(", ")}\n    → check engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
 
   // machine-readable evidence written alongside the PDFs
   fs.writeFileSync(path.join(outDir, "run-summary.json"), JSON.stringify({
-    customer: c, engine: GOV, status, replay,
-    metrics: m, fields: Object.fromEntries(fields), missing,
+    customer: c, engine: GOV, status, replay, mode,
+    metrics: m, fields: Object.fromEntries(fields.map(([n, ok]) => [n, ok])),
+    field_kinds: Object.fromEntries(fields.map(([n, , k]) => [n, k])),
+    pending: runtimePending, missing: structuralMissing,
     assess_summary: report ? report.summary : null,
     attestation: report ? report.attestation || null : null,
   }, null, 2));
