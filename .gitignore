@@ -61,3 +61,6 @@ __pycache__/
 
 # Delivery-kit local config (secrets)
 .env.delivery
+
+# Analyst Console local data (private client records)
+/console/data/

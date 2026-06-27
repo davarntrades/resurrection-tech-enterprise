@@ -1,8 +1,8 @@
 # Internal Analyst Platform — Architecture & Plan
 
-Status: **Phase 1 shipped.** Phases 2+ planned below. Nothing here replaces the
-Runtime Governance engine, Delivery Kit, or PDF pipeline — they are treated as
-production-ready and reused as-is.
+Status: **Phase 1 + Phase 2 shipped.** Phases 3+ planned below. Nothing here
+replaces the Runtime Governance engine, Delivery Kit, or PDF pipeline — they are
+treated as production-ready and reused as-is.
 
 ---
 
@@ -34,23 +34,30 @@ app for multiple analysts. This keeps 100% of Runtime Governance private.
 
 ---
 
-## Phase 2 — Analyst Console (build order)
-1. **`engagements` table** (Supabase, RLS on, service-role only — same posture as
-   `assessments`): customer, company, industry, reference, engagement_type,
-   analyst, status, notes, reports[], proposal_status, pilot_reco,
-   enterprise_reco, invoice_status, delivery_status, created_at.
-2. **Auth gate** — analysts only. v1: reuse the existing Basic-Auth posture (the
-   `/admin/*` proxy) or an email allowlist; v2: Supabase Auth / magic-link for
+## Phase 2 — Analyst Console ✅ (done, Option A1 local)
+Built as a **separate, internal** zero-dependency Node app under `console/` —
+never the public site. `npm run console` → authed `http://127.0.0.1:8787`. See
+`console/README.md`. Delivered:
+1. **Engagement store** — local JSON (`console/data/engagements.json`, gitignored)
+   with the full record (customer, company, industry, reference, engagement_type,
+   analyst, status, notes, reports[], proposal_status, pilot_reco, enterprise_reco,
+   invoice_status, delivery_status, created_at). *Swap for a Supabase
+   `engagements` table (RLS on, service-role) at multi-analyst scale — UI contract
+   unchanged.*
+2. **Auth gate** — fail-closed Basic Auth (`ANALYST_USER`/`ANALYST_PASSWORD`); the
+   server refuses to start without credentials. v2: Supabase Auth / magic-link for
    per-analyst identity + audit log.
-3. **Intake + upload UI** — customer fields + manifest upload (JSON/YAML/TXT/MD/
-   paste). Normalisation is already handled: the engine accepts raw
-   `manifest_text` + `format`, so upload → pass through (no rewrite).
-4. **Run Audit** — one button → server endpoint that invokes the **existing**
-   Delivery Kit (no engine duplication) and streams staged progress (parsing →
-   assessment → Ω exposure → replay → determinism → audit → exec report → done).
-5. **Deliverables** — download/preview Audit, Executive Report, Run Summary;
-   store in a **private** bucket (see delivery model below).
-6. **Client management** — list/filter engagements; per-record status workflow.
+3. **Intake + upload UI** — customer fields + manifest upload/paste (any format);
+   passed straight through as `manifest_text` (no rewrite).
+4. **Run Audit** — one button → `/api/run` spawns the **existing** kit
+   (`RT_CONSOLE=1` stage markers) and streams staged ndjson progress (parsing →
+   assessment → Ω exposure → audit → replay → determinism → exec report →
+   complete) + the live kit log.
+5. **Deliverables** — preview/download Audit, Executive Report, Run Summary;
+   field matrix shown; files served path-scoped under `/deliverables`
+   (traversal-blocked). *Private bucket + signed links = next (below).*
+6. **Client management** — engagement list with inline status / proposal /
+   invoice / delivery workflow; generated reports auto-attach to the record.
 
 ## Phases 3+ (additions, not redesigns)
 Discovery Workshops · Runtime Safety Assessments · Pilots · Enterprise
@@ -82,12 +89,10 @@ Goal: protect confidentiality, never expose internal infra, premium feel.
 
 ---
 
-## Single open decision (determines the Phase 2 build)
-**Where should the Analyst Console run?**
-- **A1 — Local/internal (solo, fastest):** `npm run console` launches an authed
-  localhost app wrapping the Kit. Zero new infra. Best first step.
-- **A2 — Railway internal app (multi-analyst):** deploy the console privately on
-  Railway with Chromium + Supabase + auth.
-- **B — Vercel UI + Railway worker:** only if you need the UI public-but-gated.
-
-Recommended path: **A1 now, A2 when a second analyst joins.**
+## Host decision — RESOLVED: A1 (local/internal, solo)
+`npm run console` launches the authed localhost app wrapping the Kit — zero new
+infra. **Graduation path when a second analyst joins → A2:** containerise
+`console/` (it already has no Vercel coupling), add Chromium, move the engagement
+store to Supabase, deploy **privately** on Railway behind auth. (B — Vercel UI +
+Railway worker — only if the UI itself must be publicly reachable; not needed for
+an internal tool.)

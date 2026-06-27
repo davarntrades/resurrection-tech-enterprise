@@ -1,0 +1,54 @@
+# Runtime Governance Analyst Console (internal)
+
+Private, authenticated web app that wraps the existing Delivery Kit so an audit
+is **Upload Manifest → Run Audit → Review Deliverables**. Customers never reach
+this app, the engine, the kit, analyst tools, or pre-delivery reports.
+
+> Runs where the kit already runs (Chromium + engine access). It is **not** the
+> public marketing site and must never be deployed to Vercel or exposed publicly.
+
+## Start
+```bash
+# one-time: set analyst credentials in .env.delivery (gitignored)
+ANALYST_USER=your.name
+ANALYST_PASSWORD=$(node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))")
+# (also set GOVERNANCE_TOKEN so the executive-report replay populates)
+
+npm run console
+# → http://127.0.0.1:8787   (Basic Auth: the analyst credentials above)
+```
+The server **refuses to start without credentials** (fail-closed). It binds to
+`127.0.0.1` by default; forward the port (e.g. Codespaces) if you need remote
+access for yourself — keep it private.
+
+## What it does
+- **Engagement intake** — record customer/company/industry/reference/type/notes.
+- **Run** — upload or paste a manifest (any format) + period/format/Ω domains +
+  optional trajectories → one button → **live staged progress** (parsing →
+  assessment → Ω exposure → audit → replay → determinism → exec report →
+  complete) streamed from the kit.
+- **Deliverables** — preview/download the branded Audit PDF, Executive Report
+  PDF, and run-summary.json; the Priority-1 field matrix shows what populated.
+- **Clients** — private engagement records with status / proposal / invoice /
+  delivery workflow; generated reports attach to the record automatically.
+
+## Architecture
+- `server.cjs` — zero-dependency Node `http` server: Basic-Auth gate, engagement
+  store (`console/data/engagements.json`, gitignored), and `/api/run` which
+  spawns `scripts/delivery-kit.cjs` (env `RT_CONSOLE=1` for stage markers) and
+  streams ndjson events. Deliverable serving is path-scoped under
+  `/deliverables` (traversal-blocked).
+- `public/` — single-page UI (`index.html`, `app.css`, `app.js`).
+- The Runtime Governance engine, Delivery Kit, and PDF pipeline are reused
+  as-is — nothing here reimplements them.
+
+## Data store
+Solo v1 uses a local JSON file. To scale to multiple analysts, swap
+`loadEngagements`/`saveEngagements` for Supabase (service-role, RLS on — same
+posture as `assessments`) without changing the UI contract.
+
+## Secure delivery (next)
+Reports stay private to the console. To share: store in a **private** bucket and
+issue **short-lived signed links** (7–14 days, revocable) to the named contact —
+never email the raw PDF as the primary channel, and never expose the console,
+kit, or engine. See `../PLATFORM-PLAN.md`.

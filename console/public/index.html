@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Resurrection Tech™ — Runtime Governance Analyst Console</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="r">&#8475;(t)</span>
+      <div>
+        <span class="name">Resurrection Tech&trade; Runtime Governance Analyst Console</span>
+        <span class="sub">Internal · Confidential</span>
+      </div>
+    </div>
+    <div class="who" id="who">…</div>
+  </header>
+
+  <div class="grid">
+    <!-- ENGAGEMENT INTAKE -->
+    <section class="card">
+      <span class="eyebrow">1 · Engagement</span>
+      <h2>New engagement</h2>
+      <p class="hint">Record the client before running. Stored privately on this box.</p>
+      <div class="row">
+        <div><label>Customer contact</label><input id="e_customer" placeholder="Jane Doe"></div>
+        <div><label>Company</label><input id="e_company" placeholder="Meridian Health Systems"></div>
+      </div>
+      <div class="row">
+        <div><label>Industry</label><input id="e_industry" placeholder="Healthcare"></div>
+        <div><label>Assessment reference</label><input id="e_reference" placeholder="RT-MHS-2026-05"></div>
+      </div>
+      <div class="row">
+        <div><label>Engagement type</label>
+          <select id="e_type">
+            <option>48-Hour Audit</option><option>Discovery Workshop</option>
+            <option>Runtime Safety Assessment</option><option>Limited Pilot</option>
+            <option>Enterprise Integration</option><option>Monthly Governance Report</option>
+          </select>
+        </div>
+        <div><label>Analyst</label><input id="e_analyst" placeholder="(you)"></div>
+      </div>
+      <label>Analyst notes</label>
+      <textarea id="e_notes" placeholder="Scope, contacts, context…" style="min-height:60px"></textarea>
+      <div style="margin-top:14px"><button class="btn" id="e_create">Create engagement</button></div>
+    </section>
+
+    <!-- RUN AUDIT -->
+    <section class="card">
+      <span class="eyebrow">2 · Run</span>
+      <h2>Runtime Governance Audit</h2>
+      <p class="hint">Upload or paste the customer's tool manifest (any format). The
+        engine, kit, and prompts stay server-side — never sent to the browser.</p>
+      <label>Engagement</label>
+      <select id="r_engagement"><option value="">— ad-hoc (no record) —</option></select>
+      <div class="row">
+        <div><label>Customer / org name</label><input id="r_name" placeholder="Meridian Health Systems"></div>
+        <div><label>Period</label><input id="r_period" placeholder="May 2026"></div>
+      </div>
+      <div class="row">
+        <div><label>Format</label>
+          <select id="r_format"><option value="generic">generic</option><option>openai</option><option>mcp</option><option>anthropic</option></select>
+        </div>
+        <div><label>Ω domains (comma)</label><input id="r_domains" placeholder="healthcare,finance"></div>
+      </div>
+      <label>Manifest — upload <span class="kbd">JSON/YAML/TXT/MD</span> or paste below</label>
+      <input type="file" id="r_file" accept=".json,.yaml,.yml,.txt,.md,.markdown,text/*" style="margin-bottom:8px">
+      <textarea id="r_manifest" placeholder="Paste raw manifest here, or choose a file above…"></textarea>
+      <label>Trajectories for executive report (optional JSON array)</label>
+      <textarea id="r_traj" placeholder='[[{"tool":"delete_record","args":{}}]]' style="min-height:60px"></textarea>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button class="btn" id="r_run">▶ Run Runtime Governance Audit</button>
+        <span id="r_status" style="font-family:var(--mono);font-size:11px;color:var(--ink-3)"></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- PROGRESS + DELIVERABLES -->
+  <section class="card" id="run_card" style="display:none">
+    <span class="eyebrow">Live</span>
+    <h2 id="run_title">Audit in progress…</h2>
+    <div class="stages" id="stages"></div>
+    <div class="log" id="log"></div>
+    <div class="deliverables" id="deliverables">
+      <h2 style="margin-top:14px;font-size:14px">Deliverables</h2>
+      <p class="hint" id="deliv_meta"></p>
+      <div id="files"></div>
+      <p class="note">Reports are private to this console until you explicitly share them.
+        Never email the raw PDF as the primary channel; deliver via a signed expiring link.</p>
+    </div>
+  </section>
+
+  <!-- CLIENT MANAGEMENT -->
+  <section class="card">
+    <span class="eyebrow">3 · Clients</span>
+    <h2>Engagement records</h2>
+    <p class="hint">Private client management. Status drives the workflow: intake → audited → delivered.</p>
+    <div id="engagements"><p class="empty">No engagements yet.</p></div>
+  </section>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

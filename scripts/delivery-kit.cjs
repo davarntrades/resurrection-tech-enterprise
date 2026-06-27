@@ -46,6 +46,10 @@ const path = require("node:path");
 
 const GOV = (process.env.GOVERNANCE_URL || "https://resurrection-tech-enterprise-production.up.railway.app").replace(/\/$/, "");
 
+// Opt-in staged progress for the Analyst Console (RT_CONSOLE=1). Emits a single
+// parseable line per stage; hand-run CLI output is unchanged when unset.
+const emitStage = (k, label) => { if (process.env.RT_CONSOLE) process.stdout.write(`__STAGE__:${k}:${label}\n`); };
+
 // ---- portable Chromium discovery -------------------------------------------
 function pwChromiumCandidates() {
   const base = "/opt/pw-browsers";
@@ -289,6 +293,7 @@ function render(htmlPath, pdfPath) {
   const replay = { checked: 0, deterministic: 0 };
 
   console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${srcLabel}\n  engine: ${GOV}\n  output: ${outDir}\n`);
+  emitStage("parsing", "Parsing manifest");
 
   // AUDIT (/v1/assess) — accepts a parsed manifest array OR raw manifest_text
   let report = null;
@@ -296,6 +301,7 @@ function render(htmlPath, pdfPath) {
     (typeof input.manifest_text === "string" && input.manifest_text.trim());
   if (haveManifest) {
     console.log("• Audit: assessing manifest via /v1/assess …");
+    emitStage("assessment", "Runtime assessment");
     report = await assess({
       manifest: Array.isArray(input.manifest) && input.manifest.length ? input.manifest : undefined,
       manifest_text: input.manifest_text,
@@ -303,6 +309,8 @@ function render(htmlPath, pdfPath) {
     });
     status.assess = !!report;
   } else console.log("• Audit: no manifest supplied — skipping assess.");
+  emitStage("exposure", "Ω exposure mapping");
+  emitStage("audit", "Generating audit PDF");
   fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report));
   render(path.join(tmp, "audit.html"), auditPdf);
 
@@ -316,6 +324,8 @@ function render(htmlPath, pdfPath) {
     }
   } else if (Array.isArray(input.trajectories) && input.trajectories.length) {
     console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate (+ determinism check) …`);
+    emitStage("replay", "Replaying trajectories");
+    emitStage("determinism", "Determinism verification");
     for (const traj of input.trajectories) {
       const g = await evaluate(traj, input.domains);
       if (g && !g.__error) {
@@ -327,6 +337,7 @@ function render(htmlPath, pdfPath) {
     }
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
+  emitStage("report", "Generating executive report");
   fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m));
   render(path.join(tmp, "report.html"), reportPdf);
 
@@ -362,6 +373,8 @@ function render(htmlPath, pdfPath) {
   }, null, 2));
 
   console.log(`\nDeliverables:\n  ${auditPdf}\n  ${reportPdf}\n  ${path.join(outDir, "run-summary.json")}\n`);
+  emitStage("complete", "Complete");
+  if (process.env.RT_CONSOLE) process.stdout.write(`__RESULT__:${path.relative(path.join(__dirname, ".."), outDir)}\n`);
 
   if (process.argv.includes("--open")) {
     const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
