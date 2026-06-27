@@ -7,7 +7,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Runtime Governance Enterprise Assessment, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -70,6 +70,7 @@ const PATHWAYS = [
   ["Free Discovery / Questionnaire Review", "Establish fit and high-level risk context", "Discovery call", "No charge"],
   ["Paid Discovery Workshop™", "Structured scoping before audit, pilot, or integration", "Short engagement", "£5K–£50K+"],
   ["Runtime Governance Audit", "Identify catastrophic trajectory exposure and governance gaps", "48 hours", "£40K–£75K"],
+  ["Runtime Governance Enterprise Assessment™", "Multi-agent, cross-system governance review with board-ready executive evidence", "2–4 weeks", "£100K+"],
   ["Limited Pilot™", "Validate governance against real workflows and operational environments", "30–60 days", "£250K–£750K+"],
   ["Enterprise Integration™", "One-time production deployment into operational systems", "Deployment dependent", "By commercial review"],
   ["Annual Runtime Governance™ License™", "Ongoing runtime governance, monitoring, updates, support, and revalidation", "Annual", "£75K–£500K+ / yr"],
@@ -128,6 +129,98 @@ export default function Page() {
           </p>
 
           <PricingDisclaimer variant="full" />
+        </div>
+      </section>
+
+      {/* ===== RUNTIME GOVERNANCE ENTERPRISE ASSESSMENT (premium tier) ===== */}
+      <section className="section section--tight" id="enterprise-assessment">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Premium engagement tier</span>
+            <h2>Runtime Governance Enterprise Assessment™</h2>
+            <p>We reduce uncertainty before deployment by identifying catastrophic trajectories, producing executive evidence, and recommending governance actions.</p>
+          </div>
+
+          <div className="dw-intro reveal" data-d="1">
+            <p>
+              The broader-scope engagement for organisations running multiple agents across
+              connected systems. Where the 48-Hour Runtime Governance Audit measures a single
+              environment, the Enterprise Assessment maps reachable Ω exposure across your
+              multi-agent architecture, produces board-ready evidence, and hands you a concrete
+              governance roadmap and integration blueprint — delivered with executive and technical
+              stakeholders in the room.
+            </p>
+          </div>
+
+          <div className="scale-grid">
+            <div className="scale-col is reveal">
+              <h3>Review &amp; analysis</h3>
+              {[
+                "Multi-agent architecture review",
+                "Enterprise Ω mapping",
+                "Cross-system reachability analysis",
+                "Replay evidence",
+                "ROI analysis",
+              ].map((t) => (
+                <div className="scale-li" key={t}>
+                  <span className="ic">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 L6.5 12 L13 4" stroke="#6f97ff" strokeWidth="1.6" /></svg>
+                  </span>
+                  <span className="txt">{t}</span>
+                </div>
+              ))}
+            </div>
+            <div className="scale-col is reveal" data-d="1">
+              <h3>Executive deliverables &amp; sessions</h3>
+              {[
+                "Executive workshop",
+                "Technical workshop",
+                "Governance roadmap",
+                "Integration blueprint",
+                "Board-ready executive pack",
+                "Live presentation of findings to stakeholders",
+                "Post-assessment Q&A and implementation planning",
+              ].map((t) => (
+                <div className="scale-li" key={t}>
+                  <span className="ic">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 L6.5 12 L13 4" stroke="#6f97ff" strokeWidth="1.6" /></svg>
+                  </span>
+                  <span className="txt">{t}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dw-range reveal" data-d="1">
+            <span className="dw-range-k">Indicative scale</span>
+            <div className="tbl-wrap" data-rowreveal>
+              <table className="tbl">
+                <thead>
+                  <tr><th>Engagement</th><th>Scope</th><th>Indicative scale</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td data-l="Engagement" className="t-main">Runtime Governance Audit</td><td data-l="Scope">Single environment, fixed 48-hour engagement</td><td data-l="Indicative scale" className="t-price">£40K–£75K</td></tr>
+                  <tr><td data-l="Engagement" className="t-main">Runtime Governance Enterprise Assessment™</td><td data-l="Scope">Multi-agent, cross-system, executive evidence + roadmap</td><td data-l="Indicative scale" className="t-price">£100K+</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <PricingDisclaimer variant="short" />
+          </div>
+
+          <div className="dw-ladder reveal" data-d="1">
+            <span className="dw-ladder-k">Where it sits in the ladder</span>
+            <ol>
+              <li><b>The Runtime Governance Audit</b> measures exposure in a single environment, fast.</li>
+              <li><b>The Runtime Governance Enterprise Assessment</b> extends that across a multi-agent, cross-system estate with board-ready evidence, a governance roadmap, and an integration blueprint.</li>
+              <li><b>The Limited Pilot</b> validates Runtime Governance against real workflows in the client environment.</li>
+              <li><b>Enterprise Integration</b> deploys governance into production.</li>
+            </ol>
+          </div>
+
+          <div className="hero-actions reveal" style={{ marginTop: 40 }}>
+            <Link href="/contact#enterprise-assessment" className="btn btn--primary">Request Enterprise Assessment <span className="arr">→</span></Link>
+            <Link href="/sample-audit" className="btn btn--ghost">See a sample deliverable</Link>
+          </div>
         </div>
       </section>
 
@@ -209,6 +302,7 @@ export default function Page() {
               <li><b>Free Discovery / Questionnaire Review</b> establishes fit and high-level risk context.</li>
               <li><b>The Paid Discovery Workshop</b> defines the scope.</li>
               <li><b>The Runtime Governance Audit</b> measures exposure.</li>
+              <li><b>The Runtime Governance Enterprise Assessment</b> extends this across a multi-agent, cross-system estate with board-ready evidence.</li>
               <li><b>The Limited Pilot</b> validates Runtime Governance in the client environment.</li>
               <li><b>Enterprise Integration</b> deploys governance into production.</li>
               <li><b>The Annual Runtime Governance™ License</b> sustains governance — monitoring, updates, support, and revalidation.</li>
