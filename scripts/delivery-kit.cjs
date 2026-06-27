@@ -65,8 +65,10 @@ function browserCacheCandidates() {
         if (!/^chromium/.test(d)) continue;
         out.push(
           path.join(base, d, "chrome-linux", "chrome"),
+          path.join(base, d, "chrome-linux64", "chrome"),
           path.join(base, d, "chrome-linux", "headless_shell"),
           path.join(base, d, "chrome-headless-shell-linux", "chrome-headless-shell"),
+          path.join(base, d, "chrome-headless-shell-linux64", "chrome-headless-shell"),
           path.join(base, d, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
         );
       }
