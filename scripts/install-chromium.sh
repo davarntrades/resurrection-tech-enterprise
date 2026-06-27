@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Install + verify Chromium for the Delivery Kit / Analyst Console.
-# No-sudo-friendly: tries apt (best for headless libs) -> Playwright download
-# -> Puppeteer. After each attempt it VERIFIES a real PDF render, and on
+# Tries Playwright (most reliable in Codespaces: bundled Chromium + system libs)
+# -> apt -> Puppeteer. After each attempt it VERIFIES a real PDF render, and on
 # success persists CHROME_BIN to .env.delivery so every later run + the console
-# pick it up automatically. Idempotent — safe to re-run.
+# pick it up automatically. Output is shown (not hidden) so failures are
+# diagnosable. Idempotent — safe to re-run.
 #   npm run audit:chrome:install
 # ============================================================================
 set -uo pipefail
@@ -12,7 +13,6 @@ cd "$(dirname "$0")/.."
 KIT="scripts/delivery-kit.cjs"
 
 found() { node "$KIT" --print-chrome 2>/dev/null; }
-
 verify() { CHROME_BIN="$1" node "$KIT" --selftest; }
 
 persist() {
@@ -39,34 +39,36 @@ settle
 SUDO=""
 if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then SUDO="sudo"; fi
 
-# 1) apt — pulls its own shared libraries, most reliable for headless rendering
+# 1) Playwright — most reliable on Codespaces: downloads a known-good Chromium
+#    and (with sudo) the system libraries it needs to render headless.
+if command -v npx >/dev/null 2>&1; then
+  echo "  • Installing Chromium via Playwright …"
+  if [ -n "$SUDO" ]; then
+    npx -y playwright install --with-deps chromium || true
+  else
+    npx -y playwright install chromium || true
+  fi
+  settle
+fi
+
+# 2) apt fallback (Debian; on Ubuntu 'chromium' may be a snap stub that won't run)
 if command -v apt-get >/dev/null 2>&1; then
-  echo "  • trying apt-get (chromium) …"
-  $SUDO apt-get update -qq >/dev/null 2>&1 || true
-  $SUDO apt-get install -y chromium >/dev/null 2>&1 \
-    || $SUDO apt-get install -y chromium-browser >/dev/null 2>&1 || true
+  echo "  • Trying apt-get chromium …"
+  $SUDO apt-get update -y || true
+  $SUDO apt-get install -y chromium || $SUDO apt-get install -y chromium-browser || true
   settle
 fi
 
-# 2) Playwright — downloads a known-good Chromium without sudo (deps may need sudo)
+# 3) Puppeteer fallback — alternative download
 if command -v npx >/dev/null 2>&1; then
-  echo "  • trying Playwright chromium download …"
-  npx -y playwright install chromium >/dev/null 2>&1 || true
-  $SUDO npx -y playwright install-deps chromium >/dev/null 2>&1 || true
-  settle
-fi
-
-# 3) Puppeteer browsers — alternative no-sudo download
-if command -v npx >/dev/null 2>&1; then
-  echo "  • trying @puppeteer/browsers (chrome) …"
-  npx -y @puppeteer/browsers install chrome@stable >/dev/null 2>&1 || true
+  echo "  • Trying @puppeteer/browsers …"
+  npx -y @puppeteer/browsers install chrome@stable || true
   settle
 fi
 
 echo ""
 echo "✗ Could not install a working Chromium automatically."
-echo "  Manual fallback (Codespaces / Debian/Ubuntu):"
-echo "    sudo apt-get update && sudo apt-get install -y chromium"
-echo "    echo 'CHROME_BIN=/usr/bin/chromium' >> .env.delivery"
-echo "  Then verify:  npm run audit:chrome"
+echo "  Run this directly and paste any error you see:"
+echo "    npx -y playwright install --with-deps chromium"
+echo "  then verify:  npm run audit:selftest"
 exit 1

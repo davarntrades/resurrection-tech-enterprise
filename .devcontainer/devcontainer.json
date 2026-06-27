@@ -6,6 +6,6 @@
     "8787": { "label": "Analyst Console", "onAutoForward": "openBrowser" },
     "3000": { "label": "Marketing Site", "onAutoForward": "silent" }
   },
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && (npm run audit:chrome:install || true)",
   "postAttachCommand": "bash .devcontainer/start-console.sh"
 }

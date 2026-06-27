@@ -88,8 +88,10 @@ function browserCacheCandidates() {
   return out;
 }
 function fromPath() {
+  // `which` is a real binary (no shell), so this avoids the DEP0190 warning that
+  // `execFileSync("command", …, {shell})` triggers on newer Node.
   for (const name of ["chromium", "chromium-browser", "google-chrome-stable", "google-chrome"]) {
-    try { const p = execFileSync("command", ["-v", name], { shell: "/bin/bash", stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); if (p) return p; } catch { /* not on PATH */ }
+    try { const p = execFileSync("which", [name], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); if (p) return p; } catch { /* not on PATH */ }
   }
   return null;
 }
