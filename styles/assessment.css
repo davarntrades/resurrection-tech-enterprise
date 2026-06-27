@@ -99,6 +99,7 @@ select.rgq-input {
 .rgq-result-eyebrow { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); }
 .rgq-result-title { font-size: clamp(1.6rem, 3.4vw, 2.3rem); letter-spacing: -0.02em; margin: 10px 0 6px; }
 .rgq-result-tagline { color: var(--muted, #aab2bd); font-size: 1.05rem; line-height: 1.55; margin: 0 0 22px; max-width: 62ch; }
+.rgq-result-summary { color: var(--ink, #f3f5f7); font-size: 1.08rem; line-height: 1.6; margin: 0 0 22px; max-width: 64ch; padding: 14px 16px; background: linear-gradient(180deg, rgba(224,169,63,0.10), rgba(224,169,63,0.02)); border: 1px solid rgba(224,169,63,0.32); border-left: 3px solid #e0a93f; border-radius: var(--radius-sm, 10px); }
 .rgq-why { background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 22px; }
 .rgq-why-k { display: block; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted, #8a929c); margin-bottom: 10px; }
 .rgq-why ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
