@@ -10,8 +10,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 const STAGES = [
   ["parsing", "Parsing manifest"], ["assessment", "Runtime assessment"],
-  ["exposure", "Ω exposure mapping"], ["audit", "Generating audit PDF"],
-  ["replay", "Replaying trajectories"], ["determinism", "Determinism verification"],
+  ["exposure", "Ω exposure mapping"], ["replay", "Replaying trajectories"],
+  ["determinism", "Determinism verification"], ["audit", "Generating audit PDF"],
   ["report", "Executive report"], ["complete", "Complete"],
 ];
 

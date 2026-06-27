@@ -115,8 +115,16 @@ const TOKEN = process.env.GOVERNANCE_TOKEN;
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "customer";
 
+// ---- measured runtime performance (no estimates; real timings only) ---------
+// Every successful /v1/evaluate round-trip contributes one latency sample, taken
+// with a high-resolution monotonic clock. Percentiles/throughput are derived
+// from these samples; if none exist the report shows a "pending" state.
+const PERF = { evalSamples: [], assessMs: null };
+const nowMs = () => Number(process.hrtime.bigint()) / 1e6;
+
 // ---- engine calls (isolated, fail-soft) -------------------------------------
 async function assess(body) {
+  const t0 = nowMs();
   try {
     const res = await fetch(`${GOV}/v1/assess`, {
       method: "POST", headers: { "content-type": "application/json" },
@@ -126,10 +134,13 @@ async function assess(body) {
       signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) throw new Error(`assess ${res.status}`);
-    return await res.json();
+    const json = await res.json();
+    PERF.assessMs = nowMs() - t0;
+    return json;
   } catch (e) { console.warn("  ! /v1/assess unreachable:", e.message); return null; }
 }
 async function evaluate(trajectory, domains) {
+  const t0 = nowMs();
   try {
     const headers = { "content-type": "application/json" };
     if (TOKEN) headers.authorization = `Bearer ${TOKEN}`;
@@ -139,8 +150,19 @@ async function evaluate(trajectory, domains) {
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) throw new Error(`evaluate ${res.status}`);
-    return await res.json();
+    const json = await res.json();
+    PERF.evalSamples.push(nowMs() - t0); // measured per-evaluation round-trip
+    return json;
   } catch (e) { return { __error: e.message }; }
+}
+// derive percentile/throughput stats from the measured samples (null if none)
+function perfStats() {
+  const xs = PERF.evalSamples.slice().sort((a, b) => a - b);
+  const n = xs.length;
+  if (!n) return null;
+  const sum = xs.reduce((a, b) => a + b, 0);
+  const q = (p) => xs[Math.min(n - 1, Math.max(0, Math.ceil((p / 100) * n) - 1))];
+  return { n, mean: sum / n, p50: q(50), p95: q(95), p99: q(99), min: xs[0], max: xs[n - 1], eps: (1000 * n) / sum, samples: xs };
 }
 const toVerdict = (v) => {
   const x = String(v || "").toUpperCase();
@@ -219,14 +241,88 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .journey .step.done:after{background:rgba(63,178,127,.5)}
 .journey .lab{font-size:9.5px;line-height:1.3;color:#6b7480}
 .journey .step.done .lab{color:#aab2bd}.journey .step.now .lab{color:#f2c66a;font-weight:600}
+/* runtime performance visuals — minimal enterprise charts */
+.verified{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:999px;border:1px solid rgba(63,178,127,.5);background:rgba(63,178,127,.10);color:#6fdcab;margin-left:8px;vertical-align:middle}
+.perf{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.perf .chart{flex:1 1 200px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px}
+.perf .chart .ct{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b7480;margin-bottom:10px}
+.hist{display:flex;align-items:flex-end;gap:3px;height:62px}
+.hist i{flex:1;min-width:3px;background:linear-gradient(180deg,#f2c66a,#e0a93f);border-radius:3px 3px 0 0;opacity:.92}
+.hist + .ax{display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;color:#6b7480;margin-top:5px}
+.pctl{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.pctl .row{display:flex;align-items:center;gap:8px}
+.pctl .lab{width:34px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#8fb0ff}
+.pctl .track{flex:1;height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.pctl .fill{height:100%;background:linear-gradient(90deg,#4c7dff,#8fb0ff);border-radius:999px}
+.pctl .val{width:62px;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#cdd6e0}
+.tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:30px;font-weight:600;color:#f3f5f7}.tput .u{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7480}
+.tput .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:linear-gradient(90deg,#3fb27f,#6fdcab);border-radius:999px}
+.perfsum{margin-top:14px;padding:11px 14px;background:linear-gradient(180deg,rgba(63,178,127,.08),rgba(63,178,127,.02));border:1px solid rgba(63,178,127,.3);border-left:3px solid #3fb27f;border-radius:10px;color:#cdd6e0;font-size:11.5px}
 `;
 const brand = `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
 const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
 const bandBlock = (k, h, sub, meta) => `<div class="band"><span class="eyebrow">${esc(k)}</span><h1>${esc(h)}</h1><p style="color:#aab2bd;margin:0">${esc(sub)}</p><div class="meta">${meta.map(([a, b]) => `<div><span class="k">${esc(a)}</span><span class="v">${esc(b)}</span></div>`).join("")}</div></div>`;
 const STATUS_CLASS = { Covered: "cov", COVERED: "cov", Partial: "par", PARTIAL: "par", Uncovered: "unc", UNCOVERED: "unc" };
 
+// ---- Runtime Performance section (identical markup in audit + exec report) ---
+// Populated only from measured samples; otherwise a neutral blue "pending"
+// state. Never placeholder numbers.
+function fmtMs(ms) {
+  if (ms == null || !isFinite(ms)) return "—";
+  const v = ms < 1 ? ms.toFixed(3) : ms < 10 ? ms.toFixed(2) : ms < 100 ? ms.toFixed(1) : Math.round(ms).toString();
+  return `${v} ms`;
+}
+function histogram(samples) {
+  const n = samples.length, min = samples[0], max = samples[n - 1];
+  const bins = Math.min(12, Math.max(5, Math.round(Math.sqrt(n))));
+  const span = (max - min) || 1;
+  const counts = new Array(bins).fill(0);
+  for (const x of samples) { let i = Math.floor(((x - min) / span) * bins); if (i >= bins) i = bins - 1; if (i < 0) i = 0; counts[i]++; }
+  const peak = Math.max(...counts, 1);
+  return `<div class="hist">${counts.map((c) => `<i style="height:${Math.max(4, Math.round((c / peak) * 100))}%"></i>`).join("")}</div><div class="ax"><span>${fmtMs(min)}</span><span>${fmtMs(max)}</span></div>`;
+}
+function perfSection(stats, attestation, replay) {
+  const att = attestation || {};
+  const head = (verified) => `<span class="eyebrow">Runtime Performance${verified ? `<span class="verified">PERFORMANCE VERIFIED &#10003;</span>` : ""}</span><h2>Measured governance performance during evaluation.</h2>`;
+  if (!stats) {
+    return `<div class="sec">${head(false)}
+      <div class="status"><span class="lbl">Runtime performance · pending</span>
+        <p>Performance metrics will automatically populate once representative trajectories have been evaluated through the Runtime Governance engine.</p>
+      </div></div>`;
+  }
+  const det = (replay && replay.checked) ? `${replay.deterministic} / ${replay.checked} identical replay` : "—";
+  const cards = [
+    ["Average evaluation latency", fmtMs(stats.mean)],
+    ["Median (P50)", fmtMs(stats.p50)],
+    ["P95 latency", fmtMs(stats.p95)],
+    ["P99 latency", fmtMs(stats.p99)],
+    ["Fastest evaluation", fmtMs(stats.min)],
+    ["Slowest evaluation", fmtMs(stats.max)],
+    ["Total evaluations", String(stats.n)],
+    ["Evaluations / second", stats.eps.toFixed(stats.eps < 10 ? 1 : 0)],
+    ["Replay determinism", det],
+    ["Runtime source", "Live Runtime Governance Engine"],
+    ["Engine version", att.service_version ? esc(att.service_version) : "—"],
+    ["Ruleset version", att.ruleset_hash ? esc(String(att.ruleset_hash).slice(0, 12)) : "—"],
+  ];
+  const scale = stats.max || 1;
+  const pbar = (label, v) => `<div class="row"><span class="lab">${label}</span><span class="track"><span class="fill" style="width:${Math.max(3, Math.round((v / scale) * 100))}%"></span></span><span class="val">${fmtMs(v)}</span></div>`;
+  const tputFill = Math.max(3, Math.min(100, Math.round((stats.min / stats.mean) * 100)));
+  const allDet = replay && replay.checked && replay.deterministic === replay.checked;
+  const summary = `Runtime Governance evaluated ${stats.n} representative ${stats.n === 1 ? "trajectory" : "trajectories"} with ${fmtMs(stats.mean)} average latency${allDet ? " while maintaining deterministic governance decisions" : ""}.`;
+  return `<div class="sec">${head(true)}
+    <div class="kpis">${cards.map(([k, v]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span></div>`).join("")}</div>
+    <div class="perf">
+      <div class="chart"><div class="ct">Latency distribution</div>${histogram(stats.samples)}</div>
+      <div class="chart"><div class="ct">Percentiles</div><div class="pctl">${pbar("P50", stats.p50)}${pbar("P95", stats.p95)}${pbar("P99", stats.p99)}${pbar("Max", stats.max)}</div></div>
+      <div class="chart"><div class="ct">Throughput</div><div class="tput"><span class="big">${stats.eps.toFixed(stats.eps < 10 ? 1 : 0)}</span><span class="u">eval / sec</span></div><div class="track"><span class="fill" style="width:${tputFill}%"></span></div></div>
+    </div>
+    <div class="perfsum">${esc(summary)}</div>
+  </div>`;
+}
+
 // ---- AUDIT html from AssessReport ------------------------------------------
-function auditHtml(c, report) {
+function auditHtml(c, report, perf, replay) {
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
   if (!report) {
     return page("Runtime Safety Audit", bandBlock("48-Hour Runtime Governance Audit", c.name, "Reachable exposure assessment", meta) +
@@ -270,6 +366,7 @@ function auditHtml(c, report) {
         <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)}</td></tr>
       </tbody></table>` : `<div class="warn">No attestation block returned by the engine for this run.</div>`}
     </div>
+    ${perfSection(perf, report.attestation, replay)}
     <div class="sec"><span class="eyebrow">6 · Recommended next step</span><h2>Limited Pilot™.</h2>
       <p>${(s.uncovered ?? 0) > 0 ? `${s.uncovered} risk-bearing tool(s) are uncovered or partial. ` : ""}A Limited Pilot validates interception on your own traffic and closes remaining &#937; coverage before production.</p>
     </div>
@@ -290,7 +387,7 @@ function journeyHtml(currentIdx) {
 //   yet → presented as an intentional readiness posture (never an error).
 // Mode 2 "Live Runtime Evidence": trajectories replayed → operational metrics.
 // We never fabricate runtime numbers; the report transitions automatically.
-function reportHtml(c, m, assess, replay) {
+function reportHtml(c, m, assess, replay, perf) {
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
   const s = (assess && assess.summary) || {};
@@ -352,6 +449,7 @@ function reportHtml(c, m, assess, replay) {
       </div>` : `<div class="sec"><div class="status"><span class="lbl">Assessment pending</span><p>The structural assessment did not complete for this run. Re-run once the engine assessment is available — this report never displays readiness it cannot evidence.</p></div></div>`}
       ${ready ? structural() : ""}
       ${attestationSec()}
+      ${perfSection(perf, att, replay)}
       <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
         <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
         <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
@@ -393,6 +491,7 @@ function reportHtml(c, m, assess, replay) {
         <div class="kpi"><span class="v">${detPct}%</span><span class="k">Determinism</span></div>
       </div>` : `<p style="color:#8a929c">Determinism replay not applicable for this source (decision logs supplied directly).</p>`}
     </div>
+    ${perfSection(perf, att, replay)}
     <div class="sec"><span class="eyebrow">Recommendations</span><h2>Prioritised next actions.</h2>
       <p>${(m.block || 0) > 0 ? "Review the top prevented categories with the security team and confirm policy thresholds. " : ""}Schedule the quarterly &#937; revalidation and bring newly integrated tools under governance at onboarding. Runtime evidence accumulates across periods to form the Monthly Governance Evidence series.</p>
     </div>
@@ -504,11 +603,10 @@ function selfTest() {
     status.assess = !!report;
   } else console.log("• Audit: no manifest supplied — skipping assess.");
   emitStage("exposure", "Ω exposure mapping");
-  emitStage("audit", "Generating audit PDF");
-  fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report));
-  render(path.join(tmp, "audit.html"), auditPdf);
 
-  // EXEC REPORT metrics (+ replay verification)
+  // EXEC REPORT metrics (+ replay verification). Runs BEFORE rendering so the
+  // measured performance samples (from each /v1/evaluate round-trip) are
+  // available to BOTH the audit and the executive report PDFs.
   const m = { total: 0, allow: 0, block: 0, escalate: 0, categories: {}, source: "none" };
   if (Array.isArray(input.decisions) && input.decisions.length) {
     m.source = "decisions";
@@ -531,8 +629,15 @@ function selfTest() {
     }
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
+
+  const perf = perfStats(); // measured latency/throughput stats (null if no evaluations ran)
+
+  emitStage("audit", "Generating audit PDF");
+  fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report, perf, replay));
+  render(path.join(tmp, "audit.html"), auditPdf);
+
   emitStage("report", "Generating executive report");
-  fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m, report, replay));
+  fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m, report, replay, perf));
   render(path.join(tmp, "report.html"), reportPdf);
 
   // FIELD MATRIX — every Priority-1 output, classified so runtime gaps read as
@@ -574,11 +679,19 @@ function selfTest() {
   if (structuralMissing.length) console.log(`\n  ⚠ Missing structural evidence: ${structuralMissing.join(", ")}\n    → check engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
 
   // machine-readable evidence written alongside the PDFs
+  const perfOut = perf ? {
+    measured: true, total_evaluations: perf.n,
+    avg_ms: +perf.mean.toFixed(4), p50_ms: +perf.p50.toFixed(4), p95_ms: +perf.p95.toFixed(4), p99_ms: +perf.p99.toFixed(4),
+    min_ms: +perf.min.toFixed(4), max_ms: +perf.max.toFixed(4), evals_per_sec: +perf.eps.toFixed(2),
+    assess_ms: PERF.assessMs != null ? +PERF.assessMs.toFixed(4) : null,
+    replay_determinism: `${replay.deterministic}/${replay.checked}`,
+  } : { measured: false, assess_ms: PERF.assessMs != null ? +PERF.assessMs.toFixed(4) : null };
   fs.writeFileSync(path.join(outDir, "run-summary.json"), JSON.stringify({
     customer: c, engine: GOV, status, replay, mode,
     metrics: m, fields: Object.fromEntries(fields.map(([n, ok]) => [n, ok])),
     field_kinds: Object.fromEntries(fields.map(([n, , k]) => [n, k])),
     pending: runtimePending, missing: structuralMissing,
+    performance: perfOut,
     assess_summary: report ? report.summary : null,
     attestation: report ? report.attestation || null : null,
   }, null, 2));
