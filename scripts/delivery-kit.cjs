@@ -26,6 +26,24 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// Auto-load .env.delivery / .env.local (KEY=VALUE) so analysts never re-export
+// GOVERNANCE_URL / GOVERNANCE_TOKEN / CHROME_BIN each session. Real env wins.
+(function loadEnv() {
+  for (const f of [".env.delivery", ".env.local"]) {
+    const p = path.join(__dirname, "..", f);
+    try {
+      if (!fs.existsSync(p)) continue;
+      for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+        if (!m) continue;
+        let v = m[2].trim();
+        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+        if (process.env[m[1]] == null || process.env[m[1]] === "") process.env[m[1]] = v;
+      }
+    } catch { /* ignore */ }
+  }
+})();
+
 const GOV = (process.env.GOVERNANCE_URL || "https://resurrection-tech-enterprise-production.up.railway.app").replace(/\/$/, "");
 
 // ---- portable Chromium discovery -------------------------------------------
@@ -238,9 +256,30 @@ function render(htmlPath, pdfPath) {
   if (process.argv.includes("--check-chrome")) { process.exit(checkChrome() ? 0 : 1); }
   if (process.argv.includes("--check")) { await preflight(); return; }
 
-  const inPath = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) || path.join(__dirname, "delivery-kit.sample.json");
-  if (!fs.existsSync(inPath)) { console.error("Input not found:", inPath); process.exit(1); }
-  const input = JSON.parse(fs.readFileSync(inPath, "utf8"));
+  const flag = (n) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : undefined; };
+  let input, srcLabel;
+  const manifestFlag = flag("--manifest");
+  if (manifestFlag) {
+    srcLabel = manifestFlag;
+    // Flag mode: point at a raw manifest file (any format) + inline customer details — no JSON authoring.
+    if (!fs.existsSync(manifestFlag)) { console.error("Manifest not found:", manifestFlag); process.exit(1); }
+    const raw = fs.readFileSync(manifestFlag, "utf8");
+    let manifest, manifest_text = raw;
+    try { const j = JSON.parse(raw); if (Array.isArray(j)) { manifest = j; manifest_text = undefined; } else if (Array.isArray(j.manifest)) { manifest = j.manifest; manifest_text = undefined; } } catch { /* keep raw text */ }
+    input = {
+      customer: { name: flag("--name") || "Customer", environment: flag("--environment") || "", period: flag("--period") || "", reference: flag("--reference") || "" },
+      industry: flag("--industry"), format: flag("--format") || "generic",
+      domains: (flag("--domains") || "").split(",").map((s) => s.trim()).filter(Boolean),
+      manifest, manifest_text,
+    };
+    const tp = flag("--trajectories"); if (tp) input.trajectories = JSON.parse(fs.readFileSync(tp, "utf8"));
+    const dp = flag("--decisions"); if (dp) input.decisions = JSON.parse(fs.readFileSync(dp, "utf8"));
+  } else {
+    const inPath = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) || path.join(__dirname, "delivery-kit.sample.json");
+    if (!fs.existsSync(inPath)) { console.error("Input not found:", inPath); process.exit(1); }
+    input = JSON.parse(fs.readFileSync(inPath, "utf8"));
+    srcLabel = inPath;
+  }
   const c = input.customer || { name: "Customer" };
   const outDir = path.join(__dirname, "..", "deliverables", `${slug(c.name)}-${slug(c.period || c.reference || "report")}`);
   const tmp = "/tmp/rt-delivery"; fs.mkdirSync(outDir, { recursive: true }); fs.mkdirSync(tmp, { recursive: true });
@@ -249,7 +288,7 @@ function render(htmlPath, pdfPath) {
   const status = { assess: false, evaluate: false };
   const replay = { checked: 0, deterministic: 0 };
 
-  console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${inPath}\n  engine: ${GOV}\n  output: ${outDir}\n`);
+  console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${srcLabel}\n  engine: ${GOV}\n  output: ${outDir}\n`);
 
   // AUDIT (/v1/assess) — accepts a parsed manifest array OR raw manifest_text
   let report = null;
@@ -323,4 +362,10 @@ function render(htmlPath, pdfPath) {
   }, null, 2));
 
   console.log(`\nDeliverables:\n  ${auditPdf}\n  ${reportPdf}\n  ${path.join(outDir, "run-summary.json")}\n`);
+
+  if (process.argv.includes("--open")) {
+    const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    try { execFileSync(opener, [auditPdf], { stdio: "ignore" }); console.log(`Opened ${auditPdf}`); }
+    catch { console.log(`(Could not auto-open; open the files above manually.)`); }
+  }
 })();

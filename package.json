@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit": "node scripts/delivery-kit.cjs",
+    "audit:check": "node scripts/delivery-kit.cjs --check",
+    "audit:chrome": "node scripts/delivery-kit.cjs --check-chrome",
+    "audit:setup": "bash scripts/setup-delivery.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

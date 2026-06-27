@@ -58,3 +58,6 @@ __pycache__/
 
 # Delivery-kit output (customer data — do not commit)
 /deliverables/
+
+# Delivery-kit local config (secrets)
+.env.delivery
