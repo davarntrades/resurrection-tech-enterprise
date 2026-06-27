@@ -46,21 +46,50 @@ const KIT = path.join(ROOT, "scripts", "delivery-kit.cjs");
 
 const PORT = Number(process.env.CONSOLE_PORT || 8787);
 const HOST = process.env.CONSOLE_HOST || "127.0.0.1";
-const USER = process.env.ANALYST_USER;
-const PASS = process.env.ANALYST_PASSWORD;
+let USER = process.env.ANALYST_USER;
+let PASS = process.env.ANALYST_PASSWORD;
 
-// ---- fail-closed auth: refuse to start without credentials ------------------
+// ---- fail-closed auth -------------------------------------------------------
+// The console never serves without credentials. On a fresh checkout there are
+// none, which is the usual reason it "won't start" — so instead of refusing, we
+// auto-provision a strong password into .env.delivery (gitignored) on first run
+// and print it once. Still fail-closed: it only proceeds once creds exist. Set
+// CONSOLE_NO_AUTOPROVISION=1 to require manual credentials instead.
 if (!USER || !PASS) {
-  console.error(`
-✗ Refusing to start: the Analyst Console must be authenticated.
-
-  Set analyst credentials in .env.delivery (gitignored), then re-run:
-    ANALYST_USER=your.name
-    ANALYST_PASSWORD=<a long random passphrase>
-
-  Generate one:  node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"
+  if (process.env.CONSOLE_NO_AUTOPROVISION) {
+    console.error(`\n✗ Refusing to start: set ANALYST_USER and ANALYST_PASSWORD in .env.delivery.\n  Generate a password:  node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"\n`);
+    process.exit(1);
+  }
+  USER = USER || "analyst";
+  PASS = PASS || crypto.randomBytes(18).toString("base64url");
+  const envPath = path.join(ROOT, ".env.delivery");
+  try {
+    let cur = "";
+    try { cur = fs.readFileSync(envPath, "utf8"); } catch { /* new file */ }
+    const lines = cur ? cur.replace(/\s*$/, "").split(/\r?\n/) : ["# Resurrection Tech — Delivery Kit / Analyst Console config (gitignored)"];
+    const setLine = (k, v) => {
+      const i = lines.findIndex((l) => new RegExp(`^\\s*${k}\\s*=`).test(l));
+      if (i >= 0) { if (/=\s*$/.test(lines[i])) lines[i] = `${k}=${v}`; } else lines.push(`${k}=${v}`);
+    };
+    setLine("ANALYST_USER", USER);
+    setLine("ANALYST_PASSWORD", PASS);
+    fs.writeFileSync(envPath, lines.join("\n") + "\n");
+    process.env.ANALYST_USER = USER; process.env.ANALYST_PASSWORD = PASS;
+    console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│  Analyst Console — credentials auto-provisioned (first run)   │
+├─────────────────────────────────────────────────────────────┤
+│  username:  ${USER.padEnd(48)}│
+│  password:  ${PASS.padEnd(48)}│
+└─────────────────────────────────────────────────────────────┘
+  Saved to .env.delivery (gitignored). Use these at the login prompt.
+  Change them by editing .env.delivery, or re-run with your own
+  ANALYST_USER / ANALYST_PASSWORD.
 `);
-  process.exit(1);
+  } catch (e) {
+    console.error(`\n✗ Could not write .env.delivery (${e.message}). Set ANALYST_USER / ANALYST_PASSWORD manually and re-run.\n`);
+    process.exit(1);
+  }
 }
 
 const safeEq = (a, b) => {
