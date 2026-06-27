@@ -47,8 +47,19 @@ Solo v1 uses a local JSON file. To scale to multiple analysts, swap
 `loadEngagements`/`saveEngagements` for Supabase (service-role, RLS on — same
 posture as `assessments`) without changing the UI contract.
 
-## Secure delivery (next)
-Reports stay private to the console. To share: store in a **private** bucket and
-issue **short-lived signed links** (7–14 days, revocable) to the named contact —
-never email the raw PDF as the primary channel, and never expose the console,
-kit, or engine. See `../PLATFORM-PLAN.md`.
+## Secure delivery ✅
+Built in. Each generated PDF has a **Share securely** button →
+expiring (1–90 day), revocable, optionally password-protected **capability
+link**. Customers open `/share/<token>` with **no analyst credentials** — that
+route bypasses Basic Auth but serves only the one deliverable; the console,
+engine, kit, and other reports stay private. Links are listed under *Secure
+delivery* with state (active/expired/revoked), download count, and a Revoke
+button. Sharing a report marks the engagement `delivered`.
+
+- **Reachability:** the server binds to `127.0.0.1`. For a customer to open the
+  link, forward the Codespaces port as **Public** (Ports tab → right-click →
+  Port Visibility → Public). The token is unguessable; expiry + revoke bound the
+  exposure. Add a password for sensitive sectors.
+- Store/API: shares live in `console/data/shares.json` (gitignored). For
+  multi-analyst scale, move to a private bucket (Supabase Storage / S3) with the
+  same token model. See `../PLATFORM-PLAN.md`.

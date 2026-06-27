@@ -24,6 +24,7 @@ const PUBLIC = path.join(__dirname, "public");
 const DATA_DIR = path.join(__dirname, "data");
 const DELIVERABLES = path.join(ROOT, "deliverables");
 const ENGAGEMENTS = path.join(DATA_DIR, "engagements.json");
+const SHARES = path.join(DATA_DIR, "shares.json");
 const KIT = path.join(ROOT, "scripts", "delivery-kit.cjs");
 
 // ---- env autoload (same files the kit reads; analysts configure once) -------
@@ -86,11 +87,24 @@ const readBody = (req) => new Promise((resolve) => {
   req.on("end", () => { try { resolve(d ? JSON.parse(d) : {}); } catch { resolve({}); } });
 });
 const slug = (s) => String(s || "x").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "x";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // engagement store (local JSON; gitignored). Solo-analyst v1; swap for Supabase
 // at multi-analyst scale without changing the UI contract.
 function loadEngagements() { try { return JSON.parse(fs.readFileSync(ENGAGEMENTS, "utf8")); } catch { return []; } }
 function saveEngagements(list) { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(ENGAGEMENTS, JSON.stringify(list, null, 2)); }
+
+// secure-delivery shares (capability tokens; expiring + revocable; optional pw).
+// Served credential-free at /share/<token> so customers never touch the console.
+function loadShares() { try { return JSON.parse(fs.readFileSync(SHARES, "utf8")); } catch { return []; } }
+function saveShares(list) { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(SHARES, JSON.stringify(list, null, 2)); }
+const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 32).toString("hex");
+function shareState(s) {
+  if (!s) return "invalid";
+  if (s.revoked) return "revoked";
+  if (Date.parse(s.expires_at) < Date.now()) return "expired";
+  return "active";
+}
 
 const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".pdf": "application/pdf" };
 
@@ -170,14 +184,72 @@ function serveDeliverable(res, dir, file, download) {
   res.writeHead(200, headers); res.end(data);
 }
 
+// ---- public customer delivery (no analyst auth; capability token) -----------
+const sharePage = (title, inner) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>${title} · Resurrection Tech</title><style>
+body{margin:0;background:#08090b;color:#aab2bd;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
+.box{max-width:460px;width:92%;background:#0f1216;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:34px 32px}
+.r{color:#e0a93f;font-size:22px;font-weight:700}.eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#e0a93f;margin-top:14px}
+h1{color:#f3f5f7;font-size:20px;margin:6px 0 4px}.sub{color:#6b7480;font-size:13px}
+.file{margin:18px 0;padding:14px 16px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#f3f5f7;font-size:14px}
+.file small{display:block;color:#6b7480;font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-top:3px}
+a.btn,button.btn{display:inline-block;background:linear-gradient(180deg,#f2c66a,#e0a93f);color:#1a1407;border:0;border-radius:10px;padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;cursor:pointer}
+input{width:100%;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#f3f5f7;padding:10px 12px;font-size:14px;margin:8px 0 14px;box-sizing:border-box}
+.foot{margin-top:22px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#474e58}
+.warn{color:#f0b4b6}</style></head><body><div class="box"><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;${inner}
+<div class="foot">Confidential delivery · Do not forward</div></div></body></html>`;
+
+function handleShare(req, res, u) {
+  const rest = decodeURIComponent(u.pathname.slice("/share/".length));
+  const [token, action] = rest.split("/");
+  const shares = loadShares();
+  const s = shares.find((x) => x.token === token);
+  const state = shareState(s);
+  if (state !== "active") {
+    const msg = state === "expired" ? "This link has expired." : state === "revoked" ? "This link has been revoked." : "This link is invalid.";
+    res.writeHead(state === "expired" ? 410 : 404, { "content-type": "text/html", "cache-control": "no-store" });
+    return res.end(sharePage("Unavailable", `<div class="eyebrow">Secure delivery</div><h1>Link unavailable</h1><p class="sub warn">${msg} Please contact your Resurrection Tech analyst for an updated link.</p>`));
+  }
+  const pw = u.searchParams.get("pw") || "";
+  const pwOk = !s.password_hash || (pw && hashPw(pw, s.password_salt) === s.password_hash);
+
+  if (action === "download") {
+    if (!pwOk) { res.writeHead(403, { "content-type": "text/html", "cache-control": "no-store" }); return res.end(sharePage("Password required", `<div class="eyebrow">Secure delivery</div><h1>Password required</h1><p class="sub warn">Incorrect or missing password.</p>`)); }
+    const abs = path.resolve(DELIVERABLES, s.dir || "", s.file || "");
+    const within = abs === DELIVERABLES || abs.startsWith(DELIVERABLES + path.sep);
+    if (!within || !fs.existsSync(abs)) { res.writeHead(404, { "content-type": "text/html" }); return res.end(sharePage("Unavailable", `<h1>File unavailable</h1>`)); }
+    s.downloads = (s.downloads || 0) + 1; s.last_download = new Date().toISOString(); saveShares(shares);
+    const data = fs.readFileSync(abs);
+    res.writeHead(200, { "content-type": MIME[path.extname(abs)] || "application/octet-stream", "content-length": data.length, "content-disposition": `attachment; filename="${path.basename(abs)}"`, "cache-control": "no-store" });
+    return res.end(data);
+  }
+
+  // landing page
+  const exp = new Date(s.expires_at).toUTCString();
+  const dl = `/share/${encodeURIComponent(token)}/download`;
+  const pwForm = s.password_hash
+    ? `<form method="GET" action="${dl}"><div class="eyebrow">Password protected</div><input type="password" name="pw" placeholder="Enter the password you were sent" required autofocus><button class="btn" type="submit">Unlock &amp; download</button></form>`
+    : `<a class="btn" href="${dl}">Download ${esc(s.label || "report")}</a>`;
+  res.writeHead(200, { "content-type": "text/html", "cache-control": "no-store" });
+  return res.end(sharePage("Secure delivery", `<div class="eyebrow">Secure delivery${s.recipient ? " · " + esc(s.recipient) : ""}</div>
+    <h1>${esc(s.title || "Your Runtime Governance report")}</h1>
+    <p class="sub">Shared by Resurrection Tech. This link expires ${esc(exp)}.</p>
+    <div class="file">${esc(s.file)}<small>${esc(s.label || "Confidential deliverable")}</small></div>
+    ${pwForm}`));
+}
+
 // ---- router -----------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
+  const u = new URL(req.url, `http://${req.headers.host}`);
+  const p = u.pathname;
+  // PUBLIC: customer delivery via capability token — bypasses analyst auth.
+  if (p.startsWith("/share/")) return handleShare(req, res, u);
+
   if (!authed(req)) {
     res.writeHead(401, { "www-authenticate": 'Basic realm="Resurrection Tech Analyst Console", charset="UTF-8"', "content-type": "text/plain" });
     return res.end("Authentication required.");
   }
-  const u = new URL(req.url, `http://${req.headers.host}`);
-  const p = u.pathname;
   try {
     if (req.method === "GET" && (p === "/" || p === "/index.html")) return serveStatic(res, "index.html");
     if (req.method === "GET" && (p === "/app.css" || p === "/app.js")) return serveStatic(res, p.slice(1));
@@ -213,6 +285,46 @@ const server = http.createServer(async (req, res) => {
       rec.updated_at = new Date().toISOString();
       saveEngagements(list);
       return send(res, 200, rec);
+    }
+
+    // --- secure delivery: create / list / revoke share links ---------------
+    if (req.method === "POST" && p === "/api/share") {
+      const b = await readBody(req);
+      const abs = path.resolve(DELIVERABLES, b.dir || "", b.file || "");
+      const within = abs === DELIVERABLES || abs.startsWith(DELIVERABLES + path.sep);
+      if (!within || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return send(res, 400, { error: "deliverable not found" });
+      const days = Math.min(Math.max(parseInt(b.days, 10) || 14, 1), 90);
+      const rec = {
+        id: crypto.randomBytes(4).toString("hex"),
+        token: crypto.randomBytes(24).toString("base64url"),
+        dir: b.dir, file: b.file, label: b.label || b.file,
+        title: b.title || "Your Runtime Governance report", recipient: b.recipient || "",
+        engagement_id: b.engagementId || "",
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + days * 86400000).toISOString(),
+        revoked: false, downloads: 0,
+      };
+      if (b.password) { rec.password_salt = crypto.randomBytes(8).toString("hex"); rec.password_hash = hashPw(b.password, rec.password_salt); }
+      const list = loadShares(); list.unshift(rec); saveShares(list);
+      const proto = (req.headers["x-forwarded-proto"] || "http").split(",")[0];
+      const url = `${proto}://${req.headers.host}/share/${rec.token}`;
+      return send(res, 200, { id: rec.id, url, expires_at: rec.expires_at, password_protected: !!rec.password_hash, days });
+    }
+    if (req.method === "GET" && p === "/api/shares") {
+      const proto = (req.headers["x-forwarded-proto"] || "http").split(",")[0];
+      return send(res, 200, loadShares().map((s) => ({
+        id: s.id, file: s.file, dir: s.dir, label: s.label, recipient: s.recipient,
+        url: `${proto}://${req.headers.host}/share/${s.token}`,
+        created_at: s.created_at, expires_at: s.expires_at, state: shareState(s),
+        password_protected: !!s.password_hash, downloads: s.downloads || 0,
+      })));
+    }
+    const mShare = p.match(/^\/api\/shares\/([\w-]+)\/revoke$/);
+    if (mShare && req.method === "POST") {
+      const list = loadShares(); const s = list.find((x) => x.id === mShare[1]);
+      if (!s) return send(res, 404, { error: "not found" });
+      s.revoked = true; s.revoked_at = new Date().toISOString(); saveShares(list);
+      return send(res, 200, { id: s.id, state: "revoked" });
     }
 
     if (req.method === "POST" && p === "/api/run") return runAudit(req, res, await readBody(req));

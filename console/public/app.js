@@ -165,8 +165,10 @@ async function showDeliverables(final, eng) {
     const u = (dl) => `/api/file?dir=${encodeURIComponent(final.dir)}&file=${encodeURIComponent(f)}${dl ? "&dl=1" : ""}`;
     return `<div class="file"><div class="n">${esc(f)}<small>${isPdf ? "Branded PDF" : "Run summary (JSON)"}</small></div><div style="display:flex;gap:8px">
       ${isPdf ? `<a class="btn ghost sm" href="${u(0)}" target="_blank">Preview</a>` : ""}
-      <a class="btn sm" href="${u(1)}">Download</a></div></div>`;
+      <a class="btn ghost sm" href="${u(1)}">Download</a>
+      ${isPdf ? `<button class="btn sm" data-share-dir="${esc(final.dir)}" data-share-file="${esc(f)}">Share securely</button>` : ""}</div></div>`;
   }).join("");
+  $("files").querySelectorAll("[data-share-file]").forEach((b) => b.addEventListener("click", () => createShare(b.dataset.shareDir, b.dataset.shareFile, eng)));
 
   // attach reports to the engagement record + advance status
   if (eng) {
@@ -176,4 +178,51 @@ async function showDeliverables(final, eng) {
   }
 }
 
+// ---- secure delivery -------------------------------------------------------
+async function createShare(dir, file, eng) {
+  const days = prompt("Link valid for how many days? (1–90)", "14");
+  if (days === null) return;
+  const password = prompt("Optional password (leave blank for none):", "") || "";
+  try {
+    const r = await api("POST", "/api/share", {
+      dir, file, days: parseInt(days, 10) || 14, password,
+      label: file.replace(/\.pdf$/, "").replace(/-/g, " "),
+      recipient: eng ? (eng.customer || eng.company) : "",
+      title: eng ? `${eng.company || eng.customer} — Runtime Governance report` : "Your Runtime Governance report",
+      engagementId: eng ? eng.id : "",
+    });
+    await loadShares();
+    try { await navigator.clipboard.writeText(r.url); } catch { /* clipboard may be blocked */ }
+    if (eng) { await api("PATCH", "/api/engagements/" + eng.id, { delivery_status: "shared", status: "delivered" }); await refresh(); }
+    alert(`Secure link created${r.password_protected ? " (password-protected)" : ""} — copied to clipboard:\n\n${r.url}\n\nExpires: ${new Date(r.expires_at).toUTCString()}`);
+  } catch (e) { alert("Could not create link: " + e.message); }
+}
+
+async function loadShares() {
+  const shares = await api("GET", "/api/shares");
+  const host = $("shares");
+  if (!shares.length) { host.innerHTML = '<p class="empty">No share links yet. Use “Share” on a deliverable above.</p>'; return; }
+  host.innerHTML = `<table><thead><tr><th>File</th><th>Recipient</th><th>Link</th><th>State</th><th>Expires</th><th>PW</th><th>DL</th><th></th></tr></thead><tbody>` +
+    shares.map((s) => {
+      const st = s.state;
+      const pill = st === "active" ? "running" : st === "expired" || st === "revoked" ? "" : "";
+      return `<tr>
+        <td class="m">${esc(s.label || s.file)}</td>
+        <td>${esc(s.recipient || "—")}</td>
+        <td>${st === "active" ? `<a href="${esc(s.url)}" target="_blank">open</a> · <button class="btn ghost sm" data-copy="${esc(s.url)}">copy</button>` : "—"}</td>
+        <td><span class="pill ${pill}">${esc(st)}</span></td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">${esc(new Date(s.expires_at).toISOString().slice(0, 10))}</td>
+        <td>${s.password_protected ? "🔒" : "—"}</td>
+        <td class="m">${s.downloads}</td>
+        <td>${st === "active" ? `<button class="btn ghost sm" data-revoke="${esc(s.id)}">Revoke</button>` : ""}</td>
+      </tr>`;
+    }).join("") + "</tbody></table>";
+  host.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "copied ✓"; } catch { prompt("Copy this link:", b.dataset.copy); } }));
+  host.querySelectorAll("[data-revoke]").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm("Revoke this link? The customer will no longer be able to download it.")) return;
+    await api("POST", "/api/shares/" + b.dataset.revoke + "/revoke"); await loadShares();
+  }));
+}
+
 boot();
+loadShares();

@@ -55,9 +55,15 @@ never the public site. `npm run console` → authed `http://127.0.0.1:8787`. See
    complete) + the live kit log.
 5. **Deliverables** — preview/download Audit, Executive Report, Run Summary;
    field matrix shown; files served path-scoped under `/deliverables`
-   (traversal-blocked). *Private bucket + signed links = next (below).*
+   (traversal-blocked).
 6. **Client management** — engagement list with inline status / proposal /
    invoice / delivery workflow; generated reports auto-attach to the record.
+7. **Secure delivery ✅** — per-deliverable **capability links**: expiring
+   (1–90d), revocable, optional password. Public `/share/<token>` route (no
+   analyst auth) serves only the one file; console/engine/kit stay private.
+   Shares listed with state + download count + revoke; sharing marks the
+   engagement `delivered`. Store = `console/data/shares.json` (→ private bucket
+   at scale).
 
 ## Phases 3+ (additions, not redesigns)
 Discovery Workshops · Runtime Safety Assessments · Pilots · Enterprise
