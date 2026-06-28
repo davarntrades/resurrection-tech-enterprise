@@ -342,7 +342,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 const STYLE = (() => {
   const i = process.argv.indexOf("--style");
   const fromFlag = i >= 0 ? process.argv[i + 1] : undefined;
-  return String(fromFlag || process.env.RT_PDF_STYLE || "dark").toLowerCase();
+  return String(fromFlag || process.env.RT_PDF_STYLE || "editorial").toLowerCase();
 })();
 const EDITORIAL = STYLE === "editorial";
 const ACTIVE_CSS = EDITORIAL ? CSS_EDITORIAL : CSS;
