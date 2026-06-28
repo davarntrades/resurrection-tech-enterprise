@@ -84,6 +84,7 @@
     <span class="eyebrow">Live</span>
     <h2 id="run_title">Audit in progress…</h2>
     <div class="stages" id="stages"></div>
+    <div class="run-done" id="run_done" style="display:none"></div>
     <div class="log" id="log"></div>
     <div class="deliverables" id="deliverables">
       <h2 style="margin-top:14px;font-size:14px">Deliverables</h2>
@@ -105,11 +106,16 @@
     <div id="shares"><p class="empty">No share links yet. Use “Share” on a deliverable above.</p></div>
   </section>
 
+  <!-- ENGAGEMENT DETAIL (permanent customer audit record) -->
+  <section class="card" id="detail_card" style="display:none">
+    <div id="detail_body"></div>
+  </section>
+
   <!-- CLIENT MANAGEMENT -->
   <section class="card">
     <span class="eyebrow">3 · Clients</span>
     <h2>Engagement records</h2>
-    <p class="hint">Private client management. Status drives the workflow: intake → audited → delivered.</p>
+    <p class="hint">Private client management. Click a row to open the full audit record. Status drives the workflow: intake → audited → delivered.</p>
     <div id="engagements"><p class="empty">No engagements yet.</p></div>
   </section>
 </div>

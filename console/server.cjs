@@ -122,6 +122,16 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 // at multi-analyst scale without changing the UI contract.
 function loadEngagements() { try { return JSON.parse(fs.readFileSync(ENGAGEMENTS, "utf8")); } catch { return []; } }
 function saveEngagements(list) { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(ENGAGEMENTS, JSON.stringify(list, null, 2)); }
+// Atomically mutate one engagement record and persist. Returns the updated rec.
+function updateEngagement(id, mutate) {
+  const list = loadEngagements();
+  const rec = list.find((r) => r.id === id);
+  if (!rec) return null;
+  mutate(rec);
+  rec.updated_at = new Date().toISOString();
+  saveEngagements(list);
+  return rec;
+}
 
 // secure-delivery shares (capability tokens; expiring + revocable; optional pw).
 // Served credential-free at /share/<token> so customers never touch the console.
@@ -146,7 +156,7 @@ function serveStatic(res, name) {
 
 // ---- run an audit: invoke the kit, stream staged progress (ndjson) ----------
 function runAudit(req, res, body) {
-  const { name, industry, period, reference, format, domains, manifestText, trajectories } = body || {};
+  const { name, industry, period, reference, format, domains, manifestText, trajectories, engagementId } = body || {};
   if (!manifestText || !String(manifestText).trim()) return send(res, 400, { error: "manifestText required" });
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rt-console-"));
@@ -196,7 +206,32 @@ function runAudit(req, res, body) {
       try { summary = JSON.parse(fs.readFileSync(path.join(abs, "run-summary.json"), "utf8")); } catch { /* none */ }
       try { files = fs.readdirSync(abs).filter((f) => /\.(pdf|json)$/.test(f)); } catch { /* none */ }
     }
-    emit({ type: "complete", code, dir: resultDir, files, summary });
+    // Persist the run to the engagement so deliverables survive refresh/navigation
+    // and the Engagement Details page can restore everything from the server.
+    if (engagementId && resultDir && files.length) {
+      const at = new Date().toISOString();
+      const ev = summary ? {
+        mode: summary.mode || null,
+        coverage_pct: summary.assess_summary ? summary.assess_summary.coverage_pct : null,
+        verified_blocked_trajectories: summary.assess_summary ? summary.assess_summary.verified_blocked_trajectories : null,
+        metrics: summary.metrics || null,
+        performance: summary.performance || null,
+        replay: summary.replay || null,
+        pending: summary.pending || [], missing: summary.missing || [],
+      } : null;
+      updateEngagement(engagementId, (rec) => {
+        const reports = files.filter((f) => /\.(pdf|json)$/.test(f)).map((f) => ({ dir: resultDir, file: f, at }));
+        const seen = new Set();
+        rec.reports = [...reports, ...(rec.reports || [])].filter((r) => {
+          const k = r.dir + "/" + r.file; if (seen.has(k)) return false; seen.add(k); return true;
+        });
+        rec.audits = [{ at, dir: resultDir, files, evidence: ev, period: period || "", manifest_preview: String(manifestText).slice(0, 4000) }, ...(rec.audits || [])];
+        rec.last_audit_at = at;
+        if (period && !rec.period) rec.period = period;
+        if (rec.status === "intake" || !rec.status) rec.status = "audited";
+      });
+    }
+    emit({ type: "complete", code, dir: resultDir, files, summary, engagementId: engagementId || null });
     res.end();
   });
   req.on("close", () => { if (child.exitCode == null) child.kill(); });
@@ -313,6 +348,24 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, rec);
     }
     const mEng = p.match(/^\/api\/engagements\/([\w-]+)$/);
+    if (mEng && req.method === "GET") {
+      // Full engagement record + its share links + on-disk file verification, so
+      // the Engagement Details page restores everything from the server.
+      const rec = loadEngagements().find((r) => r.id === mEng[1]);
+      if (!rec) return send(res, 404, { error: "not found" });
+      const proto = (req.headers["x-forwarded-proto"] || "http").split(",")[0];
+      const shares = loadShares().filter((s) => s.engagement_id === rec.id).map((s) => ({
+        id: s.id, file: s.file, dir: s.dir, label: s.label, recipient: s.recipient,
+        url: `${proto}://${req.headers.host}/share/${s.token}`,
+        created_at: s.created_at, expires_at: s.expires_at, state: shareState(s),
+        password_protected: !!s.password_hash, downloads: s.downloads || 0,
+      }));
+      const reports = (rec.reports || []).map((r) => {
+        const abs = resolveDeliverable(r.dir, r.file);
+        return { ...r, exists: !!(abs && fs.existsSync(abs)) };
+      });
+      return send(res, 200, { ...rec, reports, shares });
+    }
     if (mEng && req.method === "PATCH") {
       const b = await readBody(req);
       const list = loadEngagements();
@@ -363,6 +416,22 @@ const server = http.createServer(async (req, res) => {
       if (!s) return send(res, 404, { error: "not found" });
       s.revoked = true; s.revoked_at = new Date().toISOString(); saveShares(list);
       return send(res, 200, { id: s.id, state: "revoked" });
+    }
+    const mRegen = p.match(/^\/api\/shares\/([\w-]+)\/regenerate$/);
+    if (mRegen && req.method === "POST") {
+      const list = loadShares(); const old = list.find((x) => x.id === mRegen[1]);
+      if (!old) return send(res, 404, { error: "not found" });
+      old.revoked = true; old.revoked_at = new Date().toISOString();
+      const days = 14;
+      const rec = {
+        id: crypto.randomBytes(4).toString("hex"), token: crypto.randomBytes(24).toString("base64url"),
+        dir: old.dir, file: old.file, label: old.label, title: old.title, recipient: old.recipient,
+        engagement_id: old.engagement_id, created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + days * 86400000).toISOString(), revoked: false, downloads: 0,
+      };
+      list.unshift(rec); saveShares(list);
+      const proto = (req.headers["x-forwarded-proto"] || "http").split(",")[0];
+      return send(res, 200, { id: rec.id, url: `${proto}://${req.headers.host}/share/${rec.token}`, expires_at: rec.expires_at });
     }
 
     if (req.method === "POST" && p === "/api/run") return runAudit(req, res, await readBody(req));

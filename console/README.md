@@ -31,6 +31,12 @@ access for yourself — keep it private.
   PDF, and run-summary.json; the Priority-1 field matrix shows what populated.
 - **Clients** — private engagement records with status / proposal / invoice /
   delivery workflow; generated reports attach to the record automatically.
+- **Engagement details** — click any client to open its permanent audit record:
+  customer info, every audit run (with evidence: Ω coverage, blocked
+  trajectories, ALLOW/BLOCK/ESCALATE, determinism, latency), all deliverables
+  (preview/download/share), all secure links (expiry/revoke/regenerate), the
+  manifest used, and notes. Everything is restored from the server, so
+  deliverables and links survive page refreshes and navigation.
 
 ## Architecture
 - `server.cjs` — zero-dependency Node `http` server: Basic-Auth gate, engagement

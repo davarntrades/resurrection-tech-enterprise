@@ -60,3 +60,27 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .empty{color:var(--ink-4);font-size:12.5px;padding:14px 4px}
 .note{margin-top:14px;font-size:11px;color:var(--ink-4);border-top:1px dashed var(--line);padding-top:12px}
 .kbd{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px;color:var(--ink-2)}
+
+/* completion banner */
+.run-done{margin:10px 0 4px;padding:14px 16px;background:linear-gradient(180deg,rgba(63,178,127,.10),rgba(63,178,127,.02));border:1px solid rgba(63,178,127,.35);border-left:3px solid var(--ok);border-radius:12px}
+.run-done .rd-h{color:var(--ink);font-weight:600;font-size:14px;margin-bottom:8px}
+.run-done .rd-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 22px}
+.run-done .rd-list li{font-family:var(--mono);font-size:12px;color:var(--ok)}
+.run-done .rd-list li.no{color:var(--omega)}
+
+/* clickable client name */
+.linklike{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.linklike:hover{color:var(--gold-br);text-decoration:underline}
+
+/* engagement details panel */
+.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;margin:14px 0 6px;padding:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px}
+.detail-grid .dk{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.detail-grid .dv{color:var(--ink);font-size:13px}
+.dsec{margin-top:20px}
+.dsec .eyebrow{display:block;margin-bottom:8px}
+.audit-row{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);margin-top:8px}
+.audit-row .ar-d{font-family:var(--mono);font-size:11px;color:var(--gold-br)}
+.audit-row .ar-e{color:var(--ink-2);font-size:12.5px;margin-top:2px}
+.audit-row .ar-f{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:3px}
+.manifest{background:#06070a;border:1px solid var(--line);border-radius:9px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--ink-3);max-height:220px;overflow:auto;white-space:pre-wrap}
