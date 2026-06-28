@@ -51,24 +51,27 @@ if command -v npx >/dev/null 2>&1; then
   settle
 fi
 
-# 2) apt fallback (Debian; on Ubuntu 'chromium' may be a snap stub that won't run)
-if command -v apt-get >/dev/null 2>&1; then
-  echo "  • Trying apt-get chromium …"
-  $SUDO apt-get update -y || true
-  $SUDO apt-get install -y chromium || $SUDO apt-get install -y chromium-browser || true
+# 2) Puppeteer download — reliable no-sudo Chrome-for-Testing (installs to ./chrome)
+if command -v npx >/dev/null 2>&1; then
+  echo "  • Downloading Chrome for Testing via @puppeteer/browsers …"
+  npx -y @puppeteer/browsers install chrome@stable || true
   settle
 fi
 
-# 3) Puppeteer fallback — alternative download
-if command -v npx >/dev/null 2>&1; then
-  echo "  • Trying @puppeteer/browsers …"
-  npx -y @puppeteer/browsers install chrome@stable || true
+# 3) apt — LAST resort, and skipped on Codespaces (Ubuntu 'chromium' is a snap
+#    stub that won't launch). Only useful on Debian images that ship a real deb.
+if [ "${CODESPACES:-}" != "true" ] && command -v apt-get >/dev/null 2>&1; then
+  echo "  • Trying apt-get chromium (non-Codespaces) …"
+  $SUDO apt-get update -y || true
+  $SUDO apt-get install -y chromium || $SUDO apt-get install -y chromium-browser || true
   settle
+elif [ "${CODESPACES:-}" = "true" ]; then
+  echo "  • Skipping apt (Codespaces: Ubuntu chromium is a snap stub that won't launch)."
 fi
 
 echo ""
 echo "✗ Could not install a working Chromium automatically."
 echo "  Run this directly and paste any error you see:"
-echo "    npx -y playwright install --with-deps chromium"
+echo "    npx -y @puppeteer/browsers install chrome@stable   (or: npx -y playwright install --with-deps chromium)"
 echo "  then verify:  npm run audit:selftest"
 exit 1

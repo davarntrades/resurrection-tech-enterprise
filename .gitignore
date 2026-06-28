@@ -64,3 +64,6 @@ __pycache__/
 
 # Analyst Console local data (private client records)
 /console/data/
+
+# Locally downloaded browser (@puppeteer/browsers / playwright) — never commit
+/chrome/

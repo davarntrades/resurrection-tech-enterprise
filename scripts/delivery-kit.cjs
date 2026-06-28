@@ -91,14 +91,31 @@ function browserCacheCandidates() {
   return out;
 }
 // Browsers bundled in the repo (./chrome) or via npm (node_modules/.bin).
+// @puppeteer/browsers installs to ./chrome/<platform>-<build>/chrome-<platform>/chrome
+// (e.g. ./chrome/linux-150xxxx/chrome-linux64/chrome), so scan the versioned
+// subdirectories — not just fixed paths.
 function localChromeCandidates() {
   const root = path.join(__dirname, "..");
-  return [
-    path.join(root, "chrome", "chrome"),
-    path.join(root, "chrome", "chrome-linux", "chrome"),
-    path.join(root, "chrome", "chrome-linux64", "chrome"),
+  const chromeDir = path.join(root, "chrome");
+  const out = [
+    path.join(chromeDir, "chrome"),
+    path.join(chromeDir, "chrome-linux", "chrome"),
+    path.join(chromeDir, "chrome-linux64", "chrome"),
     path.join(root, "node_modules", ".bin", "chromium"),
   ];
+  try {
+    for (const d of fs.readdirSync(chromeDir)) {
+      out.push(
+        path.join(chromeDir, d, "chrome-linux64", "chrome"),
+        path.join(chromeDir, d, "chrome-linux", "chrome"),
+        path.join(chromeDir, d, "chrome"),
+        path.join(chromeDir, d, "chrome-headless-shell-linux64", "chrome-headless-shell"),
+        path.join(chromeDir, d, "chrome-mac-x64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
+        path.join(chromeDir, d, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
+      );
+    }
+  } catch { /* no ./chrome dir */ }
+  return out;
 }
 function fromPath() {
   // `which` is a real binary (no shell), avoiding the DEP0190 warning that
@@ -699,17 +716,21 @@ function renderPdf(htmlPath, pdfPath, label) {
 // ---- standalone PDF render self-test (verifies Chromium actually works) -----
 function selfTest() {
   const chrome = ensureChrome();
+  console.log(`• Resolved Chromium: ${chrome || "(none found)"}`);
   if (!chrome) { console.error(`✗ ${CHROME_NOT_FOUND}`); return 1; }
+  const v = chromeVersion(chrome);
+  console.log(`• Version: ${v || "(no --version output)"}`);
   const dir = path.join(os.tmpdir(), "rt-selftest");
   fs.mkdirSync(dir, { recursive: true });
   const html = path.join(dir, "t.html"), pdf = path.join(dir, "t.pdf");
   fs.writeFileSync(html, "<!doctype html><meta charset='utf-8'><h1>Resurrection Tech — PDF self-test</h1>");
   try { fs.rmSync(pdf, { force: true }); } catch { /* ignore */ }
+  console.log(`• Launching headless render test …`);
   try {
-    execFileSync(chrome, ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer", "--print-to-pdf=" + pdf, "file://" + html], { stdio: "ignore" });
-  } catch (e) { console.error(`✗ Chromium failed to render (${chrome}): ${e.message}`); return 1; }
+    execFileSync(chrome, ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer", "--print-to-pdf=" + pdf, "file://" + html], { stdio: ["ignore", "ignore", "pipe"], timeout: 60000 });
+  } catch (e) { console.error(`✗ Chromium failed to launch/render (${chrome}): ${String((e && e.stderr) || e.message || e).toString().slice(0, 300)}`); return 1; }
   const ok = fs.existsSync(pdf) && fs.readFileSync(pdf).slice(0, 5).toString() === "%PDF-";
-  console.log(ok ? `✓ PDF generation OK via ${chrome} (${fs.statSync(pdf).size} bytes)` : "✗ PDF not produced");
+  console.log(ok ? `✓ Chromium usable — headless render OK via ${chrome} (${fs.statSync(pdf).size} bytes)` : "✗ Chromium did not produce a PDF");
   return ok ? 0 : 1;
 }
 
