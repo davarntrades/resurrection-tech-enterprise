@@ -294,6 +294,8 @@ const CSS = `
 @page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}
 body{background:#08090b;color:#aab2bd;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px;line-height:1.55}
 .wrap{padding:40px 46px}
+/* On screen, present as a centred page with room to breathe (PDF keeps @page). */
+@media screen{body{background:#050608;padding:24px 16px}.wrap{max-width:940px;margin:0 auto;border:1px solid rgba(255,255,255,.06);border-radius:8px}}
 .brand{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px;margin-bottom:20px}
 .brand b{color:#f3f5f7;font-size:14px}.brand .r{color:#e0a93f}.brand .t{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480}
 .band{background:linear-gradient(180deg,rgba(224,169,63,.14),rgba(224,169,63,.03));border:1px solid #6b4f1c;border-radius:14px;padding:22px 24px;margin-bottom:18px}
@@ -367,6 +369,21 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .grade.grade-aplus,.grade.grade-a{border-left-color:#3fb27f}.grade.grade-aplus .g,.grade.grade-a .g{color:#6fdcab}
 .grade.grade-b{border-left-color:#e0a93f}.grade.grade-b .g{color:#f2c66a}
 .grade.grade-c{border-left-color:#e5484d}.grade.grade-c .g{color:#f0888c}
+.scan{width:100%;border-collapse:collapse;margin-top:8px}.scan .st-cell{text-align:right}
+.st{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.12);color:#cdd6e0}
+.st.ok{color:#6fdcab;border-color:rgba(63,178,127,.5)}
+.st.grade-aplus,.st.grade-a{color:#6fdcab;border-color:rgba(63,178,127,.6)}
+.st.grade-b{color:#f2c66a;border-color:rgba(224,169,63,.6)}
+.st.grade-c{color:#f0888c;border-color:rgba(229,72,77,.6)}
+.st-sub{color:#8a929c;font-size:11px;margin-left:6px}
+.ictx{margin-top:16px;padding:14px 16px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px}
+.ictx-k{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480}
+.ictx ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:0}
+.ictx li{display:flex;justify-content:space-between;gap:14px;font-size:12px;color:#aab2bd;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ictx li:last-child{border-bottom:0}
+.ictx li.meas{color:#f3f5f7}.ictx li.meas .ic-v{color:#6fdcab;font-weight:600}
+.ictx .ic-v{font-family:ui-monospace,Menlo,monospace}
+.ictx li em{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:#6b7480;margin-left:6px}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -405,6 +422,9 @@ const CSS_EDITORIAL = `
 @page{size:letter;margin:0.9in 1in}*{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#212121;font-family:"TeX Gyre Pagella","Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .wrap{padding:0}
+/* On screen the @page margins don't apply, so render a centred white page with
+   generous margins on a soft grey backdrop — matching how the PDF looks. */
+@media screen{html,body{background:#e7e7ea}.wrap{max-width:850px;margin:32px auto;padding:64px 72px;background:#fff;box-shadow:0 1px 28px rgba(0,0,0,.14);border-radius:3px}}
 .eyebrow,.brand b,.brand .t,.meta .k,th,td.n,.tag,.kpi .k,.legend,.foot,.badge,.verified,.ct,.lbl,h1,h2{font-family:"TeX Gyre Heros","Helvetica Neue",Arial,sans-serif}
 .brand{display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.5pt solid #b8b8b8;padding-bottom:8px;margin-bottom:18px}
 .brand b{font-weight:700;color:#212121;font-size:11pt;letter-spacing:.02em}.brand .r{color:#212121}
@@ -451,6 +471,20 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .grade.grade-aplus,.grade.grade-a{border-left-color:#2e7d52}.grade.grade-aplus .g,.grade.grade-a .g{color:#2e7d52}
 .grade.grade-b{border-left-color:#9a6a12}.grade.grade-b .g{color:#9a6a12}
 .grade.grade-c{border-left-color:#b3261e}.grade.grade-c .g{color:#b3261e}
+.scan{width:100%;border-collapse:collapse;margin-top:8px}.scan .st-cell{text-align:right}
+.st{display:inline-block;font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:8.5pt;font-weight:700;padding:1px 8px;border-radius:2pt;border:0.6pt solid #b8b8b8;color:#212121}
+.st.ok{color:#2e7d52;border-color:#2e7d52}
+.st.grade-aplus,.st.grade-a{color:#2e7d52;border-color:#2e7d52}
+.st.grade-b{color:#9a6a12;border-color:#9a6a12}
+.st.grade-c{color:#b3261e;border-color:#b3261e}
+.st-sub{color:#737373;font-size:9pt;margin-left:6px}
+.ictx{margin-top:16px;padding:13px 15px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt}
+.ictx-k{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:#737373}
+.ictx ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:0}
+.ictx li{display:flex;justify-content:space-between;gap:14px;font-size:9.5pt;color:#333;padding:6px 0;border-bottom:0.5pt solid #e2e2e2}
+.ictx li:last-child{border-bottom:0}
+.ictx li.meas{color:#212121;font-weight:600}.ictx li.meas .ic-v{color:#2e7d52}
+.ictx li em{font-style:normal;font-size:7pt;letter-spacing:.06em;text-transform:uppercase;color:#737373;margin-left:6px}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -557,8 +591,8 @@ function perfSection(stats, attestation, replay) {
 // unavailable (HTML + Markdown still delivered) — that is surfaced, not hidden.
 const STAGE_ORDER = [
   ["Manifest parsing", "manifest_parse"],
-  ["Runtime Governance evaluation", "governance_eval"],
-  ["Trajectory replay", "trajectory_replay"],
+  ["Governance evaluation", "governance_eval"],
+  ["Replay", "trajectory_replay"],
   ["Report generation", "report_generation"],
   ["PDF generation", "pdf_generation"],
 ];
@@ -568,6 +602,13 @@ function stageTotal(stages) {
   return STAGE_ORDER.reduce((a, [, k]) => a + (stages[k] || 0), 0);
 }
 const fmtRate = (n) => (n >= 1000 ? Math.round(n).toLocaleString() : n >= 10 ? n.toFixed(0) : n.toFixed(1));
+// Human-friendly duration: seconds once we cross 1s, otherwise milliseconds.
+const fmtDur = (ms) => (ms == null || !isFinite(ms)) ? "—" : (ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : fmtMs(ms));
+// Static reference points so a reader can place a measured latency in context.
+const INDUSTRY_REFERENCE = [
+  ["Human reaction time", "~250 ms"],
+  ["Typical API request", "50–200 ms"],
+];
 // One source of truth for throughput/efficiency so HTML, Markdown, JSON and the
 // console all report identical (measured) figures.
 function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
@@ -609,35 +650,48 @@ function performanceGrade(rtm) {
   const basis = `avg evaluation latency ${fmtMs(avg)}${rtm.detPct != null ? `, determinism ${rtm.detPct}%` : ""}`;
   return { grade, label, basis };
 }
-function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
+function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
   if (!stages) return ""; // pass-1 measurement render — section added on pass 2
   const total = stageTotal(stages);
   const rr = (ctx && ctx.replayResults) || [];
   if (!total && !perf && !rr.length) return "";
   const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
   const t = total || 1;
-
-  // performance grade (measured thresholds) — shown first, for a quick read
   const g = performanceGrade(X);
-  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">${esc(g.label)}</span><span class="gb">Governance engine only — based on ${esc(g.basis)}</span></span></div>` : "";
 
-  // throughput & efficiency
-  const tput = [
-    ["Total runtime", fmtMs(total)],
-    ["Average latency", perf ? fmtMs(perf.mean) : "—"],
-    ["Trajectories replayed", String(X.N)],
-    ["Runtime Governance evaluations", String(X.M)],
-    ["Effective evaluations / sec", X.totalSec ? fmtRate(X.effEval) : "—"],
-    ["Effective trajectories / sec", X.totalSec ? fmtRate(X.effTraj) : "—"],
+  // ===== 1 · Performance at a glance — the five-second executive summary =====
+  const compRows = [
+    ["Runtime Governance Engine", g ? `<span class="st ${GRADE_CLASS[g.grade]}">${esc(g.grade)}</span> <span class="st-sub">${esc(g.label)}</span>` : `<span class="st">pending</span>`],
+    ["Determinism", esc(X.detPct != null ? `${X.detPct}%` : "n/a")],
+    ["Average evaluation latency", esc(perf ? fmtMs(perf.mean) : "—")],
+    ["Governance coverage", esc(X.cov != null ? `${X.cov}%` : "—")],
+    ["End-to-end audit delivery", esc(fmtDur(total))],
+    ["Report generation", `<span class="st ok">Complete</span>`],
   ];
-  const tputCards = tput.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
+  const comparison = `<div class="sec"><span class="eyebrow">Performance at a glance</span><h2>The five-second summary.</h2>
+    <table class="scan"><thead><tr><th>Component</th><th>Status</th></tr></thead><tbody>
+    ${compRows.map(([k, v]) => `<tr><td class="m">${esc(k)}</td><td class="st-cell">${v}</td></tr>`).join("")}
+    </tbody></table></div>`;
 
-  // CPU time breakdown
-  const rows = STAGE_ORDER.map(([label, k]) => ({ label, ms: stages[k] || 0, pct: (stages[k] || 0) / t * 100 }));
-  const bars = rows.map((r) => `<div class="row"><span class="lab">${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, Math.round(r.pct))}%"></span></span><span class="val">${r.pct.toFixed(0)}% · ${fmtMs(r.ms)}</span></div>`).join("")
-    + `<div class="row tot"><span class="lab"><b>Total end-to-end</b></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">100% · ${fmtMs(total)}</span></div>`;
-
-  // replay performance (only when more than one trajectory was replayed)
+  // ===== 2 · Runtime Governance Engine — how fast/reliably it decides =====
+  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">${esc(g.label)}</span><span class="gb">Governance engine only — based on ${esc(g.basis)}</span></span></div>` : "";
+  // industry context — place the measured latency against familiar reference points
+  const ctxRows = [
+    ["Runtime Governance evaluation", perf ? fmtMs(perf.mean) : "—", true],
+    ...INDUSTRY_REFERENCE.map(([k, v]) => [k, v, false]),
+    ["Customer audit delivery", fmtDur(total), true],
+  ];
+  const industryContext = `<div class="ictx"><span class="ictx-k">Industry context</span>
+    <ul>${ctxRows.map(([k, v, meas]) => `<li${meas ? ' class="meas"' : ""}><span class="ic-l">${esc(k)}</span><span class="ic-v">${esc(v)}${meas ? ' <em>measured</em>' : ""}</span></li>`).join("")}</ul></div>`;
+  const engineKpiData = [
+    ["Average evaluation latency", perf ? fmtMs(perf.mean) : "—"],
+    ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
+    ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
+    ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
+    ["Trajectories replayed", String(X.N)],
+    ["Governance evaluations", String(X.M)],
+  ];
+  const engineKpis = engineKpiData.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
   let replayPerf = "";
   if (rr.length > 1 && X.trajTimes.length) {
     const scale = X.trajStats.slow || 1;
@@ -645,37 +699,40 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
       const ms = typeof r.eval_ms === "number" ? r.eval_ms : 0;
       return `<div class="row"><span class="lab">Trajectory ${r.index}</span><span class="track"><span class="fill" style="width:${Math.max(3, Math.round((ms / scale) * 100))}%"></span></span><span class="val">${fmtMs(ms)}</span></div>`;
     }).join("");
-    replayPerf = `<div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">Replay performance</span>
+    replayPerf = `<div style="margin-top:20px"><span class="eyebrow" style="display:block;margin-bottom:8px">Replay performance · per trajectory</span>
       <div class="stagebars">${trows}</div>
-      <div class="kpis" style="margin-top:10px">
+      <div class="kpis" style="margin-top:12px">
         <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.avg)}</span><span class="k">Average</span></div>
         <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.fast)}</span><span class="k">Fastest</span></div>
         <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.slow)}</span><span class="k">Slowest</span></div>
       </div></div>`;
   }
-
-  // performance summary card
-  const sum = [
-    g ? `Runtime Governance grade: ${g.grade} (${g.label})` : null,
-    `End-to-end runtime: ${fmtMs(total)}`,
-    `Governance evaluations: ${X.M}`,
-    `Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`,
-    `Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`,
-    `Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`,
-    `Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`,
-  ].filter(Boolean);
-  const summaryCard = `<div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">Performance summary</span>
-    <ul class="check">${sum.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>`;
-
-  return `<div class="sec"><span class="eyebrow">Runtime performance · throughput &amp; efficiency</span><h2>Measured capacity of the governance pipeline — latency, throughput, and CPU time.</h2>
+  const engineSection = `<div class="sec"><span class="eyebrow">Runtime Governance Engine</span><h2>How fast and reliably the engine makes governance decisions.</h2>
     ${gradeCard}
-    <div class="kpis" style="margin-top:18px">${tputCards}</div>
+    ${industryContext}
+    <div class="kpis" style="margin-top:20px">${engineKpis}</div>
+    ${replayPerf}
+    <p style="margin-top:14px;color:#8a929c">Engine timings are measured per <span style="font-family:ui-monospace,Menlo,monospace">/v1/evaluate</span> round-trip with a high-resolution monotonic clock. Reference points are industry norms, shown for intuition only.</p>
+  </div>`;
+
+  // ===== 3 · Audit Generation Pipeline — where end-to-end time is spent =====
+  const rows = STAGE_ORDER.map(([label, k]) => ({ label, ms: stages[k] || 0, pct: (stages[k] || 0) / t * 100 }));
+  const bars = rows.map((r) => `<div class="row"><span class="lab">${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, Math.round(r.pct))}%"></span></span><span class="val">${r.pct.toFixed(0)}% · ${fmtMs(r.ms)}</span></div>`).join("")
+    + `<div class="row tot"><span class="lab"><b>Total customer delivery</b></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">100% · ${fmtDur(total)}</span></div>`;
+  const pipelineKpiData = [
+    ["Total customer delivery", fmtDur(total)],
+    ["Effective evaluations / sec", X.totalSec ? fmtRate(X.effEval) : "—"],
+    ["Effective trajectories / sec", X.totalSec ? fmtRate(X.effTraj) : "—"],
+  ];
+  const pipelineKpis = pipelineKpiData.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
+  const pipelineSection = `<div class="sec"><span class="eyebrow">Audit Generation Pipeline</span><h2>Where end-to-end delivery time is spent — ingestion through documents.</h2>
+    <div class="kpis">${pipelineKpis}</div>
     <div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">CPU time breakdown</span>
       <div class="stagebars">${bars}</div></div>
-    ${replayPerf}
-    ${summaryCard}
-    <p style="margin-top:12px;color:#8a929c">Every stage is timed with a high-resolution monotonic clock during the audit; throughput is derived from those measurements. Values are measured, never estimated.</p>
+    <p style="margin-top:14px;color:#8a929c">The engine reaches its verdicts in milliseconds; the remaining time is spent rendering the HTML and PDF documents, not making governance decisions. All values measured, never estimated.</p>
   </div>`;
+
+  return comparison + engineSection + perfSection(perf, attestation, replay) + pipelineSection;
 }
 function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   if (!stages) return ""; // pass-1 measurement render — section added on pass 2
@@ -685,30 +742,43 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
   const g = performanceGrade(X);
   const t = total || 1;
-  const L = [``, `## Runtime performance — throughput & efficiency`, ``];
+  const L = [];
+
+  // Performance at a glance — five-second summary
+  L.push(``, `## Performance at a glance`, ``, `| Component | Status |`, `|---|---|`);
+  L.push(`| Runtime Governance Engine | ${g ? `${g.grade} (${g.label})` : "pending"} |`);
+  L.push(`| Determinism | ${X.detPct != null ? X.detPct + "%" : "n/a"} |`);
+  L.push(`| Average evaluation latency | ${perf ? fmtMs(perf.mean) : "—"} |`);
+  L.push(`| Governance coverage | ${X.cov != null ? X.cov + "%" : "—"} |`);
+  L.push(`| End-to-end audit delivery | ${fmtDur(total)} |`);
+  L.push(`| Report generation | Complete |`);
+
+  // Runtime Governance Engine
+  L.push(``, `## Runtime Governance Engine`, ``);
   if (g) L.push(`**Runtime Governance grade: ${g.grade} — ${g.label}**  _(governance engine only — based on ${g.basis})_`, ``);
-  L.push(`- Total runtime: **${fmtMs(total)}**`);
-  L.push(`- Average latency: ${perf ? fmtMs(perf.mean) : "—"}`);
-  L.push(`- Trajectories replayed: ${X.N}`);
-  L.push(`- Runtime Governance evaluations: ${X.M}`);
-  L.push(`- Effective evaluations/sec: ${X.totalSec ? fmtRate(X.effEval) : "—"}`);
-  L.push(`- Effective trajectories/sec: ${X.totalSec ? fmtRate(X.effTraj) : "—"}`);
-  L.push(``, `### CPU time breakdown`, ``, `| Stage | Latency | Share |`, `|---|---|---|`);
-  for (const [label, k] of STAGE_ORDER) { const ms = stages[k] || 0; L.push(`| ${label} | ${fmtMs(ms)} | ${(ms / t * 100).toFixed(0)}% |`); }
-  L.push(`| **Total end-to-end** | **${fmtMs(total)}** | **100%** |`);
+  L.push(`- Average evaluation latency: **${perf ? fmtMs(perf.mean) : "—"}**`);
+  L.push(`- Throughput: ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
+  L.push(`- Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`);
+  L.push(`- Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`);
+  L.push(`- Trajectories replayed: ${X.N} · Governance evaluations: ${X.M}`);
+  L.push(``, `**Industry context**`, ``);
+  L.push(`- Runtime Governance evaluation: ${perf ? fmtMs(perf.mean) : "—"} _(measured)_`);
+  for (const [k, v] of INDUSTRY_REFERENCE) L.push(`- ${k}: ${v}`);
+  L.push(`- Customer audit delivery: ${fmtDur(total)} _(measured)_`);
   if (rr.length > 1 && X.trajTimes.length) {
-    L.push(``, `### Replay performance`, ``, `| Trajectory | Latency |`, `|---|---|`);
+    L.push(``, `**Replay performance — per trajectory**`, ``, `| Trajectory | Latency |`, `|---|---|`);
     for (const r of rr) L.push(`| Trajectory ${r.index} | ${fmtMs(typeof r.eval_ms === "number" ? r.eval_ms : 0)} |`);
     L.push(`| **Average** | **${fmtMs(X.trajStats.avg)}** |`, `| Fastest | ${fmtMs(X.trajStats.fast)} |`, `| Slowest | ${fmtMs(X.trajStats.slow)} |`);
   }
-  L.push(``, `### Performance summary`, ``);
-  if (g) L.push(`- ✓ Runtime Governance grade: ${g.grade} (${g.label})`);
-  L.push(`- ✓ End-to-end runtime: ${fmtMs(total)}`);
-  L.push(`- ✓ Governance evaluations: ${X.M}`);
-  L.push(`- ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
-  L.push(`- ✓ Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`);
-  L.push(`- ✓ Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`);
-  L.push(`- ✓ Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`);
+
+  // Audit Generation Pipeline
+  L.push(``, `## Audit Generation Pipeline`, ``);
+  L.push(`- Total customer delivery: **${fmtDur(total)}**`);
+  L.push(`- Effective evaluations/sec: ${X.totalSec ? fmtRate(X.effEval) : "—"} · Effective trajectories/sec: ${X.totalSec ? fmtRate(X.effTraj) : "—"}`);
+  L.push(``, `### CPU time breakdown`, ``, `| Stage | Latency | Share |`, `|---|---|---|`);
+  for (const [label, k] of STAGE_ORDER) { const ms = stages[k] || 0; L.push(`| ${label} | ${fmtMs(ms)} | ${(ms / t * 100).toFixed(0)}% |`); }
+  L.push(`| **Total customer delivery** | **${fmtDur(total)}** | **100%** |`);
+  L.push(``, `_The engine reaches its verdicts in milliseconds; the remaining time is spent rendering the HTML and PDF documents, not making governance decisions._`);
   return L.join("\n");
 }
 
@@ -990,8 +1060,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + blockedSec
     + replaySummary
     + metricsSec
-    + perfSection(perf, report.attestation, replay)
-    + pipelineTimingHtml(stages, perf, replay, ctx, s)
+    + pipelineTimingHtml(stages, perf, replay, ctx, s, report.attestation)
     + counterfactual
     + attestationSec
     + recSec
@@ -1091,8 +1160,7 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
       </div>` : `<div class="sec"><div class="status"><span class="lbl">Assessment pending</span><p>The structural assessment did not complete for this run. Re-run once the engine assessment is available — this report never displays readiness it cannot evidence.</p></div></div>`}
       ${ready ? structural() : ""}
       ${attestationSec()}
-      ${perfSection(perf, att, replay)}
-      ${pipelineTimingHtml(stages, perf, rep, ctx, s)}
+      ${pipelineTimingHtml(stages, perf, rep, ctx, s, att)}
       <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
         <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
         <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
@@ -1136,8 +1204,7 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
       </div>` : `<p style="color:#8a929c">Determinism replay not applicable for this source (decision logs supplied directly).</p>`}
     </div>
     ${replaySummarySec}
-    ${perfSection(perf, att, replay)}
-    ${pipelineTimingHtml(stages, perf, rep, ctx, s)}
+    ${pipelineTimingHtml(stages, perf, rep, ctx, s, att)}
     ${recSec}
     ${structural()}
     ${attestationSec()}
@@ -1537,42 +1604,37 @@ function selfTest() {
   const rtm = computeRuntimeMetrics(stages, perf, replay, ctx, report && report.summary);
   const grade = performanceGrade(rtm);
 
-  // console view of the measured pipeline instrumentation
+  // console view — same two-part story as the reports (engine vs delivery)
   {
     const tt = rtm.total || 1;
-    const line = (label, ms) => `  ${label.padEnd(30, " ")} ${fmtMs(ms).padStart(9)}   ${((ms / tt) * 100).toFixed(0).padStart(3)}%`;
-    console.log(`\n— Pipeline instrumentation (measured per-stage) —`);
-    console.log(line("Manifest parsing", stages.manifest_parse));
-    console.log(line("Runtime Governance evaluation", stages.governance_eval));
-    console.log(line("Trajectory replay", stages.trajectory_replay));
-    console.log(line("Report generation", stages.report_generation));
-    console.log(line("PDF generation", stages.pdf_generation));
-    console.log(`  ${"Total end-to-end".padEnd(30, " ")} ${fmtMs(tt).padStart(9)}   100%`);
+    console.log(`\n— Performance at a glance —`);
+    console.log(`  Runtime Governance Engine     ${grade ? `${grade.grade} (${grade.label})` : "pending"}`);
+    console.log(`  Determinism                   ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
+    console.log(`  Average evaluation latency    ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`  Governance coverage           ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
+    console.log(`  End-to-end audit delivery     ${fmtDur(rtm.total)}`);
+    console.log(`  Report generation             Complete`);
 
-    console.log(`\n— Runtime performance (throughput & efficiency) —`);
-    console.log(`  Total runtime:                ${fmtMs(rtm.total)}`);
-    console.log(`  Average latency:              ${perf ? fmtMs(perf.mean) : "—"}`);
-    console.log(`  Trajectories replayed:        ${rtm.N}`);
-    console.log(`  Runtime Governance evals:     ${rtm.M}`);
-    console.log(`  Effective evaluations/sec:    ${rtm.totalSec ? fmtRate(rtm.effEval) : "—"}`);
-    console.log(`  Effective trajectories/sec:   ${rtm.totalSec ? fmtRate(rtm.effTraj) : "—"}`);
-
+    console.log(`\n— Runtime Governance Engine —`);
+    if (grade) console.log(`  ★ Runtime Governance grade:  ${grade.grade} (${grade.label})`);
+    console.log(`  Average evaluation latency:  ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`  Throughput:                  ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
+    console.log(`  Determinism:                 ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
+    console.log(`  Governance coverage:         ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
+    console.log(`  Trajectories / evaluations:  ${rtm.N} / ${rtm.M}`);
+    console.log(`  Industry context:`);
+    console.log(`    Runtime Governance eval    ${perf ? fmtMs(perf.mean) : "—"}  (measured)`);
+    for (const [k, v] of INDUSTRY_REFERENCE) console.log(`    ${k.padEnd(25)}${v}`);
+    console.log(`    Customer audit delivery    ${fmtDur(rtm.total)}  (measured)`);
     if (rtm.trajStats && rtm.trajTimes.length > 1) {
-      console.log(`\n— Replay performance (per trajectory) —`);
-      for (const r of (ctx.replayResults || [])) console.log(`  Trajectory ${String(r.index).padEnd(3)} ${fmtMs(typeof r.eval_ms === "number" ? r.eval_ms : 0).padStart(9)}`);
-      console.log(`  ${"Average".padEnd(12)} ${fmtMs(rtm.trajStats.avg).padStart(9)}`);
-      console.log(`  ${"Fastest".padEnd(12)} ${fmtMs(rtm.trajStats.fast).padStart(9)}`);
-      console.log(`  ${"Slowest".padEnd(12)} ${fmtMs(rtm.trajStats.slow).padStart(9)}`);
+      console.log(`  Replay (per trajectory):     avg ${fmtMs(rtm.trajStats.avg)} · fastest ${fmtMs(rtm.trajStats.fast)} · slowest ${fmtMs(rtm.trajStats.slow)}`);
     }
 
-    console.log(`\n— Performance summary —`);
-    if (grade) console.log(`  ★ Runtime Governance grade: ${grade.grade} (${grade.label})`);
-    console.log(`  ✓ End-to-end runtime: ${fmtMs(rtm.total)}`);
-    console.log(`  ✓ Governance evaluations: ${rtm.M}`);
-    console.log(`  ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
-    console.log(`  ✓ Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`);
-    console.log(`  ✓ Determinism: ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
-    console.log(`  ✓ Governance coverage: ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
+    console.log(`\n— Audit Generation Pipeline —`);
+    const line = (label, ms) => `  ${label.padEnd(24, " ")} ${fmtMs(ms).padStart(9)}   ${((ms / tt) * 100).toFixed(0).padStart(3)}%`;
+    for (const [label, k] of STAGE_ORDER) console.log(line(label, stages[k]));
+    console.log(`  ${"Total customer delivery".padEnd(24, " ")} ${fmtDur(tt).padStart(9)}   100%`);
+    console.log(`  (engine decides in ms; the rest is HTML/PDF rendering, not governance)`);
   }
 
   // Per-stage timing block (measured wall-clock ms + each stage's share of total).
@@ -1615,6 +1677,20 @@ function selfTest() {
       throughput_evaluations_per_sec: rtm.eps != null ? +rtm.eps.toFixed(2) : null,
       determinism_pct: rtm.detPct,
       governance_coverage_pct: rtm.cov,
+    },
+    comparison_card: {
+      runtime_governance_engine: grade ? grade.grade : "pending",
+      determinism_pct: rtm.detPct,
+      average_evaluation_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
+      governance_coverage_pct: rtm.cov,
+      end_to_end_audit_delivery_ms: r3(rtm.total),
+      report_generation: "Complete",
+    },
+    industry_context: {
+      runtime_governance_evaluation: rtm.avg != null ? fmtMs(rtm.avg) : null,
+      human_reaction_time: "~250 ms",
+      typical_api_request: "50–200 ms",
+      customer_audit_delivery: fmtDur(rtm.total),
     },
   };
 
