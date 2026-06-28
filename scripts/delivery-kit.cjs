@@ -715,6 +715,7 @@ function renderPdf(htmlPath, pdfPath, label) {
 
 // ---- standalone PDF render self-test (verifies Chromium actually works) -----
 function selfTest() {
+  try { const h = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: path.join(__dirname, ".."), stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); console.log(`• delivery-kit: ${__filename} @ ${h}`); } catch { console.log(`• delivery-kit: ${__filename}`); }
   const chrome = ensureChrome();
   console.log(`• Resolved Chromium: ${chrome || "(none found)"}`);
   if (!chrome) { console.error(`✗ ${CHROME_NOT_FOUND}`); return 1; }

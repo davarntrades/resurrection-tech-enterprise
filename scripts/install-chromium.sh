@@ -32,6 +32,9 @@ settle() {
 }
 
 echo "Resurrection Tech — Chromium install + verify"
+echo "  installer: $(pwd)/scripts/install-chromium.sh"
+echo "  commit:    $(git rev-parse --short HEAD 2>/dev/null || echo unknown)$(git diff --quiet -- scripts/install-chromium.sh 2>/dev/null || echo '  (LOCAL UNCOMMITTED CHANGES)')"
+echo "  codespaces: ${CODESPACES:-false}"
 
 # 0) already present and working?
 settle
