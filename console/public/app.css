@@ -43,6 +43,13 @@ textarea{resize:vertical;min-height:96px;font-family:var(--mono);font-size:12px}
 .stage.done{color:var(--ink-2)} .stage.done .ic{border-color:var(--ok);background:rgba(63,178,127,.12);color:var(--ok)}
 .log{background:#06070a;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-height:200px;overflow:auto;white-space:pre-wrap;display:none}
 .log.on{display:block}
+.log-wrap{margin-top:10px}
+.log-wrap summary{cursor:pointer;color:var(--ink-3);font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+/* live debug checklist */
+.run-checks{margin:8px 0;display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto}
+.run-checks .rc{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line)}
+.run-checks .rc.ok{color:var(--ok);border-color:rgba(63,178,127,.3)}
+.run-checks .rc.no{color:var(--omega);border-color:rgba(229,72,77,.4);background:rgba(229,72,77,.06)}
 
 .deliverables{display:none}.deliverables.on{display:block}
 .file{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;margin-top:8px}

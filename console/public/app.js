@@ -158,6 +158,14 @@ function renderStages(active, done) {
     return `<div class="stage ${cls}"><span class="ic">${ic}</span>${esc(label)}</div>`;
   }).join("");
 }
+// live debug checklist: append a ✓/✗ row as each stage reports
+function addCheck(ok, label) {
+  const el = document.createElement("div");
+  el.className = "rc " + (ok ? "ok" : "no");
+  el.textContent = (ok ? "✓ " : "✗ ") + label;
+  $("run_checks").appendChild(el);
+  $("run_checks").scrollTop = $("run_checks").scrollHeight;
+}
 
 $("r_run").addEventListener("click", async () => {
   const manifestText = $("r_manifest").value.trim();
@@ -177,8 +185,10 @@ $("r_run").addEventListener("click", async () => {
   $("r_run").disabled = true; $("r_status").textContent = "running…";
   $("run_card").style.display = ""; $("run_title").textContent = `Audit — ${esc(body.name)}`;
   $("run_done").style.display = "none"; $("run_done").innerHTML = "";
+  $("run_checks").innerHTML = "";
   $("deliverables").classList.remove("on"); $("log").classList.add("on"); $("log").textContent = "";
   const done = new Set(); renderStages("parsing", done);
+  let anyFail = false;
 
   try {
     const res = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -191,15 +201,24 @@ $("r_run").addEventListener("click", async () => {
         const line = buf.slice(0, nl); buf = buf.slice(nl + 1); if (!line.trim()) continue;
         const ev = JSON.parse(line);
         if (ev.type === "stage") { if (last && last !== ev.key) done.add(last); if (ev.key === "complete") done.add("complete"); last = ev.key; renderStages(ev.key, done); }
+        else if (ev.type === "check") { addCheck(ev.ok, ev.label); if (!ev.ok) anyFail = true; }
+        else if (ev.type === "fail") { addCheck(false, ev.error); anyFail = true; }
         else if (ev.type === "log") { const l = $("log"); l.textContent += ev.line + "\n"; l.scrollTop = l.scrollHeight; }
         else if (ev.type === "error") { throw new Error(ev.error); }
         else if (ev.type === "complete") { final = ev; }
       }
     }
-    STAGES.forEach(([k]) => done.add(k)); renderStages(null, done);
-    if (final && final.dir) await showDeliverables(final, eng);
-    $("r_status").textContent = "done ✓";
+    renderStages(null, done);
+    if (final && final.dir && final.files && final.files.length) {
+      STAGES.forEach(([k]) => done.add(k)); renderStages(null, done);
+      await showDeliverables(final, eng);
+      $("r_status").textContent = anyFail ? "completed with notes — see checklist" : "done ✓";
+    } else {
+      addCheck(false, "No deliverables were produced — the run did not complete. See the checklist above for the failing stage.");
+      $("r_status").textContent = "failed — see checklist above";
+    }
   } catch (e) {
+    addCheck(false, "Pipeline error: " + e.message);
     $("r_status").textContent = "failed: " + e.message;
   } finally { $("r_run").disabled = false; }
 });

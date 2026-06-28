@@ -50,6 +50,9 @@ const GOV = (process.env.GOVERNANCE_URL || "https://resurrection-tech-enterprise
 // Opt-in staged progress for the Analyst Console (RT_CONSOLE=1). Emits a single
 // parseable line per stage; hand-run CLI output is unchanged when unset.
 const emitStage = (k, label) => { if (process.env.RT_CONSOLE) process.stdout.write(`__STAGE__:${k}:${label}\n`); };
+// Structured per-stage debug checks surfaced in the console (✓/✗ + detail).
+const emitCheck = (ok, label) => { if (process.env.RT_CONSOLE) process.stdout.write(`__CHECK__:${ok ? 1 : 0}:${String(label).replace(/\n/g, " ")}\n`); };
+const emitError = (msg) => { if (process.env.RT_CONSOLE) process.stdout.write(`__ERROR__:${String(msg).replace(/\n/g, " ")}\n`); };
 
 // ---- portable Chromium discovery -------------------------------------------
 // Browsers downloaded by Playwright (chromium-<rev>/chrome-linux/chrome) or
@@ -615,8 +618,14 @@ function ensureChrome() {
 // ---- render via Chromium (pipeline unchanged; portable binary lookup) -------
 function render(htmlPath, pdfPath) {
   const chrome = ensureChrome();
-  if (!chrome) { console.error(`\n✗ ${CHROME_NOT_FOUND}`); process.exit(1); }
-  execFileSync(chrome, ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer", "--print-to-pdf=" + pdfPath, "file://" + htmlPath], { stdio: "ignore" });
+  if (!chrome) { emitError(CHROME_NOT_FOUND); console.error(`\n✗ ${CHROME_NOT_FOUND}`); throw new Error(CHROME_NOT_FOUND); }
+  try {
+    execFileSync(chrome, ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer", "--print-to-pdf=" + pdfPath, "file://" + htmlPath], { stdio: ["ignore", "ignore", "pipe"] });
+  } catch (e) {
+    const msg = `Chromium render failed (${chrome}): ${String((e && e.stderr) || e.message || e).toString().slice(0, 300)}`;
+    emitError(msg); throw new Error(msg);
+  }
+  if (!fs.existsSync(pdfPath)) { const msg = `Chromium produced no PDF at ${pdfPath}`; emitError(msg); throw new Error(msg); }
 }
 
 // ---- standalone PDF render self-test (verifies Chromium actually works) -----
@@ -676,11 +685,14 @@ function selfTest() {
 
   console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${srcLabel}\n  engine: ${GOV}\n  output: ${outDir}\n`);
   emitStage("parsing", "Parsing manifest");
-
+  try {
   // AUDIT (/v1/assess) — accepts a parsed manifest array OR raw manifest_text
   let report = null;
   const haveManifest = (Array.isArray(input.manifest) && input.manifest.length) ||
     (typeof input.manifest_text === "string" && input.manifest_text.trim());
+  const manifestBytes = input.manifest_text ? input.manifest_text.length : JSON.stringify(input.manifest || []).length;
+  const toolCount = Array.isArray(input.manifest) ? input.manifest.length : null;
+  emitCheck(!!haveManifest, haveManifest ? `Manifest received (${manifestBytes} bytes${toolCount != null ? `, ${toolCount} tools` : ", text format"})` : "No manifest supplied");
   if (haveManifest) {
     console.log("• Audit: assessing manifest via /v1/assess …");
     emitStage("assessment", "Runtime assessment");
@@ -690,6 +702,9 @@ function selfTest() {
       org: c.name, format: input.format || "generic",
     });
     status.assess = !!report;
+    const s = (report && report.summary) || {};
+    if (report) emitCheck(true, `Runtime Governance engine assessed manifest — ${s.tools ?? "?"} tools, ${s.risky ?? "?"} risk-bearing, ${s.coverage_pct ?? "?"}% Ω coverage, ${s.verified_blocked_trajectories ?? 0} blocked trajectories`);
+    else emitCheck(false, "Runtime Governance engine /v1/assess returned no report (unreachable or error) — check GOVERNANCE_URL / GOVERNANCE_TOKEN and run: npm run audit:check");
   } else console.log("• Audit: no manifest supplied — skipping assess.");
   emitStage("exposure", "Ω exposure mapping");
 
@@ -719,15 +734,21 @@ function selfTest() {
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
 
+  if (Array.isArray(input.decisions) && input.decisions.length) emitCheck(true, `Aggregated ${m.total} supplied decisions — ALLOW ${m.allow}/BLOCK ${m.block}/ESCALATE ${m.escalate}`);
+  else if (Array.isArray(input.trajectories) && input.trajectories.length) emitCheck(status.evaluate, status.evaluate ? `Replayed ${input.trajectories.length} trajectories via /v1/evaluate — ALLOW ${m.allow}/BLOCK ${m.block}/ESCALATE ${m.escalate}, determinism ${replay.deterministic}/${replay.checked}` : "/v1/evaluate did not return verdicts (GOVERNANCE_TOKEN missing or engine unreachable) — runtime metrics unavailable");
+  else emitCheck(true, "No trajectories supplied — Executive Report will be Deployment-Ready (by design)");
+
   const perf = perfStats(); // measured latency/throughput stats (null if no evaluations ran)
 
   emitStage("audit", "Generating audit PDF");
   fs.writeFileSync(path.join(tmp, "audit.html"), auditHtml(c, report, perf, replay));
   render(path.join(tmp, "audit.html"), auditPdf);
+  emitCheck(fs.existsSync(auditPdf), fs.existsSync(auditPdf) ? `Audit PDF generated (${fs.statSync(auditPdf).size} bytes)` : "Audit PDF NOT generated");
 
   emitStage("report", "Generating executive report");
   fs.writeFileSync(path.join(tmp, "report.html"), reportHtml(c, m, report, replay, perf));
   render(path.join(tmp, "report.html"), reportPdf);
+  emitCheck(fs.existsSync(reportPdf), fs.existsSync(reportPdf) ? `Executive report generated (${fs.statSync(reportPdf).size} bytes)` : "Executive report NOT generated");
 
   // FIELD MATRIX — every Priority-1 output, classified so runtime gaps read as
   // "pending live evidence" (expected after an audit), not as failures.
@@ -785,13 +806,20 @@ function selfTest() {
     attestation: report ? report.attestation || null : null,
   }, null, 2));
 
+  emitCheck(true, "Run summary written (run-summary.json)");
   console.log(`\nDeliverables:\n  ${auditPdf}\n  ${reportPdf}\n  ${path.join(outDir, "run-summary.json")}\n`);
   emitStage("complete", "Complete");
+  emitCheck(true, "Audit complete");
   if (process.env.RT_CONSOLE) process.stdout.write(`__RESULT__:${path.relative(path.join(__dirname, ".."), outDir)}\n`);
 
   if (process.argv.includes("--open")) {
     const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
     try { execFileSync(opener, [auditPdf], { stdio: "ignore" }); console.log(`Opened ${auditPdf}`); }
     catch { console.log(`(Could not auto-open; open the files above manually.)`); }
+  }
+  } catch (e) {
+    emitError(e && e.message ? e.message : String(e));
+    console.error("\n✗ Audit pipeline failed:", e && e.message ? e.message : e);
+    process.exitCode = 1;
   }
 })();

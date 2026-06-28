@@ -294,6 +294,8 @@ function runAudit(req, res, body) {
 
   res.writeHead(200, { "content-type": "application/x-ndjson", "cache-control": "no-store", "x-accel-buffering": "no" });
   const emit = (o) => { try { res.write(JSON.stringify(o) + "\n"); } catch { /* client gone */ } };
+  console.log(`\n[run] start · ${name || "Customer"}${engagementId ? ` · engagement ${engagementId}` : " · ad-hoc"} · manifest ${String(manifestText).length} bytes${Array.isArray(trajectories) && trajectories.length ? ` · ${trajectories.length} trajectories` : ""}`);
+  emit({ type: "check", ok: true, label: `Manifest uploaded to backend (${String(manifestText).length} bytes)` });
 
   const child = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, RT_CONSOLE: "1" } });
   let resultDir = null, buf = "";
@@ -306,6 +308,15 @@ function runAudit(req, res, body) {
       if (line.startsWith("__STAGE__:")) {
         const [, key, ...rest] = line.split(":");
         emit({ type: "stage", key, label: rest.join(":") });
+      } else if (line.startsWith("__CHECK__:")) {
+        const rest = line.slice("__CHECK__:".length);
+        const ok = rest[0] === "1";
+        emit({ type: "check", ok, label: rest.slice(2) });
+        console.log(`  [run] ${ok ? "✓" : "✗"} ${rest.slice(2)}`);
+      } else if (line.startsWith("__ERROR__:")) {
+        const msg = line.slice("__ERROR__:".length);
+        emit({ type: "fail", error: msg });
+        console.error(`  [run] ✗ ERROR: ${msg}`);
       } else if (line.startsWith("__RESULT__:")) {
         resultDir = line.slice("__RESULT__:".length).trim();
       } else {
@@ -353,7 +364,12 @@ function runAudit(req, res, body) {
         const n = rec.audits.length;
         logEvent(rec, "audit", `Audit #${n} run${ev && ev.mode === "live" ? " · Live Runtime Evidence" : ""}${period ? ` · ${period}` : ""}`);
       });
+      emit({ type: "check", ok: true, label: "Engagement record updated (deliverables, audit history, timeline)" });
+    } else if (engagementId) {
+      emit({ type: "check", ok: false, label: "Engagement record NOT updated — no deliverables were produced this run" });
     }
+    if (code !== 0) emit({ type: "fail", error: `Audit process exited with code ${code} — see the log above for the failing stage.` });
+    console.log(`[run] done · exit ${code} · ${files.length} file(s)${resultDir ? ` · ${resultDir}` : ""}`);
     emit({ type: "complete", code, dir: resultDir, files, summary, engagementId: engagementId || null });
     res.end();
   });
