@@ -177,8 +177,9 @@ const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g,
 // Every successful /v1/evaluate round-trip contributes one latency sample, taken
 // with a high-resolution monotonic clock. Percentiles/throughput are derived
 // from these samples; if none exist the report shows a "pending" state.
-const PERF = { evalSamples: [], assessMs: null };
+const PERF = { evalSamples: [], computeSamples: [], assessMs: null, transientRetries: 0 };
 const nowMs = () => Number(process.hrtime.bigint()) / 1e6;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- engine calls (isolated, fail-soft, fully instrumented) ------------------
 // Both calls capture and print the HTTP status code + raw response body so a
@@ -216,7 +217,11 @@ async function assess(body) {
   }
   return json;
 }
-async function evaluate(trajectory, domains) {
+// One /v1/evaluate round-trip. Transient failures (5xx / network / timeout) are
+// retried with backoff so a cold-start blip self-heals and never surfaces as a
+// red error on an otherwise-successful audit. Real config errors (401/403/422)
+// are NOT retried — they are returned immediately so they stay visible.
+async function evaluateOnce(trajectory, domains) {
   const t0 = nowMs();
   let res;
   try {
@@ -227,23 +232,52 @@ async function evaluate(trajectory, domains) {
       body: JSON.stringify(domains && domains.length ? { trajectory, domains } : { trajectory }),
       signal: AbortSignal.timeout(8000),
     });
-  } catch (e) { return { __error: e.message }; }
+  } catch (e) { return { __error: e.message, __transient: true }; }
   const text = await res.text().catch(() => "");
   let json = null; try { json = JSON.parse(text); } catch { /* non-JSON */ }
   if (!res.ok || !json || json.verdict == null) {
-    return { __error: `HTTP ${res.status}`, __status: res.status, __body: text };
+    // 5xx and 429 are transient (cold start, transport, rate); 4xx config errors are not.
+    const transient = res.status >= 500 || res.status === 429;
+    return { __error: `HTTP ${res.status}`, __status: res.status, __body: text, __transient: transient };
   }
-  PERF.evalSamples.push(nowMs() - t0); // measured per-evaluation round-trip
+  const roundTrip = nowMs() - t0;
+  PERF.evalSamples.push(roundTrip); // measured round-trip (network + compute)
+  // True engine compute time, when the engine reports it (excludes transport).
+  if (typeof json.engine_compute_ms === "number" && isFinite(json.engine_compute_ms)) PERF.computeSamples.push(json.engine_compute_ms);
   return json;
 }
-// derive percentile/throughput stats from the measured samples (null if none)
+async function evaluate(trajectory, domains, retries = 2) {
+  let last = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const r = await evaluateOnce(trajectory, domains);
+    if (!r || !r.__error) return r;            // success
+    last = r;
+    if (!r.__transient || attempt === retries) break; // don't retry real config errors
+    PERF.transientRetries++;
+    await sleep(250 * Math.pow(2, attempt));   // 250ms, 500ms backoff
+  }
+  return last;
+}
+// derive percentile/throughput stats from the measured samples (null if none).
+// `mean`/percentiles are round-trip; `compute*` (when present) is true engine
+// compute, so the report can grade the engine without transport overhead.
 function perfStats() {
   const xs = PERF.evalSamples.slice().sort((a, b) => a - b);
   const n = xs.length;
   if (!n) return null;
   const sum = xs.reduce((a, b) => a + b, 0);
-  const q = (p) => xs[Math.min(n - 1, Math.max(0, Math.ceil((p / 100) * n) - 1))];
-  return { n, mean: sum / n, p50: q(50), p95: q(95), p99: q(99), min: xs[0], max: xs[n - 1], eps: (1000 * n) / sum, samples: xs };
+  const q = (arr, p) => arr[Math.min(arr.length - 1, Math.max(0, Math.ceil((p / 100) * arr.length) - 1))];
+  const cs = PERF.computeSamples.slice().sort((a, b) => a - b);
+  const computeMean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : null;
+  return {
+    n, mean: sum / n, p50: q(xs, 50), p95: q(xs, 95), p99: q(xs, 99), min: xs[0], max: xs[n - 1], eps: (1000 * n) / sum, samples: xs,
+    computeN: cs.length,
+    computeMean,
+    computeP50: cs.length ? q(cs, 50) : null,
+    computeP95: cs.length ? q(cs, 95) : null,
+    computeMin: cs.length ? cs[0] : null,
+    computeMax: cs.length ? cs[cs.length - 1] : null,
+  };
 }
 const toVerdict = (v) => {
   const x = String(v || "").toUpperCase();
@@ -396,6 +430,12 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .tline .sub{color:#8a929c;font-size:10.5px}
 .tline .phase{margin:7px 0 0;display:flex;flex-wrap:wrap;gap:6px}
 .tline .phase span{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#cdd6e0;background:#0b0d10;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 9px}
+.eng-grid{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.eng-block{flex:1 1 220px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
+.eng-block.eng-why{flex:1 1 100%;border-left:3px solid #e0a93f}
+.eng-k{display:block;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b7480;margin-bottom:6px}
+.eng-v{margin:0;color:#cdd6e0;font-size:12px;line-height:1.5}
+.eng-list{margin:0;padding-left:16px;color:#cdd6e0;font-size:12px}.eng-list li{margin:3px 0}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -509,6 +549,12 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .tline .sub{color:#737373;font-size:8.5pt}
 .tline .phase{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
 .tline .phase span{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7.5pt;color:#333;background:#f3f3f3;border:0.6pt solid #d9d9d9;border-radius:2pt;padding:2px 8px}
+.eng-grid{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.eng-block{flex:1 1 220px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
+.eng-block.eng-why{flex:1 1 100%;border-left:2.6pt solid #9a6a12}
+.eng-k{display:block;font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.12em;text-transform:uppercase;color:#737373;margin-bottom:6px}
+.eng-v{margin:0;color:#333;font-size:9.5pt;line-height:1.5}
+.eng-list{margin:0;padding-left:15px;color:#333;font-size:9.5pt}.eng-list li{margin:3px 0}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -650,7 +696,19 @@ function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
     avg: trajTimes.reduce((a, b) => a + b, 0) / trajTimes.length,
     fast: Math.min(...trajTimes), slow: Math.max(...trajTimes),
   } : null;
-  return { total, N, M, totalSec, effEval, effTraj, detPct, cov, trajTimes, trajStats, avg: perf ? perf.mean : null, eps: perf ? perf.eps : null };
+  // Separate TRUE engine compute (reported by the engine, transport-free) from
+  // round-trip latency (network + deployment). The engine is graded on compute;
+  // round-trip is labelled as deployment latency so the engine never appears slow.
+  const engineMeasured = !!(perf && perf.computeN);
+  const engineMs = engineMeasured ? perf.computeMean : null;
+  const roundTripMs = perf ? perf.mean : null;
+  const decisionMs = engineMeasured ? engineMs : roundTripMs; // headline "decision time"
+  const decisionKind = engineMeasured ? "engine compute" : "deployment latency (incl. network)";
+  return {
+    total, N, M, totalSec, effEval, effTraj, detPct, cov, trajTimes, trajStats,
+    avg: roundTripMs, eps: perf ? perf.eps : null,
+    engineMeasured, engineMs, roundTripMs, decisionMs, decisionKind,
+  };
 }
 // Performance grade from measured thresholds. Graded on the engine's average
 // evaluation latency (the core governance-performance signal, independent of
@@ -658,20 +716,29 @@ function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
 // a non-deterministic engine is never an A grade. Returns null when no
 // evaluations have been measured yet (deployment-ready, pre-replay).
 const GRADE_CLASS = { "A+": "grade-aplus", "A": "grade-a", "B": "grade-b", "C": "grade-c" };
+// Grade the GOVERNANCE ENGINE on its true compute time (transport-free). If the
+// engine does not report compute (older build), the engine grade is withheld
+// rather than computed from deployment latency — network round-trip must never
+// make the engine look slow. Returns { grade:null, unmeasured:true } in that case.
 function performanceGrade(rtm) {
-  const avg = rtm && rtm.avg;
-  if (avg == null) return null;
+  if (!rtm) return null;
+  if (!rtm.engineMeasured || rtm.engineMs == null) {
+    if (rtm.roundTripMs == null) return null; // nothing measured at all (pre-replay)
+    return { grade: null, label: "Engine compute not separately measured", unmeasured: true,
+      basis: `deployment latency ${fmtMs(rtm.roundTripMs)} (includes network round-trip)` };
+  }
+  const c = rtm.engineMs; // engine compute, milliseconds
   let grade, label;
-  if (avg < 10) { grade = "A+"; label = "Excellent"; }
-  else if (avg < 50) { grade = "A"; label = "Production Ready"; }
-  else if (avg < 150) { grade = "B"; label = "Minor optimisation recommended"; }
+  if (c < 10) { grade = "A+"; label = "Excellent"; }
+  else if (c < 50) { grade = "A"; label = "Production Ready"; }
+  else if (c < 150) { grade = "B"; label = "Minor optimisation recommended"; }
   else { grade = "C"; label = "Requires optimisation"; }
   // determinism gate: cap A-grades if verdicts are not fully reproducible
   if (rtm.detPct != null) {
     if (rtm.detPct < 90) { grade = "C"; label = "Requires optimisation"; }
     else if (rtm.detPct < 100 && (grade === "A+" || grade === "A")) { grade = "B"; label = "Minor optimisation recommended"; }
   }
-  const basis = `avg evaluation latency ${fmtMs(avg)}${rtm.detPct != null ? `, determinism ${rtm.detPct}%` : ""}`;
+  const basis = `engine compute ${fmtMs(c)}${rtm.detPct != null ? `, determinism ${rtm.detPct}%` : ""} (transport excluded)`;
   return { grade, label, basis };
 }
 function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
@@ -682,25 +749,34 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
   const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
   const t = total || 1;
   const g = performanceGrade(X);
+  const gradeLetter = (g && g.grade) ? g.grade : null;
+  const gradeCls = gradeLetter ? GRADE_CLASS[gradeLetter] : "";
+  // Governance DECISION time = true engine compute (transport excluded) when the
+  // engine reports it; otherwise deployment latency, explicitly labelled.
+  const decisionDisp = X.engineMeasured ? fmtMs(X.engineMs) : (X.roundTripMs != null ? fmtMs(X.roundTripMs) : "—");
+  const decisionLabel = X.engineMeasured ? "Governance decision time" : "Deployment latency";
+  const roundTripDisp = X.roundTripMs != null ? fmtMs(X.roundTripMs) : "—";
 
   // ===== 0 · Audit timeline — one graphic, manifest → delivered report =====
-  const govMs = perf ? fmtMs(perf.mean) : "—";
   const timeline = `<div class="sec"><span class="eyebrow">Audit timeline</span><h2>From manifest received to delivered report — at a glance.</h2>
     <div class="tline">
       <div class="node"><span class="dot"></span><div class="t">0 ms</div><div class="l">Manifest received</div></div>
-      <div class="node key"><span class="dot"></span><div class="t">${esc(govMs)}</div><div class="l">Runtime Governance decision</div><div class="sub">verdict reached &amp; verified</div></div>
-      <div class="node phase-node"><span class="dot"></span><div class="t">document generation</div><div class="l">Report assembly</div>
+      <div class="node key"><span class="dot"></span><div class="t">${esc(decisionDisp)}</div><div class="l">Runtime Governance decision</div><div class="sub">${X.engineMeasured ? "engine compute · verdict reached &amp; verified" : "deployment latency (includes network)"}</div></div>
+      <div class="node phase-node"><span class="dot"></span><div class="t">document generation</div><div class="l">Report assembly &amp; delivery</div>
         <div class="phase"><span>HTML</span><span>PDF</span><span>Branding</span><span>Secure links</span><span>Audit package</span></div></div>
       <div class="node end"><span class="dot"></span><div class="t">${esc(fmtDur(total))}</div><div class="l">Customer receives report</div></div>
     </div>
-    <p style="margin-top:12px;color:#8a929c">The governance decision lands in milliseconds; the rest of the timeline is document assembly and secure delivery — not governance compute.</p>
+    <p style="margin-top:12px;color:#8a929c">Runtime Governance reaches its decision first, in milliseconds. HTML generation, PDF rendering, branding and secure delivery all happen afterwards — that downstream work, not governance, accounts for the end-to-end total.</p>
   </div>`;
 
   // ===== 1 · Performance at a glance — the five-second executive summary =====
+  const engineStatus = gradeLetter
+    ? `<span class="st ${gradeCls}">${esc(gradeLetter)}</span> <span class="st-sub">${esc(g.label)}</span>`
+    : (g && g.unmeasured ? `<span class="st-sub">Not separately measured</span>` : `<span class="st">pending</span>`);
   const compRows = [
-    ["Runtime Governance Engine", g ? `<span class="st ${GRADE_CLASS[g.grade]}">${esc(g.grade)}</span> <span class="st-sub">${esc(g.label)}</span>` : `<span class="st">pending</span>`],
+    ["Runtime Governance Engine", engineStatus],
     ["Determinism", esc(X.detPct != null ? `${X.detPct}%` : "n/a")],
-    ["Average evaluation latency", esc(perf ? fmtMs(perf.mean) : "—")],
+    [decisionLabel, esc(decisionDisp)],
     ["Governance coverage", esc(X.cov != null ? `${X.cov}%` : "—")],
     ["End-to-end audit delivery", esc(fmtDur(total))],
     ["Report generation", `<span class="st ok">Complete</span>`],
@@ -711,21 +787,25 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
     </tbody></table></div>`;
 
   // ===== 2 · Runtime Governance Engine — how fast/reliably it decides =====
-  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">${esc(g.label)}</span><span class="gb">Governance engine only — based on ${esc(g.basis)}</span></span></div>` : "";
-  // industry context — place the measured latency against familiar reference points
+  const gradeCard = gradeLetter
+    ? `<div class="grade ${gradeCls}"><span class="g">${esc(gradeLetter)}</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">${esc(g.label)}</span><span class="gb">Governance engine only — based on ${esc(g.basis)}</span></span></div>`
+    : (g && g.unmeasured
+        ? `<div class="grade"><span class="g" style="font-size:22px">—</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">Engine compute not separately measured</span><span class="gb">${esc(g.basis)}. The engine grade is withheld rather than computed from network latency.</span></span></div>`
+        : "");
+  // industry context — place the measured governance decision against familiar references
   const ctxRows = [
-    ["Runtime Governance evaluation", perf ? fmtMs(perf.mean) : "—", true],
+    ["Runtime Governance decision", decisionDisp, true],
     ...INDUSTRY_REFERENCE.map(([k, v]) => [k, v, false]),
     ["Customer audit delivery", fmtDur(total), true],
   ];
   const industryContext = `<div class="ictx"><span class="ictx-k">Industry context</span>
     <ul>${ctxRows.map(([k, v, meas]) => `<li${meas ? ' class="meas"' : ""}><span class="ic-l">${esc(k)}</span><span class="ic-v">${esc(v)}${meas ? ' <em>measured</em>' : ""}</span></li>`).join("")}</ul></div>`;
   const engineKpiData = [
-    ["Average evaluation latency", perf ? fmtMs(perf.mean) : "—"],
+    [decisionLabel, decisionDisp],
+    ["Round-trip latency", roundTripDisp],
     ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
     ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
     ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
-    ["Trajectories replayed", String(X.N)],
     ["Governance evaluations", String(X.M)],
   ];
   const engineKpis = engineKpiData.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
@@ -744,12 +824,15 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
         <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.slow)}</span><span class="k">Slowest</span></div>
       </div></div>`;
   }
+  const latencyNote = X.engineMeasured
+    ? `Governance decision time is the engine's own compute, measured server-side and reported per evaluation — it excludes HTTP, network and deployment round-trip. Round-trip latency is shown separately for transparency.`
+    : `The engine did not separately report compute time on this run, so the figure shown is deployment latency, which includes network round-trip. It is not the engine's decision time.`;
   const engineSection = `<div class="sec"><span class="eyebrow">Runtime Governance Engine</span><h2>How fast and reliably the engine makes governance decisions.</h2>
     ${gradeCard}
     ${industryContext}
     <div class="kpis" style="margin-top:20px">${engineKpis}</div>
     ${replayPerf}
-    <p style="margin-top:14px;color:#8a929c">Engine timings are measured per <span style="font-family:ui-monospace,Menlo,monospace">/v1/evaluate</span> round-trip with a high-resolution monotonic clock. Reference points are industry norms, shown for intuition only.</p>
+    <p style="margin-top:14px;color:#8a929c">${latencyNote} Reference points are industry norms, shown for intuition only.</p>
   </div>`;
 
   // ===== 3 · Audit Generation Pipeline — where end-to-end time is spent =====
@@ -780,6 +863,10 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   const g = performanceGrade(X);
   const t = total || 1;
   const L = [];
+  const gradeTxt = (g && g.grade) ? `${g.grade} (${g.label})` : (g && g.unmeasured ? "not separately measured" : "pending");
+  const decisionDisp = X.engineMeasured ? fmtMs(X.engineMs) : (X.roundTripMs != null ? fmtMs(X.roundTripMs) : "—");
+  const decisionLabel = X.engineMeasured ? "Governance decision time" : "Deployment latency (incl. network)";
+  const roundTripDisp = X.roundTripMs != null ? fmtMs(X.roundTripMs) : "—";
 
   // Audit timeline — one graphic, manifest → delivered report
   L.push(``, `## Audit timeline`, ``, "```");
@@ -787,34 +874,36 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   L.push(`  │`);
   L.push(`  ├── Manifest received`);
   L.push(`  │`);
-  L.push(`  ├── Runtime Governance decision .... ${perf ? fmtMs(perf.mean) : "—"}`);
+  L.push(`  ├── Runtime Governance decision .... ${decisionDisp}${X.engineMeasured ? "  (engine compute)" : "  (deployment latency)"}`);
   L.push(`  │`);
   L.push(`  ├───────────────`);
   L.push(`  │   HTML · PDF · Branding · Secure links · Audit package`);
   L.push(`  │`);
   L.push(`  └── Customer receives report ....... ${fmtDur(total)}`);
   L.push("```");
-  L.push(`_The governance decision lands in milliseconds; the rest is document assembly and secure delivery, not governance compute._`);
+  L.push(`_Runtime Governance reaches its decision first, in milliseconds. HTML, PDF, branding and secure delivery all happen afterwards — that downstream work, not governance, accounts for the end-to-end total._`);
 
   // Performance at a glance — five-second summary
   L.push(``, `## Performance at a glance`, ``, `| Component | Status |`, `|---|---|`);
-  L.push(`| Runtime Governance Engine | ${g ? `${g.grade} (${g.label})` : "pending"} |`);
+  L.push(`| Runtime Governance Engine | ${gradeTxt} |`);
   L.push(`| Determinism | ${X.detPct != null ? X.detPct + "%" : "n/a"} |`);
-  L.push(`| Average evaluation latency | ${perf ? fmtMs(perf.mean) : "—"} |`);
+  L.push(`| ${decisionLabel} | ${decisionDisp} |`);
   L.push(`| Governance coverage | ${X.cov != null ? X.cov + "%" : "—"} |`);
   L.push(`| End-to-end audit delivery | ${fmtDur(total)} |`);
   L.push(`| Report generation | Complete |`);
 
   // Runtime Governance Engine
   L.push(``, `## Runtime Governance Engine`, ``);
-  if (g) L.push(`**Runtime Governance grade: ${g.grade} — ${g.label}**  _(governance engine only — based on ${g.basis})_`, ``);
-  L.push(`- Average evaluation latency: **${perf ? fmtMs(perf.mean) : "—"}**`);
+  if (g && g.grade) L.push(`**Runtime Governance grade: ${g.grade} — ${g.label}**  _(governance engine only — based on ${g.basis})_`, ``);
+  else if (g && g.unmeasured) L.push(`**Runtime Governance grade: not separately measured**  _(${g.basis}; the engine grade is withheld rather than computed from network latency)_`, ``);
+  L.push(`- ${decisionLabel}: **${decisionDisp}**`);
+  L.push(`- Round-trip latency: ${roundTripDisp}`);
   L.push(`- Throughput: ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
   L.push(`- Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`);
   L.push(`- Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`);
   L.push(`- Trajectories replayed: ${X.N} · Governance evaluations: ${X.M}`);
   L.push(``, `**Industry context**`, ``);
-  L.push(`- Runtime Governance evaluation: ${perf ? fmtMs(perf.mean) : "—"} _(measured)_`);
+  L.push(`- Runtime Governance decision: ${decisionDisp} _(measured)_`);
   for (const [k, v] of INDUSTRY_REFERENCE) L.push(`- ${k}: ${v}`);
   L.push(`- Customer audit delivery: ${fmtDur(total)} _(measured)_`);
   if (rr.length > 1 && X.trajTimes.length) {
@@ -880,8 +969,12 @@ function toolModel(report, parsed) {
     const caps = (parsed.find((p) => p.name.toLowerCase() === n.toLowerCase()) || {}).capabilities || e.capabilities || [];
     const cls = classifyTool(n, caps);
     const status = e.status || "";
+    // Enterprise governance terminology: full coverage reads as "Runtime Enforced"
+    // (the engine actively intercepts at runtime), partial as "Partial cover",
+    // none as "Not governed". gov is the canonical key; govLabel the display text.
     const gov = /uncover|none|unprotect|exposed/i.test(status) ? "Unprotected" : /partial/i.test(status) ? "Partial" : "Protected";
-    return { name: n, capability: cls.capability, risk: cls.risk, governance: gov };
+    const govLabel = gov === "Unprotected" ? "Not governed" : gov === "Partial" ? "Partial cover" : "Runtime Enforced";
+    return { name: n, capability: cls.capability, risk: cls.risk, governance: gov, governanceLabel: govLabel };
   });
 }
 const RISK_CLASS = { Critical: "crit", High: "high", Medium: "med", Low: "low" };
@@ -914,12 +1007,107 @@ function executiveVerdict(s, blockedCount) {
   const productionReady = uncovered === 0 && (coverage == null || coverage >= 95) ? "YES" : "NO";
   return { risk, productionReady, coverage };
 }
+// A full engagement recommendation, not just a label: rationale, objectives,
+// success criteria, duration, deliverables, expected outcome and the next
+// commercial step — selected from measured findings.
 function recommendEngagement(blockedCount, s, replayCount) {
   const uncovered = s.uncovered ?? 0;
-  if (uncovered > 0 || blockedCount >= 3) return { name: "Immediate Remediation Required", why: `${uncovered > 0 ? `${uncovered} risk-bearing tool(s) are uncovered. ` : ""}${blockedCount >= 3 ? `${blockedCount} catastrophic trajectories were blocked. ` : ""}Remediate exposed pathways and re-validate before any production rollout.` };
-  if (blockedCount >= 1) return { name: "Limited Pilot™", why: `${blockedCount} catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} blocked. Validate interception on your own production traffic before broad rollout.` };
-  if (replayCount > 0) return { name: "Enterprise Integration™", why: "No catastrophic trajectories were blocked and Ω coverage is complete — proceed to production deployment of Runtime Governance." };
-  return { name: "48-Hour Audit™ → Limited Pilot™", why: "Structural assessment complete. Replay representative trajectories to validate runtime interception, then scope a Limited Pilot." };
+  const cov = s.coverage_pct;
+  if (uncovered > 0 || blockedCount >= 3) {
+    return {
+      name: "Immediate Remediation",
+      why: `${uncovered > 0 ? `${uncovered} risk-bearing tool(s) are uncovered. ` : ""}${blockedCount >= 3 ? `${blockedCount} catastrophic trajectories were intercepted. ` : ""}Exposed pathways must be closed and re-validated before any production rollout.`,
+      objectives: ["Close every uncovered risk-bearing pathway under Runtime Governance", "Re-validate the catastrophic trajectories through the engine", "Establish a fail-closed posture before production traffic"],
+      success: ["0 uncovered risk-bearing tools", "100% of catastrophic trajectories intercepted on replay", "Deterministic verdicts across the validation set"],
+      duration: "2–4 weeks",
+      deliverables: ["Remediation plan with prioritised Ω gaps", "Re-validated coverage matrix & evidence pack", "Attested re-assessment pinned to build"],
+      outcome: "A governed environment with no reachable uncovered exposure, ready to enter a Limited Pilot.",
+      nextStep: "Scope remediation, then progress to a Limited Pilot™ on production traffic.",
+    };
+  }
+  if (blockedCount >= 1) {
+    return {
+      name: "Limited Pilot™",
+      why: `${blockedCount} catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} intercepted and Ω coverage is ${cov != null ? cov + "%" : "complete"}. Validate interception on your own production traffic before broad rollout.`,
+      objectives: ["Deploy Runtime Governance in shadow/enforce mode on a bounded production slice", "Confirm catastrophic trajectories are intercepted on live traffic", "Quantify governed-action volume and operational impact"],
+      success: ["Catastrophic trajectories blocked in production with zero unsafe escapes", "Deterministic, reproducible verdicts across the pilot window", "Agreed governed-action SLA met"],
+      duration: "4–6 weeks",
+      deliverables: ["Live Runtime Evidence report", "Monthly governance evidence series", "Production rollout plan & attestation"],
+      outcome: "Evidence-backed confirmation that Runtime Governance prevents catastrophic actions on your live traffic.",
+      nextStep: "On a successful pilot, proceed to Enterprise Integration™ across business units.",
+    };
+  }
+  if (replayCount > 0) {
+    return {
+      name: "Enterprise Integration™",
+      why: `No catastrophic trajectories were reachable and Ω coverage is ${cov != null ? cov + "%" : "complete"} — proceed to production deployment of Runtime Governance.`,
+      objectives: ["Integrate Runtime Governance across in-scope agents and tools", "Establish continuous Ω revalidation at tool onboarding", "Stand up board-level governance evidence reporting"],
+      success: ["All in-scope agents runtime-enforced", "Continuous coverage maintained as tools change", "Quarterly attested evidence delivered to the risk committee"],
+      duration: "6–10 weeks",
+      deliverables: ["Production integration & runbooks", "Continuous Ω revalidation pipeline", "Quarterly Governance Evidence series"],
+      outcome: "Runtime Governance enforced across the estate with continuous, attested assurance.",
+      nextStep: "Schedule the integration kick-off and quarterly revalidation cadence.",
+    };
+  }
+  return {
+    name: "48-Hour Audit™ → Limited Pilot™",
+    why: "Structural assessment complete. Replay representative trajectories to validate runtime interception, then scope a Limited Pilot.",
+    objectives: ["Replay representative agent trajectories through the live engine", "Confirm catastrophic interception and determinism", "Scope a bounded production pilot"],
+    success: ["Representative trajectories evaluated with deterministic verdicts", "Catastrophic interception demonstrated", "Pilot scope agreed"],
+    duration: "48 hours (audit) → 4–6 weeks (pilot)",
+    deliverables: ["48-Hour Runtime Governance Audit", "Coverage matrix & evidence pack", "Limited Pilot scope"],
+    outcome: "A validated, evidence-backed basis for a production pilot.",
+    nextStep: "Provide representative trajectories, then progress to a Limited Pilot™.",
+  };
+}
+// Detect deployment environment (cloud/region) from the manifest, tools or
+// engagement metadata. Returns a human label, or "Not supplied." when unknown.
+function detectEnvironment(input, report) {
+  const explicit = (input && (input.environment || (input.customer && input.customer.environment))) || "";
+  if (explicit && String(explicit).trim()) return String(explicit).trim();
+  const hay = [
+    JSON.stringify((input && input.manifest) || ""),
+    (input && input.manifest_text) || "",
+    JSON.stringify((report && report.tools) || ""),
+    (input && input.industry) || "",
+  ].join(" ").toLowerCase();
+  const region = (res) => { const m = hay.match(res); return m ? m[0] : ""; };
+  if (/\bazure\b|microsoft\.com|\.azure|blob\.core\.windows/.test(hay)) {
+    const r = region(/uk ?south|uk ?west|west ?europe|north ?europe|east ?us|west ?us/);
+    return `Azure${r ? " – " + r.replace(/\b\w/g, (c) => c.toUpperCase()) : ""}`;
+  }
+  if (/\baws\b|amazonaws|s3:\/\/|\.amazonaws\.com|lambda|dynamodb/.test(hay)) {
+    const r = region(/eu-west-\d|eu-central-\d|us-east-\d|us-west-\d|ap-[a-z]+-\d/);
+    return `AWS${r ? " – " + r : ""}`;
+  }
+  if (/\bgcp\b|google ?cloud|googleapis|gs:\/\/|bigquery|\.run\.app/.test(hay)) {
+    const r = region(/us-central\d|us-east\d|europe-west\d|asia-[a-z]+\d/);
+    return `GCP${r ? " – " + r : ""}`;
+  }
+  if (/hybrid/.test(hay)) return "Hybrid";
+  if (/on[- ]?prem|on[- ]?premise|datacenter|data centre|bare[- ]?metal/.test(hay)) return "On-premises";
+  return "Not supplied.";
+}
+// Full engagement recommendation block (rationale, objectives, success criteria,
+// duration, deliverables, outcome, next commercial step).
+function engagementSectionHtml(rec) {
+  const list = (label, items) => (items && items.length) ? `<div class="eng-block"><span class="eng-k">${esc(label)}</span><ul class="eng-list">${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+  const kv = (label, val) => val ? `<div class="eng-block"><span class="eng-k">${esc(label)}</span><p class="eng-v">${esc(val)}</p></div>` : "";
+  return `<div class="sec"><span class="eyebrow">Recommended engagement</span><h2>${esc(rec.name)}.</h2>
+    <div class="eng-block eng-why"><span class="eng-k">Why this recommendation</span><p class="eng-v">${esc(rec.why)}</p></div>
+    <div class="eng-grid">${list("Objectives", rec.objectives)}${list("Success criteria", rec.success)}${list("Expected deliverables", rec.deliverables)}</div>
+    <div class="eng-grid">${kv("Typical duration", rec.duration)}${kv("Expected outcome", rec.outcome)}${kv("Recommended next step", rec.nextStep)}</div>
+  </div>`;
+}
+function engagementMarkdown(rec) {
+  const L = [``, `## Recommended engagement — ${rec.name}`, ``, `**Why this recommendation:** ${rec.why}`, ``];
+  if (rec.objectives) { L.push(`**Objectives**`, ``); for (const x of rec.objectives) L.push(`- ${x}`); L.push(``); }
+  if (rec.success) { L.push(`**Success criteria**`, ``); for (const x of rec.success) L.push(`- ${x}`); L.push(``); }
+  if (rec.deliverables) { L.push(`**Expected deliverables**`, ``); for (const x of rec.deliverables) L.push(`- ${x}`); L.push(``); }
+  if (rec.duration) L.push(`- **Typical duration:** ${rec.duration}`);
+  if (rec.outcome) L.push(`- **Expected outcome:** ${rec.outcome}`);
+  if (rec.nextStep) L.push(`- **Recommended next step:** ${rec.nextStep}`);
+  return L.join("\n");
 }
 function humanizeStep(step) {
   if (typeof step === "string") return humanize(step);
@@ -1030,7 +1218,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   const toolSurface = `
     <div class="sec"><span class="eyebrow">Tool risk surface</span><h2>What each tool can reach — and whether it is governed.</h2>
       <table><thead><tr><th>Tool</th><th>Capability</th><th>Risk</th><th>Governance status</th></tr></thead><tbody>
-      ${tools.map((t) => `<tr><td class="m">${esc(t.name)}</td><td>${esc(t.capability)}</td><td><span class="rt ${RISK_CLASS[t.risk] || "med"}">${esc(t.risk)}</span></td><td><span class="tag ${t.governance === "Unprotected" ? "unc" : t.governance === "Partial" ? "par" : "cov"}">${esc(t.governance)}</span></td></tr>`).join("") || `<tr><td colspan="4">No tools parsed from the supplied manifest.</td></tr>`}
+      ${tools.map((t) => `<tr><td class="m">${esc(t.name)}</td><td>${esc(t.capability)}</td><td><span class="rt ${RISK_CLASS[t.risk] || "med"}">${esc(t.risk)}</span></td><td><span class="tag ${t.governance === "Unprotected" ? "unc" : t.governance === "Partial" ? "par" : "cov"}">${esc(t.governanceLabel || t.governance)}</span></td></tr>`).join("") || `<tr><td colspan="4">No tools parsed from the supplied manifest.</td></tr>`}
       </tbody></table>
     </div>`;
 
@@ -1098,10 +1286,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     </div>` : "";
 
   // ---- item 10 · dynamic recommendation ----
-  const recSec = `
-    <div class="sec"><span class="eyebrow">Recommended engagement</span><h2>${esc(rec.name)}.</h2>
-      <p>${esc(rec.why)}</p>
-    </div>`;
+  const recSec = engagementSectionHtml(rec);
 
   return page("Runtime Safety Audit",
     bandBlock("48-Hour Runtime Governance Audit", c.name, `${sector.label} · reachable exposure assessment`, meta)
@@ -1154,10 +1339,7 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
       ${ctx.replayResults.map((r) => `<tr><td class="m">Trajectory ${r.index} · ${esc(r.label)}</td><td><span class="v-${(r.verdict || "").toLowerCase()}">${esc(r.verdict)}</span></td><td>${esc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))}</td></tr>`).join("")}
       </tbody></table>
     </div>` : "";
-  const recSec = `
-    <div class="sec"><span class="eyebrow">Recommended engagement</span><h2>${esc(rec.name)}.</h2>
-      <p>${esc(rec.why)}</p>
-    </div>`;
+  const recSec = engagementSectionHtml(rec);
 
   // shared evidence appendices (the audit's proof, carried into every report)
   const structural = () => `
@@ -1298,7 +1480,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`- Ω coverage: **${s.coverage_pct ?? "—"}%** (covered ${s.covered ?? "—"} · partial ${s.partial ?? "—"} · uncovered ${s.uncovered ?? "—"})`);
   L.push(`- Verified blocked trajectories: **${blockedCount}**`);
   // Tool risk surface with REAL names (items 1 & 5)
-  if (tools.length) { L.push(``, `## Tool risk surface`, ``, `| Tool | Capability | Risk | Governance status |`, `|---|---|---|---|`); for (const t of tools) L.push(`| ${mdEsc(t.name)} | ${mdEsc(t.capability)} | ${mdEsc(t.risk)} | ${mdEsc(t.governance)} |`); }
+  if (tools.length) { L.push(``, `## Tool risk surface`, ``, `| Tool | Capability | Risk | Governance status |`, `|---|---|---|---|`); for (const t of tools) L.push(`| ${mdEsc(t.name)} | ${mdEsc(t.capability)} | ${mdEsc(t.risk)} | ${mdEsc(t.governanceLabel || t.governance)} |`); }
   if (Object.keys(ex).length) { L.push(``, `## Ω exposure by risk class`, ``, `| Risk class | Status | Tools | Rules |`, `|---|---|---|---|`); for (const [rc, x] of Object.entries(ex)) L.push(`| ${mdEsc(rc)} | ${mdEsc(x.status)} | ${x.tools ?? "—"} | ${mdEsc((x.rules || []).join(", ") || "—")} |`); }
   // Verified blocked trajectories with chain + verdict + reason + Ω policy (items 2 & 3)
   if (replayBlocks.length) {
@@ -1337,7 +1519,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
   L.push((sector.consequence || []).map((x) => `${x}`).join(" → "), ``);
   L.push(`**Estimated exposure:** ${sector.exposure}`);
-  L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
+  L.push(engagementMarkdown(rec));
   L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Tool names, verdicts and Ω domains taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms non-binding.*`);
   return L.join("\n");
 }
@@ -1369,7 +1551,7 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
     const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
   }
   const tm = pipelineTimingMarkdown(stages, perf, replay, ctx, s); if (tm) L.push(tm);
-  L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
+  L.push(engagementMarkdown(rec));
   L.push(``, `---`, `*Resurrection Tech™ never fabricates runtime evidence — operational sections populate only from live engine results.*`);
   return L.join("\n");
 }
@@ -1524,7 +1706,7 @@ function selfTest() {
     emitStage("replay", "Replaying trajectories");
     emitStage("determinism", "Determinism verification");
     const tReplay0 = nowMs();
-    let firstEvalErr = null;
+    const failures = []; // trajectories that failed every retry (genuine failures)
     let trajIdx = 0;
     for (const traj of input.trajectories) {
       trajIdx++;
@@ -1548,20 +1730,32 @@ function selfTest() {
           trajectory_hash: g.trajectory_hash || "",
           deterministic: det,
           eval_ms: evalMs,
+          engine_compute_ms: (typeof g.engine_compute_ms === "number" ? g.engine_compute_ms : null),
         });
-      } else if (!firstEvalErr) { firstEvalErr = g; }
+      } else { failures.push({ index: trajIdx, err: g }); }
     }
     stages.trajectory_replay = nowMs() - tReplay0; // measured /v1/evaluate replay + determinism loop
-    if (firstEvalErr) {
-      const st = firstEvalErr.__status != null ? `HTTP ${firstEvalErr.__status}` : firstEvalErr.__error;
-      console.warn(`  ! /v1/evaluate: no verdicts. First failure: ${st}. Full response body:\n${firstEvalErr.__body != null ? firstEvalErr.__body : "(none)"}\n`);
-      emitCheck(false, `/v1/evaluate ${st} — body: ${bodySnippet(firstEvalErr.__body) || "(empty)"}`);
+    if (PERF.transientRetries) console.log(`  (recovered from ${PERF.transientRetries} transient engine response${PERF.transientRetries === 1 ? "" : "s"} via retry)`);
+    // Only surface a RED error when the audit genuinely produced no verdicts.
+    // A subset of trajectories failing after retries is reported as an amber
+    // note — it does not fail an otherwise-successful audit.
+    if (!status.evaluate && failures.length) {
+      const f = failures[0].err || {};
+      const st = f.__status != null ? `HTTP ${f.__status}` : (f.__error || "unreachable");
+      // surface the engine's structured error (error_id/type) when present
+      let detail = bodySnippet(f.__body) || "(empty)";
+      try { const j = JSON.parse(f.__body || "{}"); if (j && j.detail) detail = typeof j.detail === "object" ? JSON.stringify(j.detail) : String(j.detail); } catch { /* keep snippet */ }
+      console.warn(`  ! /v1/evaluate: no verdicts after retries. First failure: ${st}. Body:\n${f.__body != null ? f.__body : "(none)"}\n`);
+      emitCheck(false, `/v1/evaluate ${st} — ${detail}`);
+    } else if (failures.length) {
+      const ids = failures.map((x) => x.index).join(", ");
+      emitCheck(true, `${replayResults.length}/${input.trajectories.length} trajectories evaluated; trajectory ${ids} skipped after retries (does not affect the verdicts captured)`);
     }
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
 
   if (Array.isArray(input.decisions) && input.decisions.length) emitCheck(true, `Aggregated ${m.total} supplied decisions — ALLOW ${m.allow}/BLOCK ${m.block}/ESCALATE ${m.escalate}`);
-  else if (Array.isArray(input.trajectories) && input.trajectories.length) emitCheck(status.evaluate, status.evaluate ? `Replayed ${input.trajectories.length} trajectories via /v1/evaluate — ALLOW ${m.allow}/BLOCK ${m.block}/ESCALATE ${m.escalate}, determinism ${replay.deterministic}/${replay.checked}` : "/v1/evaluate did not return verdicts (GOVERNANCE_TOKEN missing or engine unreachable) — runtime metrics unavailable");
+  else if (Array.isArray(input.trajectories) && input.trajectories.length) emitCheck(status.evaluate, status.evaluate ? `Replayed ${replayResults.length} trajectories via /v1/evaluate — ALLOW ${m.allow}/BLOCK ${m.block}/ESCALATE ${m.escalate}, determinism ${replay.deterministic}/${replay.checked}` : "/v1/evaluate did not return verdicts (GOVERNANCE_TOKEN missing or engine unreachable) — runtime metrics unavailable");
   else emitCheck(true, "No trajectories supplied — Executive Report will be Deployment-Ready (by design)");
 
   const perf = perfStats(); // measured latency/throughput stats (null if no evaluations ran)
@@ -1569,6 +1763,8 @@ function selfTest() {
   // Deliverables are written browser-free FIRST (HTML + Markdown), so the audit
   // always completes. PDF is a best-effort enhancement layered on top.
   emitStage("audit", "Generating audit document");
+  // Auto-populate the deployment environment from the manifest when not supplied.
+  if (!c.environment || !String(c.environment).trim()) c.environment = detectEnvironment(input, report);
   const ctx = {
     replayResults,
     parsedTools, // computed (and timed) during the manifest-parse stage above
@@ -1659,32 +1855,33 @@ function selfTest() {
   // console view — same two-part story as the reports (engine vs delivery)
   {
     const tt = rtm.total || 1;
+    const decisionDisp = rtm.engineMeasured ? fmtMs(rtm.engineMs) : (rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) : "—");
+    const decisionLbl = rtm.engineMeasured ? "Governance decision time" : "Deployment latency";
+    const gradeTxt = (grade && grade.grade) ? `${grade.grade} (${grade.label})` : (grade && grade.unmeasured ? "not separately measured" : "pending");
     console.log(`\n— Audit timeline —`);
     console.log(`  0 ms`);
     console.log(`   ├── Manifest received`);
-    console.log(`   ├── Runtime Governance decision .... ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`   ├── Runtime Governance decision .... ${decisionDisp}${rtm.engineMeasured ? "  (engine compute)" : "  (deployment latency)"}`);
     console.log(`   ├──── HTML · PDF · Branding · Secure links · Audit package`);
     console.log(`   └── Customer receives report ....... ${fmtDur(rtm.total)}`);
 
     console.log(`\n— Performance at a glance —`);
-    console.log(`  Runtime Governance Engine     ${grade ? `${grade.grade} (${grade.label})` : "pending"}`);
+    console.log(`  Runtime Governance Engine     ${gradeTxt}`);
     console.log(`  Determinism                   ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
-    console.log(`  Average evaluation latency    ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`  ${decisionLbl.padEnd(29)} ${decisionDisp}`);
     console.log(`  Governance coverage           ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
     console.log(`  End-to-end audit delivery     ${fmtDur(rtm.total)}`);
     console.log(`  Report generation             Complete`);
 
     console.log(`\n— Runtime Governance Engine —`);
-    if (grade) console.log(`  ★ Runtime Governance grade:  ${grade.grade} (${grade.label})`);
-    console.log(`  Average evaluation latency:  ${perf ? fmtMs(perf.mean) : "—"}`);
+    if (grade && grade.grade) console.log(`  ★ Runtime Governance grade:  ${grade.grade} (${grade.label})  [${grade.basis}]`);
+    else if (grade && grade.unmeasured) console.log(`  Runtime Governance grade:  not separately measured (${grade.basis})`);
+    console.log(`  ${(decisionLbl + ":").padEnd(28)} ${decisionDisp}`);
+    console.log(`  Round-trip latency:          ${rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) : "—"}`);
     console.log(`  Throughput:                  ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
     console.log(`  Determinism:                 ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
     console.log(`  Governance coverage:         ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
     console.log(`  Trajectories / evaluations:  ${rtm.N} / ${rtm.M}`);
-    console.log(`  Industry context:`);
-    console.log(`    Runtime Governance eval    ${perf ? fmtMs(perf.mean) : "—"}  (measured)`);
-    for (const [k, v] of INDUSTRY_REFERENCE) console.log(`    ${k.padEnd(25)}${v}`);
-    console.log(`    Customer audit delivery    ${fmtDur(rtm.total)}  (measured)`);
     if (rtm.trajStats && rtm.trajTimes.length > 1) {
       console.log(`  Replay (per trajectory):     avg ${fmtMs(rtm.trajStats.avg)} · fastest ${fmtMs(rtm.trajStats.fast)} · slowest ${fmtMs(rtm.trajStats.slow)}`);
     }
@@ -1715,45 +1912,53 @@ function selfTest() {
       report_generation: sharePct(stages.report_generation),
       pdf_generation: sharePct(stages.pdf_generation),
     },
+    // governance engine compute (transport-free) vs round-trip latency
+    governance_engine_compute_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
+    round_trip_latency_ms: rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null,
+    engine_compute_measured: rtm.engineMeasured,
+    transient_retries: PERF.transientRetries,
     throughput: {
       total_runtime_ms: r3(rtm.total),
-      average_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
+      governance_decision_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
+      round_trip_latency_ms: rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null,
       trajectories_replayed: rtm.N,
       governance_evaluations: rtm.M,
       effective_evaluations_per_sec: rtm.totalSec ? +rtm.effEval.toFixed(2) : null,
       effective_trajectories_per_sec: rtm.totalSec ? +rtm.effTraj.toFixed(2) : null,
     },
     replay_performance: (rtm.trajStats && rtm.trajTimes.length) ? {
-      per_trajectory_ms: (ctx.replayResults || []).map((r) => ({ index: r.index, label: r.label, eval_ms: typeof r.eval_ms === "number" ? r3(r.eval_ms) : null })),
+      per_trajectory_ms: (ctx.replayResults || []).map((r) => ({ index: r.index, label: r.label, eval_ms: typeof r.eval_ms === "number" ? r3(r.eval_ms) : null, engine_compute_ms: typeof r.engine_compute_ms === "number" ? r3(r.engine_compute_ms) : null })),
       average_ms: r3(rtm.trajStats.avg), fastest_ms: r3(rtm.trajStats.fast), slowest_ms: r3(rtm.trajStats.slow),
     } : null,
-    performance_grade: grade ? { grade: grade.grade, label: grade.label, basis: grade.basis } : null,
+    performance_grade: grade ? { grade: grade.grade || null, label: grade.label, basis: grade.basis, graded_on: grade.unmeasured ? "deployment_latency_unavailable" : "engine_compute" } : null,
     performance_summary: {
-      performance_grade: grade ? grade.grade : null,
+      performance_grade: (grade && grade.grade) ? grade.grade : null,
+      governance_decision_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
+      round_trip_latency_ms: rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null,
       end_to_end_runtime_ms: r3(rtm.total),
       governance_evaluations: rtm.M,
-      average_evaluation_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
       throughput_evaluations_per_sec: rtm.eps != null ? +rtm.eps.toFixed(2) : null,
       determinism_pct: rtm.detPct,
       governance_coverage_pct: rtm.cov,
     },
     comparison_card: {
-      runtime_governance_engine: grade ? grade.grade : "pending",
+      runtime_governance_engine: (grade && grade.grade) ? grade.grade : (grade && grade.unmeasured ? "not_separately_measured" : "pending"),
       determinism_pct: rtm.detPct,
-      average_evaluation_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
+      governance_decision_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
+      deployment_latency_ms: !rtm.engineMeasured && rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null,
       governance_coverage_pct: rtm.cov,
       end_to_end_audit_delivery_ms: r3(rtm.total),
       report_generation: "Complete",
     },
     industry_context: {
-      runtime_governance_evaluation: rtm.avg != null ? fmtMs(rtm.avg) : null,
+      runtime_governance_decision: rtm.engineMeasured ? fmtMs(rtm.engineMs) : (rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) + " (deployment latency)" : null),
       human_reaction_time: "~250 ms",
       typical_api_request: "50–200 ms",
       customer_audit_delivery: fmtDur(rtm.total),
     },
     timeline: [
       { at_ms: 0, event: "Manifest received" },
-      { at_ms: rtm.avg != null ? r3(rtm.avg) : null, event: "Runtime Governance decision" },
+      { at_ms: rtm.engineMeasured ? r3(rtm.engineMs) : (rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null), event: "Runtime Governance decision", basis: rtm.engineMeasured ? "engine_compute" : "deployment_latency" },
       { at_ms: null, event: "Document generation", detail: ["HTML", "PDF", "Branding", "Secure links", "Audit package"] },
       { at_ms: r3(rtm.total), event: "Customer receives report" },
     ],

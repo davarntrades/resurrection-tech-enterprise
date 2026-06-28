@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import time
+import traceback
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
@@ -290,6 +292,31 @@ def _serialize(result: GovernanceResult, steps: list[dict]) -> dict:
     return body
 
 
+# ── Structured error reporting ─────────────────────────────────────────────
+# Full traceback is always written server-side and correlated by error_id.
+# The client receives a structured object (never a bare 500 string) so an
+# operator can match it to the log line; the traceback is included in the
+# response only when GOVERNANCE_DEBUG_ERRORS is enabled (internal diagnostics).
+DEBUG_ERRORS = os.getenv("GOVERNANCE_DEBUG_ERRORS", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _eval_error(exc: Exception, where: str) -> HTTPException:
+    error_id = uuid.uuid4().hex[:12]
+    # logs the real Python traceback (correlated by error_id) — not a generic string
+    log.exception(f"{where} failed (error_id={error_id}, type={exc.__class__.__name__})")
+    detail: dict[str, Any] = {
+        "error": "governance_evaluation_error",
+        "message": "The governance engine could not evaluate this trajectory.",
+        "where": where,
+        "type": exc.__class__.__name__,
+        "error_id": error_id,
+    }
+    if DEBUG_ERRORS:
+        detail["exception"] = str(exc)[:500]
+        detail["traceback"] = traceback.format_exc().splitlines()[-15:]
+    return HTTPException(status_code=500, detail=detail)
+
+
 # ── Endpoints ────────────────────────────────────────────────────────────
 @app.get("/health")
 def health() -> dict:
@@ -315,14 +342,18 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     steps = [s.model_dump() for s in req.trajectory]
     try:
+        c0 = time.perf_counter()
         result = await _run(layer, "evaluate_plan", steps)
+        compute_ms = round((time.perf_counter() - c0) * 1000, 3)  # pure engine compute
     except HTTPException:
         raise
-    except Exception as exc:  # never leak a stack trace to the client
-        log.exception("evaluate_plan failed")
-        raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
+    except Exception as exc:  # structured error; full traceback logged server-side
+        raise _eval_error(exc, "evaluate_plan")
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    # Engine compute time (excludes HTTP/network/transport). Lets the client grade
+    # the governance engine on its true compute, not deployment round-trip.
+    body["engine_compute_ms"] = compute_ms
     _log_eval_metrics("/v1/evaluate", body, len(steps),
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
@@ -334,14 +365,16 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     call = {"tool": req.tool, "args": req.args}
     try:
+        c0 = time.perf_counter()
         result = await _run(layer, "evaluate", call)
+        compute_ms = round((time.perf_counter() - c0) * 1000, 3)
     except HTTPException:
         raise
     except Exception as exc:
-        log.exception("evaluate failed")
-        raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
+        raise _eval_error(exc, "evaluate")
     body = _serialize(result, [call])
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    body["engine_compute_ms"] = compute_ms
     _log_eval_metrics("/v1/evaluate-step", body, 1,
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
