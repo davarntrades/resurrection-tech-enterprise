@@ -243,6 +243,7 @@ body{background:#08090b;color:#aab2bd;font-family:-apple-system,"Segoe UI",Helve
 .brand{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px;margin-bottom:20px}
 .brand b{color:#f3f5f7;font-size:14px}.brand .r{color:#e0a93f}.brand .t{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480}
 .band{background:linear-gradient(180deg,rgba(224,169,63,.14),rgba(224,169,63,.03));border:1px solid #6b4f1c;border-radius:14px;padding:22px 24px;margin-bottom:18px}
+.band-sub{color:#aab2bd;margin:0}
 .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#e0a93f}
 h1{color:#f3f5f7;font-size:24px;letter-spacing:-.02em;margin:8px 0 4px}h2{color:#f3f5f7;font-size:15px;margin:0 0 10px}
 .meta{display:flex;flex-wrap:wrap;gap:16px 26px;margin-top:14px}.meta .k{display:block;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b7480}.meta .v{color:#f3f5f7}
@@ -297,9 +298,59 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .tput .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:linear-gradient(90deg,#3fb27f,#6fdcab);border-radius:999px}
 .perfsum{margin-top:14px;padding:11px 14px;background:linear-gradient(180deg,rgba(63,178,127,.08),rgba(63,178,127,.02));border:1px solid rgba(63,178,127,.3);border-left:3px solid #3fb27f;border-radius:10px;color:#cdd6e0;font-size:11.5px}
 `;
-const brand = `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
-const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
-const bandBlock = (k, h, sub, meta) => `<div class="band"><span class="eyebrow">${esc(k)}</span><h1>${esc(h)}</h1><p style="color:#aab2bd;margin:0">${esc(sub)}</p><div class="meta">${meta.map(([a, b]) => `<div><span class="k">${esc(a)}</span><span class="v">${esc(b)}</span></div>`).join("")}</div></div>`;
+// ---- editorial house style (light, Pagella/Heros, hairline rules) ----------
+// A faithful CSS translation of rtstyle.tex: serif body (TeX Gyre Pagella),
+// sans kickers (Heros), grey ink #212121, soft #737373, hair #b8b8b8, card
+// #f3f3f3; booktabs-style tables; left-bordered callouts. Same HTML structure
+// as the dark theme — only the stylesheet + wordmark differ. Select with
+// RT_PDF_STYLE=editorial or --style editorial.
+const CSS_EDITORIAL = `
+@page{size:letter;margin:0.9in 1in}*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#212121;font-family:"TeX Gyre Pagella","Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrap{padding:0}
+.eyebrow,.brand b,.brand .t,.meta .k,th,td.n,.tag,.kpi .k,.legend,.foot,.badge,.verified,.ct,.lbl,h1,h2{font-family:"TeX Gyre Heros","Helvetica Neue",Arial,sans-serif}
+.brand{display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.5pt solid #b8b8b8;padding-bottom:8px;margin-bottom:18px}
+.brand b{font-weight:700;color:#212121;font-size:11pt;letter-spacing:.02em}.brand .r{color:#212121}
+.brand .t{font-size:7.5pt;letter-spacing:.18em;text-transform:uppercase;color:#737373}
+.band{background:#f3f3f3;border:0;border-left:2.6pt solid #212121;border-radius:1.5pt;padding:16px 18px;margin-bottom:18px}
+.band-sub{color:#737373;margin:0}
+.eyebrow{font-size:7.5pt;letter-spacing:.20em;text-transform:uppercase;color:#737373}
+h1{color:#212121;font-size:20pt;font-weight:700;letter-spacing:-.01em;margin:6px 0 4px}
+h2{color:#212121;font-size:13pt;font-weight:700;margin:0 0 8px}
+.meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:12px}.meta .k{display:block;font-size:7pt;letter-spacing:.12em;text-transform:uppercase;color:#737373}.meta .v{color:#212121}
+.sec{border-top:0.5pt solid #b8b8b8;padding:16px 0;break-inside:avoid}.sec:first-of-type{border-top:0}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.kpi{flex:1 1 130px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}.kpi .v{display:block;color:#212121;font-size:17pt;font-weight:700}.kpi .k{color:#737373;font-size:8pt;margin-top:2px}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-align:left;font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#212121;font-weight:700;padding:6px 8px;border-bottom:1pt solid #212121}td{padding:6px 8px;border-bottom:0.5pt solid #d9d9d9;color:#333;vertical-align:top}td.m{color:#212121}td.n{text-align:right;color:#212121}
+.tag{font-size:7.5pt;padding:1px 7px;border-radius:2pt;border:0.6pt solid #b8b8b8;color:#212121}.cov{border-color:#212121}.par{color:#737373}.unc{color:#212121;border-color:#212121}
+.bar{display:flex;height:10px;border-radius:0;overflow:hidden;border:0.5pt solid #b8b8b8;margin-top:6px}.bar i{display:block;height:100%}.a{background:#cfcfcf}.b{background:#212121}.e{background:#8a8a8a}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:8.5pt;color:#333}.legend i{width:8px;height:8px;border-radius:1px;margin-right:6px;display:inline-block}
+.warn{background:#f3f3f3;border:0;border-left:2.6pt solid #212121;border-radius:1.5pt;padding:10px 12px;color:#333;font-size:9pt;margin-top:8px}
+.disc{margin-top:16px;padding-top:10px;border-top:0.5pt dashed #b8b8b8;color:#737373;font-size:8pt;font-style:italic}
+.foot{margin-top:20px;border-top:0.5pt solid #b8b8b8;padding-top:8px;display:flex;justify-content:space-between;font-size:7.5pt;letter-spacing:.04em;color:#737373}
+.status{background:#f3f3f3;border:0;border-left:2.6pt solid #212121;border-radius:1.5pt;padding:12px 14px;margin-top:10px}.status .lbl{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#737373}.status p{margin:6px 0 0;color:#333}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border:0.8pt solid #212121;border-radius:2pt;background:#fff;color:#212121}.badge .d{display:none}.badge.live{border-color:#212121}
+.verified{display:inline-flex;align-items:center;gap:5px;font-size:7.5pt;font-weight:700;letter-spacing:.06em;padding:2px 8px;border:0.6pt solid #212121;border-radius:2pt;color:#212121;margin-left:8px}
+.check{list-style:none;margin:8px 0 0;padding:0;columns:2;column-gap:24px}.check li{break-inside:avoid;padding:5px 0 5px 20px;position:relative;color:#333;font-size:9.5pt}.check li:before{content:"\\2713";position:absolute;left:0;top:4px;color:#212121;font-size:9pt}.check li small{display:block;color:#737373;font-size:7.5pt;margin-top:1px}
+.pending{list-style:none;margin:8px 0 0;padding:0;columns:2;column-gap:24px}.pending li{break-inside:avoid;padding:4px 0 4px 18px;position:relative;color:#737373;font-size:9pt}.pending li:before{content:"\\2013";position:absolute;left:2px;color:#b8b8b8}
+.journey{display:flex;gap:0;margin-top:12px;flex-wrap:wrap}.journey .step{flex:1 1 0;min-width:80px;text-align:center;position:relative;padding:0 4px}.journey .step:after{content:"";position:absolute;top:6px;left:50%;width:100%;height:0.6pt;background:#d9d9d9}.journey .step:last-child:after{display:none}.journey .dot{width:11px;height:11px;border-radius:50%;border:1.4pt solid #b8b8b8;background:#fff;margin:0 auto 7px;position:relative;z-index:1}.journey .step.done .dot{border-color:#212121;background:#212121}.journey .step.now .dot{border-color:#212121;background:#fff;box-shadow:0 0 0 2.5pt #d9d9d9}.journey .step.done:after{background:#9a9a9a}.journey .lab{font-size:7.5pt;line-height:1.3;color:#737373}.journey .step.done .lab{color:#333}.journey .step.now .lab{color:#212121;font-weight:700}
+.perf{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}.perf .chart{flex:1 1 200px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}.perf .chart .ct{font-size:7.5pt;letter-spacing:.10em;text-transform:uppercase;color:#737373;margin-bottom:10px}
+.hist{display:flex;align-items:flex-end;gap:3px;height:60px}.hist i{flex:1;min-width:3px;background:#212121;border-radius:1px 1px 0 0;opacity:.85}.hist + .ax{display:flex;justify-content:space-between;font-size:7pt;color:#737373;margin-top:5px}
+.pctl{display:flex;flex-direction:column;gap:8px}.pctl .row{display:flex;align-items:center;gap:8px}.pctl .lab{width:30px;font-size:8pt;color:#212121}.pctl .track{flex:1;height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden}.pctl .fill{height:100%;background:#212121;border-radius:999px}.pctl .val{width:60px;text-align:right;font-size:8pt;color:#333}
+.tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:24pt;font-weight:700;color:#212121}.tput .u{font-size:8.5pt;color:#737373}.tput .track{height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:#212121;border-radius:999px}
+.perfsum{margin-top:14px;padding:11px 14px;background:#f3f3f3;border-left:2.6pt solid #212121;border-radius:1.5pt;color:#333;font-size:9.5pt}
+`;
+const STYLE = (() => {
+  const i = process.argv.indexOf("--style");
+  const fromFlag = i >= 0 ? process.argv[i + 1] : undefined;
+  return String(fromFlag || process.env.RT_PDF_STYLE || "dark").toLowerCase();
+})();
+const EDITORIAL = STYLE === "editorial";
+const ACTIVE_CSS = EDITORIAL ? CSS_EDITORIAL : CSS;
+const brand = EDITORIAL
+  ? `<div class="brand"><b>Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`
+  : `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
+const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${ACTIVE_CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
+const bandBlock = (k, h, sub, meta) => `<div class="band"><span class="eyebrow">${esc(k)}</span><h1>${esc(h)}</h1><p class="band-sub">${esc(sub)}</p><div class="meta">${meta.map(([a, b]) => `<div><span class="k">${esc(a)}</span><span class="v">${esc(b)}</span></div>`).join("")}</div></div>`;
 const STATUS_CLASS = { Covered: "cov", COVERED: "cov", Partial: "par", PARTIAL: "par", Uncovered: "unc", UNCOVERED: "unc" };
 
 // ---- Runtime Performance section (identical markup in audit + exec report) ---
