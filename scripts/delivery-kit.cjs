@@ -345,6 +345,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px}.legend i{width:9px;height:9px;border-radius:2px;margin-right:6px;display:inline-block}
 .warn{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.4);border-radius:8px;padding:10px 12px;color:#f0b4b6;font-size:11px;margin-top:8px}
 .disc{margin-top:16px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.1);color:#6b7480;font-size:10px}
+.disclaimer{margin-top:10px;padding:10px 12px;background:rgba(255,255,255,.02);border-left:2px solid rgba(255,255,255,.12);border-radius:6px;color:#6b7480;font-size:9.5px;line-height:1.5}
 .foot{margin-top:20px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#474e58}
 /* neutral enterprise status callout (slate/blue — never error red) */
 .status{background:linear-gradient(180deg,rgba(76,125,255,.10),rgba(76,125,255,.02));border:1px solid rgba(76,125,255,.35);border-left:3px solid #4c7dff;border-radius:10px;padding:14px 16px;margin-top:10px}
@@ -528,6 +529,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:8.5pt;color:#333}.legend i{width:8px;height:8px;border-radius:1px;margin-right:6px;display:inline-block}
 .warn{background:#f3f3f3;border:0;border-left:2.6pt solid #212121;border-radius:1.5pt;padding:10px 12px;color:#333;font-size:9pt;margin-top:8px}
 .disc{margin-top:16px;padding-top:10px;border-top:0.5pt dashed #b8b8b8;color:#737373;font-size:8pt;font-style:italic}
+.disclaimer{margin-top:10px;padding:9px 12px;background:#f7f7f7;border-left:1.5pt solid #d2d2d2;border-radius:2pt;color:#737373;font-size:7.5pt;line-height:1.5}
 .foot{margin-top:20px;border-top:0.5pt solid #b8b8b8;padding-top:8px;display:flex;justify-content:space-between;font-size:7.5pt;letter-spacing:.04em;color:#737373}
 .status{background:#f3f3f3;border:0;border-left:2.6pt solid #212121;border-radius:1.5pt;padding:12px 14px;margin-top:10px}.status .lbl{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#737373}.status p{margin:6px 0 0;color:#333}
 .badge{display:inline-flex;align-items:center;gap:6px;font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border:0.8pt solid #212121;border-radius:2pt;background:#fff;color:#212121}.badge .d{display:none}.badge.live{border-color:#212121}
@@ -1214,6 +1216,11 @@ function engagementMarkdown(rec) {
   if (rec.nextStep) L.push(`- **Recommended next step:** ${rec.nextStep}`);
   return L.join("\n");
 }
+// Illustrative-figure disclaimer shown beneath every "Estimated value protected".
+function valueDisclaimer(sector) {
+  const lbl = (sector && sector.label ? sector.label : "enterprise").toLowerCase();
+  return `Disclaimer: Estimated value protected represents an illustrative sector exposure range based on typical ${lbl} incidents involving high-impact unauthorised actions, including direct financial losses, remediation costs, regulatory response, operational disruption, and reputational impact. Actual exposure will depend on the customer's specific environment, controls, and incident circumstances. These figures are illustrative and should not be interpreted as a prediction or guarantee of realised losses.`;
+}
 function investmentSummaryMarkdown(c, s, ev, rec, sector, blockedCount, conf, att) {
   const L = [``, `## Investment summary`, ``, `**Governance confidence: ${conf.pct}% (${conf.band})** — ${c.name} · ${sector.label} · overall risk ${ev.risk}`, ``, `| Item | Status |`, `|---|---|`];
   L.push(`| Assessment completed | Yes |`);
@@ -1222,6 +1229,7 @@ function investmentSummaryMarkdown(c, s, ev, rec, sector, blockedCount, conf, at
   L.push(`| Remaining exposure | ${(s.uncovered ?? 0) === 0 ? "None — fully covered" : `${s.uncovered} uncovered pathway(s)`} |`);
   L.push(`| Recommended engagement | ${rec.name} |`);
   L.push(`| Estimated value protected | ${sector.exposure} |`);
+  L.push(``, `> _${valueDisclaimer(sector)}_`);
   return L.join("\n");
 }
 function signatureMarkdown(replay, att) {
@@ -1345,6 +1353,7 @@ function investmentSummaryHtml(c, s, ev, rec, sector, blockedCount, conf, att) {
       <div class="confhead"><span class="conf-pct r-${ev.risk.toLowerCase()}">${conf.pct}%</span><span class="conf-t"><b>Governance confidence — ${esc(conf.band)}</b><span>${esc(c.name)} · ${esc(sector.label)} · overall risk ${esc(ev.risk)}</span></span></div>
       <table class="invest"><tbody>${rows.map(([k, v, cls]) => `<tr><td class="m">${esc(k)}</td><td class="iv iv-${cls}">${v}</td></tr>`).join("")}</tbody></table>
       <p style="margin-top:12px;color:#8a929c">Estimated value protected reflects typical ${esc(sector.label.toLowerCase())} incident impact prevented by runtime interception. Figures are measured where shown and indicative for sector exposure.</p>
+      <p class="disclaimer">${esc(valueDisclaimer(sector))}</p>
     </div>`;
 }
 function signatureHtml(replay, att) {
@@ -1491,6 +1500,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
         <span class="eb-v">${esc(sector.exposure)}</span>
       </div>
       <p style="margin-top:12px;color:#8a929c">Estimate reflects typical ${esc(sector.label.toLowerCase())} incident impact (direct loss, regulatory penalty, remediation, disclosure and downtime). Runtime Governance intercepted these pathways before execution.</p>
+      <p class="disclaimer">${esc(valueDisclaimer(sector))}</p>
     </div>`;
 
   // ---- item 5 · "What Runtime Governance enabled" (shared helper) ----
@@ -1723,6 +1733,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
   L.push((sector.consequence || []).map((x) => `${x}`).join(" → "), ``);
   L.push(`**Estimated exposure:** ${sector.exposure}`);
+  L.push(``, `> _${valueDisclaimer(sector)}_`);
   // What Runtime Governance enabled (item 5) — value, not just danger
   {
     const rr = ctx.replayResults || [];
