@@ -361,6 +361,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .grade{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:12px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-left:3px solid #6b7480}
 .grade .g{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}
 .grade .gtext{display:flex;flex-direction:column}
+.grade .gk{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480;margin-bottom:2px}
 .grade .gl{font-size:15px;font-weight:600;color:#f3f5f7}
 .grade .gb{display:block;color:#8a929c;font-size:10px;font-family:ui-monospace,Menlo,monospace;margin-top:3px}
 .grade.grade-aplus,.grade.grade-a{border-left-color:#3fb27f}.grade.grade-aplus .g,.grade.grade-a .g{color:#6fdcab}
@@ -444,6 +445,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .grade{display:flex;align-items:center;gap:16px;padding:15px 17px;border-radius:2pt;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-left:2.6pt solid #737373}
 .grade .g{font-size:28pt;font-weight:700;line-height:1;font-family:"TeX Gyre Heros",Arial,sans-serif}
 .grade .gtext{display:flex;flex-direction:column}
+.grade .gk{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:#737373;margin-bottom:2px}
 .grade .gl{font-size:12pt;font-weight:700;color:#212121;font-family:"TeX Gyre Heros",Arial,sans-serif}
 .grade .gb{display:block;color:#737373;font-size:8pt;margin-top:3px}
 .grade.grade-aplus,.grade.grade-a{border-left-color:#2e7d52}.grade.grade-aplus .g,.grade.grade-a .g{color:#2e7d52}
@@ -617,7 +619,7 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
 
   // performance grade (measured thresholds) — shown first, for a quick read
   const g = performanceGrade(X);
-  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gl">${esc(g.label)}</span><span class="gb">Based on ${esc(g.basis)}</span></span></div>` : "";
+  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gk">Runtime Governance Grade</span><span class="gl">${esc(g.label)}</span><span class="gb">Governance engine only — based on ${esc(g.basis)}</span></span></div>` : "";
 
   // throughput & efficiency
   const tput = [
@@ -654,7 +656,7 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
 
   // performance summary card
   const sum = [
-    g ? `Performance grade: ${g.grade} (${g.label})` : null,
+    g ? `Runtime Governance grade: ${g.grade} (${g.label})` : null,
     `End-to-end runtime: ${fmtMs(total)}`,
     `Governance evaluations: ${X.M}`,
     `Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`,
@@ -684,7 +686,7 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   const g = performanceGrade(X);
   const t = total || 1;
   const L = [``, `## Runtime performance — throughput & efficiency`, ``];
-  if (g) L.push(`**Performance grade: ${g.grade} — ${g.label}**  _(based on ${g.basis})_`, ``);
+  if (g) L.push(`**Runtime Governance grade: ${g.grade} — ${g.label}**  _(governance engine only — based on ${g.basis})_`, ``);
   L.push(`- Total runtime: **${fmtMs(total)}**`);
   L.push(`- Average latency: ${perf ? fmtMs(perf.mean) : "—"}`);
   L.push(`- Trajectories replayed: ${X.N}`);
@@ -700,7 +702,7 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
     L.push(`| **Average** | **${fmtMs(X.trajStats.avg)}** |`, `| Fastest | ${fmtMs(X.trajStats.fast)} |`, `| Slowest | ${fmtMs(X.trajStats.slow)} |`);
   }
   L.push(``, `### Performance summary`, ``);
-  if (g) L.push(`- ✓ Performance grade: ${g.grade} (${g.label})`);
+  if (g) L.push(`- ✓ Runtime Governance grade: ${g.grade} (${g.label})`);
   L.push(`- ✓ End-to-end runtime: ${fmtMs(total)}`);
   L.push(`- ✓ Governance evaluations: ${X.M}`);
   L.push(`- ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
@@ -1564,7 +1566,7 @@ function selfTest() {
     }
 
     console.log(`\n— Performance summary —`);
-    if (grade) console.log(`  ★ Performance grade: ${grade.grade} (${grade.label})`);
+    if (grade) console.log(`  ★ Runtime Governance grade: ${grade.grade} (${grade.label})`);
     console.log(`  ✓ End-to-end runtime: ${fmtMs(rtm.total)}`);
     console.log(`  ✓ Governance evaluations: ${rtm.M}`);
     console.log(`  ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
