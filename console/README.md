@@ -22,6 +22,24 @@ The server **refuses to start without credentials** (fail-closed). It binds to
 access for yourself — keep it private.
 
 ## What it does
+- **Executive dashboard** — active engagements, audits this month, reports
+  delivered, awaiting delivery/proposal/invoice, organisations onboarded,
+  industries represented; plus auto-computed executive metrics (catastrophic
+  trajectories blocked, average Ω coverage, average latency, determinism rate,
+  industries protected, total audits, total runtime evaluations) and a customer-
+  health breakdown.
+- **Customer health** — every engagement shows a status (🟢 Healthy ·
+  🟡 Waiting on customer · 🟠 Proposal sent · 🔵 Pilot running ·
+  🟣 Managed Governance · 🔴 Requires follow-up), auto-derived with a manual
+  override.
+- **Value Protected** — per customer, business outcomes (catastrophic actions
+  prevented, high-risk trajectories blocked, critical assets under governance,
+  compliance evidence, coverage trend) — board-readable in seconds.
+- **Customer timeline**, **commercial-document slots** (proposal/SOW/invoice/
+  contract/PO/signed/change requests), **structured consultant notes**
+  (meeting/next-actions/reminders/objections/commercial), and **search** across
+  company/industry/reference/analyst/status/country.
+
 - **Engagement intake** — record customer/company/industry/reference/type/notes.
 - **Run** — upload or paste a manifest (any format) + period/format/Ω domains +
   optional trajectories → one button → **live staged progress** (parsing →

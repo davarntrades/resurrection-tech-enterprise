@@ -84,3 +84,29 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .audit-row .ar-e{color:var(--ink-2);font-size:12.5px;margin-top:2px}
 .audit-row .ar-f{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:3px}
 .manifest{background:#06070a;border:1px solid var(--line);border-radius:9px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--ink-3);max-height:220px;overflow:auto;white-space:pre-wrap}
+
+/* executive dashboard */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px}
+.tiles--exec{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.tile{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .tv{display:block;color:var(--ink);font-size:24px;font-weight:600;letter-spacing:-.02em}
+.tiles--exec .tile{border-left:3px solid var(--gold-dim)}
+.tiles--exec .tile .tv{color:var(--gold-br);font-size:22px}
+.tile .tk{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
+.dash-sub{margin-top:20px}
+.dash-sub .eyebrow{display:block;margin-bottom:10px}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px}
+.hpill{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);background:var(--panel-2)}
+
+/* search */
+#eng_search{max-width:520px}
+
+/* customer timeline */
+.timeline{position:relative;margin-top:6px;padding-left:6px}
+.tl-item{display:flex;gap:12px;align-items:flex-start;padding:7px 0;position:relative}
+.tl-item:not(:last-child):before{content:"";position:absolute;left:5px;top:18px;bottom:-7px;width:1px;background:var(--line)}
+.tl-dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;margin-top:3px;background:var(--ink-4);border:2px solid var(--panel)}
+.tl-dot.tl-audit{background:var(--gold)} .tl-dot.tl-share{background:var(--ok)} .tl-dot.tl-created{background:var(--accent)} .tl-dot.tl-status{background:var(--gold-br)}
+.tl-l{color:var(--ink-2);font-size:12.5px}
+.tl-t{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:1px}
+.docnote{font-size:12px;padding:5px 8px}

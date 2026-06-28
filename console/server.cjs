@@ -132,6 +132,124 @@ function updateEngagement(id, mutate) {
   saveEngagements(list);
   return rec;
 }
+function logEvent(rec, type, label) {
+  rec.events = rec.events || [];
+  rec.events.unshift({ type, label, at: new Date().toISOString() });
+}
+
+// ---- derived state: customer health + Value Protected ----------------------
+const HEALTH = {
+  managed: { key: "managed", dot: "🟣", label: "Managed Governance" },
+  pilot: { key: "pilot", dot: "🔵", label: "Pilot running" },
+  proposal: { key: "proposal", dot: "🟠", label: "Proposal sent" },
+  waiting: { key: "waiting", dot: "🟡", label: "Waiting on customer" },
+  followup: { key: "followup", dot: "🔴", label: "Requires follow-up" },
+  healthy: { key: "healthy", dot: "🟢", label: "Healthy" },
+};
+function computeHealth(rec) {
+  if (rec.health_override && HEALTH[rec.health_override]) return HEALTH[rec.health_override];
+  const t = (rec.engagement_type || "").toLowerCase();
+  const days = rec.last_audit_at ? (Date.now() - Date.parse(rec.last_audit_at)) / 86400000 : null;
+  if (t.includes("managed governance")) return HEALTH.managed;
+  if (t.includes("pilot")) return HEALTH.pilot;
+  if (rec.invoice_status === "sent") return HEALTH.waiting;          // awaiting payment
+  if (rec.proposal_status === "sent") return HEALTH.proposal;        // awaiting decision
+  if (rec.status === "audited" && rec.delivery_status === "not_delivered" && days != null && days > 14) return HEALTH.followup;
+  if (rec.invoice_status === "paid") return HEALTH.healthy;
+  if (rec.delivery_status === "delivered" || rec.delivery_status === "shared") return HEALTH.healthy;
+  return HEALTH.waiting;
+}
+function computeValue(rec) {
+  const audits = rec.audits || [];
+  let blockedTraj = 0, runtimeBlocked = 0, evals = 0, toolsMax = 0, riskyMax = 0;
+  const coverages = [], latencies = []; const det = { checked: 0, deterministic: 0 };
+  for (const a of audits) {
+    const e = a.evidence || {}, m = e.metrics || {};
+    blockedTraj += e.verified_blocked_trajectories || 0;
+    runtimeBlocked += m.block || 0;
+    if (e.performance && e.performance.measured) { evals += e.performance.total_evaluations || 0; if (e.performance.avg_ms) latencies.push(e.performance.avg_ms); }
+    if (e.coverage_pct != null) coverages.push(e.coverage_pct);
+    if (e.replay) { det.checked += e.replay.checked || 0; det.deterministic += e.replay.deterministic || 0; }
+    if (e.tools) toolsMax = Math.max(toolsMax, e.tools);
+    if (e.risky) riskyMax = Math.max(riskyMax, e.risky);
+  }
+  const covLatest = coverages.length ? coverages[0] : null;            // audits[0] = latest
+  const covFirst = coverages.length ? coverages[coverages.length - 1] : null;
+  const daysSince = rec.last_audit_at ? Math.floor((Date.now() - Date.parse(rec.last_audit_at)) / 86400000) : null;
+  return {
+    catastrophic_prevented: blockedTraj + runtimeBlocked,
+    high_risk_blocked: blockedTraj,
+    runtime_blocked: runtimeBlocked,
+    critical_assets: riskyMax,
+    tools_assessed: toolsMax,
+    compliance_audits: audits.length,
+    days_since_last_audit: daysSince,
+    coverage_latest: covLatest,
+    coverage_trend: (covFirst != null && covLatest != null) ? +(covLatest - covFirst).toFixed(1) : 0,
+    determinism_rate: det.checked ? Math.round((det.deterministic / det.checked) * 100) : null,
+    avg_latency_ms: latencies.length ? +(latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(3) : null,
+    total_evaluations: evals,
+  };
+}
+// list view: light enrichment (health/value/counts) without the heavy manifest blobs
+function enrichLight(rec) {
+  const h = computeHealth(rec);
+  return {
+    ...rec,
+    audits: undefined,
+    health: { key: h.key, dot: h.dot, label: h.label },
+    value: computeValue(rec),
+    pdf_count: (rec.reports || []).filter((r) => r.file && r.file.endsWith(".pdf")).length,
+    audit_count: (rec.audits || []).length,
+  };
+}
+// executive dashboard aggregates across all engagements + their audit evidence
+function dashboard() {
+  const list = loadEngagements();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${now.getMonth()}`;
+  const monthOf = (d) => { try { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}`; } catch { return ""; } };
+  const industries = {}, health = {}; const industriesWithAudit = new Set();
+  const coverages = [], latencies = []; const det = { checked: 0, deterministic: 0 };
+  let active = 0, delivered = 0, awaitingDelivery = 0, awaitingProposal = 0, awaitingInvoice = 0;
+  let auditsThisMonth = 0, totalAudits = 0, totalEvals = 0, blocked = 0;
+  for (const rec of list) {
+    if (rec.status !== "closed") active++;
+    if (rec.industry) industries[rec.industry] = (industries[rec.industry] || 0) + 1;
+    const h = computeHealth(rec); health[h.key] = (health[h.key] || 0) + 1;
+    if (rec.delivery_status === "delivered" || rec.delivery_status === "shared") delivered++;
+    if (rec.status === "audited" && rec.delivery_status === "not_delivered") awaitingDelivery++;
+    if (["none", "drafted"].includes(rec.proposal_status) && (rec.audits || []).length) awaitingProposal++;
+    if ((rec.delivery_status === "delivered" || rec.delivery_status === "shared") && ["none", "drafted", "sent"].includes(rec.invoice_status)) awaitingInvoice++;
+    for (const a of (rec.audits || [])) {
+      totalAudits++;
+      if (monthOf(a.at) === thisMonth) auditsThisMonth++;
+      const e = a.evidence || {}, m = e.metrics || {};
+      blocked += (e.verified_blocked_trajectories || 0) + (m.block || 0);
+      if (e.coverage_pct != null) coverages.push(e.coverage_pct);
+      if (e.performance && e.performance.measured) { totalEvals += e.performance.total_evaluations || 0; if (e.performance.avg_ms) latencies.push(e.performance.avg_ms); }
+      if (e.replay) { det.checked += e.replay.checked || 0; det.deterministic += e.replay.deterministic || 0; }
+      if (rec.industry) industriesWithAudit.add(rec.industry);
+    }
+  }
+  const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  return {
+    counts: {
+      active_engagements: active, audits_this_month: auditsThisMonth, reports_delivered: delivered,
+      awaiting_delivery: awaitingDelivery, awaiting_proposal: awaitingProposal, awaiting_invoice: awaitingInvoice,
+      total_orgs: list.length, industries: Object.keys(industries).length,
+    },
+    industries, health,
+    exec: {
+      catastrophic_blocked: blocked,
+      avg_coverage: coverages.length ? Math.round(avg(coverages)) : null,
+      avg_latency_ms: latencies.length ? +avg(latencies).toFixed(3) : null,
+      determinism_rate: det.checked ? Math.round((det.deterministic / det.checked) * 100) : null,
+      industries_protected: industriesWithAudit.size,
+      total_audits: totalAudits, total_evaluations: totalEvals,
+    },
+  };
+}
 
 // secure-delivery shares (capability tokens; expiring + revocable; optional pw).
 // Served credential-free at /share/<token> so customers never touch the console.
@@ -210,10 +328,13 @@ function runAudit(req, res, body) {
     // and the Engagement Details page can restore everything from the server.
     if (engagementId && resultDir && files.length) {
       const at = new Date().toISOString();
+      const as = (summary && summary.assess_summary) || {};
       const ev = summary ? {
         mode: summary.mode || null,
-        coverage_pct: summary.assess_summary ? summary.assess_summary.coverage_pct : null,
-        verified_blocked_trajectories: summary.assess_summary ? summary.assess_summary.verified_blocked_trajectories : null,
+        coverage_pct: as.coverage_pct != null ? as.coverage_pct : null,
+        verified_blocked_trajectories: as.verified_blocked_trajectories != null ? as.verified_blocked_trajectories : null,
+        tools: as.tools != null ? as.tools : null,
+        risky: as.risky != null ? as.risky : null,
         metrics: summary.metrics || null,
         performance: summary.performance || null,
         replay: summary.replay || null,
@@ -229,6 +350,8 @@ function runAudit(req, res, body) {
         rec.last_audit_at = at;
         if (period && !rec.period) rec.period = period;
         if (rec.status === "intake" || !rec.status) rec.status = "audited";
+        const n = rec.audits.length;
+        logEvent(rec, "audit", `Audit #${n} run${ev && ev.mode === "live" ? " · Live Runtime Evidence" : ""}${period ? ` · ${period}` : ""}`);
       });
     }
     emit({ type: "complete", code, dir: resultDir, files, summary, engagementId: engagementId || null });
@@ -329,7 +452,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && (p === "/app.css" || p === "/app.js")) return serveStatic(res, p.slice(1));
     if (req.method === "GET" && p === "/api/me") return send(res, 200, { user: USER, engine: (process.env.GOVERNANCE_URL || "default"), tokenSet: !!process.env.GOVERNANCE_TOKEN });
 
-    if (req.method === "GET" && p === "/api/engagements") return send(res, 200, loadEngagements());
+    if (req.method === "GET" && p === "/api/engagements") return send(res, 200, loadEngagements().map(enrichLight));
+    if (req.method === "GET" && p === "/api/dashboard") return send(res, 200, dashboard());
     if (req.method === "POST" && p === "/api/engagements") {
       const b = await readBody(req);
       if (!b.customer && !b.company) return send(res, 400, { error: "customer or company required" });
@@ -338,12 +462,16 @@ const server = http.createServer(async (req, res) => {
         id: slug(b.customer || b.company) + "-" + crypto.randomBytes(3).toString("hex"),
         customer: b.customer || "", company: b.company || "", industry: b.industry || "",
         reference: b.reference || "", engagement_type: b.engagement_type || "48-Hour Audit",
-        analyst: b.analyst || USER, notes: b.notes || "",
+        analyst: b.analyst || USER, notes: b.notes || "", country: b.country || "",
         status: "intake", reports: [],
         proposal_status: "none", pilot_reco: "", enterprise_reco: "",
         invoice_status: "none", delivery_status: "not_delivered",
+        health_override: "",
+        meeting_notes: "", next_actions: "", reminders: "", objections: "", commercial_notes: "",
+        documents: {}, events: [],
         created_at: new Date().toISOString(),
       };
+      logEvent(rec, "created", "Engagement created");
       list.unshift(rec); saveEngagements(list);
       return send(res, 200, rec);
     }
@@ -364,16 +492,23 @@ const server = http.createServer(async (req, res) => {
         const abs = resolveDeliverable(r.dir, r.file);
         return { ...r, exists: !!(abs && fs.existsSync(abs)) };
       });
-      return send(res, 200, { ...rec, reports, shares });
+      const h = computeHealth(rec);
+      return send(res, 200, { ...rec, reports, shares, health: { key: h.key, dot: h.dot, label: h.label }, value: computeValue(rec) });
     }
     if (mEng && req.method === "PATCH") {
       const b = await readBody(req);
       const list = loadEngagements();
       const rec = list.find((r) => r.id === mEng[1]);
       if (!rec) return send(res, 404, { error: "not found" });
-      const allowed = ["customer", "company", "industry", "reference", "engagement_type", "analyst", "notes",
-        "status", "reports", "proposal_status", "pilot_reco", "enterprise_reco", "invoice_status", "delivery_status"];
-      for (const k of allowed) if (k in b) rec[k] = b[k];
+      const allowed = ["customer", "company", "industry", "reference", "engagement_type", "analyst", "notes", "country",
+        "status", "reports", "proposal_status", "pilot_reco", "enterprise_reco", "invoice_status", "delivery_status",
+        "health_override", "meeting_notes", "next_actions", "reminders", "objections", "commercial_notes", "documents"];
+      const tracked = { status: "Status", proposal_status: "Proposal", invoice_status: "Invoice", delivery_status: "Delivery" };
+      for (const k of allowed) {
+        if (!(k in b)) continue;
+        if (tracked[k] && rec[k] !== b[k]) logEvent(rec, "status", `${tracked[k]}: ${rec[k] || "—"} → ${b[k]}`);
+        rec[k] = b[k];
+      }
       rec.updated_at = new Date().toISOString();
       saveEngagements(list);
       return send(res, 200, rec);
@@ -397,6 +532,7 @@ const server = http.createServer(async (req, res) => {
       };
       if (b.password) { rec.password_salt = crypto.randomBytes(8).toString("hex"); rec.password_hash = hashPw(b.password, rec.password_salt); }
       const list = loadShares(); list.unshift(rec); saveShares(list);
+      if (b.engagementId) updateEngagement(b.engagementId, (e) => { logEvent(e, "share", `Secure link created · ${rec.label || rec.file}`); if (e.delivery_status === "not_delivered") e.delivery_status = "shared"; });
       const proto = (req.headers["x-forwarded-proto"] || "http").split(",")[0];
       const url = `${proto}://${req.headers.host}/share/${rec.token}`;
       return send(res, 200, { id: rec.id, url, expires_at: rec.expires_at, password_protected: !!rec.password_hash, days });

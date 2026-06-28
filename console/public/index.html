@@ -20,6 +20,13 @@
     <div class="who" id="who">…</div>
   </header>
 
+  <!-- EXECUTIVE DASHBOARD -->
+  <section class="card" id="dash_card">
+    <span class="eyebrow">Overview</span>
+    <h2>Executive dashboard</h2>
+    <div id="dash_body"><p class="empty">Loading…</p></div>
+  </section>
+
   <div class="grid">
     <!-- ENGAGEMENT INTAKE -->
     <section class="card">
@@ -43,6 +50,10 @@
           </select>
         </div>
         <div><label>Analyst</label><input id="e_analyst" placeholder="(you)"></div>
+      </div>
+      <div class="row">
+        <div><label>Country</label><input id="e_country" placeholder="United Kingdom"></div>
+        <div></div>
       </div>
       <label>Analyst notes</label>
       <textarea id="e_notes" placeholder="Scope, contacts, context…" style="min-height:60px"></textarea>
@@ -116,6 +127,7 @@
     <span class="eyebrow">3 · Clients</span>
     <h2>Engagement records</h2>
     <p class="hint">Private client management. Click a row to open the full audit record. Status drives the workflow: intake → audited → delivered.</p>
+    <input id="eng_search" placeholder="Search company, industry, reference, analyst, status, country…" style="margin-bottom:12px">
     <div id="engagements"><p class="empty">No engagements yet.</p></div>
   </section>
 </div>
