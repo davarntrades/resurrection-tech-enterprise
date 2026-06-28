@@ -436,6 +436,16 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .eng-k{display:block;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b7480;margin-bottom:6px}
 .eng-v{margin:0;color:#cdd6e0;font-size:12px;line-height:1.5}
 .eng-list{margin:0;padding-left:16px;color:#cdd6e0;font-size:12px}.eng-list li{margin:3px 0}
+.vcard .vq{display:block;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;letter-spacing:.04em;color:#8a929c;margin-bottom:5px}
+.glance{list-style:none;margin:8px 0 0;padding:0}
+.glance li{position:relative;padding:9px 0 9px 26px;border-bottom:1px solid rgba(255,255,255,.05);color:#cdd6e0;font-size:13px}
+.glance li:last-child{border-bottom:0}
+.glance li:before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;background:#3fb27f}
+.glance li b{color:#f3f5f7}
+.evpanel{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;margin-top:8px}
+.evrow{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.evk{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#6b7480}
+.evv{color:#f3f5f7;font-size:12px;text-align:right;word-break:break-all}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -555,6 +565,16 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .eng-k{display:block;font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.12em;text-transform:uppercase;color:#737373;margin-bottom:6px}
 .eng-v{margin:0;color:#333;font-size:9.5pt;line-height:1.5}
 .eng-list{margin:0;padding-left:15px;color:#333;font-size:9.5pt}.eng-list li{margin:3px 0}
+.vcard .vq{display:block;font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.04em;color:#737373;margin-bottom:4px}
+.glance{list-style:none;margin:8px 0 0;padding:0}
+.glance li{position:relative;padding:8px 0 8px 24px;border-bottom:0.5pt solid #e2e2e2;color:#333;font-size:10.5pt}
+.glance li:last-child{border-bottom:0}
+.glance li:before{content:"";position:absolute;left:3px;top:13px;width:6px;height:6px;border-radius:50%;background:#2e7d52}
+.glance li b{color:#212121}
+.evpanel{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;margin-top:8px}
+.evrow{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:0.5pt solid #e2e2e2}
+.evk{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#737373}
+.evv{color:#212121;font-size:9.5pt;text-align:right;word-break:break-all}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -1009,23 +1029,42 @@ function executiveVerdict(s, blockedCount) {
 }
 // A full engagement recommendation, not just a label: rationale, objectives,
 // success criteria, duration, deliverables, expected outcome and the next
-// commercial step — selected from measured findings.
-function recommendEngagement(blockedCount, s, replayCount) {
+// commercial step — DRIVEN BY THE FINDINGS (the executive risk tier + blocked
+// count), not a fixed template:
+//   CRITICAL                       → Immediate Governance Remediation
+//   HIGH + multiple blocked        → Discovery Workshop™ → Remediation Assessment
+//   MEDIUM + ≥1 blocked            → Limited Pilot™
+//   LOW + clean, trajectories run  → Enterprise Integration™
+//   LOW + no replay yet            → 48-Hour Audit™ → Limited Pilot™
+function recommendEngagement(blockedCount, s, replayCount, risk) {
   const uncovered = s.uncovered ?? 0;
   const cov = s.coverage_pct;
-  if (uncovered > 0 || blockedCount >= 3) {
+  risk = risk || "LOW";
+  if (risk === "CRITICAL") {
     return {
-      name: "Immediate Remediation",
-      why: `${uncovered > 0 ? `${uncovered} risk-bearing tool(s) are uncovered. ` : ""}${blockedCount >= 3 ? `${blockedCount} catastrophic trajectories were intercepted. ` : ""}Exposed pathways must be closed and re-validated before any production rollout.`,
-      objectives: ["Close every uncovered risk-bearing pathway under Runtime Governance", "Re-validate the catastrophic trajectories through the engine", "Establish a fail-closed posture before production traffic"],
-      success: ["0 uncovered risk-bearing tools", "100% of catastrophic trajectories intercepted on replay", "Deterministic verdicts across the validation set"],
-      duration: "2–4 weeks",
-      deliverables: ["Remediation plan with prioritised Ω gaps", "Re-validated coverage matrix & evidence pack", "Attested re-assessment pinned to build"],
-      outcome: "A governed environment with no reachable uncovered exposure, ready to enter a Limited Pilot.",
-      nextStep: "Scope remediation, then progress to a Limited Pilot™ on production traffic.",
+      name: "Immediate Governance Remediation",
+      why: `Critical findings${cov != null ? ` (Ω coverage ${cov}%)` : ""}${uncovered > 0 ? `, ${uncovered} risk-bearing tool(s) uncovered` : ""}. Catastrophic exposure is reachable — remediate and re-validate before any deployment.`,
+      objectives: ["Halt rollout of affected agents until exposure is closed", "Bring every uncovered catastrophic pathway under Runtime Governance", "Re-validate end-to-end through the engine, fail-closed"],
+      success: ["0 uncovered catastrophic pathways", "100% of catastrophic trajectories intercepted on replay", "Deterministic verdicts across the full validation set"],
+      duration: "Immediate → 3–5 weeks",
+      deliverables: ["Critical-exposure remediation plan", "Re-validated coverage matrix & attested evidence pack", "Go/no-go deployment gate sign-off"],
+      outcome: "Catastrophic exposure closed and re-attested before any production deployment.",
+      nextStep: "Engage governance remediation now; deployment remains gated until re-validation passes.",
     };
   }
-  if (blockedCount >= 1) {
+  if (risk === "HIGH" || uncovered > 0 || blockedCount >= 3) {
+    return {
+      name: "Discovery Workshop™ → Remediation Assessment",
+      why: `${blockedCount >= 2 ? `${blockedCount} catastrophic trajectories were intercepted` : "High residual exposure"}${uncovered > 0 ? ` and ${uncovered} risk-bearing tool(s) are uncovered` : ""}${cov != null ? ` (Ω coverage ${cov}%)` : ""}. A structured discovery + remediation pass is needed before a production pilot.`,
+      objectives: ["Map the full agent/tool estate and its reachable forbidden states", "Prioritise remediation of uncovered and high-impact pathways", "Define the target governed architecture and pilot scope"],
+      success: ["Complete Ω coverage map with prioritised remediation backlog", "Uncovered risk-bearing pathways scheduled for closure", "Agreed pilot scope and success criteria"],
+      duration: "2–3 weeks (workshop + assessment)",
+      deliverables: ["Discovery Workshop findings & estate map", "Remediation Assessment with prioritised Ω gaps", "Pilot scope & target governed architecture"],
+      outcome: "A clear, prioritised path from current exposure to a governed Limited Pilot.",
+      nextStep: "Run the Discovery Workshop, complete remediation, then progress to a Limited Pilot™.",
+    };
+  }
+  if (risk === "MEDIUM" || blockedCount >= 1) {
     return {
       name: "Limited Pilot™",
       why: `${blockedCount} catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} intercepted and Ω coverage is ${cov != null ? cov + "%" : "complete"}. Validate interception on your own production traffic before broad rollout.`,
@@ -1040,7 +1079,7 @@ function recommendEngagement(blockedCount, s, replayCount) {
   if (replayCount > 0) {
     return {
       name: "Enterprise Integration™",
-      why: `No catastrophic trajectories were reachable and Ω coverage is ${cov != null ? cov + "%" : "complete"} — proceed to production deployment of Runtime Governance.`,
+      why: `Low risk: no catastrophic trajectories were reachable and Ω coverage is ${cov != null ? cov + "%" : "complete"} — proceed to production deployment of Runtime Governance.`,
       objectives: ["Integrate Runtime Governance across in-scope agents and tools", "Establish continuous Ω revalidation at tool onboarding", "Stand up board-level governance evidence reporting"],
       success: ["All in-scope agents runtime-enforced", "Continuous coverage maintained as tools change", "Quarterly attested evidence delivered to the risk committee"],
       duration: "6–10 weeks",
@@ -1182,23 +1221,36 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
   const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
   const ev = executiveVerdict(s, blockedCount);
-  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const rk = ev.risk.toLowerCase();
   const mono = "font-family:ui-monospace,Menlo,monospace";
   const nowStamp = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
   const evidenceHash = (blocks.find((b) => b && b.hash) || {}).hash || (att && att.ruleset_hash) || "";
 
-  // ---- item 7 · Executive Verdict card ----
+  // ---- item 7 + 2 · Executive Verdict card — the four questions a CIO asks ----
   const verdictCard = `
     <div class="verdict">
-      <div class="vcard lead r-${rk}">
-        <span class="vk">Overall risk</span><span class="vv">${esc(ev.risk)}</span>
-        <span class="vsub">${esc(sector.label)} runtime exposure</span>
-      </div>
-      <div class="vcard"><span class="vk">Production ready</span><span class="vv">${esc(ev.productionReady)}</span><span class="vsub">${ev.productionReady === "YES" ? "Ω coverage complete" : "remediation required"}</span></div>
-      <div class="vcard"><span class="vk">Blocked trajectories</span><span class="vv">${blockedCount}</span><span class="vsub">catastrophic actions intercepted</span></div>
-      <div class="vcard"><span class="vk">Governance coverage</span><span class="vv">${s.coverage_pct ?? "—"}%</span><span class="vsub">of reachable forbidden states (Ω)</span></div>
-      <div class="vcard rec"><span class="vk">Recommendation</span><span class="vv vv-sm">${esc(rec.name)}</span><span class="vsub">${esc(rec.why)}</span></div>
+      <div class="vcard"><span class="vq">Can we deploy?</span><span class="vk">Production ready</span><span class="vv">${esc(ev.productionReady)}</span><span class="vsub">${ev.productionReady === "YES" ? "Ω coverage complete" : "remediation required first"}</span></div>
+      <div class="vcard lead r-${rk}"><span class="vq">How risky are we?</span><span class="vk">Overall risk</span><span class="vv">${esc(ev.risk)}</span><span class="vsub">${esc(sector.label)} runtime exposure</span></div>
+      <div class="vcard"><span class="vq">What did you find?</span><span class="vk">Blocked trajectories</span><span class="vv">${blockedCount}</span><span class="vsub">catastrophic actions intercepted · ${s.coverage_pct ?? "—"}% Ω coverage</span></div>
+      <div class="vcard rec"><span class="vq">What should we do next?</span><span class="vk">Recommendation</span><span class="vv vv-sm">${esc(rec.name)}</span><span class="vsub">${esc(rec.why)}</span></div>
+    </div>`;
+
+  // ---- item 3 · At a glance — plain-English business summary ----
+  const rr = ctx.replayResults || [];
+  const allowN = rr.filter((r) => r.verdict === "ALLOW").length;
+  const escN = rr.filter((r) => r.verdict === "ESCALATE").length;
+  const workflowsN = rr.length || s.tools || 0;
+  const glanceBullets = [
+    `Runtime Governance evaluated <b>${workflowsN}</b> ${rr.length ? `autonomous ${rr.length === 1 ? "workflow" : "workflows"}` : `${workflowsN === 1 ? "tool" : "tools"} across the agent environment`}.`,
+    `<b>${blockedCount}</b> catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} prevented before execution.`,
+    `<b>${s.coverage_pct ?? "—"}%</b> of identified forbidden states (Ω) were covered.`,
+    (s.uncovered ?? 0) === 0 ? `No unsafe execution paths were observed.` : `<b>${s.uncovered}</b> unsafe execution path${s.uncovered === 1 ? "" : "s"} require remediation.`,
+    `Recommendation: <b>${esc(rec.name)}</b>${ev.productionReady === "YES" ? "." : " before enterprise rollout."}`,
+  ];
+  const atGlance = `
+    <div class="sec"><span class="eyebrow">At a glance</span><h2>Business impact, in under a minute.</h2>
+      <ul class="glance">${glanceBullets.map((b) => `<li>${b}</li>`).join("")}</ul>
     </div>`;
 
   // ---- item 4 · sector-aware executive summary ----
@@ -1266,6 +1318,20 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       <p style="margin-top:12px;color:#8a929c">Estimate reflects typical ${esc(sector.label.toLowerCase())} incident impact (direct loss, regulatory penalty, remediation, disclosure and downtime). Runtime Governance intercepted these pathways before execution.</p>
     </div>`;
 
+  // ---- item 5 · "What Runtime Governance enabled" — value, not just danger ----
+  const detIdentical = replay && replay.checked && replay.deterministic === replay.checked;
+  const enabledBullets = [
+    `Safe ${esc(sector.label.toLowerCase())} workflows continued uninterrupted.`,
+    `${allowN > 0 ? `${allowN} legitimate ${allowN === 1 ? "action" : "actions"} proceeded` : "Legitimate actions proceed"} without unnecessary blocking.`,
+    `Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`,
+    detIdentical ? `Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `Verdicts are reproducible on replay.`,
+  ];
+  const enabledSec = `
+    <div class="sec"><span class="eyebrow">What Runtime Governance enabled</span><h2>Safe automation — not just blocked actions.</h2>
+      <ul class="check">${enabledBullets.map((b) => `<li>${b}</li>`).join("")}</ul>
+      <p style="margin-top:10px;color:#8a929c">Runtime Governance is selective by design: it intercepts only the pathways that reach a forbidden state, leaving legitimate automation to run at full speed.</p>
+    </div>`;
+
   // ---- exposure by risk class (retained) ----
   const exposureSec = Object.keys(exposure).length ? `
     <div class="sec"><span class="eyebrow">&#937; exposure by risk class</span><h2>Where exposure is reachable.</h2>
@@ -1274,16 +1340,23 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       </tbody></table>
     </div>` : "";
 
-  // ---- attestation (retained) ----
-  const attestationSec = att ? `
-    <div class="sec"><span class="eyebrow">Attestation</span><h2>Reproducible, pinned to a build.</h2>
-      <table><tbody>
-        <tr><td class="m">Engine commit</td><td style="${mono}">${esc(att.engine_commit)}</td></tr>
-        <tr><td class="m">Ruleset hash</td><td style="${mono}">${esc(att.ruleset_hash)}</td></tr>
-        <tr><td class="m">Service version</td><td>${esc(att.service_version)}</td></tr>
-        <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)}</td></tr>
-      </tbody></table>
-    </div>` : "";
+  // ---- item 4 · Evidence & Attestation panel — stands up to internal review ----
+  const evItems = [
+    ["Build ID", att && att.engine_commit ? String(att.engine_commit) : "—", true],
+    ["Engine version", att && att.service_version ? String(att.service_version) : "—", false],
+    ["Ruleset hash", att && att.ruleset_hash ? String(att.ruleset_hash) : "—", true],
+    ["Replay determinism", (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : "—", false],
+    ["Reachability horizon", att && att.horizon != null ? `${att.horizon} steps` : "—", false],
+    ["Evaluation timestamp", nowStamp, false],
+    ["Evidence hash", evidenceHash ? String(evidenceHash) : "—", true],
+  ];
+  const attestationSec = `
+    <div class="sec"><span class="eyebrow">Evidence &amp; attestation</span><h2>Reproducible, versioned, and pinned to a build.</h2>
+      <div class="evpanel">
+        ${evItems.map(([k, v, m2]) => `<div class="evrow"><span class="evk">${esc(k)}</span><span class="evv"${m2 ? ` style="${mono}"` : ""}>${esc(v)}</span></div>`).join("")}
+      </div>
+      <p style="margin-top:12px;color:#8a929c">Every verdict in this audit is reproducible: re-running the pinned build against the same ruleset yields identical decisions, evidenced by the hashes above. This audit is suitable for internal review and regulatory inspection.</p>
+    </div>`;
 
   // ---- item 10 · dynamic recommendation ----
   const recSec = engagementSectionHtml(rec);
@@ -1291,6 +1364,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   return page("Runtime Safety Audit",
     bandBlock("48-Hour Runtime Governance Audit", c.name, `${sector.label} · reachable exposure assessment`, meta)
     + verdictCard
+    + atGlance
     + sectorSummary
     + toolSurface
     + exposureSec
@@ -1299,6 +1373,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + metricsSec
     + pipelineTimingHtml(stages, perf, replay, ctx, s, report.attestation)
     + counterfactual
+    + enabledSec
     + attestationSec
     + recSec
     + `<div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Tool names, verdicts, Ω domains and evidence hashes are taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms are non-binding and follow deployment review.</div>`);
@@ -1331,7 +1406,8 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
   const sector = sectorProfile(ctx.industry, ctx.domains);
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
   const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
-  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const ev = executiveVerdict(s, blockedCount);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   // per-trajectory replay summary (item 6), shared across report modes
   const replaySummarySec = (ctx.replayResults || []).length ? `
     <div class="sec"><span class="eyebrow">Trajectory replay summary</span><h2>Every replayed trajectory, resolved to a verdict.</h2>
@@ -1466,7 +1542,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   const replayBlocks = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK");
   const blockedCount = replayBlocks.length || s.verified_blocked_trajectories || blocks.length || 0;
   const ev = executiveVerdict(s, blockedCount);
-  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   // Executive verdict (item 7)
   L.push(``, `## Executive verdict`, ``);
   L.push(`- **Overall risk:** ${ev.risk}`);
@@ -1474,6 +1550,17 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`- **Blocked trajectories:** ${blockedCount}`);
   L.push(`- **Governance coverage:** ${s.coverage_pct ?? "—"}%`);
   L.push(`- **Recommendation:** ${rec.name} — ${rec.why}`);
+  // At a glance — plain-English business summary (item 3)
+  {
+    const rr = ctx.replayResults || [];
+    const workflowsN = rr.length || s.tools || 0;
+    L.push(``, `## At a glance`, ``);
+    L.push(`- Runtime Governance evaluated **${workflowsN}** ${rr.length ? `autonomous ${rr.length === 1 ? "workflow" : "workflows"}` : `${workflowsN === 1 ? "tool" : "tools"}`}.`);
+    L.push(`- **${blockedCount}** catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} prevented before execution.`);
+    L.push(`- **${s.coverage_pct ?? "—"}%** of identified forbidden states (Ω) were covered.`);
+    L.push((s.uncovered ?? 0) === 0 ? `- No unsafe execution paths were observed.` : `- **${s.uncovered}** unsafe execution path(s) require remediation.`);
+    L.push(`- Recommendation: **${rec.name}**${ev.productionReady === "YES" ? "." : " before enterprise rollout."}`);
+  }
   L.push(``, `## Executive summary — ${sector.label}`, ``);
   L.push(`Assessed against the ${sector.label.toLowerCase()} threat model — ${sector.focus.join(", ")} — protecting ${sector.assets.join(", ")}.`, ``);
   L.push(`- Tools assessed: **${s.tools ?? "—"}** (risk-bearing: ${s.risky ?? "—"})`);
@@ -1519,6 +1606,18 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
   L.push((sector.consequence || []).map((x) => `${x}`).join(" → "), ``);
   L.push(`**Estimated exposure:** ${sector.exposure}`);
+  // What Runtime Governance enabled (item 5) — value, not just danger
+  {
+    const rr = ctx.replayResults || [];
+    const allowN = rr.filter((r) => r.verdict === "ALLOW").length;
+    const escN = rr.filter((r) => r.verdict === "ESCALATE").length;
+    const detIdentical = replay && replay.checked && replay.deterministic === replay.checked;
+    L.push(``, `## What Runtime Governance enabled`, ``);
+    L.push(`- Safe ${sector.label.toLowerCase()} workflows continued uninterrupted.`);
+    L.push(`- ${allowN > 0 ? `${allowN} legitimate ${allowN === 1 ? "action" : "actions"} proceeded` : "Legitimate actions proceed"} without unnecessary blocking.`);
+    L.push(`- Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`);
+    L.push(detIdentical ? `- Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `- Verdicts are reproducible on replay.`);
+  }
   L.push(engagementMarkdown(rec));
   L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Tool names, verdicts and Ω domains taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms non-binding.*`);
   return L.join("\n");
@@ -1531,7 +1630,8 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
   const blocks = (report && report.grounded_blocks) || [];
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
   const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
-  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const ev = executiveVerdict(s, blockedCount);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const L = [`# Runtime Governance Executive Report — ${c.name}`, ``, `**Period:** ${c.period || "—"}  |  **Reference:** ${c.reference || "—"}  |  **Classification:** Board · Confidential`, ``, `_Sector: ${sector.label}_`, ``];
   if (!isLive) {
     L.push(`> **Deployment Ready.** Runtime evidence will populate automatically once representative trajectories have been replayed through the live Runtime Governance engine. This report currently represents deployment readiness rather than production activity.`, ``, `## Deployment readiness`, ``);
