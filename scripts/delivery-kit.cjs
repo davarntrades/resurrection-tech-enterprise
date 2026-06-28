@@ -358,6 +358,14 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .stagebars .fill{height:100%;background:linear-gradient(90deg,#e0a93f,#f2c66a);border-radius:999px}
 .stagebars .row.tot .fill{background:linear-gradient(90deg,#4c7dff,#8fb0ff)}
 .stagebars .val{flex:0 0 140px;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#cdd6e0}
+.grade{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:12px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-left:3px solid #6b7480}
+.grade .g{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.grade .gtext{display:flex;flex-direction:column}
+.grade .gl{font-size:15px;font-weight:600;color:#f3f5f7}
+.grade .gb{display:block;color:#8a929c;font-size:10px;font-family:ui-monospace,Menlo,monospace;margin-top:3px}
+.grade.grade-aplus,.grade.grade-a{border-left-color:#3fb27f}.grade.grade-aplus .g,.grade.grade-a .g{color:#6fdcab}
+.grade.grade-b{border-left-color:#e0a93f}.grade.grade-b .g{color:#f2c66a}
+.grade.grade-c{border-left-color:#e5484d}.grade.grade-c .g{color:#f0888c}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -433,6 +441,14 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .stagebars .fill{height:100%;background:#9a6a12;border-radius:999px}
 .stagebars .row.tot .fill{background:#212121}
 .stagebars .val{flex:0 0 140px;text-align:right;font-size:8pt;color:#333;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.grade{display:flex;align-items:center;gap:16px;padding:15px 17px;border-radius:2pt;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-left:2.6pt solid #737373}
+.grade .g{font-size:28pt;font-weight:700;line-height:1;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.grade .gtext{display:flex;flex-direction:column}
+.grade .gl{font-size:12pt;font-weight:700;color:#212121;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.grade .gb{display:block;color:#737373;font-size:8pt;margin-top:3px}
+.grade.grade-aplus,.grade.grade-a{border-left-color:#2e7d52}.grade.grade-aplus .g,.grade.grade-a .g{color:#2e7d52}
+.grade.grade-b{border-left-color:#9a6a12}.grade.grade-b .g{color:#9a6a12}
+.grade.grade-c{border-left-color:#b3261e}.grade.grade-c .g{color:#b3261e}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -569,6 +585,28 @@ function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
   } : null;
   return { total, N, M, totalSec, effEval, effTraj, detPct, cov, trajTimes, trajStats, avg: perf ? perf.mean : null, eps: perf ? perf.eps : null };
 }
+// Performance grade from measured thresholds. Graded on the engine's average
+// evaluation latency (the core governance-performance signal, independent of
+// delivery-layer concerns like PDF rendering) and gated by replay determinism —
+// a non-deterministic engine is never an A grade. Returns null when no
+// evaluations have been measured yet (deployment-ready, pre-replay).
+const GRADE_CLASS = { "A+": "grade-aplus", "A": "grade-a", "B": "grade-b", "C": "grade-c" };
+function performanceGrade(rtm) {
+  const avg = rtm && rtm.avg;
+  if (avg == null) return null;
+  let grade, label;
+  if (avg < 10) { grade = "A+"; label = "Excellent"; }
+  else if (avg < 50) { grade = "A"; label = "Production Ready"; }
+  else if (avg < 150) { grade = "B"; label = "Minor optimisation recommended"; }
+  else { grade = "C"; label = "Requires optimisation"; }
+  // determinism gate: cap A-grades if verdicts are not fully reproducible
+  if (rtm.detPct != null) {
+    if (rtm.detPct < 90) { grade = "C"; label = "Requires optimisation"; }
+    else if (rtm.detPct < 100 && (grade === "A+" || grade === "A")) { grade = "B"; label = "Minor optimisation recommended"; }
+  }
+  const basis = `avg evaluation latency ${fmtMs(avg)}${rtm.detPct != null ? `, determinism ${rtm.detPct}%` : ""}`;
+  return { grade, label, basis };
+}
 function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
   if (!stages) return ""; // pass-1 measurement render — section added on pass 2
   const total = stageTotal(stages);
@@ -576,6 +614,10 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
   if (!total && !perf && !rr.length) return "";
   const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
   const t = total || 1;
+
+  // performance grade (measured thresholds) — shown first, for a quick read
+  const g = performanceGrade(X);
+  const gradeCard = g ? `<div class="grade ${GRADE_CLASS[g.grade] || ""}"><span class="g">${esc(g.grade)}</span><span class="gtext"><span class="gl">${esc(g.label)}</span><span class="gb">Based on ${esc(g.basis)}</span></span></div>` : "";
 
   // throughput & efficiency
   const tput = [
@@ -612,18 +654,20 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
 
   // performance summary card
   const sum = [
+    g ? `Performance grade: ${g.grade} (${g.label})` : null,
     `End-to-end runtime: ${fmtMs(total)}`,
     `Governance evaluations: ${X.M}`,
     `Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`,
     `Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`,
     `Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`,
     `Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`,
-  ];
+  ].filter(Boolean);
   const summaryCard = `<div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">Performance summary</span>
     <ul class="check">${sum.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>`;
 
   return `<div class="sec"><span class="eyebrow">Runtime performance · throughput &amp; efficiency</span><h2>Measured capacity of the governance pipeline — latency, throughput, and CPU time.</h2>
-    <div class="kpis">${tputCards}</div>
+    ${gradeCard}
+    <div class="kpis" style="margin-top:18px">${tputCards}</div>
     <div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">CPU time breakdown</span>
       <div class="stagebars">${bars}</div></div>
     ${replayPerf}
@@ -637,8 +681,10 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   const rr = (ctx && ctx.replayResults) || [];
   if (!total && !perf && !rr.length) return "";
   const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
+  const g = performanceGrade(X);
   const t = total || 1;
   const L = [``, `## Runtime performance — throughput & efficiency`, ``];
+  if (g) L.push(`**Performance grade: ${g.grade} — ${g.label}**  _(based on ${g.basis})_`, ``);
   L.push(`- Total runtime: **${fmtMs(total)}**`);
   L.push(`- Average latency: ${perf ? fmtMs(perf.mean) : "—"}`);
   L.push(`- Trajectories replayed: ${X.N}`);
@@ -654,6 +700,7 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
     L.push(`| **Average** | **${fmtMs(X.trajStats.avg)}** |`, `| Fastest | ${fmtMs(X.trajStats.fast)} |`, `| Slowest | ${fmtMs(X.trajStats.slow)} |`);
   }
   L.push(``, `### Performance summary`, ``);
+  if (g) L.push(`- ✓ Performance grade: ${g.grade} (${g.label})`);
   L.push(`- ✓ End-to-end runtime: ${fmtMs(total)}`);
   L.push(`- ✓ Governance evaluations: ${X.M}`);
   L.push(`- ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
@@ -1486,6 +1533,7 @@ function selfTest() {
 
   // shared runtime metrics — identical numbers across console + run-summary.json
   const rtm = computeRuntimeMetrics(stages, perf, replay, ctx, report && report.summary);
+  const grade = performanceGrade(rtm);
 
   // console view of the measured pipeline instrumentation
   {
@@ -1516,6 +1564,7 @@ function selfTest() {
     }
 
     console.log(`\n— Performance summary —`);
+    if (grade) console.log(`  ★ Performance grade: ${grade.grade} (${grade.label})`);
     console.log(`  ✓ End-to-end runtime: ${fmtMs(rtm.total)}`);
     console.log(`  ✓ Governance evaluations: ${rtm.M}`);
     console.log(`  ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
@@ -1555,7 +1604,9 @@ function selfTest() {
       per_trajectory_ms: (ctx.replayResults || []).map((r) => ({ index: r.index, label: r.label, eval_ms: typeof r.eval_ms === "number" ? r3(r.eval_ms) : null })),
       average_ms: r3(rtm.trajStats.avg), fastest_ms: r3(rtm.trajStats.fast), slowest_ms: r3(rtm.trajStats.slow),
     } : null,
+    performance_grade: grade ? { grade: grade.grade, label: grade.label, basis: grade.basis } : null,
     performance_summary: {
+      performance_grade: grade ? grade.grade : null,
       end_to_end_runtime_ms: r3(rtm.total),
       governance_evaluations: rtm.M,
       average_evaluation_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
