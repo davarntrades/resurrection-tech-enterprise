@@ -351,6 +351,13 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:30px;font-weight:600;color:#f3f5f7}.tput .u{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7480}
 .tput .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:linear-gradient(90deg,#3fb27f,#6fdcab);border-radius:999px}
 .perfsum{margin-top:14px;padding:11px 14px;background:linear-gradient(180deg,rgba(63,178,127,.08),rgba(63,178,127,.02));border:1px solid rgba(63,178,127,.3);border-left:3px solid #3fb27f;border-radius:10px;color:#cdd6e0;font-size:11.5px}
+.stagebars{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.stagebars .row{display:flex;align-items:center;gap:10px}
+.stagebars .lab{flex:0 0 210px;font-size:11px;color:#cdd6e0}
+.stagebars .track{flex:1;height:10px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.stagebars .fill{height:100%;background:linear-gradient(90deg,#e0a93f,#f2c66a);border-radius:999px}
+.stagebars .row.tot .fill{background:linear-gradient(90deg,#4c7dff,#8fb0ff)}
+.stagebars .val{flex:0 0 140px;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#cdd6e0}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -419,6 +426,13 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .pctl{display:flex;flex-direction:column;gap:8px}.pctl .row{display:flex;align-items:center;gap:8px}.pctl .lab{width:30px;font-size:8pt;color:#212121}.pctl .track{flex:1;height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden}.pctl .fill{height:100%;background:#212121;border-radius:999px}.pctl .val{width:60px;text-align:right;font-size:8pt;color:#333}
 .tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:24pt;font-weight:700;color:#212121}.tput .u{font-size:8.5pt;color:#737373}.tput .track{height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:#212121;border-radius:999px}
 .perfsum{margin-top:14px;padding:11px 14px;background:#f3f3f3;border-left:2.6pt solid #212121;border-radius:1.5pt;color:#333;font-size:9.5pt}
+.stagebars{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.stagebars .row{display:flex;align-items:center;gap:10px}
+.stagebars .lab{flex:0 0 210px;font-size:9pt;color:#212121}
+.stagebars .track{flex:1;height:9px;background:#e2e2e2;border-radius:999px;overflow:hidden}
+.stagebars .fill{height:100%;background:#9a6a12;border-radius:999px}
+.stagebars .row.tot .fill{background:#212121}
+.stagebars .val{flex:0 0 140px;text-align:right;font-size:8pt;color:#333;font-family:"TeX Gyre Heros",Arial,sans-serif}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -516,6 +530,46 @@ function perfSection(stats, attestation, replay) {
     </div>
     <div class="perfsum">${esc(summary)}</div>
   </div>`;
+}
+
+// ---- per-stage pipeline instrumentation (real measured wall-clock) ----------
+// Stages are captured during the run; total is the sum of the measured stages
+// (matching the worked example 4+21+17+46+90 = 178 ms). Percentages are each
+// stage's share of that total. PDF generation may be 0 ms when Chromium is
+// unavailable (HTML + Markdown still delivered) — that is surfaced, not hidden.
+const STAGE_ORDER = [
+  ["Manifest parsing", "manifest_parse"],
+  ["Runtime Governance evaluation", "governance_eval"],
+  ["Trajectory replay", "trajectory_replay"],
+  ["Report generation", "report_generation"],
+  ["PDF generation", "pdf_generation"],
+];
+function stageTotal(stages) {
+  if (!stages) return 0;
+  if (stages.total) return stages.total;
+  return STAGE_ORDER.reduce((a, [, k]) => a + (stages[k] || 0), 0);
+}
+function pipelineTimingHtml(stages) {
+  if (!stages) return "";
+  const total = stageTotal(stages) || 1;
+  const rows = STAGE_ORDER.map(([label, k]) => ({ label, ms: stages[k] || 0, pct: (stages[k] || 0) / total * 100 }));
+  const kpis = rows.map((r) => `<div class="kpi"><span class="v" style="font-size:18px">${fmtMs(r.ms)}</span><span class="k">${esc(r.label)}</span></div>`).join("")
+    + `<div class="kpi"><span class="v" style="font-size:18px">${fmtMs(total)}</span><span class="k">Total end-to-end</span></div>`;
+  const bars = rows.map((r) => `<div class="row"><span class="lab">${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, Math.round(r.pct))}%"></span></span><span class="val">${r.pct.toFixed(0)}% · ${fmtMs(r.ms)}${r.ms === 0 && r.label === "PDF generation" ? " (skipped)" : ""}</span></div>`).join("")
+    + `<div class="row tot"><span class="lab"><b>Total end-to-end</b></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">100% · ${fmtMs(total)}</span></div>`;
+  return `<div class="sec"><span class="eyebrow">Pipeline instrumentation</span><h2>Measured latency for every stage — ingestion through evidence generation.</h2>
+    <div class="kpis">${kpis}</div>
+    <div class="stagebars">${bars}</div>
+    <p style="margin-top:12px;color:#8a929c">Every stage is timed with a high-resolution monotonic clock during the audit; percentages show each stage's share of total end-to-end runtime. Values are measured, never estimated.</p>
+  </div>`;
+}
+function pipelineTimingMarkdown(stages) {
+  if (!stages) return "";
+  const total = stageTotal(stages) || 1;
+  const L = [``, `## Pipeline instrumentation (measured per-stage)`, ``, `| Stage | Latency | Share |`, `|---|---|---|`];
+  for (const [label, k] of STAGE_ORDER) { const ms = stages[k] || 0; L.push(`| ${label} | ${fmtMs(ms)} | ${(ms / total * 100).toFixed(0)}% |`); }
+  L.push(`| **Total end-to-end** | **${fmtMs(total)}** | **100%** |`);
+  return L.join("\n");
 }
 
 // ---- enterprise report helpers (real names, sector framing, verdicts) ------
@@ -662,7 +716,7 @@ function blockedCasesHtml(ctx, blocks, sector) {
   }
   return `<p style="color:#8a929c">No catastrophic trajectories were reached within the engine's reachability horizon for the supplied manifest.</p>`;
 }
-function auditHtml(c, report, perf, replay, ctx) {
+function auditHtml(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
   if (!report) {
@@ -797,6 +851,7 @@ function auditHtml(c, report, perf, replay, ctx) {
     + replaySummary
     + metricsSec
     + perfSection(perf, report.attestation, replay)
+    + pipelineTimingHtml(stages)
     + counterfactual
     + attestationSec
     + recSec
@@ -817,7 +872,7 @@ function journeyHtml(currentIdx) {
 //   yet → presented as an intentional readiness posture (never an error).
 // Mode 2 "Live Runtime Evidence": trajectories replayed → operational metrics.
 // We never fabricate runtime numbers; the report transitions automatically.
-function reportHtml(c, m, assess, replay, perf, ctx) {
+function reportHtml(c, m, assess, replay, perf, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
@@ -897,6 +952,7 @@ function reportHtml(c, m, assess, replay, perf, ctx) {
       ${ready ? structural() : ""}
       ${attestationSec()}
       ${perfSection(perf, att, replay)}
+      ${pipelineTimingHtml(stages)}
       <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
         <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
         <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
@@ -941,6 +997,7 @@ function reportHtml(c, m, assess, replay, perf, ctx) {
     </div>
     ${replaySummarySec}
     ${perfSection(perf, att, replay)}
+    ${pipelineTimingHtml(stages)}
     ${recSec}
     ${structural()}
     ${attestationSec()}
@@ -958,7 +1015,7 @@ function perfMarkdown(perf, replay) {
     + `- Total evaluations: ${perf.n} · ${perf.eps.toFixed(perf.eps < 10 ? 1 : 0)} eval/sec\n`
     + `- Replay determinism: ${replay && replay.checked ? `${replay.deterministic}/${replay.checked}` : "—"}\n`;
 }
-function auditMarkdown(c, report, perf, replay, ctx) {
+function auditMarkdown(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const L = [`# Runtime Safety Audit — ${c.name}`, ``, `**Reference:** ${c.reference || "—"}  |  **Environment:** ${c.environment || "—"}  |  **Classification:** Confidential`];
   if (!report) { L.push(``, `> Engine assessment unavailable for this run. Coverage, exposure, and verified-blocked-trajectory sections come from the live Runtime Governance engine — set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run.`); return L.join("\n"); }
@@ -1015,6 +1072,7 @@ function auditMarkdown(c, report, perf, replay, ctx) {
   L.push(`- Runtime version: ${att && att.service_version ? att.service_version : "—"}`);
   if (att) L.push(``, `## Attestation`, ``, `- Engine commit: \`${att.engine_commit}\``, `- Ruleset hash: \`${String(att.ruleset_hash || "").slice(0, 40)}…\``, `- Service version: ${att.service_version}`, `- Reachability horizon: ${att.horizon} steps`);
   const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
+  const tm = pipelineTimingMarkdown(stages); if (tm) L.push(tm);
   // If Runtime Governance had not been present (item 11)
   L.push(``, `## If Runtime Governance had not been present`, ``);
   L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
@@ -1024,7 +1082,7 @@ function auditMarkdown(c, report, perf, replay, ctx) {
   L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Tool names, verdicts and Ω domains taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms non-binding.*`);
   return L.join("\n");
 }
-function reportMarkdown(c, m, report, replay, perf, ctx) {
+function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const s = (report && report.summary) || {};
@@ -1051,6 +1109,7 @@ function reportMarkdown(c, m, report, replay, perf, ctx) {
     if ((ctx.replayResults || []).length) { L.push(``, `## Trajectory replay summary`, ``, `| Trajectory | Verdict | Reason |`, `|---|---|---|`); for (const r of ctx.replayResults) L.push(`| Trajectory ${r.index} · ${mdEsc(r.label)} | ${r.verdict} | ${mdEsc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))} |`); }
     const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
   }
+  const tm = pipelineTimingMarkdown(stages); if (tm) L.push(tm);
   L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
   L.push(``, `---`, `*Resurrection Tech™ never fabricates runtime evidence — operational sections populate only from live engine results.*`);
   return L.join("\n");
@@ -1157,16 +1216,22 @@ function selfTest() {
   const reportPdf = path.join(outDir, "executive-report.pdf");
   const status = { assess: false, evaluate: false };
   const replay = { checked: 0, deterministic: 0 };
+  // Per-stage wall-clock instrumentation (real measured timings; ms). Total is
+  // the sum of the measured stages. Captured throughout the run below.
+  const stages = { manifest_parse: 0, governance_eval: 0, trajectory_replay: 0, report_generation: 0, pdf_generation: 0, total: 0 };
 
   console.log(`\nResurrection Tech — Delivery Kit\n  input:  ${srcLabel}\n  engine: ${GOV}\n  output: ${outDir}\n`);
   emitStage("parsing", "Parsing manifest");
   try {
   // AUDIT (/v1/assess) — accepts a parsed manifest array OR raw manifest_text
   let report = null;
+  const tParse0 = nowMs();
   const haveManifest = (Array.isArray(input.manifest) && input.manifest.length) ||
     (typeof input.manifest_text === "string" && input.manifest_text.trim());
   const manifestBytes = input.manifest_text ? input.manifest_text.length : JSON.stringify(input.manifest || []).length;
   const toolCount = Array.isArray(input.manifest) ? input.manifest.length : null;
+  const parsedTools = parseManifestTools(input); // real tool names — also reused by ctx below
+  stages.manifest_parse = nowMs() - tParse0;
   emitCheck(!!haveManifest, haveManifest ? `Manifest received (${manifestBytes} bytes${toolCount != null ? `, ${toolCount} tools` : ", text format"})` : "No manifest supplied");
   if (haveManifest) {
     console.log("• Audit: assessing manifest via /v1/assess …");
@@ -1177,6 +1242,7 @@ function selfTest() {
       org: c.name, format: input.format || "generic",
     });
     status.assess = !!report;
+    stages.governance_eval = PERF.assessMs != null ? PERF.assessMs : 0; // measured /v1/assess round-trip
     const s = (report && report.summary) || {};
     if (report) emitCheck(true, `Runtime Governance engine assessed manifest — ${s.tools ?? "?"} tools, ${s.risky ?? "?"} risk-bearing, ${s.coverage_pct ?? "?"}% Ω coverage, ${s.verified_blocked_trajectories ?? 0} blocked trajectories`);
     else emitCheck(false, "Runtime Governance engine /v1/assess returned no report (unreachable or error) — check GOVERNANCE_URL / GOVERNANCE_TOKEN and run: npm run audit:check");
@@ -1198,6 +1264,7 @@ function selfTest() {
     console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate (+ determinism check) …`);
     emitStage("replay", "Replaying trajectories");
     emitStage("determinism", "Determinism verification");
+    const tReplay0 = nowMs();
     let firstEvalErr = null;
     let trajIdx = 0;
     for (const traj of input.trajectories) {
@@ -1222,6 +1289,7 @@ function selfTest() {
         });
       } else if (!firstEvalErr) { firstEvalErr = g; }
     }
+    stages.trajectory_replay = nowMs() - tReplay0; // measured /v1/evaluate replay + determinism loop
     if (firstEvalErr) {
       const st = firstEvalErr.__status != null ? `HTTP ${firstEvalErr.__status}` : firstEvalErr.__error;
       console.warn(`  ! /v1/evaluate: no verdicts. First failure: ${st}. Full response body:\n${firstEvalErr.__body != null ? firstEvalErr.__body : "(none)"}\n`);
@@ -1241,25 +1309,45 @@ function selfTest() {
   emitStage("audit", "Generating audit document");
   const ctx = {
     replayResults,
-    parsedTools: parseManifestTools(input),
+    parsedTools, // computed (and timed) during the manifest-parse stage above
     industry: input.industry || (input.domains && input.domains[0]) || (report && report.industry) || "",
     domains: input.domains || [],
   };
   const auditHtmlPath = path.join(outDir, "audit.html");
   const auditMdPath = path.join(outDir, "audit.md");
-  fs.writeFileSync(auditHtmlPath, auditHtml(c, report, perf, replay, ctx));
-  fs.writeFileSync(auditMdPath, auditMarkdown(c, report, perf, replay, ctx));
-  emitCheck(true, "Audit document generated (HTML + Markdown)");
-  emitStage("audit", "Generating audit PDF");
-  const auditPdfOk = renderPdf(auditHtmlPath, auditPdf, "Audit");
-
-  emitStage("report", "Generating executive report");
   const reportHtmlPath = path.join(outDir, "executive-report.html");
   const reportMdPath = path.join(outDir, "executive-report.md");
-  fs.writeFileSync(reportHtmlPath, reportHtml(c, m, report, replay, perf, ctx));
-  fs.writeFileSync(reportMdPath, reportMarkdown(c, m, report, replay, perf, ctx));
-  emitCheck(true, "Executive report generated (HTML + Markdown)");
-  const reportPdfOk = renderPdf(reportHtmlPath, reportPdf, "Executive report");
+
+  // Two-pass emit: pass 1 writes the deliverables and MEASURES report-generation
+  // + PDF-render wall-clock; once those (and the total) are known, pass 2 re-emits
+  // the deliverables with the complete per-stage breakdown embedded. The displayed
+  // generation/PDF timings are the real pass-1 measurements, not estimates.
+  const writeDeliverables = (stagesForDisplay, measure) => {
+    let gen = 0, pdf = 0, t;
+    t = nowMs();
+    fs.writeFileSync(auditHtmlPath, auditHtml(c, report, perf, replay, ctx, stagesForDisplay));
+    fs.writeFileSync(auditMdPath, auditMarkdown(c, report, perf, replay, ctx, stagesForDisplay));
+    gen += nowMs() - t;
+    if (measure) { emitCheck(true, "Audit document generated (HTML + Markdown)"); emitStage("audit", "Generating audit PDF"); }
+    t = nowMs();
+    const aOk = renderPdf(auditHtmlPath, auditPdf, "Audit");
+    pdf += nowMs() - t;
+    if (measure) emitStage("report", "Generating executive report");
+    t = nowMs();
+    fs.writeFileSync(reportHtmlPath, reportHtml(c, m, report, replay, perf, ctx, stagesForDisplay));
+    fs.writeFileSync(reportMdPath, reportMarkdown(c, m, report, replay, perf, ctx, stagesForDisplay));
+    gen += nowMs() - t;
+    if (measure) emitCheck(true, "Executive report generated (HTML + Markdown)");
+    t = nowMs();
+    const rOk = renderPdf(reportHtmlPath, reportPdf, "Executive report");
+    pdf += nowMs() - t;
+    if (measure) { stages.report_generation = gen; stages.pdf_generation = pdf; }
+    return { auditPdfOk: aOk, reportPdfOk: rOk };
+  };
+
+  let { auditPdfOk, reportPdfOk } = writeDeliverables(null, true);
+  stages.total = stages.manifest_parse + stages.governance_eval + stages.trajectory_replay + stages.report_generation + stages.pdf_generation;
+  ({ auditPdfOk, reportPdfOk } = writeDeliverables(stages, false)); // re-emit with full breakdown
 
   // FIELD MATRIX — every Priority-1 output, classified so runtime gaps read as
   // "pending live evidence" (expected after an audit), not as failures.
@@ -1302,14 +1390,51 @@ function selfTest() {
   }
   if (structuralMissing.length) console.log(`\n  ⚠ Missing structural evidence: ${structuralMissing.join(", ")}\n    → check engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
 
-  // machine-readable evidence written alongside the PDFs
+  // console view of the measured pipeline instrumentation
+  {
+    const tt = stages.total || (stages.manifest_parse + stages.governance_eval + stages.trajectory_replay + stages.report_generation + stages.pdf_generation) || 1;
+    const line = (label, ms) => `  ${label.padEnd(30, " ")} ${fmtMs(ms).padStart(9)}   ${((ms / tt) * 100).toFixed(0).padStart(3)}%`;
+    console.log(`\n— Pipeline instrumentation (measured per-stage) —`);
+    console.log(line("Manifest parsing", stages.manifest_parse));
+    console.log(line("Runtime Governance evaluation", stages.governance_eval));
+    console.log(line("Trajectory replay", stages.trajectory_replay));
+    console.log(line("Report generation", stages.report_generation));
+    console.log(line("PDF generation", stages.pdf_generation));
+    console.log(`  ${"Total end-to-end".padEnd(30, " ")} ${fmtMs(tt).padStart(9)}   100%`);
+  }
+
+  // Per-stage timing block (measured wall-clock ms + each stage's share of total).
+  const r3 = (n) => +(+n).toFixed(3);
+  const tot = stages.total || (stages.manifest_parse + stages.governance_eval + stages.trajectory_replay + stages.report_generation + stages.pdf_generation) || 1;
+  const sharePct = (n) => +((n / tot) * 100).toFixed(1);
+  const stageTimings = {
+    measured: true,
+    manifest_parse_ms: r3(stages.manifest_parse),
+    governance_eval_ms: r3(stages.governance_eval),
+    trajectory_replay_ms: r3(stages.trajectory_replay),
+    report_generation_ms: r3(stages.report_generation),
+    pdf_generation_ms: r3(stages.pdf_generation),
+    total_ms: r3(stages.total),
+    shares_pct: {
+      manifest_parse: sharePct(stages.manifest_parse),
+      governance_eval: sharePct(stages.governance_eval),
+      trajectory_replay: sharePct(stages.trajectory_replay),
+      report_generation: sharePct(stages.report_generation),
+      pdf_generation: sharePct(stages.pdf_generation),
+    },
+  };
+
+  // machine-readable evidence written alongside the PDFs.
+  // NOTE: existing overall-latency fields (avg/p50/p95/p99/assess_ms) are
+  // preserved unchanged for backwards compatibility; stage_timings is additive.
   const perfOut = perf ? {
     measured: true, total_evaluations: perf.n,
     avg_ms: +perf.mean.toFixed(4), p50_ms: +perf.p50.toFixed(4), p95_ms: +perf.p95.toFixed(4), p99_ms: +perf.p99.toFixed(4),
     min_ms: +perf.min.toFixed(4), max_ms: +perf.max.toFixed(4), evals_per_sec: +perf.eps.toFixed(2),
     assess_ms: PERF.assessMs != null ? +PERF.assessMs.toFixed(4) : null,
     replay_determinism: `${replay.deterministic}/${replay.checked}`,
-  } : { measured: false, assess_ms: PERF.assessMs != null ? +PERF.assessMs.toFixed(4) : null };
+    stage_timings: stageTimings,
+  } : { measured: false, assess_ms: PERF.assessMs != null ? +PERF.assessMs.toFixed(4) : null, stage_timings: stageTimings };
   const deliverables = fs.readdirSync(outDir).filter((f) => /\.(pdf|html|md|json)$/.test(f) && f !== "run-summary.json");
   fs.writeFileSync(path.join(outDir, "run-summary.json"), JSON.stringify({
     customer: c, engine: GOV, status, replay, mode,
@@ -1317,6 +1442,7 @@ function selfTest() {
     field_kinds: Object.fromEntries(fields.map(([n, , k]) => [n, k])),
     pending: runtimePending, missing: structuralMissing,
     performance: perfOut,
+    pipeline_timings: stageTimings,
     deliverables, pdf_available: pdfAvailable,
     assess_summary: report ? report.summary : null,
     attestation: report ? report.attestation || null : null,
