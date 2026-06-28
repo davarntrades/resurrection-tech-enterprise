@@ -224,15 +224,26 @@ async function preflight() {
   console.log("• /v1/evaluate");
   const e = await evaluate([{ tool: "probe_tool", args: {} }], ["finance"]);
   if (!e || e.__error) { console.log(`    UNREACHABLE ✗ ${e && e.__error ? "(" + e.__error + ")" : ""}`); ok = false; }
-  else for (const f of ["verdict", "reason", "omega_domain", "trajectory_hash", "layer"])
-    console.log(`    - ${f}: ${e[f] != null ? "present ✓" : "MISSING ✗"}`);
+  else {
+    // omega_domain is conditional: the engine only returns it when a trajectory
+    // intersects an Ω domain (a BLOCK). The benign preflight probe doesn't, so
+    // its absence is expected — not a failure.
+    const OPTIONAL = new Set(["omega_domain"]);
+    for (const f of ["verdict", "reason", "omega_domain", "trajectory_hash", "layer"]) {
+      const present = e[f] != null;
+      console.log(`    - ${f}: ${present ? "present ✓" : OPTIONAL.has(f) ? "n/a — optional (only on BLOCK) ✓" : "MISSING ✗"}`);
+    }
+  }
   const chromeOk = checkChrome();
   console.log(`\n  Result: engine ${ok ? "reachable ✓" : "NOT reachable ✗"} · Chromium ${chromeOk ? "usable ✓" : "NOT usable ✗"}${ok && chromeOk ? " — ready to run an audit ✓" : ""}\n`);
 }
 
 // ---- Chromium detection (verifies the binary actually runs) ------------------
+// Uses ensureChrome(), so a plain `npm run audit:check` / `audit:chrome` will
+// auto-install a working Chromium when one isn't present (set AUDIT_NO_AUTO_INSTALL
+// to disable). Pure path lookups elsewhere use resolveChrome() to avoid recursion.
 function checkChrome() {
-  const chrome = resolveChrome();
+  const chrome = ensureChrome();
   if (chrome) { const v = chromeVersion(chrome); console.log(`• Chromium: usable ✓  ${chrome}${v ? `  (${v})` : ""}`); return true; }
   console.log(`• Chromium: NOT usable ✗\n    ${CHROME_NOT_FOUND}`);
   return false;

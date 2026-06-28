@@ -598,9 +598,22 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// On startup, make sure a usable Chromium exists so the first audit renders PDFs
+// out of the box. If missing, install it in the background (visible in this
+// terminal); audits also auto-install on first render as a safety net.
+function ensureChromiumReady() {
+  const { spawnSync, spawn: spawnBg } = require("node:child_process");
+  const probe = spawnSync(process.execPath, [KIT, "--print-chrome"], { cwd: ROOT, stdio: "ignore" });
+  if (probe.status === 0) { console.log("  chromium: usable ✓"); return; }
+  console.log("  chromium: not found — installing in the background (first PDF will wait for this)…");
+  const child = spawnBg("bash", [path.join(ROOT, "scripts", "install-chromium.sh")], { cwd: ROOT, stdio: "inherit", env: process.env });
+  child.on("close", (code) => console.log(code === 0 ? "  chromium: installed ✓ — PDF generation ready." : "  chromium: install did not complete — run `npm run audit:chrome:install`."));
+}
+
 server.listen(PORT, HOST, () => {
   console.log(`\nResurrection Tech™ — Runtime Governance Analyst Console`);
   console.log(`  ▶ http://${HOST}:${PORT}   (analyst: ${USER})`);
   console.log(`  engine: ${process.env.GOVERNANCE_URL || "default Railway"} · token ${process.env.GOVERNANCE_TOKEN ? "set ✓" : "NOT set ✗ (exec-report replay needs it)"}`);
   console.log(`  private/internal — do not expose publicly. Customers never reach this app.\n`);
+  try { ensureChromiumReady(); } catch { /* non-fatal; audits auto-install on render */ }
 });
