@@ -87,32 +87,68 @@ function browserCacheCandidates() {
   }
   return out;
 }
+// Browsers bundled in the repo (./chrome) or via npm (node_modules/.bin).
+function localChromeCandidates() {
+  const root = path.join(__dirname, "..");
+  return [
+    path.join(root, "chrome", "chrome"),
+    path.join(root, "chrome", "chrome-linux", "chrome"),
+    path.join(root, "chrome", "chrome-linux64", "chrome"),
+    path.join(root, "node_modules", ".bin", "chromium"),
+  ];
+}
 function fromPath() {
-  // `which` is a real binary (no shell), so this avoids the DEP0190 warning that
-  // `execFileSync("command", …, {shell})` triggers on newer Node.
-  for (const name of ["chromium", "chromium-browser", "google-chrome-stable", "google-chrome"]) {
-    try { const p = execFileSync("which", [name], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); if (p) return p; } catch { /* not on PATH */ }
+  // `which` is a real binary (no shell), avoiding the DEP0190 warning that
+  // `execFileSync("command", …, {shell})` triggers on newer Node. Return ALL
+  // matches so resolveChrome can verify each (a name may point at a snap stub).
+  const out = [];
+  for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser"]) {
+    try { const p = execFileSync("which", [name], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); if (p) out.push(p); } catch { /* not on PATH */ }
   }
-  return null;
+  return out;
+}
+// A path "exists" is not enough: the Ubuntu chromium-browser snap stub exists but
+// only prints "requires the chromium snap to be installed" and exits non-zero.
+// A binary is USABLE only if `<bin> --version` exits 0 and looks like a browser.
+const _usable = new Map();
+function chromeVersion(bin) {
+  try { return execFileSync(bin, ["--version"], { timeout: 8000, stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); }
+  catch { return ""; }
+}
+function chromeUsable(bin) {
+  if (!bin) return false;
+  if (_usable.has(bin)) return _usable.get(bin);
+  let ok = false;
+  try {
+    if (fs.existsSync(bin)) {
+      const out = chromeVersion(bin); // "" if it exited non-zero (snap stub) or timed out
+      ok = /\b(chromium|chrome|google chrome)\b/i.test(out) && !/snap/i.test(out);
+    }
+  } catch { ok = false; }
+  _usable.set(bin, ok);
+  return ok;
 }
 function resolveChrome() {
+  // Preference order: explicit override → repo-bundled → Playwright/Puppeteer
+  // downloads → real system browsers → PATH. Every candidate must pass the
+  // usability check, so a snap stub is never selected even though it exists.
   const candidates = [
     process.env.CHROME_BIN,
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
+    ...localChromeCandidates(),
+    ...browserCacheCandidates(),
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser", // snap stub on Ubuntu — rejected by chromeUsable()
     "/snap/bin/chromium",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    ...browserCacheCandidates(),
+    ...fromPath(),
   ].filter(Boolean);
-  for (const p of candidates) { try { if (fs.existsSync(p)) return p; } catch { /* skip */ } }
-  const onPath = fromPath();
-  if (onPath) { try { if (fs.existsSync(onPath)) return onPath; } catch { /* skip */ } }
+  for (const p of candidates) { if (chromeUsable(p)) return p; }
   return null;
 }
-const CHROME_NOT_FOUND = "Chromium not found. Run:  npm run audit:chrome:install   (or set CHROME_BIN=/path/to/chrome)";
+const CHROME_NOT_FOUND = "No usable Chromium found (a snap stub doesn't count). Run:  npm run audit:chrome:install   (or set CHROME_BIN=/path/to/real/chrome)";
 const TOKEN = process.env.GOVERNANCE_TOKEN;
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "customer";
@@ -188,14 +224,14 @@ async function preflight() {
   else for (const f of ["verdict", "reason", "omega_domain", "trajectory_hash", "layer"])
     console.log(`    - ${f}: ${e[f] != null ? "present ✓" : "MISSING ✗"}`);
   const chromeOk = checkChrome();
-  console.log(`\n  Result: engine ${ok ? "reachable ✓" : "NOT reachable ✗"} · Chromium ${chromeOk ? "found ✓" : "NOT found ✗"}${ok && chromeOk ? " — ready to run an audit ✓" : ""}\n`);
+  console.log(`\n  Result: engine ${ok ? "reachable ✓" : "NOT reachable ✗"} · Chromium ${chromeOk ? "usable ✓" : "NOT usable ✗"}${ok && chromeOk ? " — ready to run an audit ✓" : ""}\n`);
 }
 
-// ---- Chromium detection -----------------------------------------------------
+// ---- Chromium detection (verifies the binary actually runs) ------------------
 function checkChrome() {
   const chrome = resolveChrome();
-  if (chrome) { console.log(`• Chromium: ${chrome} ✓`); return true; }
-  console.log(`• Chromium: NOT FOUND ✗\n    ${CHROME_NOT_FOUND}`);
+  if (chrome) { const v = chromeVersion(chrome); console.log(`• Chromium: usable ✓  ${chrome}${v ? `  (${v})` : ""}`); return true; }
+  console.log(`• Chromium: NOT usable ✗\n    ${CHROME_NOT_FOUND}`);
   return false;
 }
 
