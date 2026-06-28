@@ -1205,6 +1205,68 @@ function blockedCasesHtml(ctx, blocks, sector) {
   }
   return `<p style="color:#8a929c">No catastrophic trajectories were reached within the engine's reachability horizon for the supplied manifest.</p>`;
 }
+// ---- shared executive building blocks (used by BOTH audit + exec report) ----
+function verdictCardHtml(ev, rec, blockedCount, s, sector) {
+  const rk = ev.risk.toLowerCase();
+  return `<div class="verdict">
+      <div class="vcard"><span class="vq">Can we deploy?</span><span class="vk">Production ready</span><span class="vv">${esc(ev.productionReady)}</span><span class="vsub">${ev.productionReady === "YES" ? "Ω coverage complete" : "remediation required first"}</span></div>
+      <div class="vcard lead r-${rk}"><span class="vq">How risky are we?</span><span class="vk">Overall risk</span><span class="vv">${esc(ev.risk)}</span><span class="vsub">${esc(sector.label)} runtime exposure</span></div>
+      <div class="vcard"><span class="vq">What did you find?</span><span class="vk">Blocked trajectories</span><span class="vv">${blockedCount}</span><span class="vsub">catastrophic actions intercepted · ${s.coverage_pct ?? "—"}% Ω coverage</span></div>
+      <div class="vcard rec"><span class="vq">What should we do next?</span><span class="vk">Recommendation</span><span class="vv vv-sm">${esc(rec.name)}</span><span class="vsub">${esc(rec.why)}</span></div>
+    </div>`;
+}
+function atGlanceHtml(ctx, s, blockedCount, rec, ev) {
+  const rr = (ctx && ctx.replayResults) || [];
+  const workflowsN = rr.length || s.tools || 0;
+  const bullets = [
+    `Runtime Governance evaluated <b>${workflowsN}</b> ${rr.length ? `autonomous ${rr.length === 1 ? "workflow" : "workflows"}` : `${workflowsN === 1 ? "tool" : "tools"} across the agent environment`}.`,
+    `<b>${blockedCount}</b> catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} prevented before execution.`,
+    `<b>${s.coverage_pct ?? "—"}%</b> of identified forbidden states (Ω) were covered.`,
+    (s.uncovered ?? 0) === 0 ? `No unsafe execution paths were observed.` : `<b>${s.uncovered}</b> unsafe execution path${s.uncovered === 1 ? "" : "s"} require remediation.`,
+    `Recommendation: <b>${esc(rec.name)}</b>${ev.productionReady === "YES" ? "." : " before enterprise rollout."}`,
+  ];
+  return `<div class="sec"><span class="eyebrow">At a glance</span><h2>Business impact, in under a minute.</h2>
+      <ul class="glance">${bullets.map((b) => `<li>${b}</li>`).join("")}</ul>
+    </div>`;
+}
+function enabledHtml(ctx, sector, blockedCount, replay) {
+  const rr = (ctx && ctx.replayResults) || [];
+  const allowN = rr.filter((r) => r.verdict === "ALLOW").length;
+  const escN = rr.filter((r) => r.verdict === "ESCALATE").length;
+  const detIdentical = replay && replay.checked && replay.deterministic === replay.checked;
+  const bullets = [
+    `Safe ${esc(sector.label.toLowerCase())} workflows continued uninterrupted.`,
+    `${allowN > 0 ? `${allowN} legitimate ${allowN === 1 ? "action" : "actions"} proceeded` : "Legitimate actions proceed"} without unnecessary blocking.`,
+    `Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`,
+    detIdentical ? `Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `Verdicts are reproducible on replay.`,
+  ];
+  return `<div class="sec"><span class="eyebrow">What Runtime Governance enabled</span><h2>Safe automation — not just blocked actions.</h2>
+      <ul class="check">${bullets.map((b) => `<li>${b}</li>`).join("")}</ul>
+      <p style="margin-top:10px;color:#8a929c">Runtime Governance is selective by design: it intercepts only the pathways that reach a forbidden state, leaving legitimate automation to run at full speed.</p>
+    </div>`;
+}
+function evidencePanelHtml(att, replay, nowStamp, evidenceHash) {
+  const mono = "font-family:ui-monospace,Menlo,monospace";
+  const items = [
+    ["Build ID", att && att.engine_commit ? String(att.engine_commit) : "—", true],
+    ["Engine version", att && att.service_version ? String(att.service_version) : "—", false],
+    ["Ruleset hash", att && att.ruleset_hash ? String(att.ruleset_hash) : "—", true],
+    ["Replay determinism", (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : "—", false],
+    ["Reachability horizon", att && att.horizon != null ? `${att.horizon} steps` : "—", false],
+    ["Evaluation timestamp", nowStamp, false],
+    ["Evidence hash", evidenceHash ? String(evidenceHash) : "—", true],
+  ];
+  return `<div class="sec"><span class="eyebrow">Evidence &amp; attestation</span><h2>Reproducible, versioned, and pinned to a build.</h2>
+      <div class="evpanel">${items.map(([k, v, m2]) => `<div class="evrow"><span class="evk">${esc(k)}</span><span class="evv"${m2 ? ` style="${mono}"` : ""}>${esc(v)}</span></div>`).join("")}</div>
+      <p style="margin-top:12px;color:#8a929c">Every verdict is reproducible: re-running the pinned build against the same ruleset yields identical decisions, evidenced by the hashes above. Suitable for internal review and regulatory inspection.</p>
+    </div>`;
+}
+function nextStepHtml(rec, journeyIdx) {
+  return `<div class="sec"><span class="eyebrow">Next step</span><h2>${esc(rec.nextStep || rec.name)}</h2>
+      ${typeof journeyIdx === "number" ? journeyHtml(journeyIdx) : ""}
+      <p style="margin-top:14px;color:#8a929c">Recommended engagement: <b style="color:#f3f5f7">${esc(rec.name)}</b> · ${esc(rec.duration || "")}. ${esc(rec.outcome || "")}</p>
+    </div>`;
+}
 function auditHtml(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
@@ -1227,31 +1289,9 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   const nowStamp = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
   const evidenceHash = (blocks.find((b) => b && b.hash) || {}).hash || (att && att.ruleset_hash) || "";
 
-  // ---- item 7 + 2 · Executive Verdict card — the four questions a CIO asks ----
-  const verdictCard = `
-    <div class="verdict">
-      <div class="vcard"><span class="vq">Can we deploy?</span><span class="vk">Production ready</span><span class="vv">${esc(ev.productionReady)}</span><span class="vsub">${ev.productionReady === "YES" ? "Ω coverage complete" : "remediation required first"}</span></div>
-      <div class="vcard lead r-${rk}"><span class="vq">How risky are we?</span><span class="vk">Overall risk</span><span class="vv">${esc(ev.risk)}</span><span class="vsub">${esc(sector.label)} runtime exposure</span></div>
-      <div class="vcard"><span class="vq">What did you find?</span><span class="vk">Blocked trajectories</span><span class="vv">${blockedCount}</span><span class="vsub">catastrophic actions intercepted · ${s.coverage_pct ?? "—"}% Ω coverage</span></div>
-      <div class="vcard rec"><span class="vq">What should we do next?</span><span class="vk">Recommendation</span><span class="vv vv-sm">${esc(rec.name)}</span><span class="vsub">${esc(rec.why)}</span></div>
-    </div>`;
-
-  // ---- item 3 · At a glance — plain-English business summary ----
-  const rr = ctx.replayResults || [];
-  const allowN = rr.filter((r) => r.verdict === "ALLOW").length;
-  const escN = rr.filter((r) => r.verdict === "ESCALATE").length;
-  const workflowsN = rr.length || s.tools || 0;
-  const glanceBullets = [
-    `Runtime Governance evaluated <b>${workflowsN}</b> ${rr.length ? `autonomous ${rr.length === 1 ? "workflow" : "workflows"}` : `${workflowsN === 1 ? "tool" : "tools"} across the agent environment`}.`,
-    `<b>${blockedCount}</b> catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} prevented before execution.`,
-    `<b>${s.coverage_pct ?? "—"}%</b> of identified forbidden states (Ω) were covered.`,
-    (s.uncovered ?? 0) === 0 ? `No unsafe execution paths were observed.` : `<b>${s.uncovered}</b> unsafe execution path${s.uncovered === 1 ? "" : "s"} require remediation.`,
-    `Recommendation: <b>${esc(rec.name)}</b>${ev.productionReady === "YES" ? "." : " before enterprise rollout."}`,
-  ];
-  const atGlance = `
-    <div class="sec"><span class="eyebrow">At a glance</span><h2>Business impact, in under a minute.</h2>
-      <ul class="glance">${glanceBullets.map((b) => `<li>${b}</li>`).join("")}</ul>
-    </div>`;
+  // ---- item 7 + 2 · Executive Verdict card + At a glance (shared helpers) ----
+  const verdictCard = verdictCardHtml(ev, rec, blockedCount, s, sector);
+  const atGlance = atGlanceHtml(ctx, s, blockedCount, rec, ev);
 
   // ---- item 4 · sector-aware executive summary ----
   const sectorSummary = `
@@ -1318,19 +1358,8 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       <p style="margin-top:12px;color:#8a929c">Estimate reflects typical ${esc(sector.label.toLowerCase())} incident impact (direct loss, regulatory penalty, remediation, disclosure and downtime). Runtime Governance intercepted these pathways before execution.</p>
     </div>`;
 
-  // ---- item 5 · "What Runtime Governance enabled" — value, not just danger ----
-  const detIdentical = replay && replay.checked && replay.deterministic === replay.checked;
-  const enabledBullets = [
-    `Safe ${esc(sector.label.toLowerCase())} workflows continued uninterrupted.`,
-    `${allowN > 0 ? `${allowN} legitimate ${allowN === 1 ? "action" : "actions"} proceeded` : "Legitimate actions proceed"} without unnecessary blocking.`,
-    `Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`,
-    detIdentical ? `Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `Verdicts are reproducible on replay.`,
-  ];
-  const enabledSec = `
-    <div class="sec"><span class="eyebrow">What Runtime Governance enabled</span><h2>Safe automation — not just blocked actions.</h2>
-      <ul class="check">${enabledBullets.map((b) => `<li>${b}</li>`).join("")}</ul>
-      <p style="margin-top:10px;color:#8a929c">Runtime Governance is selective by design: it intercepts only the pathways that reach a forbidden state, leaving legitimate automation to run at full speed.</p>
-    </div>`;
+  // ---- item 5 · "What Runtime Governance enabled" (shared helper) ----
+  const enabledSec = enabledHtml(ctx, sector, blockedCount, replay);
 
   // ---- exposure by risk class (retained) ----
   const exposureSec = Object.keys(exposure).length ? `
@@ -1340,23 +1369,8 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       </tbody></table>
     </div>` : "";
 
-  // ---- item 4 · Evidence & Attestation panel — stands up to internal review ----
-  const evItems = [
-    ["Build ID", att && att.engine_commit ? String(att.engine_commit) : "—", true],
-    ["Engine version", att && att.service_version ? String(att.service_version) : "—", false],
-    ["Ruleset hash", att && att.ruleset_hash ? String(att.ruleset_hash) : "—", true],
-    ["Replay determinism", (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : "—", false],
-    ["Reachability horizon", att && att.horizon != null ? `${att.horizon} steps` : "—", false],
-    ["Evaluation timestamp", nowStamp, false],
-    ["Evidence hash", evidenceHash ? String(evidenceHash) : "—", true],
-  ];
-  const attestationSec = `
-    <div class="sec"><span class="eyebrow">Evidence &amp; attestation</span><h2>Reproducible, versioned, and pinned to a build.</h2>
-      <div class="evpanel">
-        ${evItems.map(([k, v, m2]) => `<div class="evrow"><span class="evk">${esc(k)}</span><span class="evv"${m2 ? ` style="${mono}"` : ""}>${esc(v)}</span></div>`).join("")}
-      </div>
-      <p style="margin-top:12px;color:#8a929c">Every verdict in this audit is reproducible: re-running the pinned build against the same ruleset yields identical decisions, evidenced by the hashes above. This audit is suitable for internal review and regulatory inspection.</p>
-    </div>`;
+  // ---- item 4 · Evidence & Attestation panel (shared helper) ----
+  const attestationSec = evidencePanelHtml(att, replay, nowStamp, evidenceHash);
 
   // ---- item 10 · dynamic recommendation ----
   const recSec = engagementSectionHtml(rec);
@@ -1408,117 +1422,70 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
   const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
-  // per-trajectory replay summary (item 6), shared across report modes
-  const replaySummarySec = (ctx.replayResults || []).length ? `
-    <div class="sec"><span class="eyebrow">Trajectory replay summary</span><h2>Every replayed trajectory, resolved to a verdict.</h2>
-      <table><thead><tr><th>Trajectory</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>
-      ${ctx.replayResults.map((r) => `<tr><td class="m">Trajectory ${r.index} · ${esc(r.label)}</td><td><span class="v-${(r.verdict || "").toLowerCase()}">${esc(r.verdict)}</span></td><td>${esc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))}</td></tr>`).join("")}
-      </tbody></table>
-    </div>` : "";
+  const nowStamp = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const evidenceHash = (blocks.find((b) => b && b.hash) || {}).hash || (att && att.ruleset_hash) || "";
+  // Concise board document (5–8 pp): Cover · At a glance · Findings ·
+  // Recommendation · What Runtime Governance enabled · Next step · Evidence.
+  // The detailed technical evidence lives in the full 48-Hour Audit.
+  const cover = verdictCardHtml(ev, rec, blockedCount, s, sector);
+  const glance = atGlanceHtml(ctx, s, blockedCount, rec, ev);
+  const enabled = enabledHtml(ctx, sector, blockedCount, rep);
   const recSec = engagementSectionHtml(rec);
+  const evidence = evidencePanelHtml(att, rep, nowStamp, evidenceHash);
 
-  // shared evidence appendices (the audit's proof, carried into every report)
-  const structural = () => `
-    <div class="sec"><span class="eyebrow">Structural governance evidence</span><h2>Carried forward from the 48-Hour Runtime Governance Audit.</h2>
-      <div class="kpis">
-        <div class="kpi"><span class="v">${s.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
-        <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
-        <div class="kpi"><span class="v">${s.verified_blocked_trajectories ?? "—"}</span><span class="k">Verified blocked trajectories</span></div>
-        <div class="kpi"><span class="v">${hashCount || "—"}</span><span class="k">Audit evidence hashes</span></div>
-      </div>
-    </div>`;
-  const attestationSec = () => att ? `
-    <div class="sec"><span class="eyebrow">Engine attestation</span><h2>Reproducible, pinned to a build.</h2>
-      <table><tbody>
-        <tr><td class="m">Engine commit</td><td style="${mono}">${esc(att.engine_commit)}</td></tr>
-        <tr><td class="m">Ruleset hash</td><td style="${mono}">${esc(String(att.ruleset_hash || "").slice(0, 40))}…</td></tr>
-        <tr><td class="m">Service version</td><td>${esc(att.service_version)}</td></tr>
-        <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)} steps</td></tr>
-      </tbody></table>
-    </div>` : "";
-
-  // ---------- MODE 1 — DEPLOYMENT READY ----------
-  if (!isLive) {
-    const ready = !!assess;
-    const readiness = [
-      ["Structural assessment completed", `${s.tools ?? "—"} tools · ${s.risky ?? "—"} risk-bearing`],
-      ["&#937; exposure analysed", `${Object.keys((assess && assess.exposure) || {}).length} risk classes`],
-      ["Rule coverage verified", `${s.coverage_pct ?? "—"}% of reachable forbidden states`],
-      ["Reachability analysis completed", att ? `horizon ${att.horizon} steps` : "engine reachability horizon"],
-      ["Audit hashes generated", `${hashCount} evidence hashes`],
-      ["Engine attestation complete", att ? `commit ${String(att.engine_commit || "").slice(0, 10)}` : "pinned build"],
-      ["Deterministic governance verified", att ? `ruleset ${String(att.ruleset_hash || "").slice(0, 10)}` : "pinned ruleset"],
-      ["Deployment ready", "structural readiness confirmed"],
-    ];
-    const pending = ["Actions governed", "ALLOW / BLOCK / ESCALATE statistics", "Prevented categories", "Replay verification", "Determinism (runtime)", "Runtime evidence hashes", "Monthly trends", "Governance effectiveness"];
-    return page("Runtime Governance Executive Report",
-      bandBlock("Runtime Governance Executive Report™", c.name, "Deployment readiness", meta) + `
-      <div style="margin:-6px 0 16px"><span class="badge"><span class="d"></span>DEPLOYMENT READY</span></div>
-      <div class="sec"><span class="eyebrow">Runtime evidence status · ${esc(sector.label)}</span><h2>Structural governance assessment completed successfully.</h2>
-        <p style="margin:0 0 12px">Assessed against the ${esc(sector.label.toLowerCase())} threat model — ${esc(sector.focus.join(", "))} — protecting ${esc(sector.assets.join(", "))}.</p>
-        <div class="status"><span class="lbl">Runtime evidence status</span>
-          <p>Runtime evidence will populate automatically after representative agent trajectories have been replayed through the live Runtime Governance engine. This report currently represents <b style="color:#f3f5f7">deployment readiness</b> rather than production activity.</p>
-          <p style="margin-top:8px;color:#8fb0ff">Operational metrics become available automatically once runtime evidence exists — no manual editing or re-issue required.</p>
+  // ---------- Findings — concise, mode-aware ----------
+  let findings;
+  if (isLive) {
+    const total = m.total || 0;
+    const pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
+    const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const effectiveness = total ? (((m.block || 0) + (m.escalate || 0)) / total * 100).toFixed(1) : "0.0";
+    const detPct = rep.checked ? Math.round((rep.deterministic / rep.checked) * 100) : null;
+    findings = `
+      <div class="sec"><span class="eyebrow">Findings · ${esc(sector.label)}</span><h2>What Runtime Governance governed this period.</h2>
+        <div class="kpis">
+          <div class="kpi"><span class="v">${total.toLocaleString()}</span><span class="k">Actions governed${m.source === "engine" ? " (replayed)" : ""}</span></div>
+          <div class="kpi"><span class="v">${(m.block || 0).toLocaleString()}</span><span class="k">Catastrophic actions prevented</span></div>
+          <div class="kpi"><span class="v">${(m.escalate || 0).toLocaleString()}</span><span class="k">Escalated for review</span></div>
+          <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
         </div>
-      </div>
-      <div class="sec"><span class="eyebrow">Governance journey</span><h2>Where this engagement sits.</h2>
-        ${journeyHtml(2)}
-        <p style="margin-top:14px;color:#aab2bd">Next milestone: a <b style="color:#f2c66a">Limited Pilot™</b> replays representative trajectories through the engine, after which this report transitions automatically to <b style="color:#f3f5f7">Live Runtime Evidence</b>.</p>
-      </div>
-      ${ready ? `<div class="sec"><span class="eyebrow">Deployment readiness</span><h2>Verified before any production traffic.</h2>
-        <ul class="check">${readiness.map(([t, sub]) => `<li>${t}<small>${esc(sub)}</small></li>`).join("")}</ul>
-      </div>` : `<div class="sec"><div class="status"><span class="lbl">Assessment pending</span><p>The structural assessment did not complete for this run. Re-run once the engine assessment is available — this report never displays readiness it cannot evidence.</p></div></div>`}
-      ${ready ? structural() : ""}
-      ${attestationSec()}
-      ${pipelineTimingHtml(stages, perf, rep, ctx, s, att)}
-      <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
-        <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
-        <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
-      </div>
-      ${recSec}
-      <div class="disc">This report intentionally omits production metrics until representative trajectories have been replayed through the live Runtime Governance engine. Resurrection Tech&trade; never fabricates runtime evidence — operational sections populate only from live engine results.</div>`);
+        <div class="bar" style="margin-top:14px"><i class="a" style="width:${pct(m.allow)}%"></i><i class="b" style="width:${pct(m.block)}%"></i><i class="e" style="width:${pct(m.escalate)}%"></i></div>
+        <div class="legend"><span><i class="a"></i>ALLOW · ${(m.allow || 0).toLocaleString()} (${pct(m.allow)}%)</span><span><i class="b"></i>BLOCK · ${(m.block || 0).toLocaleString()} (${pct(m.block)}%)</span><span><i class="e"></i>ESCALATE · ${(m.escalate || 0).toLocaleString()} (${pct(m.escalate)}%)</span></div>
+        ${cats.length ? `<table style="margin-top:16px"><thead><tr><th>Prevented category / &#937; domain</th><th>Count</th></tr></thead><tbody>${cats.map(([k, v]) => `<tr><td class="m">${esc(k)}</td><td class="n">${v}</td></tr>`).join("")}</tbody></table>` : ""}
+        <p style="margin-top:12px;color:#8a929c">${rep.checked ? `Deterministic replay verified: ${rep.deterministic}/${rep.checked} identical (${detPct}%). ` : ""}Every verdict above is reproducible and evidence-backed. Full per-trajectory detail is in the 48-Hour Runtime Governance Audit.</p>
+      </div>`;
+  } else {
+    findings = `
+      <div class="sec"><span class="eyebrow">Findings · ${esc(sector.label)}</span><h2>Structural governance assessment.</h2>
+        <p style="margin:0 0 12px">Assessed against the ${esc(sector.label.toLowerCase())} threat model — ${esc(sector.focus.join(", "))} — protecting ${esc(sector.assets.join(", "))}.</p>
+        <div class="kpis">
+          <div class="kpi"><span class="v">${s.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
+          <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
+          <div class="kpi"><span class="v">${blockedCount}</span><span class="k">Catastrophic trajectories blocked</span></div>
+          <div class="kpi"><span class="v">${s.uncovered ?? 0}</span><span class="k">Unsafe escapes</span></div>
+        </div>
+        <p style="margin-top:12px;color:#8a929c">Runtime activity volumes (ALLOW / BLOCK / ESCALATE) populate automatically once a Limited Pilot replays representative trajectories through the live engine — Resurrection Tech&trade; never fabricates runtime evidence.</p>
+      </div>`;
   }
 
-  // ---------- MODE 2 — LIVE RUNTIME EVIDENCE ----------
-  const total = m.total || 0;
-  const pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
-  const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]);
-  const effectiveness = total ? (((m.block || 0) + (m.escalate || 0)) / total * 100).toFixed(1) : "0.0";
-  const detPct = rep.checked ? Math.round((rep.deterministic / rep.checked) * 100) : null;
+  const badge = isLive
+    ? `<div style="margin:-6px 0 16px"><span class="badge live"><span class="d"></span>LIVE RUNTIME EVIDENCE</span></div>`
+    : `<div style="margin:-6px 0 16px"><span class="badge"><span class="d"></span>DEPLOYMENT READY</span></div>`;
+  const disc = isLive
+    ? `<div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : "Aggregated from supplied decision logs."} This executive report summarises the engagement for board and procurement review; the full technical evidence is in the companion 48-Hour Runtime Governance Audit. Resurrection Tech&trade; never fabricates runtime evidence.</div>`
+    : `<div class="disc">This executive report summarises deployment readiness for board and procurement review. Operational metrics populate automatically once representative trajectories are replayed through the live engine; the full technical evidence is in the companion 48-Hour Runtime Governance Audit.</div>`;
+
   return page("Runtime Governance Executive Report",
-    bandBlock("Runtime Governance Executive Report™", c.name, "Live runtime governance evidence", meta) + `
-    <div style="margin:-6px 0 16px"><span class="badge live"><span class="d"></span>LIVE RUNTIME EVIDENCE</span></div>
-    <div class="sec"><span class="eyebrow">Governance journey</span><h2>Where this engagement sits.</h2>${journeyHtml(4)}</div>
-    <div class="sec"><span class="eyebrow">Executive summary</span><h2>The period at a glance.</h2>
-      <div class="kpis">
-        <div class="kpi"><span class="v">${total.toLocaleString()}</span><span class="k">Actions governed${m.source === "engine" ? " (replayed)" : ""}</span></div>
-        <div class="kpi"><span class="v">${(m.block || 0).toLocaleString()}</span><span class="k">Unsafe actions prevented</span></div>
-        <div class="kpi"><span class="v">${(m.escalate || 0).toLocaleString()}</span><span class="k">Escalated for review</span></div>
-        <div class="kpi"><span class="v">${effectiveness}%</span><span class="k">Governance effectiveness</span></div>
-      </div>
-    </div>
-    <div class="sec"><span class="eyebrow">Runtime activity</span><h2>Every action resolved to a verdict.</h2>
-      <div class="bar"><i class="a" style="width:${pct(m.allow)}%"></i><i class="b" style="width:${pct(m.block)}%"></i><i class="e" style="width:${pct(m.escalate)}%"></i></div>
-      <div class="legend"><span><i class="a"></i>ALLOW · ${(m.allow || 0).toLocaleString()} (${pct(m.allow)}%)</span><span><i class="b"></i>BLOCK · ${(m.block || 0).toLocaleString()} (${pct(m.block)}%)</span><span><i class="e"></i>ESCALATE · ${(m.escalate || 0).toLocaleString()} (${pct(m.escalate)}%)</span></div>
-    </div>
-    <div class="sec"><span class="eyebrow">Actions prevented</span><h2>What was blocked before it executed.</h2>
-      <table><thead><tr><th>Category / &#937; domain</th><th>Count</th></tr></thead><tbody>
-      ${cats.map(([k, v]) => `<tr><td class="m">${esc(k)}</td><td class="n">${v}</td></tr>`).join("") || `<tr><td colspan="2">No prevented actions in this period.</td></tr>`}
-      </tbody></table>
-    </div>
-    <div class="sec"><span class="eyebrow">Replay &amp; determinism</span><h2>Every verdict is reproducible.</h2>
-      ${rep.checked ? `<div class="kpis">
-        <div class="kpi"><span class="v">${rep.checked}</span><span class="k">Trajectories replayed</span></div>
-        <div class="kpi"><span class="v">${rep.deterministic}/${rep.checked}</span><span class="k">Deterministic verdicts</span></div>
-        <div class="kpi"><span class="v">${detPct}%</span><span class="k">Determinism</span></div>
-      </div>` : `<p style="color:#8a929c">Determinism replay not applicable for this source (decision logs supplied directly).</p>`}
-    </div>
-    ${replaySummarySec}
-    ${pipelineTimingHtml(stages, perf, rep, ctx, s, att)}
-    ${recSec}
-    ${structural()}
-    ${attestationSec()}
-    <div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : "Aggregated from supplied decision logs."} Figures reflect the supplied period only. Resurrection Tech&trade; never fabricates runtime evidence.</div>`);
+    bandBlock("Runtime Governance Executive Report™", c.name, `${sector.label} · board summary`, meta)
+    + badge
+    + cover
+    + glance
+    + findings
+    + recSec
+    + enabled
+    + nextStepHtml(rec, isLive ? 4 : 2)
+    + evidence
+    + disc);
 }
 
 // ---- Markdown deliverables (always produced; no browser required) ----------
@@ -1632,27 +1599,72 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
   const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
-  const L = [`# Runtime Governance Executive Report — ${c.name}`, ``, `**Period:** ${c.period || "—"}  |  **Reference:** ${c.reference || "—"}  |  **Classification:** Board · Confidential`, ``, `_Sector: ${sector.label}_`, ``];
-  if (!isLive) {
-    L.push(`> **Deployment Ready.** Runtime evidence will populate automatically once representative trajectories have been replayed through the live Runtime Governance engine. This report currently represents deployment readiness rather than production activity.`, ``, `## Deployment readiness`, ``);
-    L.push(`- Structural assessment completed: ${s.tools ?? "—"} tools, ${s.risky ?? "—"} risk-bearing`);
-    L.push(`- Ω coverage: ${s.coverage_pct ?? "—"}%`);
-    L.push(`- Verified blocked trajectories: ${blockedCount}`);
-    if (report && report.attestation) L.push(`- Engine attestation: commit \`${String(report.attestation.engine_commit || "").slice(0, 10)}\``);
-  } else {
+  const rr = ctx.replayResults || [];
+  const workflowsN = rr.length || s.tools || 0;
+  const att = report && report.attestation;
+  // Concise board document: Cover · At a glance · Findings · Recommendation ·
+  // What Runtime Governance enabled · Next step · Evidence.
+  const L = [`# Runtime Governance Executive Report — ${c.name}`, ``, `**Period:** ${c.period || "—"}  |  **Reference:** ${c.reference || "—"}  |  **Classification:** Board · Confidential`, ``, `_Sector: ${sector.label} · ${isLive ? "Live Runtime Evidence" : "Deployment Ready"}_`, ``];
+
+  // Executive cover — the four questions
+  L.push(`## Executive summary`, ``);
+  L.push(`- **Can we deploy?** ${ev.productionReady}`);
+  L.push(`- **How risky are we?** ${ev.risk} (${sector.label} runtime exposure)`);
+  L.push(`- **What did you find?** ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} intercepted · ${s.coverage_pct ?? "—"}% Ω coverage`);
+  L.push(`- **What should we do next?** ${rec.name}`);
+
+  // At a glance
+  L.push(``, `## At a glance`, ``);
+  L.push(`- Runtime Governance evaluated **${workflowsN}** ${rr.length ? `autonomous ${rr.length === 1 ? "workflow" : "workflows"}` : `${workflowsN === 1 ? "tool" : "tools"}`}.`);
+  L.push(`- **${blockedCount}** catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} prevented before execution.`);
+  L.push(`- **${s.coverage_pct ?? "—"}%** of identified forbidden states (Ω) were covered.`);
+  L.push((s.uncovered ?? 0) === 0 ? `- No unsafe execution paths were observed.` : `- **${s.uncovered}** unsafe execution path(s) require remediation.`);
+  L.push(`- Recommendation: **${rec.name}**${ev.productionReady === "YES" ? "." : " before enterprise rollout."}`);
+
+  // Findings
+  L.push(``, `## Findings — ${sector.label}`, ``);
+  if (isLive) {
     const total = m.total || 0, pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
-    L.push(`## The period at a glance`, ``);
-    L.push(`- Actions governed: **${total}**`);
+    L.push(`- Actions governed: **${total}**${m.source === "engine" ? " (replayed)" : ""}`);
     L.push(`- ALLOW ${m.allow || 0} (${pct(m.allow)}%) · BLOCK ${m.block || 0} (${pct(m.block)}%) · ESCALATE ${m.escalate || 0} (${pct(m.escalate)}%)`);
-    L.push(`- Unsafe actions prevented: **${m.block || 0}**`);
-    const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]);
-    if (cats.length) { L.push(``, `## Actions prevented`, ``, `| Category / Ω domain | Count |`, `|---|---|`); for (const [k, v] of cats) L.push(`| ${mdEsc(k)} | ${v} |`); }
-    if ((ctx.replayResults || []).length) { L.push(``, `## Trajectory replay summary`, ``, `| Trajectory | Verdict | Reason |`, `|---|---|---|`); for (const r of ctx.replayResults) L.push(`| Trajectory ${r.index} · ${mdEsc(r.label)} | ${r.verdict} | ${mdEsc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))} |`); }
-    const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
+    L.push(`- Catastrophic actions prevented: **${m.block || 0}** · Ω coverage: ${s.coverage_pct ?? "—"}%`);
+    if (replay && replay.checked) L.push(`- Deterministic replay: ${replay.deterministic}/${replay.checked} identical`);
+    const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (cats.length) { L.push(``, `| Prevented category / Ω domain | Count |`, `|---|---|`); for (const [k, v] of cats) L.push(`| ${mdEsc(k)} | ${v} |`); }
+  } else {
+    L.push(`Assessed against the ${sector.label.toLowerCase()} threat model — ${sector.focus.join(", ")}.`, ``);
+    L.push(`- Tools assessed: **${s.tools ?? "—"}** · Ω coverage: **${s.coverage_pct ?? "—"}%**`);
+    L.push(`- Catastrophic trajectories blocked: **${blockedCount}** · Unsafe escapes: ${s.uncovered ?? 0}`);
+    L.push(`- Runtime activity volumes populate after a Limited Pilot replays representative trajectories. Resurrection Tech™ never fabricates runtime evidence.`);
   }
-  const tm = pipelineTimingMarkdown(stages, perf, replay, ctx, s); if (tm) L.push(tm);
+
+  // Recommendation (full engagement model)
   L.push(engagementMarkdown(rec));
-  L.push(``, `---`, `*Resurrection Tech™ never fabricates runtime evidence — operational sections populate only from live engine results.*`);
+
+  // What Runtime Governance enabled
+  {
+    const allowN = rr.filter((r) => r.verdict === "ALLOW").length;
+    const escN = rr.filter((r) => r.verdict === "ESCALATE").length;
+    const detIdentical = replay && replay.checked && replay.deterministic === replay.checked;
+    L.push(``, `## What Runtime Governance enabled`, ``);
+    L.push(`- Safe ${sector.label.toLowerCase()} workflows continued uninterrupted.`);
+    L.push(`- ${allowN > 0 ? `${allowN} legitimate ${allowN === 1 ? "action" : "actions"} proceeded` : "Legitimate actions proceed"} without unnecessary blocking.`);
+    L.push(`- Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`);
+    L.push(detIdentical ? `- Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `- Verdicts are reproducible on replay.`);
+  }
+
+  // Next step
+  L.push(``, `## Next step`, ``, `**${rec.nextStep || rec.name}** — ${rec.duration || ""}. ${rec.outcome || ""}`);
+
+  // Evidence & attestation
+  L.push(``, `## Evidence & attestation`, ``);
+  L.push(`- Build ID: \`${att && att.engine_commit ? att.engine_commit : "—"}\``);
+  L.push(`- Engine version: ${att && att.service_version ? att.service_version : "—"}`);
+  L.push(`- Ruleset hash: \`${att && att.ruleset_hash ? String(att.ruleset_hash).slice(0, 40) : "—"}\``);
+  L.push(`- Replay determinism: ${replay && replay.checked ? `${replay.deterministic}/${replay.checked} identical` : "—"}`);
+  L.push(`- Evaluation timestamp: ${new Date().toISOString().replace("T", " ").slice(0, 19)} UTC`);
+
+  L.push(``, `---`, `*Concise board summary for CIOs, CEOs, boards and procurement. Full technical evidence is in the companion 48-Hour Runtime Governance Audit. Resurrection Tech™ never fabricates runtime evidence.*`);
   return L.join("\n");
 }
 
