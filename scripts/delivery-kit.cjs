@@ -180,38 +180,61 @@ const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g,
 const PERF = { evalSamples: [], assessMs: null };
 const nowMs = () => Number(process.hrtime.bigint()) / 1e6;
 
-// ---- engine calls (isolated, fail-soft) -------------------------------------
+// ---- engine calls (isolated, fail-soft, fully instrumented) ------------------
+// Both calls capture and print the HTTP status code + raw response body so a
+// contract mismatch (e.g. wrong request shape, 4xx/5xx, non-JSON) is visible
+// BEFORE the "no report"/"no verdict" fallback.
+function bodySnippet(t) { return String(t || "").replace(/\s+/g, " ").slice(0, 700); }
 async function assess(body) {
   const t0 = nowMs();
+  const shape = Array.isArray(body.manifest)
+    ? `manifest[] (${body.manifest.length} tools)`
+    : (body.manifest_text != null ? `manifest_text (${String(body.manifest_text).length} bytes, format=${body.format || "generic"})` : "unknown");
+  let res;
   try {
-    const res = await fetch(`${GOV}/v1/assess`, {
+    res = await fetch(`${GOV}/v1/assess`, {
       method: "POST", headers: { "content-type": "application/json" },
       // body accepts { manifest } (parsed array/object) or { manifest_text } (the
       // customer's raw file, in any supported format) — no manual reshaping.
       body: JSON.stringify({ format: "generic", ...body }),
       signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) throw new Error(`assess ${res.status}`);
-    const json = await res.json();
-    PERF.assessMs = nowMs() - t0;
-    return json;
-  } catch (e) { console.warn("  ! /v1/assess unreachable:", e.message); return null; }
+  } catch (e) {
+    console.warn(`  ! /v1/assess request failed (request: ${shape}): ${e.message}`);
+    emitCheck(false, `/v1/assess request failed (${shape}): ${e.message}`);
+    return null;
+  }
+  PERF.assessMs = nowMs() - t0;
+  const text = await res.text().catch(() => "");
+  let json = null; try { json = JSON.parse(text); } catch { /* non-JSON */ }
+  const good = res.ok && json && (json.summary || json.exposure || json.tools);
+  console.log(`  /v1/assess → HTTP ${res.status} · request: ${shape} · ${text.length} bytes${good ? " · OK" : ""}`);
+  if (!good) {
+    console.warn(`  ! /v1/assess: no usable report. Full response body:\n${text}\n`);
+    emitCheck(false, `/v1/assess HTTP ${res.status} (sent ${shape}) — body: ${bodySnippet(text) || "(empty)"}`);
+    return null;
+  }
+  return json;
 }
 async function evaluate(trajectory, domains) {
   const t0 = nowMs();
+  let res;
   try {
     const headers = { "content-type": "application/json" };
     if (TOKEN) headers.authorization = `Bearer ${TOKEN}`;
-    const res = await fetch(`${GOV}/v1/evaluate`, {
+    res = await fetch(`${GOV}/v1/evaluate`, {
       method: "POST", headers,
       body: JSON.stringify(domains && domains.length ? { trajectory, domains } : { trajectory }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) throw new Error(`evaluate ${res.status}`);
-    const json = await res.json();
-    PERF.evalSamples.push(nowMs() - t0); // measured per-evaluation round-trip
-    return json;
   } catch (e) { return { __error: e.message }; }
+  const text = await res.text().catch(() => "");
+  let json = null; try { json = JSON.parse(text); } catch { /* non-JSON */ }
+  if (!res.ok || !json || json.verdict == null) {
+    return { __error: `HTTP ${res.status}`, __status: res.status, __body: text };
+  }
+  PERF.evalSamples.push(nowMs() - t0); // measured per-evaluation round-trip
+  return json;
 }
 // derive percentile/throughput stats from the measured samples (null if none)
 function perfStats() {
@@ -812,6 +835,7 @@ function selfTest() {
     console.log(`• Report: replaying ${input.trajectories.length} trajectories via /v1/evaluate (+ determinism check) …`);
     emitStage("replay", "Replaying trajectories");
     emitStage("determinism", "Determinism verification");
+    let firstEvalErr = null;
     for (const traj of input.trajectories) {
       const g = await evaluate(traj, input.domains);
       if (g && !g.__error) {
@@ -819,7 +843,12 @@ function selfTest() {
         if (v === "BLOCK") { const k = g.omega_domain || g.reason || "Blocked"; m.categories[k] = (m.categories[k] || 0) + 1; }
         const g2 = await evaluate(traj, input.domains); // replay verification
         if (g2 && !g2.__error) { replay.checked++; if (g2.verdict === g.verdict && g2.trajectory_hash === g.trajectory_hash) replay.deterministic++; }
-      }
+      } else if (!firstEvalErr) { firstEvalErr = g; }
+    }
+    if (firstEvalErr) {
+      const st = firstEvalErr.__status != null ? `HTTP ${firstEvalErr.__status}` : firstEvalErr.__error;
+      console.warn(`  ! /v1/evaluate: no verdicts. First failure: ${st}. Full response body:\n${firstEvalErr.__body != null ? firstEvalErr.__body : "(none)"}\n`);
+      emitCheck(false, `/v1/evaluate ${st} — body: ${bodySnippet(firstEvalErr.__body) || "(empty)"}`);
     }
     m.source = status.evaluate ? "engine" : "none";
   } else console.log("• Report: no trajectories or decisions supplied.");
