@@ -351,6 +351,33 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:30px;font-weight:600;color:#f3f5f7}.tput .u{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7480}
 .tput .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:linear-gradient(90deg,#3fb27f,#6fdcab);border-radius:999px}
 .perfsum{margin-top:14px;padding:11px 14px;background:linear-gradient(180deg,rgba(63,178,127,.08),rgba(63,178,127,.02));border:1px solid rgba(63,178,127,.3);border-left:3px solid #3fb27f;border-radius:10px;color:#cdd6e0;font-size:11.5px}
+/* executive verdict + execution chains + risk tags (shared, dark) */
+.verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
+.vcard .vk{display:block;font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#6b7480}
+.vcard .vv{display:block;color:#f3f5f7;font-size:18px;font-weight:600;margin-top:3px}
+.vcard.lead{flex:1 1 200px;border-width:2px}
+.vcard.r-low{border-color:rgba(63,178,127,.6)}.vcard.r-low .vv{color:#6fdcab}
+.vcard.r-medium{border-color:rgba(224,169,63,.6)}.vcard.r-medium .vv{color:#f2c66a}
+.vcard.r-high{border-color:rgba(229,136,77,.7)}.vcard.r-high .vv{color:#f0a96a}
+.vcard.r-critical{border-color:rgba(229,72,77,.7)}.vcard.r-critical .vv{color:#f0888c}
+.chain{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:8px}
+.chain-step{background:#0b0d10;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 12px;color:#cdd6e0;font-size:11px}
+.chain-arrow{color:#6b7480;font-size:11px;margin:0 0 0 14px}
+.chain-verdict{font-weight:700;font-family:ui-monospace,Menlo,monospace;letter-spacing:.06em}
+.v-block{border-color:rgba(229,72,77,.6);color:#f0888c}.v-allow{border-color:rgba(63,178,127,.6);color:#6fdcab}.v-escalate{border-color:rgba(224,169,63,.6);color:#f2c66a}
+.rt{font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:2px 7px;border-radius:5px;border:1px solid}
+.rt.crit{color:#f0888c;border-color:rgba(229,72,77,.6)}.rt.high{color:#f0a96a;border-color:rgba(229,136,77,.6)}.rt.med{color:#f2c66a;border-color:rgba(224,169,63,.5)}.rt.low{color:#6fdcab;border-color:rgba(63,178,127,.5)}
+.tcase{border-top:1px solid rgba(255,255,255,.06);padding:12px 0;break-inside:avoid}.tcase:first-child{border-top:0}
+.tcase .th{display:flex;align-items:center;gap:10px}.tcase .tn{color:#f3f5f7;font-weight:600;font-size:12px}
+.explain{margin-top:8px;display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:11px}.explain .ek{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#6b7480}.explain .ev{color:#cdd6e0}
+.consequence .chain-step{border-color:rgba(229,72,77,.35)}
+.vcard .vsub{display:block;color:#8a929c;font-size:10px;margin-top:4px;line-height:1.4}
+.vcard .vv.vv-sm{font-size:14px}
+.vcard.rec{flex:1 1 100%;border-color:rgba(224,169,63,.4)}
+.exposure-band{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-top:14px;padding:14px 16px;background:linear-gradient(180deg,rgba(229,72,77,.10),rgba(229,72,77,.02));border:1px solid rgba(229,72,77,.4);border-left:3px solid #e5484d;border-radius:10px}
+.exposure-band .eb-k{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#f0888c}
+.exposure-band .eb-v{color:#f3f5f7;font-size:15px;font-weight:600}
 `;
 // ---- editorial house style (light, Pagella/Heros, hairline rules) ----------
 // A faithful CSS translation of rtstyle.tex: serif body (TeX Gyre Pagella),
@@ -392,6 +419,33 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .pctl{display:flex;flex-direction:column;gap:8px}.pctl .row{display:flex;align-items:center;gap:8px}.pctl .lab{width:30px;font-size:8pt;color:#212121}.pctl .track{flex:1;height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden}.pctl .fill{height:100%;background:#212121;border-radius:999px}.pctl .val{width:60px;text-align:right;font-size:8pt;color:#333}
 .tput{display:flex;align-items:baseline;gap:8px}.tput .big{font-size:24pt;font-weight:700;color:#212121}.tput .u{font-size:8.5pt;color:#737373}.tput .track{height:8px;background:#e2e2e2;border-radius:999px;overflow:hidden;margin-top:12px}.tput .fill{height:100%;background:#212121;border-radius:999px}
 .perfsum{margin-top:14px;padding:11px 14px;background:#f3f3f3;border-left:2.6pt solid #212121;border-radius:1.5pt;color:#333;font-size:9.5pt}
+/* executive verdict + execution chains + risk tags (shared, editorial) */
+.verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
+.vcard .vk{display:block;font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#737373}
+.vcard .vv{display:block;color:#212121;font-size:15pt;font-weight:700;margin-top:2px;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.vcard.lead{flex:1 1 200px;border-left:2.6pt solid #212121}
+.vcard.r-low{border-left-color:#2e7d52}.vcard.r-low .vv{color:#2e7d52}
+.vcard.r-medium{border-left-color:#9a6a12}.vcard.r-medium .vv{color:#9a6a12}
+.vcard.r-high{border-left-color:#b4561d}.vcard.r-high .vv{color:#b4561d}
+.vcard.r-critical{border-left-color:#b3261e}.vcard.r-critical .vv{color:#b3261e}
+.chain{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:8px}
+.chain-step{background:#f3f3f3;border:0.6pt solid #d9d9d9;border-radius:2pt;padding:6px 11px;color:#333;font-size:9pt}
+.chain-arrow{color:#9a9a9a;font-size:9pt;margin:0 0 0 12px}
+.chain-verdict{font-weight:700;font-family:"TeX Gyre Heros",Arial,sans-serif;letter-spacing:.04em}
+.v-block{border-color:#b3261e;color:#b3261e}.v-allow{border-color:#2e7d52;color:#2e7d52}.v-escalate{border-color:#9a6a12;color:#9a6a12}
+.rt{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;padding:1px 7px;border-radius:2pt;border:0.6pt solid}
+.rt.crit{color:#b3261e;border-color:#b3261e}.rt.high{color:#b4561d;border-color:#b4561d}.rt.med{color:#9a6a12;border-color:#9a6a12}.rt.low{color:#2e7d52;border-color:#2e7d52}
+.tcase{border-top:0.5pt solid #d9d9d9;padding:12px 0;break-inside:avoid}.tcase:first-child{border-top:0}
+.tcase .th{display:flex;align-items:center;gap:10px}.tcase .tn{color:#212121;font-weight:700;font-size:10pt;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.explain{margin-top:8px;display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:9pt}.explain .ek{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.08em;text-transform:uppercase;color:#737373}.explain .ev{color:#333}
+.consequence .chain-step{border-color:#e0b9b6}
+.vcard .vsub{display:block;color:#737373;font-size:8pt;margin-top:3px;line-height:1.4;font-family:"TeX Gyre Pagella",Georgia,serif}
+.vcard .vv.vv-sm{font-size:11pt}
+.vcard.rec{flex:1 1 100%;border-left:2.6pt solid #9a6a12}
+.exposure-band{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-top:14px;padding:13px 15px;background:#f7efef;border:0.6pt solid #e0b9b6;border-left:2.6pt solid #b3261e;border-radius:2pt}
+.exposure-band .eb-k{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#b3261e}
+.exposure-band .eb-v{color:#212121;font-size:11pt;font-weight:700;font-family:"TeX Gyre Heros",Arial,sans-serif}
 `;
 const STYLE = (() => {
   const i = process.argv.indexOf("--style");
@@ -464,56 +518,289 @@ function perfSection(stats, attestation, replay) {
   </div>`;
 }
 
+// ---- enterprise report helpers (real names, sector framing, verdicts) ------
+const humanize = (s) => String(s || "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (m) => m.toUpperCase());
+const toolName = (t) => (typeof t === "string" ? t : (t && (t.tool || t.name || t.id || (t.function && t.function.name)))) || "";
+
+// Parse the analyst-supplied manifest into REAL tool names (+ capability hints).
+function parseManifestTools(input) {
+  let arr = null;
+  if (Array.isArray(input.manifest) && input.manifest.length) arr = input.manifest;
+  else if (typeof input.manifest_text === "string" && input.manifest_text.trim()) {
+    const raw = input.manifest_text.trim();
+    try { const j = JSON.parse(raw); arr = Array.isArray(j) ? j : (Array.isArray(j.tools) ? j.tools : (Array.isArray(j.manifest) ? j.manifest : null)); } catch { /* not JSON */ }
+    if (!arr) {
+      const body = raw.replace(/^\s*tools?\s*:/i, "");
+      arr = body.split(/[\n,]+/).map((x) => x.replace(/^[\s\-*•]+/, "").replace(/\(.*\)$/, "").trim()).filter(Boolean);
+    }
+  }
+  if (!arr) return [];
+  return arr.map((t) => ({ name: toolName(t), capabilities: (t && t.capabilities) || [], raw: t })).filter((t) => t.name && t.name.toLowerCase() !== "name");
+}
+const CAP_RULES = [
+  [/transfer|payment|wire|disburse|refund|invoice|payout|remit/i, "Payments", "Critical"],
+  [/approve|authoris|authoriz|sign[_\s-]?off|release|sanction/i, "Authorisation", "High"],
+  [/delete|drop|wipe|destroy|revoke|terminate|shutdown|purge|freeze/i, "Destructive / state-changing", "Critical"],
+  [/prescrib|medicat|dose|clinical|diagnos|treat|discharge|order[_\s-]?(med|rx)/i, "Clinical action", "Critical"],
+  [/export|download|exfil|send|email|share|upload|transmit|sync/i, "Data egress", "High"],
+  [/credential|password|secret|api[_\s-]?key|token|privilege|role|grant|escalat/i, "Privilege / secrets", "Critical"],
+  [/patient|phi|health|medical|record|account|customer|profile|ledger|transaction|pii/i, "Sensitive data", "Medium"],
+  [/read|lookup|get|list|view|search|history|report|fetch|query/i, "Read-only", "Low"],
+];
+function classifyTool(name, caps) {
+  const hay = `${name} ${(caps || []).join(" ")}`;
+  for (const [re, cap, risk] of CAP_RULES) if (re.test(hay)) return { capability: cap, risk };
+  return { capability: "General", risk: "Medium" };
+}
+// Canonical tool list: real names from the manifest, merged with engine status.
+function toolModel(report, parsed) {
+  const engine = {};
+  for (const t of (report && report.tools) || []) { const n = toolName(t); if (n && n.toLowerCase() !== "name") engine[n.toLowerCase()] = t; }
+  let names = parsed.map((p) => p.name);
+  if (!names.length) names = Object.values(engine).map(toolName);
+  const seen = new Set(); names = names.filter((n) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()));
+  return names.map((n) => {
+    const e = engine[n.toLowerCase()] || {};
+    const caps = (parsed.find((p) => p.name.toLowerCase() === n.toLowerCase()) || {}).capabilities || e.capabilities || [];
+    const cls = classifyTool(n, caps);
+    const status = e.status || "";
+    const gov = /uncover|none|unprotect|exposed/i.test(status) ? "Unprotected" : /partial/i.test(status) ? "Partial" : "Protected";
+    return { name: n, capability: cls.capability, risk: cls.risk, governance: gov };
+  });
+}
+const RISK_CLASS = { Critical: "crit", High: "high", Medium: "med", Low: "low" };
+const SECTORS = {
+  finance: { label: "Financial Services", focus: ["payment fraud", "unauthorised wire transfers", "customer-account compromise", "insider abuse", "transaction-approval bypass"], assets: ["customer funds", "payment rails", "account systems", "transaction ledgers"], consequence: ["Unauthorised transfer executed", "Customer funds lost", "Regulatory investigation (FCA)", "Mandatory incident disclosure", "Incident response & operational downtime"], exposure: "£2M–£25M+ per incident (lost funds, fines, remediation, reputational damage)" },
+  healthcare: { label: "Healthcare", focus: ["PHI exposure", "patient-safety actions", "clinical-system integrity", "medical-device commands"], assets: ["patient records (PHI)", "clinical systems", "medication & order workflows", "connected devices"], consequence: ["Unauthorised PHI access or clinical action", "Patient-safety incident", "HIPAA / regulatory investigation", "Mandatory breach notification", "Care disruption & remediation"], exposure: "£1M–£15M+ per incident (penalties, notification, patient harm, remediation)" },
+  cybersecurity: { label: "Cybersecurity", focus: ["credential misuse", "privilege escalation", "data exfiltration", "ransomware pathways"], assets: ["credentials & secrets", "privileged access", "sensitive data stores", "production infrastructure"], consequence: ["Credential or privilege abuse", "Data exfiltration at scale", "Ransomware / destructive action", "Breach disclosure & forensics", "Extended operational downtime"], exposure: "£1M–£20M+ per incident (breach, ransom, downtime, disclosure)" },
+  defence: { label: "Defence", focus: ["mission-system integrity", "classified-asset access", "command-chain integrity"], assets: ["mission systems", "classified assets", "command & control"], consequence: ["Unauthorised mission-system action", "Classified data exposure", "Command-integrity compromise", "Security review & containment", "Operational stand-down"], exposure: "Mission-critical — severe national-security and operational impact" },
+  insurance: { label: "Insurance", focus: ["fraudulent claims", "policyholder-data exposure", "unauthorised payouts", "underwriting integrity"], assets: ["policyholder data", "claims systems", "payout rails"], consequence: ["Fraudulent payout executed", "Policyholder-data exposure", "Regulatory investigation", "Breach notification", "Remediation & downtime"], exposure: "£1M–£15M+ per incident (payouts, fines, remediation)" },
+  energy: { label: "Energy & Utilities", focus: ["operational-technology integrity", "grid/control actions", "safety-critical commands"], assets: ["OT/control systems", "safety systems", "customer data"], consequence: ["Unauthorised control action", "Safety-critical command issued", "Regulatory & safety investigation", "Service disruption", "Remediation & downtime"], exposure: "Severe — safety, regulatory and continuity-of-supply impact" },
+  default: { label: "Enterprise", focus: ["unauthorised high-impact actions", "sensitive-data exposure", "privileged misuse"], assets: ["critical systems", "sensitive data", "privileged operations"], consequence: ["Unauthorised high-impact action", "Sensitive-data exposure", "Regulatory / contractual exposure", "Incident response", "Operational downtime"], exposure: "£1M–£10M+ per incident (impact, remediation, disclosure)" },
+};
+function sectorProfile(industry, domains) {
+  const key = `${industry || ""} ${(domains || []).join(" ")}`.toLowerCase();
+  if (/financ|bank|payment|capital|treasur/.test(key)) return SECTORS.finance;
+  if (/health|clinic|medical|patient|pharma|hospital/.test(key)) return SECTORS.healthcare;
+  if (/cyber|security|infosec|soc\b|mssp/.test(key)) return SECTORS.cybersecurity;
+  if (/defen|military|gov\b|classified|mod\b/.test(key)) return SECTORS.defence;
+  if (/insur|claim|underwrit|actuar/.test(key)) return SECTORS.insurance;
+  if (/energy|utilit|grid|power|oil|gas/.test(key)) return SECTORS.energy;
+  return SECTORS.default;
+}
+function executiveVerdict(s, blockedCount) {
+  const uncovered = s.uncovered ?? 0;
+  const coverage = s.coverage_pct;
+  let risk = "LOW";
+  if (blockedCount >= 1) risk = "MEDIUM";
+  if (uncovered > 0 || blockedCount >= 3 || (coverage != null && coverage < 80)) risk = "HIGH";
+  if (coverage != null && coverage < 50) risk = "CRITICAL";
+  const productionReady = uncovered === 0 && (coverage == null || coverage >= 95) ? "YES" : "NO";
+  return { risk, productionReady, coverage };
+}
+function recommendEngagement(blockedCount, s, replayCount) {
+  const uncovered = s.uncovered ?? 0;
+  if (uncovered > 0 || blockedCount >= 3) return { name: "Immediate Remediation Required", why: `${uncovered > 0 ? `${uncovered} risk-bearing tool(s) are uncovered. ` : ""}${blockedCount >= 3 ? `${blockedCount} catastrophic trajectories were blocked. ` : ""}Remediate exposed pathways and re-validate before any production rollout.` };
+  if (blockedCount >= 1) return { name: "Limited Pilot™", why: `${blockedCount} catastrophic trajector${blockedCount === 1 ? "y was" : "ies were"} blocked. Validate interception on your own production traffic before broad rollout.` };
+  if (replayCount > 0) return { name: "Enterprise Integration™", why: "No catastrophic trajectories were blocked and Ω coverage is complete — proceed to production deployment of Runtime Governance." };
+  return { name: "48-Hour Audit™ → Limited Pilot™", why: "Structural assessment complete. Replay representative trajectories to validate runtime interception, then scope a Limited Pilot." };
+}
+function humanizeStep(step) {
+  if (typeof step === "string") return humanize(step);
+  const t = humanize(toolName(step) || "step");
+  const a = step.args || {};
+  const bits = [];
+  if (a.amount != null) bits.push(typeof a.amount === "number" ? `£${a.amount.toLocaleString()}` : String(a.amount));
+  for (const k of ["dest", "destination", "to", "recipient", "account", "target", "patient", "record", "resource", "table"]) if (a[k] != null) { bits.push(`${humanize(k)}: ${a[k]}`); break; }
+  if (a.external === true || /"external"|external:\s*true/i.test(JSON.stringify(a))) bits.push("external");
+  if (a.approval === false || a.skip_approval === true) bits.push("approval skipped");
+  return bits.length ? `${t} — ${bits.join(" · ")}` : t;
+}
+function chainHtml(steps, verdictLabel, kind) {
+  const parts = (steps || []).map((s) => `<div class="chain-step">${esc(humanizeStep(s))}</div>`);
+  const body = parts.join('<div class="chain-arrow">↓</div>');
+  const vb = verdictLabel ? `<div class="chain-arrow">↓</div><div class="chain-step chain-verdict v-${verdictLabel.toLowerCase()}">${esc(verdictLabel)}</div>` : "";
+  return `<div class="chain${kind ? " " + kind : ""}">${body}${vb}</div>`;
+}
+function policyName(omega, riskClass, sector) {
+  if (riskClass) return `${sector.label} — ${humanize(riskClass)}`;
+  if (omega) return `${humanize(omega)} runtime policy`;
+  return `${sector.label} runtime governance policy`;
+}
+
 // ---- AUDIT html from AssessReport ------------------------------------------
-function auditHtml(c, report, perf, replay) {
+// Renders the Verdict / Reason / Policy / Ω-domain explainer that a CTO/board can
+// read without technical knowledge — used per blocked trajectory (items 2 & 3).
+function explainBlock({ verdict, reason, policy, omega }) {
+  const rows = [
+    ["Verdict", verdict || "BLOCKED"],
+    ["Reason", reason || "Action would reach a forbidden state."],
+    ["Policy triggered", policy || "Runtime governance policy"],
+    ["Ω domain", omega || "—"],
+  ];
+  return `<div class="explain">${rows.map(([k, v]) => `<div class="ek">${esc(k)}</div><div class="ev">${esc(v)}</div>`).join("")}</div>`;
+}
+function blockedCasesHtml(ctx, blocks, sector) {
+  const replayBlocks = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK");
+  if (replayBlocks.length) {
+    return replayBlocks.map((r, i) => `
+      <div class="tcase">
+        <div class="tn">Case ${i + 1} · ${esc(r.label)}</div>
+        ${chainHtml(r.steps, "BLOCKED", "consequence")}
+        ${explainBlock({ verdict: "BLOCKED", reason: r.reason, policy: policyName(r.omega_domain, null, sector), omega: r.omega_domain })}
+      </div>`).join("");
+  }
+  // No replay yet — render grounded blocks from the structural assessment.
+  if (blocks.length) {
+    return blocks.map((b, i) => `
+      <div class="tcase">
+        <div class="tn">Case ${i + 1} · ${esc(b.label)}</div>
+        ${chainHtml([b.label], "BLOCKED", "consequence")}
+        ${explainBlock({ verdict: "BLOCKED", reason: `${humanize(b.risk_class || "high-impact")} action reaches a forbidden state and is intercepted before execution.`, policy: policyName(b.omega_domain, b.risk_class, sector), omega: b.omega_domain })}
+        ${b.hash ? `<div class="ar-f" style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#6b7480;margin-top:6px">evidence ${esc(String(b.hash).slice(0, 24))}</div>` : ""}
+      </div>`).join("");
+  }
+  return `<p style="color:#8a929c">No catastrophic trajectories were reached within the engine's reachability horizon for the supplied manifest.</p>`;
+}
+function auditHtml(c, report, perf, replay, ctx) {
+  ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
   if (!report) {
     return page("Runtime Safety Audit", bandBlock("48-Hour Runtime Governance Audit", c.name, "Reachable exposure assessment", meta) +
-      `<div class="sec"><span class="eyebrow">1 · Status</span><h2>Engine assessment unavailable.</h2><div class="warn">[ENGINE NOT REACHED] /v1/assess did not return a report. Set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run, or supply a cached assess report. The audit's coverage, exposure, and verified-blocked-trajectory sections come directly from the engine.</div></div>`);
+      `<div class="sec"><span class="eyebrow">Status</span><h2>Engine assessment unavailable.</h2><div class="warn">[ENGINE NOT REACHED] /v1/assess did not return a report. Set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run, or supply a cached assess report. The audit's coverage, exposure, and verified-blocked-trajectory sections come directly from the engine.</div></div>`);
   }
   const s = report.summary || {};
   const exposure = report.exposure || {};
-  const tools = report.tools || [];
   const blocks = report.grounded_blocks || [];
   const att = report.attestation;
-  return page("Runtime Safety Audit", bandBlock("48-Hour Runtime Governance Audit", c.name, `Reachable exposure assessment · ${report.industry || "general"}`, meta) + `
-    <div class="sec"><span class="eyebrow">1 · Executive summary</span><h2>Coverage of reachable forbidden states (&#937;).</h2>
+  const sector = sectorProfile(ctx.industry, ctx.domains);
+  const tools = toolModel(report, ctx.parsedTools || []);
+  const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
+  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const ev = executiveVerdict(s, blockedCount);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const rk = ev.risk.toLowerCase();
+  const mono = "font-family:ui-monospace,Menlo,monospace";
+  const nowStamp = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const evidenceHash = (blocks.find((b) => b && b.hash) || {}).hash || (att && att.ruleset_hash) || "";
+
+  // ---- item 7 · Executive Verdict card ----
+  const verdictCard = `
+    <div class="verdict">
+      <div class="vcard lead r-${rk}">
+        <span class="vk">Overall risk</span><span class="vv">${esc(ev.risk)}</span>
+        <span class="vsub">${esc(sector.label)} runtime exposure</span>
+      </div>
+      <div class="vcard"><span class="vk">Production ready</span><span class="vv">${esc(ev.productionReady)}</span><span class="vsub">${ev.productionReady === "YES" ? "Ω coverage complete" : "remediation required"}</span></div>
+      <div class="vcard"><span class="vk">Blocked trajectories</span><span class="vv">${blockedCount}</span><span class="vsub">catastrophic actions intercepted</span></div>
+      <div class="vcard"><span class="vk">Governance coverage</span><span class="vv">${s.coverage_pct ?? "—"}%</span><span class="vsub">of reachable forbidden states (Ω)</span></div>
+      <div class="vcard rec"><span class="vk">Recommendation</span><span class="vv vv-sm">${esc(rec.name)}</span><span class="vsub">${esc(rec.why)}</span></div>
+    </div>`;
+
+  // ---- item 4 · sector-aware executive summary ----
+  const sectorSummary = `
+    <div class="sec"><span class="eyebrow">Executive summary · ${esc(sector.label)}</span><h2>Reachable forbidden-state coverage for ${esc(c.name)}.</h2>
+      <p style="margin:0 0 12px">This assessment evaluates the agent environment against the ${esc(sector.label.toLowerCase())} threat model — ${esc(sector.focus.join(", "))} — measuring which catastrophic actions are reachable and whether Runtime Governance intercepts them before execution.</p>
       <div class="kpis">
         <div class="kpi"><span class="v">${s.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
         <div class="kpi"><span class="v">${s.risky ?? "—"}</span><span class="k">Risk-bearing tools</span></div>
         <div class="kpi"><span class="v">${s.coverage_pct ?? "—"}%</span><span class="k">&#937; coverage</span></div>
-        <div class="kpi"><span class="v">${s.verified_blocked_trajectories ?? "—"}</span><span class="k">Verified blocked trajectories</span></div>
+        <div class="kpi"><span class="v">${blockedCount}</span><span class="k">Blocked trajectories</span></div>
       </div>
-      <p style="margin-top:12px">Covered ${s.covered ?? "—"} · Partial ${s.partial ?? "—"} · Uncovered ${s.uncovered ?? "—"} of ${s.risky ?? "—"} risk-bearing tools. Catalog rules applied: ${report.catalog_rules ?? "—"}.</p>
-    </div>
-    <div class="sec"><span class="eyebrow">2 · &#937; exposure by risk class</span><h2>Where exposure is reachable.</h2>
+      <p style="margin-top:12px">Covered ${s.covered ?? "—"} · Partial ${s.partial ?? "—"} · Uncovered ${s.uncovered ?? "—"} of ${s.risky ?? "—"} risk-bearing tools. Protected assets in scope: ${esc(sector.assets.join(", "))}.</p>
+    </div>`;
+
+  // ---- items 1 & 5 · Tool Risk Surface (real names) ----
+  const toolSurface = `
+    <div class="sec"><span class="eyebrow">Tool risk surface</span><h2>What each tool can reach — and whether it is governed.</h2>
+      <table><thead><tr><th>Tool</th><th>Capability</th><th>Risk</th><th>Governance status</th></tr></thead><tbody>
+      ${tools.map((t) => `<tr><td class="m">${esc(t.name)}</td><td>${esc(t.capability)}</td><td><span class="rt ${RISK_CLASS[t.risk] || "med"}">${esc(t.risk)}</span></td><td><span class="tag ${t.governance === "Unprotected" ? "unc" : t.governance === "Partial" ? "par" : "cov"}">${esc(t.governance)}</span></td></tr>`).join("") || `<tr><td colspan="4">No tools parsed from the supplied manifest.</td></tr>`}
+      </tbody></table>
+    </div>`;
+
+  // ---- items 2 & 3 · verified blocked trajectories with chains + explainers ----
+  const blockedSec = `
+    <div class="sec"><span class="eyebrow">Verified blocked trajectories</span><h2>Catastrophic actions the engine intercepts — and why.</h2>
+      ${blockedCasesHtml(ctx, blocks, sector)}
+    </div>`;
+
+  // ---- item 6 · per-trajectory replay summary ----
+  const replaySummary = (ctx.replayResults || []).length ? `
+    <div class="sec"><span class="eyebrow">Trajectory replay summary</span><h2>Every replayed trajectory, resolved to a verdict.</h2>
+      <table><thead><tr><th>Trajectory</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>
+      ${ctx.replayResults.map((r) => `<tr><td class="m">Trajectory ${r.index} · ${esc(r.label)}</td><td><span class="v-${(r.verdict || "").toLowerCase()}">${esc(r.verdict)}</span></td><td>${esc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))}</td></tr>`).join("")}
+      </tbody></table>
+    </div>` : "";
+
+  // ---- item 9 · metrics page ----
+  const detTxt = (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : "—";
+  const metrics = [
+    ["Replay determinism", detTxt],
+    ["Runtime latency (avg)", perf ? fmtMs(perf.mean) : "—"],
+    ["Governance coverage", s.coverage_pct != null ? `${s.coverage_pct}%` : "—"],
+    ["Unsafe escapes", String(s.uncovered ?? 0)],
+    ["Blocked trajectories", String(blockedCount)],
+    ["Ruleset version", att && att.ruleset_hash ? String(att.ruleset_hash).slice(0, 12) : "—"],
+    ["Runtime version", att && att.service_version ? att.service_version : "—"],
+    ["Evidence hash", evidenceHash ? String(evidenceHash).slice(0, 16) : "—"],
+    ["Evaluation timestamp", nowStamp],
+  ];
+  const metricsSec = `
+    <div class="sec"><span class="eyebrow">Governance metrics</span><h2>The assurance numbers, on one page.</h2>
+      <div class="kpis">${metrics.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${k}</span></div>`).join("")}</div>
+    </div>`;
+
+  // ---- item 11 · "If Runtime Governance had not been present" ----
+  const counterfactual = `
+    <div class="sec"><span class="eyebrow">If Runtime Governance had not been present</span><h2>The consequence chain that was prevented.</h2>
+      <p style="margin:0 0 14px">Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} identified above would have executed against ${esc(c.name)}'s ${esc(sector.assets.slice(0, 2).join(" and "))}. The likely consequence chain:</p>
+      ${chainHtml(sector.consequence, null, "consequence")}
+      <div class="exposure-band">
+        <span class="eb-k">Estimated financial &amp; operational exposure</span>
+        <span class="eb-v">${esc(sector.exposure)}</span>
+      </div>
+      <p style="margin-top:12px;color:#8a929c">Estimate reflects typical ${esc(sector.label.toLowerCase())} incident impact (direct loss, regulatory penalty, remediation, disclosure and downtime). Runtime Governance intercepted these pathways before execution.</p>
+    </div>`;
+
+  // ---- exposure by risk class (retained) ----
+  const exposureSec = Object.keys(exposure).length ? `
+    <div class="sec"><span class="eyebrow">&#937; exposure by risk class</span><h2>Where exposure is reachable.</h2>
       <table><thead><tr><th>Risk class</th><th>Status</th><th>Tools</th><th>Rules</th></tr></thead><tbody>
-      ${Object.entries(exposure).map(([rc, x]) => `<tr><td class="m">${esc(rc)}</td><td><span class="tag ${STATUS_CLASS[x.status] || "unc"}">${esc(x.status)}</span></td><td class="n">${x.tools ?? "—"}</td><td>${esc((x.rules || []).join(", ") || "—")}</td></tr>`).join("") || `<tr><td colspan="4">No risk classes reported.</td></tr>`}
+      ${Object.entries(exposure).map(([rc, x]) => `<tr><td class="m">${esc(rc)}</td><td><span class="tag ${STATUS_CLASS[x.status] || "unc"}">${esc(x.status)}</span></td><td class="n">${x.tools ?? "—"}</td><td>${esc((x.rules || []).join(", ") || "—")}</td></tr>`).join("")}
       </tbody></table>
-    </div>
-    <div class="sec"><span class="eyebrow">3 · Tool risk surface</span><h2>What each tool can reach.</h2>
-      <table><thead><tr><th>Tool</th><th>Capabilities</th><th>Status</th></tr></thead><tbody>
-      ${tools.map((t) => `<tr><td class="m">${esc(t.tool)}</td><td>${esc((t.capabilities || []).join(", ") || "—")}</td><td><span class="tag ${STATUS_CLASS[t.status] || "cov"}">${esc(t.status)}</span></td></tr>`).join("") || `<tr><td colspan="3">No tools reported.</td></tr>`}
-      </tbody></table>
-    </div>
-    <div class="sec"><span class="eyebrow">4 · Verified blocked trajectories</span><h2>Catastrophic actions the engine would block.</h2>
-      <table><thead><tr><th>Trajectory</th><th>Risk class</th><th>&#937; domain</th><th>Evidence hash</th></tr></thead><tbody>
-      ${blocks.map((b) => `<tr><td class="m">${esc(b.label)}</td><td>${esc(b.risk_class)}</td><td>${esc(b.omega_domain || "—")}</td><td style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#6b7480">${esc((b.hash || "").slice(0, 16))}</td></tr>`).join("") || `<tr><td colspan="4">None reported.</td></tr>`}
-      </tbody></table>
-    </div>
-    <div class="sec"><span class="eyebrow">5 · Attestation</span><h2>Reproducible, pinned to a build.</h2>
-      ${att ? `<table><tbody>
-        <tr><td class="m">Engine commit</td><td style="font-family:ui-monospace,Menlo,monospace">${esc(att.engine_commit)}</td></tr>
-        <tr><td class="m">Ruleset hash</td><td style="font-family:ui-monospace,Menlo,monospace">${esc(att.ruleset_hash)}</td></tr>
+    </div>` : "";
+
+  // ---- attestation (retained) ----
+  const attestationSec = att ? `
+    <div class="sec"><span class="eyebrow">Attestation</span><h2>Reproducible, pinned to a build.</h2>
+      <table><tbody>
+        <tr><td class="m">Engine commit</td><td style="${mono}">${esc(att.engine_commit)}</td></tr>
+        <tr><td class="m">Ruleset hash</td><td style="${mono}">${esc(att.ruleset_hash)}</td></tr>
         <tr><td class="m">Service version</td><td>${esc(att.service_version)}</td></tr>
         <tr><td class="m">Reachability horizon</td><td>${esc(att.horizon)}</td></tr>
-      </tbody></table>` : `<div class="warn">No attestation block returned by the engine for this run.</div>`}
-    </div>
-    ${perfSection(perf, report.attestation, replay)}
-    <div class="sec"><span class="eyebrow">6 · Recommended next step</span><h2>Limited Pilot™.</h2>
-      <p>${(s.uncovered ?? 0) > 0 ? `${s.uncovered} risk-bearing tool(s) are uncovered or partial. ` : ""}A Limited Pilot validates interception on your own traffic and closes remaining &#937; coverage before production.</p>
-    </div>
-    <div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Pricing indicative and non-binding; final terms follow assessment and deployment review.</div>`);
+      </tbody></table>
+    </div>` : "";
+
+  // ---- item 10 · dynamic recommendation ----
+  const recSec = `
+    <div class="sec"><span class="eyebrow">Recommended engagement</span><h2>${esc(rec.name)}.</h2>
+      <p>${esc(rec.why)}</p>
+    </div>`;
+
+  return page("Runtime Safety Audit",
+    bandBlock("48-Hour Runtime Governance Audit", c.name, `${sector.label} · reachable exposure assessment`, meta)
+    + verdictCard
+    + sectorSummary
+    + toolSurface
+    + exposureSec
+    + blockedSec
+    + replaySummary
+    + metricsSec
+    + perfSection(perf, report.attestation, replay)
+    + counterfactual
+    + attestationSec
+    + recSec
+    + `<div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Tool names, verdicts, Ω domains and evidence hashes are taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms are non-binding and follow deployment review.</div>`);
 }
 
 // ---- governance journey stepper (shared across report modes) ----------------
@@ -530,7 +817,8 @@ function journeyHtml(currentIdx) {
 //   yet → presented as an intentional readiness posture (never an error).
 // Mode 2 "Live Runtime Evidence": trajectories replayed → operational metrics.
 // We never fabricate runtime numbers; the report transitions automatically.
-function reportHtml(c, m, assess, replay, perf) {
+function reportHtml(c, m, assess, replay, perf, ctx) {
+  ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
   const s = (assess && assess.summary) || {};
@@ -539,6 +827,21 @@ function reportHtml(c, m, assess, replay, perf) {
   const hashCount = blocks.filter((b) => b && b.hash).length;
   const rep = replay || { checked: 0, deterministic: 0 };
   const mono = "font-family:ui-monospace,Menlo,monospace";
+  const sector = sectorProfile(ctx.industry, ctx.domains);
+  const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
+  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  // per-trajectory replay summary (item 6), shared across report modes
+  const replaySummarySec = (ctx.replayResults || []).length ? `
+    <div class="sec"><span class="eyebrow">Trajectory replay summary</span><h2>Every replayed trajectory, resolved to a verdict.</h2>
+      <table><thead><tr><th>Trajectory</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>
+      ${ctx.replayResults.map((r) => `<tr><td class="m">Trajectory ${r.index} · ${esc(r.label)}</td><td><span class="v-${(r.verdict || "").toLowerCase()}">${esc(r.verdict)}</span></td><td>${esc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))}</td></tr>`).join("")}
+      </tbody></table>
+    </div>` : "";
+  const recSec = `
+    <div class="sec"><span class="eyebrow">Recommended engagement</span><h2>${esc(rec.name)}.</h2>
+      <p>${esc(rec.why)}</p>
+    </div>`;
 
   // shared evidence appendices (the audit's proof, carried into every report)
   const structural = () => `
@@ -577,7 +880,8 @@ function reportHtml(c, m, assess, replay, perf) {
     return page("Runtime Governance Executive Report",
       bandBlock("Runtime Governance Executive Report™", c.name, "Deployment readiness", meta) + `
       <div style="margin:-6px 0 16px"><span class="badge"><span class="d"></span>DEPLOYMENT READY</span></div>
-      <div class="sec"><span class="eyebrow">Runtime evidence status</span><h2>Structural governance assessment completed successfully.</h2>
+      <div class="sec"><span class="eyebrow">Runtime evidence status · ${esc(sector.label)}</span><h2>Structural governance assessment completed successfully.</h2>
+        <p style="margin:0 0 12px">Assessed against the ${esc(sector.label.toLowerCase())} threat model — ${esc(sector.focus.join(", "))} — protecting ${esc(sector.assets.join(", "))}.</p>
         <div class="status"><span class="lbl">Runtime evidence status</span>
           <p>Runtime evidence will populate automatically after representative agent trajectories have been replayed through the live Runtime Governance engine. This report currently represents <b style="color:#f3f5f7">deployment readiness</b> rather than production activity.</p>
           <p style="margin-top:8px;color:#8fb0ff">Operational metrics become available automatically once runtime evidence exists — no manual editing or re-issue required.</p>
@@ -597,6 +901,7 @@ function reportHtml(c, m, assess, replay, perf) {
         <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
         <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
       </div>
+      ${recSec}
       <div class="disc">This report intentionally omits production metrics until representative trajectories have been replayed through the live Runtime Governance engine. Resurrection Tech&trade; never fabricates runtime evidence — operational sections populate only from live engine results.</div>`);
   }
 
@@ -634,10 +939,9 @@ function reportHtml(c, m, assess, replay, perf) {
         <div class="kpi"><span class="v">${detPct}%</span><span class="k">Determinism</span></div>
       </div>` : `<p style="color:#8a929c">Determinism replay not applicable for this source (decision logs supplied directly).</p>`}
     </div>
+    ${replaySummarySec}
     ${perfSection(perf, att, replay)}
-    <div class="sec"><span class="eyebrow">Recommendations</span><h2>Prioritised next actions.</h2>
-      <p>${(m.block || 0) > 0 ? "Review the top prevented categories with the security team and confirm policy thresholds. " : ""}Schedule the quarterly &#937; revalidation and bring newly integrated tools under governance at onboarding. Runtime evidence accumulates across periods to form the Monthly Governance Evidence series.</p>
-    </div>
+    ${recSec}
     ${structural()}
     ${attestationSec()}
     <div class="disc">${m.source === "engine" ? "Generated by replaying supplied trajectories through the live Runtime Governance engine." : "Aggregated from supplied decision logs."} Figures reflect the supplied period only. Resurrection Tech&trade; never fabricates runtime evidence.</div>`);
@@ -654,31 +958,87 @@ function perfMarkdown(perf, replay) {
     + `- Total evaluations: ${perf.n} · ${perf.eps.toFixed(perf.eps < 10 ? 1 : 0)} eval/sec\n`
     + `- Replay determinism: ${replay && replay.checked ? `${replay.deterministic}/${replay.checked}` : "—"}\n`;
 }
-function auditMarkdown(c, report, perf, replay) {
+function auditMarkdown(c, report, perf, replay, ctx) {
+  ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const L = [`# Runtime Safety Audit — ${c.name}`, ``, `**Reference:** ${c.reference || "—"}  |  **Environment:** ${c.environment || "—"}  |  **Classification:** Confidential`];
   if (!report) { L.push(``, `> Engine assessment unavailable for this run. Coverage, exposure, and verified-blocked-trajectory sections come from the live Runtime Governance engine — set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run.`); return L.join("\n"); }
-  const s = report.summary || {}, ex = report.exposure || {}, tools = report.tools || [], blocks = report.grounded_blocks || [], att = report.attestation;
-  L.push(``, `## Executive summary`, ``);
+  const s = report.summary || {}, ex = report.exposure || {}, blocks = report.grounded_blocks || [], att = report.attestation;
+  const sector = sectorProfile(ctx.industry, ctx.domains);
+  const tools = toolModel(report, ctx.parsedTools || []);
+  const replayBlocks = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK");
+  const blockedCount = replayBlocks.length || s.verified_blocked_trajectories || blocks.length || 0;
+  const ev = executiveVerdict(s, blockedCount);
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  // Executive verdict (item 7)
+  L.push(``, `## Executive verdict`, ``);
+  L.push(`- **Overall risk:** ${ev.risk}`);
+  L.push(`- **Production ready:** ${ev.productionReady}`);
+  L.push(`- **Blocked trajectories:** ${blockedCount}`);
+  L.push(`- **Governance coverage:** ${s.coverage_pct ?? "—"}%`);
+  L.push(`- **Recommendation:** ${rec.name} — ${rec.why}`);
+  L.push(``, `## Executive summary — ${sector.label}`, ``);
+  L.push(`Assessed against the ${sector.label.toLowerCase()} threat model — ${sector.focus.join(", ")} — protecting ${sector.assets.join(", ")}.`, ``);
   L.push(`- Tools assessed: **${s.tools ?? "—"}** (risk-bearing: ${s.risky ?? "—"})`);
   L.push(`- Ω coverage: **${s.coverage_pct ?? "—"}%** (covered ${s.covered ?? "—"} · partial ${s.partial ?? "—"} · uncovered ${s.uncovered ?? "—"})`);
-  L.push(`- Verified blocked trajectories: **${s.verified_blocked_trajectories ?? "—"}**`);
+  L.push(`- Verified blocked trajectories: **${blockedCount}**`);
+  // Tool risk surface with REAL names (items 1 & 5)
+  if (tools.length) { L.push(``, `## Tool risk surface`, ``, `| Tool | Capability | Risk | Governance status |`, `|---|---|---|---|`); for (const t of tools) L.push(`| ${mdEsc(t.name)} | ${mdEsc(t.capability)} | ${mdEsc(t.risk)} | ${mdEsc(t.governance)} |`); }
   if (Object.keys(ex).length) { L.push(``, `## Ω exposure by risk class`, ``, `| Risk class | Status | Tools | Rules |`, `|---|---|---|---|`); for (const [rc, x] of Object.entries(ex)) L.push(`| ${mdEsc(rc)} | ${mdEsc(x.status)} | ${x.tools ?? "—"} | ${mdEsc((x.rules || []).join(", ") || "—")} |`); }
-  if (tools.length) { L.push(``, `## Tool risk surface`, ``, `| Tool | Capabilities | Status |`, `|---|---|---|`); for (const t of tools) L.push(`| ${mdEsc(t.tool)} | ${mdEsc((t.capabilities || []).join(", ") || "—")} | ${mdEsc(t.status)} |`); }
-  if (blocks.length) { L.push(``, `## Verified blocked trajectories`, ``, `| Trajectory | Risk class | Ω domain | Evidence hash |`, `|---|---|---|---|`); for (const b of blocks) L.push(`| ${mdEsc(b.label)} | ${mdEsc(b.risk_class)} | ${mdEsc(b.omega_domain || "—")} | \`${(b.hash || "").slice(0, 16)}\` |`); }
+  // Verified blocked trajectories with chain + verdict + reason + Ω policy (items 2 & 3)
+  if (replayBlocks.length) {
+    L.push(``, `## Verified blocked trajectories`, ``);
+    replayBlocks.forEach((r, i) => {
+      L.push(`### Case ${i + 1} — ${r.label}`, ``);
+      L.push(`**Execution chain:** ${(r.steps || []).map((st) => humanizeStep(st)).join(" → ") || r.label} → **BLOCKED**`, ``);
+      L.push(`- **Verdict:** BLOCKED`);
+      L.push(`- **Reason:** ${r.reason || "Action would reach a forbidden state."}`);
+      L.push(`- **Policy triggered:** ${policyName(r.omega_domain, null, sector)}`);
+      L.push(`- **Ω domain:** ${r.omega_domain || "—"}`, ``);
+    });
+  } else if (blocks.length) {
+    L.push(``, `## Verified blocked trajectories`, ``, `| Trajectory | Risk class | Ω domain | Evidence hash |`, `|---|---|---|---|`);
+    for (const b of blocks) L.push(`| ${mdEsc(b.label)} | ${mdEsc(b.risk_class)} | ${mdEsc(b.omega_domain || "—")} | \`${(b.hash || "").slice(0, 16)}\` |`);
+  }
+  // Per-trajectory replay summary (item 6)
+  if ((ctx.replayResults || []).length) {
+    L.push(``, `## Trajectory replay summary`, ``, `| Trajectory | Verdict | Reason |`, `|---|---|---|`);
+    for (const r of ctx.replayResults) L.push(`| Trajectory ${r.index} · ${mdEsc(r.label)} | ${r.verdict} | ${mdEsc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))} |`);
+  }
+  // Governance metrics (item 9)
+  L.push(``, `## Governance metrics`, ``);
+  L.push(`- Replay determinism: ${replay && replay.checked ? `${replay.deterministic}/${replay.checked}` : "—"}`);
+  L.push(`- Runtime latency (avg): ${perf ? fmtMs(perf.mean) : "—"}`);
+  L.push(`- Governance coverage: ${s.coverage_pct != null ? `${s.coverage_pct}%` : "—"}`);
+  L.push(`- Unsafe escapes: ${s.uncovered ?? 0}`);
+  L.push(`- Blocked trajectories: ${blockedCount}`);
+  L.push(`- Ruleset version: ${att && att.ruleset_hash ? String(att.ruleset_hash).slice(0, 12) : "—"}`);
+  L.push(`- Runtime version: ${att && att.service_version ? att.service_version : "—"}`);
   if (att) L.push(``, `## Attestation`, ``, `- Engine commit: \`${att.engine_commit}\``, `- Ruleset hash: \`${String(att.ruleset_hash || "").slice(0, 40)}…\``, `- Service version: ${att.service_version}`, `- Reachability horizon: ${att.horizon} steps`);
   const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
-  L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Pricing indicative and non-binding.*`);
+  // If Runtime Governance had not been present (item 11)
+  L.push(``, `## If Runtime Governance had not been present`, ``);
+  L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
+  L.push((sector.consequence || []).map((x) => `${x}`).join(" → "), ``);
+  L.push(`**Estimated exposure:** ${sector.exposure}`);
+  L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
+  L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Tool names, verdicts and Ω domains taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms non-binding.*`);
   return L.join("\n");
 }
-function reportMarkdown(c, m, report, replay, perf) {
+function reportMarkdown(c, m, report, replay, perf, ctx) {
+  ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const s = (report && report.summary) || {};
-  const L = [`# Runtime Governance Executive Report — ${c.name}`, ``, `**Period:** ${c.period || "—"}  |  **Reference:** ${c.reference || "—"}  |  **Classification:** Board · Confidential`, ``];
+  const sector = sectorProfile(ctx.industry, ctx.domains);
+  const blocks = (report && report.grounded_blocks) || [];
+  const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
+  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length);
+  const L = [`# Runtime Governance Executive Report — ${c.name}`, ``, `**Period:** ${c.period || "—"}  |  **Reference:** ${c.reference || "—"}  |  **Classification:** Board · Confidential`, ``, `_Sector: ${sector.label}_`, ``];
   if (!isLive) {
     L.push(`> **Deployment Ready.** Runtime evidence will populate automatically once representative trajectories have been replayed through the live Runtime Governance engine. This report currently represents deployment readiness rather than production activity.`, ``, `## Deployment readiness`, ``);
     L.push(`- Structural assessment completed: ${s.tools ?? "—"} tools, ${s.risky ?? "—"} risk-bearing`);
     L.push(`- Ω coverage: ${s.coverage_pct ?? "—"}%`);
-    L.push(`- Verified blocked trajectories: ${s.verified_blocked_trajectories ?? "—"}`);
+    L.push(`- Verified blocked trajectories: ${blockedCount}`);
     if (report && report.attestation) L.push(`- Engine attestation: commit \`${String(report.attestation.engine_commit || "").slice(0, 10)}\``);
   } else {
     const total = m.total || 0, pct = (n) => total ? ((n / total) * 100).toFixed(1) : "0.0";
@@ -688,8 +1048,10 @@ function reportMarkdown(c, m, report, replay, perf) {
     L.push(`- Unsafe actions prevented: **${m.block || 0}**`);
     const cats = Object.entries(m.categories || {}).sort((a, b) => b[1] - a[1]);
     if (cats.length) { L.push(``, `## Actions prevented`, ``, `| Category / Ω domain | Count |`, `|---|---|`); for (const [k, v] of cats) L.push(`| ${mdEsc(k)} | ${v} |`); }
+    if ((ctx.replayResults || []).length) { L.push(``, `## Trajectory replay summary`, ``, `| Trajectory | Verdict | Reason |`, `|---|---|---|`); for (const r of ctx.replayResults) L.push(`| Trajectory ${r.index} · ${mdEsc(r.label)} | ${r.verdict} | ${mdEsc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))} |`); }
     const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
   }
+  L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
   L.push(``, `---`, `*Resurrection Tech™ never fabricates runtime evidence — operational sections populate only from live engine results.*`);
   return L.join("\n");
 }
@@ -825,6 +1187,7 @@ function selfTest() {
   // measured performance samples (from each /v1/evaluate round-trip) are
   // available to BOTH the audit and the executive report PDFs.
   const m = { total: 0, allow: 0, block: 0, escalate: 0, categories: {}, source: "none" };
+  const replayResults = []; // per-trajectory: human-readable chain + verdict + reason + Ω
   if (Array.isArray(input.decisions) && input.decisions.length) {
     m.source = "decisions";
     for (const d of input.decisions) {
@@ -836,13 +1199,27 @@ function selfTest() {
     emitStage("replay", "Replaying trajectories");
     emitStage("determinism", "Determinism verification");
     let firstEvalErr = null;
+    let trajIdx = 0;
     for (const traj of input.trajectories) {
+      trajIdx++;
       const g = await evaluate(traj, input.domains);
       if (g && !g.__error) {
         status.evaluate = true; const v = toVerdict(g.verdict); m.total++; m[v.toLowerCase()]++;
         if (v === "BLOCK") { const k = g.omega_domain || g.reason || "Blocked"; m.categories[k] = (m.categories[k] || 0) + 1; }
         const g2 = await evaluate(traj, input.domains); // replay verification
-        if (g2 && !g2.__error) { replay.checked++; if (g2.verdict === g.verdict && g2.trajectory_hash === g.trajectory_hash) replay.deterministic++; }
+        let det = null;
+        if (g2 && !g2.__error) { replay.checked++; det = (g2.verdict === g.verdict && g2.trajectory_hash === g.trajectory_hash); if (det) replay.deterministic++; }
+        replayResults.push({
+          index: trajIdx,
+          label: traj.label || traj.name || `Trajectory ${trajIdx}`,
+          steps: traj.steps || traj.actions || traj.trajectory || traj.chain || (Array.isArray(traj) ? traj : []),
+          verdict: v,
+          reason: g.reason || "",
+          omega_domain: g.omega_domain || "",
+          layer: g.layer || "",
+          trajectory_hash: g.trajectory_hash || "",
+          deterministic: det,
+        });
       } else if (!firstEvalErr) { firstEvalErr = g; }
     }
     if (firstEvalErr) {
@@ -862,10 +1239,16 @@ function selfTest() {
   // Deliverables are written browser-free FIRST (HTML + Markdown), so the audit
   // always completes. PDF is a best-effort enhancement layered on top.
   emitStage("audit", "Generating audit document");
+  const ctx = {
+    replayResults,
+    parsedTools: parseManifestTools(input),
+    industry: input.industry || (input.domains && input.domains[0]) || (report && report.industry) || "",
+    domains: input.domains || [],
+  };
   const auditHtmlPath = path.join(outDir, "audit.html");
   const auditMdPath = path.join(outDir, "audit.md");
-  fs.writeFileSync(auditHtmlPath, auditHtml(c, report, perf, replay));
-  fs.writeFileSync(auditMdPath, auditMarkdown(c, report, perf, replay));
+  fs.writeFileSync(auditHtmlPath, auditHtml(c, report, perf, replay, ctx));
+  fs.writeFileSync(auditMdPath, auditMarkdown(c, report, perf, replay, ctx));
   emitCheck(true, "Audit document generated (HTML + Markdown)");
   emitStage("audit", "Generating audit PDF");
   const auditPdfOk = renderPdf(auditHtmlPath, auditPdf, "Audit");
@@ -873,8 +1256,8 @@ function selfTest() {
   emitStage("report", "Generating executive report");
   const reportHtmlPath = path.join(outDir, "executive-report.html");
   const reportMdPath = path.join(outDir, "executive-report.md");
-  fs.writeFileSync(reportHtmlPath, reportHtml(c, m, report, replay, perf));
-  fs.writeFileSync(reportMdPath, reportMarkdown(c, m, report, replay, perf));
+  fs.writeFileSync(reportHtmlPath, reportHtml(c, m, report, replay, perf, ctx));
+  fs.writeFileSync(reportMdPath, reportMarkdown(c, m, report, replay, perf, ctx));
   emitCheck(true, "Executive report generated (HTML + Markdown)");
   const reportPdfOk = renderPdf(reportHtmlPath, reportPdf, "Executive report");
 
