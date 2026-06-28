@@ -263,7 +263,7 @@ function shareState(s) {
   return "active";
 }
 
-const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".pdf": "application/pdf" };
+const MIME = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".pdf": "application/pdf", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8" };
 
 // serve a static asset from console/public (auth already enforced)
 function serveStatic(res, name) {
@@ -333,7 +333,7 @@ function runAudit(req, res, body) {
     if (resultDir) {
       const abs = path.join(ROOT, resultDir);
       try { summary = JSON.parse(fs.readFileSync(path.join(abs, "run-summary.json"), "utf8")); } catch { /* none */ }
-      try { files = fs.readdirSync(abs).filter((f) => /\.(pdf|json)$/.test(f)); } catch { /* none */ }
+      try { files = fs.readdirSync(abs).filter((f) => /\.(pdf|json|html|md)$/.test(f)); } catch { /* none */ }
     }
     // Persist the run to the engagement so deliverables survive refresh/navigation
     // and the Engagement Details page can restore everything from the server.
@@ -352,7 +352,7 @@ function runAudit(req, res, body) {
         pending: summary.pending || [], missing: summary.missing || [],
       } : null;
       updateEngagement(engagementId, (rec) => {
-        const reports = files.filter((f) => /\.(pdf|json)$/.test(f)).map((f) => ({ dir: resultDir, file: f, at }));
+        const reports = files.filter((f) => /\.(pdf|json|html|md)$/.test(f)).map((f) => ({ dir: resultDir, file: f, at }));
         const seen = new Set();
         rec.reports = [...reports, ...(rec.reports || [])].filter((r) => {
           const k = r.dir + "/" + r.file; if (seen.has(k)) return false; seen.add(k); return true;

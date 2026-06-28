@@ -92,7 +92,7 @@ function renderEngagements() {
     <th>Client</th><th>Health</th><th>Industry</th><th>Reference</th><th>Status</th>
     <th>Proposal</th><th>Invoice</th><th>Delivery</th><th>Reports</th><th>Last audit</th><th></th></tr></thead><tbody>` +
     rows.map((e) => {
-      const pdfs = e.pdf_count != null ? e.pdf_count : (e.reports || []).filter((r) => r.file && r.file.endsWith(".pdf")).length;
+      const nAudits = e.audit_count != null ? e.audit_count : (e.audits || []).length;
       const h = e.health || {};
       return `<tr>
       <td class="m"><button class="linklike" data-open="${e.id}">${esc(e.company || e.customer)}</button>${e.customer && e.company ? `<br><small style="color:var(--ink-3)">${esc(e.customer)}</small>` : ""}</td>
@@ -102,7 +102,7 @@ function renderEngagements() {
       <td>${sel(e.id, "proposal_status", PROPOSAL_OPTS, e.proposal_status)}</td>
       <td>${sel(e.id, "invoice_status", INVOICE_OPTS, e.invoice_status)}</td>
       <td>${sel(e.id, "delivery_status", DELIVERY_OPTS, e.delivery_status)}</td>
-      <td class="m">${pdfs ? `${pdfs} PDF` : "—"}</td>
+      <td class="m">${nAudits ? `${nAudits} audit${nAudits > 1 ? "s" : ""}` : "—"}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">${esc((e.last_audit_at || e.created_at || "").slice(0, 10))}</td>
       <td><button class="btn ghost sm" data-open="${e.id}">Open →</button></td>
     </tr>`;
@@ -236,12 +236,14 @@ function metaHtml(dir, s) {
     + (s.missing && s.missing.length ? `<br><span style="color:var(--omega);font-size:11px">Missing structural evidence: ${esc(s.missing.join(", "))}.</span>` : "");
 }
 function fileRowHtml(dir, f) {
-  const isPdf = f.endsWith(".pdf");
+  const ext = (f.split(".").pop() || "").toLowerCase();
+  const label = ext === "pdf" ? "Branded PDF" : ext === "html" ? "Branded HTML report" : ext === "md" ? "Markdown" : ext === "json" ? "Run summary (JSON)" : ext.toUpperCase();
+  const shareable = ext === "pdf" || ext === "html";
   const u = (dl) => `/api/file?dir=${encodeURIComponent(dir)}&file=${encodeURIComponent(f)}${dl ? "&dl=1" : ""}`;
-  return `<div class="file"><div class="n">${esc(f)}<small>${isPdf ? "Branded PDF" : "Run summary (JSON)"}</small></div><div style="display:flex;gap:8px;flex-wrap:wrap">
-    ${isPdf ? `<a class="btn ghost sm" href="${u(0)}" target="_blank">Preview</a>` : ""}
+  return `<div class="file"><div class="n">${esc(f)}<small>${label}</small></div><div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn ghost sm" href="${u(0)}" target="_blank">Preview</a>
     <a class="btn ghost sm" href="${u(1)}">Download</a>
-    ${isPdf ? `<button class="btn sm" data-share-dir="${esc(dir)}" data-share-file="${esc(f)}">Share securely</button>` : ""}</div></div>`;
+    ${shareable ? `<button class="btn sm" data-share-dir="${esc(dir)}" data-share-file="${esc(f)}">Share securely</button>` : ""}</div></div>`;
 }
 function wireFileRows(host, engId) {
   host.querySelectorAll("[data-share-file]").forEach((b) => b.addEventListener("click", () => createShare(b.dataset.shareDir, b.dataset.shareFile, engId)));
@@ -250,12 +252,14 @@ function wireFileRows(host, engId) {
 async function showDeliverables(final, eng) {
   const files = final.files || [];
   const has = (n) => files.includes(n);
+  const pdfOk = has("audit.pdf") && has("executive-report.pdf");
   $("run_done").style.display = "";
   $("run_done").innerHTML = `<div class="rd-h">Runtime Governance Audit Complete</div>
     <ul class="rd-list">
-      <li class="${has("audit.pdf") ? "ok" : "no"}">${has("audit.pdf") ? "✓" : "✗"} Audit PDF generated</li>
-      <li class="${has("executive-report.pdf") ? "ok" : "no"}">${has("executive-report.pdf") ? "✓" : "✗"} Executive Report generated</li>
-      <li class="${has("run-summary.json") ? "ok" : "no"}">${has("run-summary.json") ? "✓" : "✗"} Run Summary generated</li>
+      <li class="${has("audit.html") ? "ok" : "no"}">${has("audit.html") ? "✓" : "✗"} Audit document (HTML + Markdown)</li>
+      <li class="${has("executive-report.html") ? "ok" : "no"}">${has("executive-report.html") ? "✓" : "✗"} Executive report (HTML + Markdown)</li>
+      <li class="${has("run-summary.json") ? "ok" : "no"}">${has("run-summary.json") ? "✓" : "✗"} Run summary (JSON)</li>
+      <li class="${pdfOk ? "ok" : "pend"}">${pdfOk ? "✓ Branded PDFs generated" : "⏳ PDFs pending (Chromium) — run npm run audit:chrome:install"}</li>
       <li class="ok">✓ Secure delivery ready</li>
     </ul>`;
 
