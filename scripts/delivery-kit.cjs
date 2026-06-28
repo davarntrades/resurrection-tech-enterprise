@@ -384,6 +384,18 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 .ictx li.meas{color:#f3f5f7}.ictx li.meas .ic-v{color:#6fdcab;font-weight:600}
 .ictx .ic-v{font-family:ui-monospace,Menlo,monospace}
 .ictx li em{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:#6b7480;margin-left:6px}
+.tline{margin-top:14px;padding-left:7px}
+.tline .node{position:relative;padding:0 0 24px 30px;border-left:2px solid rgba(255,255,255,.14)}
+.tline .node:last-child{border-left-color:transparent;padding-bottom:0}
+.tline .dot{position:absolute;left:-8px;top:2px;width:13px;height:13px;border-radius:50%;background:#0b0d10;border:2px solid #6b7480}
+.tline .node.key .dot{border-color:#3fb27f;background:rgba(63,178,127,.25)}
+.tline .node.end .dot{border-color:#e0a93f;background:rgba(224,169,63,.25)}
+.tline .t{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a929c}
+.tline .node.key .t{color:#6fdcab;font-weight:700}.tline .node.end .t{color:#f2c66a;font-weight:700}
+.tline .l{color:#f3f5f7;font-size:13px;font-weight:600;margin-top:1px}
+.tline .sub{color:#8a929c;font-size:10.5px}
+.tline .phase{margin:7px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.tline .phase span{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#cdd6e0;background:#0b0d10;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 9px}
 /* executive verdict + execution chains + risk tags (shared, dark) */
 .verdict{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#0b0d10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 15px}
@@ -485,6 +497,18 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}th{text-a
 .ictx li:last-child{border-bottom:0}
 .ictx li.meas{color:#212121;font-weight:600}.ictx li.meas .ic-v{color:#2e7d52}
 .ictx li em{font-style:normal;font-size:7pt;letter-spacing:.06em;text-transform:uppercase;color:#737373;margin-left:6px}
+.tline{margin-top:14px;padding-left:7px}
+.tline .node{position:relative;padding:0 0 22px 30px;border-left:1.5pt solid #d2d2d2}
+.tline .node:last-child{border-left-color:transparent;padding-bottom:0}
+.tline .dot{position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;border:1.5pt solid #9a9a9a}
+.tline .node.key .dot{border-color:#2e7d52;background:#dcefe4}
+.tline .node.end .dot{border-color:#9a6a12;background:#f1e6cc}
+.tline .t{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:8.5pt;color:#737373}
+.tline .node.key .t{color:#2e7d52;font-weight:700}.tline .node.end .t{color:#9a6a12;font-weight:700}
+.tline .l{color:#212121;font-size:10.5pt;font-weight:700;margin-top:1px;font-family:"TeX Gyre Heros",Arial,sans-serif}
+.tline .sub{color:#737373;font-size:8.5pt}
+.tline .phase{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.tline .phase span{font-family:"TeX Gyre Heros",Arial,sans-serif;font-size:7.5pt;color:#333;background:#f3f3f3;border:0.6pt solid #d9d9d9;border-radius:2pt;padding:2px 8px}
 /* executive verdict + execution chains + risk tags (shared, editorial) */
 .verdict{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .vcard{flex:1 1 150px;background:#f3f3f3;border:0.6pt solid #e2e2e2;border-radius:2pt;padding:12px 14px}
@@ -659,6 +683,19 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
   const t = total || 1;
   const g = performanceGrade(X);
 
+  // ===== 0 · Audit timeline — one graphic, manifest → delivered report =====
+  const govMs = perf ? fmtMs(perf.mean) : "—";
+  const timeline = `<div class="sec"><span class="eyebrow">Audit timeline</span><h2>From manifest received to delivered report — at a glance.</h2>
+    <div class="tline">
+      <div class="node"><span class="dot"></span><div class="t">0 ms</div><div class="l">Manifest received</div></div>
+      <div class="node key"><span class="dot"></span><div class="t">${esc(govMs)}</div><div class="l">Runtime Governance decision</div><div class="sub">verdict reached &amp; verified</div></div>
+      <div class="node phase-node"><span class="dot"></span><div class="t">document generation</div><div class="l">Report assembly</div>
+        <div class="phase"><span>HTML</span><span>PDF</span><span>Branding</span><span>Secure links</span><span>Audit package</span></div></div>
+      <div class="node end"><span class="dot"></span><div class="t">${esc(fmtDur(total))}</div><div class="l">Customer receives report</div></div>
+    </div>
+    <p style="margin-top:12px;color:#8a929c">The governance decision lands in milliseconds; the rest of the timeline is document assembly and secure delivery — not governance compute.</p>
+  </div>`;
+
   // ===== 1 · Performance at a glance — the five-second executive summary =====
   const compRows = [
     ["Runtime Governance Engine", g ? `<span class="st ${GRADE_CLASS[g.grade]}">${esc(g.grade)}</span> <span class="st-sub">${esc(g.label)}</span>` : `<span class="st">pending</span>`],
@@ -732,7 +769,7 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
     <p style="margin-top:14px;color:#8a929c">The engine reaches its verdicts in milliseconds; the remaining time is spent rendering the HTML and PDF documents, not making governance decisions. All values measured, never estimated.</p>
   </div>`;
 
-  return comparison + engineSection + perfSection(perf, attestation, replay) + pipelineSection;
+  return timeline + comparison + engineSection + perfSection(perf, attestation, replay) + pipelineSection;
 }
 function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   if (!stages) return ""; // pass-1 measurement render — section added on pass 2
@@ -743,6 +780,21 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   const g = performanceGrade(X);
   const t = total || 1;
   const L = [];
+
+  // Audit timeline — one graphic, manifest → delivered report
+  L.push(``, `## Audit timeline`, ``, "```");
+  L.push(`0 ms`);
+  L.push(`  │`);
+  L.push(`  ├── Manifest received`);
+  L.push(`  │`);
+  L.push(`  ├── Runtime Governance decision .... ${perf ? fmtMs(perf.mean) : "—"}`);
+  L.push(`  │`);
+  L.push(`  ├───────────────`);
+  L.push(`  │   HTML · PDF · Branding · Secure links · Audit package`);
+  L.push(`  │`);
+  L.push(`  └── Customer receives report ....... ${fmtDur(total)}`);
+  L.push("```");
+  L.push(`_The governance decision lands in milliseconds; the rest is document assembly and secure delivery, not governance compute._`);
 
   // Performance at a glance — five-second summary
   L.push(``, `## Performance at a glance`, ``, `| Component | Status |`, `|---|---|`);
@@ -1607,6 +1659,13 @@ function selfTest() {
   // console view — same two-part story as the reports (engine vs delivery)
   {
     const tt = rtm.total || 1;
+    console.log(`\n— Audit timeline —`);
+    console.log(`  0 ms`);
+    console.log(`   ├── Manifest received`);
+    console.log(`   ├── Runtime Governance decision .... ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`   ├──── HTML · PDF · Branding · Secure links · Audit package`);
+    console.log(`   └── Customer receives report ....... ${fmtDur(rtm.total)}`);
+
     console.log(`\n— Performance at a glance —`);
     console.log(`  Runtime Governance Engine     ${grade ? `${grade.grade} (${grade.label})` : "pending"}`);
     console.log(`  Determinism                   ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
@@ -1692,6 +1751,12 @@ function selfTest() {
       typical_api_request: "50–200 ms",
       customer_audit_delivery: fmtDur(rtm.total),
     },
+    timeline: [
+      { at_ms: 0, event: "Manifest received" },
+      { at_ms: rtm.avg != null ? r3(rtm.avg) : null, event: "Runtime Governance decision" },
+      { at_ms: null, event: "Document generation", detail: ["HTML", "PDF", "Branding", "Secure links", "Audit package"] },
+      { at_ms: r3(rtm.total), event: "Customer receives report" },
+    ],
   };
 
   // machine-readable evidence written alongside the PDFs.
