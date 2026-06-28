@@ -549,26 +549,117 @@ function stageTotal(stages) {
   if (stages.total) return stages.total;
   return STAGE_ORDER.reduce((a, [, k]) => a + (stages[k] || 0), 0);
 }
-function pipelineTimingHtml(stages) {
-  if (!stages) return "";
-  const total = stageTotal(stages) || 1;
-  const rows = STAGE_ORDER.map(([label, k]) => ({ label, ms: stages[k] || 0, pct: (stages[k] || 0) / total * 100 }));
-  const kpis = rows.map((r) => `<div class="kpi"><span class="v" style="font-size:18px">${fmtMs(r.ms)}</span><span class="k">${esc(r.label)}</span></div>`).join("")
-    + `<div class="kpi"><span class="v" style="font-size:18px">${fmtMs(total)}</span><span class="k">Total end-to-end</span></div>`;
-  const bars = rows.map((r) => `<div class="row"><span class="lab">${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, Math.round(r.pct))}%"></span></span><span class="val">${r.pct.toFixed(0)}% · ${fmtMs(r.ms)}${r.ms === 0 && r.label === "PDF generation" ? " (skipped)" : ""}</span></div>`).join("")
+const fmtRate = (n) => (n >= 1000 ? Math.round(n).toLocaleString() : n >= 10 ? n.toFixed(0) : n.toFixed(1));
+// One source of truth for throughput/efficiency so HTML, Markdown, JSON and the
+// console all report identical (measured) figures.
+function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
+  const total = stageTotal(stages);
+  const rr = (ctx && ctx.replayResults) || [];
+  const trajTimes = rr.map((r) => r.eval_ms).filter((x) => typeof x === "number");
+  const N = rr.length;                       // trajectories replayed (returned a verdict)
+  const M = perf ? perf.n : 0;               // total /v1/evaluate round-trips (verdict + determinism)
+  const totalSec = total > 0 ? total / 1000 : 0;
+  const effEval = totalSec ? M / totalSec : 0;
+  const effTraj = totalSec ? N / totalSec : 0;
+  const detPct = (replay && replay.checked) ? Math.round((replay.deterministic / replay.checked) * 100) : null;
+  const cov = summary && summary.coverage_pct != null ? summary.coverage_pct : null;
+  const trajStats = trajTimes.length ? {
+    avg: trajTimes.reduce((a, b) => a + b, 0) / trajTimes.length,
+    fast: Math.min(...trajTimes), slow: Math.max(...trajTimes),
+  } : null;
+  return { total, N, M, totalSec, effEval, effTraj, detPct, cov, trajTimes, trajStats, avg: perf ? perf.mean : null, eps: perf ? perf.eps : null };
+}
+function pipelineTimingHtml(stages, perf, replay, ctx, summary) {
+  if (!stages) return ""; // pass-1 measurement render — section added on pass 2
+  const total = stageTotal(stages);
+  const rr = (ctx && ctx.replayResults) || [];
+  if (!total && !perf && !rr.length) return "";
+  const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
+  const t = total || 1;
+
+  // throughput & efficiency
+  const tput = [
+    ["Total runtime", fmtMs(total)],
+    ["Average latency", perf ? fmtMs(perf.mean) : "—"],
+    ["Trajectories replayed", String(X.N)],
+    ["Runtime Governance evaluations", String(X.M)],
+    ["Effective evaluations / sec", X.totalSec ? fmtRate(X.effEval) : "—"],
+    ["Effective trajectories / sec", X.totalSec ? fmtRate(X.effTraj) : "—"],
+  ];
+  const tputCards = tput.map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
+
+  // CPU time breakdown
+  const rows = STAGE_ORDER.map(([label, k]) => ({ label, ms: stages[k] || 0, pct: (stages[k] || 0) / t * 100 }));
+  const bars = rows.map((r) => `<div class="row"><span class="lab">${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, Math.round(r.pct))}%"></span></span><span class="val">${r.pct.toFixed(0)}% · ${fmtMs(r.ms)}</span></div>`).join("")
     + `<div class="row tot"><span class="lab"><b>Total end-to-end</b></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">100% · ${fmtMs(total)}</span></div>`;
-  return `<div class="sec"><span class="eyebrow">Pipeline instrumentation</span><h2>Measured latency for every stage — ingestion through evidence generation.</h2>
-    <div class="kpis">${kpis}</div>
-    <div class="stagebars">${bars}</div>
-    <p style="margin-top:12px;color:#8a929c">Every stage is timed with a high-resolution monotonic clock during the audit; percentages show each stage's share of total end-to-end runtime. Values are measured, never estimated.</p>
+
+  // replay performance (only when more than one trajectory was replayed)
+  let replayPerf = "";
+  if (rr.length > 1 && X.trajTimes.length) {
+    const scale = X.trajStats.slow || 1;
+    const trows = rr.map((r) => {
+      const ms = typeof r.eval_ms === "number" ? r.eval_ms : 0;
+      return `<div class="row"><span class="lab">Trajectory ${r.index}</span><span class="track"><span class="fill" style="width:${Math.max(3, Math.round((ms / scale) * 100))}%"></span></span><span class="val">${fmtMs(ms)}</span></div>`;
+    }).join("");
+    replayPerf = `<div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">Replay performance</span>
+      <div class="stagebars">${trows}</div>
+      <div class="kpis" style="margin-top:10px">
+        <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.avg)}</span><span class="k">Average</span></div>
+        <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.fast)}</span><span class="k">Fastest</span></div>
+        <div class="kpi"><span class="v" style="font-size:18px">${fmtMs(X.trajStats.slow)}</span><span class="k">Slowest</span></div>
+      </div></div>`;
+  }
+
+  // performance summary card
+  const sum = [
+    `End-to-end runtime: ${fmtMs(total)}`,
+    `Governance evaluations: ${X.M}`,
+    `Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`,
+    `Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`,
+    `Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`,
+    `Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`,
+  ];
+  const summaryCard = `<div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">Performance summary</span>
+    <ul class="check">${sum.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>`;
+
+  return `<div class="sec"><span class="eyebrow">Runtime performance · throughput &amp; efficiency</span><h2>Measured capacity of the governance pipeline — latency, throughput, and CPU time.</h2>
+    <div class="kpis">${tputCards}</div>
+    <div style="margin-top:18px"><span class="eyebrow" style="display:block;margin-bottom:8px">CPU time breakdown</span>
+      <div class="stagebars">${bars}</div></div>
+    ${replayPerf}
+    ${summaryCard}
+    <p style="margin-top:12px;color:#8a929c">Every stage is timed with a high-resolution monotonic clock during the audit; throughput is derived from those measurements. Values are measured, never estimated.</p>
   </div>`;
 }
-function pipelineTimingMarkdown(stages) {
-  if (!stages) return "";
-  const total = stageTotal(stages) || 1;
-  const L = [``, `## Pipeline instrumentation (measured per-stage)`, ``, `| Stage | Latency | Share |`, `|---|---|---|`];
-  for (const [label, k] of STAGE_ORDER) { const ms = stages[k] || 0; L.push(`| ${label} | ${fmtMs(ms)} | ${(ms / total * 100).toFixed(0)}% |`); }
+function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
+  if (!stages) return ""; // pass-1 measurement render — section added on pass 2
+  const total = stageTotal(stages);
+  const rr = (ctx && ctx.replayResults) || [];
+  if (!total && !perf && !rr.length) return "";
+  const X = computeRuntimeMetrics(stages, perf, replay, ctx, summary);
+  const t = total || 1;
+  const L = [``, `## Runtime performance — throughput & efficiency`, ``];
+  L.push(`- Total runtime: **${fmtMs(total)}**`);
+  L.push(`- Average latency: ${perf ? fmtMs(perf.mean) : "—"}`);
+  L.push(`- Trajectories replayed: ${X.N}`);
+  L.push(`- Runtime Governance evaluations: ${X.M}`);
+  L.push(`- Effective evaluations/sec: ${X.totalSec ? fmtRate(X.effEval) : "—"}`);
+  L.push(`- Effective trajectories/sec: ${X.totalSec ? fmtRate(X.effTraj) : "—"}`);
+  L.push(``, `### CPU time breakdown`, ``, `| Stage | Latency | Share |`, `|---|---|---|`);
+  for (const [label, k] of STAGE_ORDER) { const ms = stages[k] || 0; L.push(`| ${label} | ${fmtMs(ms)} | ${(ms / t * 100).toFixed(0)}% |`); }
   L.push(`| **Total end-to-end** | **${fmtMs(total)}** | **100%** |`);
+  if (rr.length > 1 && X.trajTimes.length) {
+    L.push(``, `### Replay performance`, ``, `| Trajectory | Latency |`, `|---|---|`);
+    for (const r of rr) L.push(`| Trajectory ${r.index} | ${fmtMs(typeof r.eval_ms === "number" ? r.eval_ms : 0)} |`);
+    L.push(`| **Average** | **${fmtMs(X.trajStats.avg)}** |`, `| Fastest | ${fmtMs(X.trajStats.fast)} |`, `| Slowest | ${fmtMs(X.trajStats.slow)} |`);
+  }
+  L.push(``, `### Performance summary`, ``);
+  L.push(`- ✓ End-to-end runtime: ${fmtMs(total)}`);
+  L.push(`- ✓ Governance evaluations: ${X.M}`);
+  L.push(`- ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
+  L.push(`- ✓ Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`);
+  L.push(`- ✓ Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`);
+  L.push(`- ✓ Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`);
   return L.join("\n");
 }
 
@@ -851,7 +942,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + replaySummary
     + metricsSec
     + perfSection(perf, report.attestation, replay)
-    + pipelineTimingHtml(stages)
+    + pipelineTimingHtml(stages, perf, replay, ctx, s)
     + counterfactual
     + attestationSec
     + recSec
@@ -952,7 +1043,7 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
       ${ready ? structural() : ""}
       ${attestationSec()}
       ${perfSection(perf, att, replay)}
-      ${pipelineTimingHtml(stages)}
+      ${pipelineTimingHtml(stages, perf, rep, ctx, s)}
       <div class="sec"><span class="eyebrow">Operational metrics — pending live evidence</span><h2>Populate automatically once trajectories are evaluated.</h2>
         <p style="color:#8a929c">The following become available the moment governed trajectories flow through <span style="${mono};color:#8fb0ff">/v1/evaluate</span>:</p>
         <ul class="pending">${pending.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
@@ -997,7 +1088,7 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
     </div>
     ${replaySummarySec}
     ${perfSection(perf, att, replay)}
-    ${pipelineTimingHtml(stages)}
+    ${pipelineTimingHtml(stages, perf, rep, ctx, s)}
     ${recSec}
     ${structural()}
     ${attestationSec()}
@@ -1072,7 +1163,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   L.push(`- Runtime version: ${att && att.service_version ? att.service_version : "—"}`);
   if (att) L.push(``, `## Attestation`, ``, `- Engine commit: \`${att.engine_commit}\``, `- Ruleset hash: \`${String(att.ruleset_hash || "").slice(0, 40)}…\``, `- Service version: ${att.service_version}`, `- Reachability horizon: ${att.horizon} steps`);
   const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
-  const tm = pipelineTimingMarkdown(stages); if (tm) L.push(tm);
+  const tm = pipelineTimingMarkdown(stages, perf, replay, ctx, s); if (tm) L.push(tm);
   // If Runtime Governance had not been present (item 11)
   L.push(``, `## If Runtime Governance had not been present`, ``);
   L.push(`Without runtime interception, the ${blockedCount} catastrophic trajector${blockedCount === 1 ? "y" : "ies"} above would have executed against ${c.name}'s ${sector.assets.slice(0, 2).join(" and ")}. Likely consequence chain:`, ``);
@@ -1109,7 +1200,7 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
     if ((ctx.replayResults || []).length) { L.push(``, `## Trajectory replay summary`, ``, `| Trajectory | Verdict | Reason |`, `|---|---|---|`); for (const r of ctx.replayResults) L.push(`| Trajectory ${r.index} · ${mdEsc(r.label)} | ${r.verdict} | ${mdEsc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))} |`); }
     const pm = perfMarkdown(perf, replay); if (pm) L.push(pm);
   }
-  const tm = pipelineTimingMarkdown(stages); if (tm) L.push(tm);
+  const tm = pipelineTimingMarkdown(stages, perf, replay, ctx, s); if (tm) L.push(tm);
   L.push(``, `## Recommended engagement`, ``, `**${rec.name}** — ${rec.why}`);
   L.push(``, `---`, `*Resurrection Tech™ never fabricates runtime evidence — operational sections populate only from live engine results.*`);
   return L.join("\n");
@@ -1269,7 +1360,9 @@ function selfTest() {
     let trajIdx = 0;
     for (const traj of input.trajectories) {
       trajIdx++;
+      const tEval0 = nowMs();
       const g = await evaluate(traj, input.domains);
+      const evalMs = nowMs() - tEval0; // measured verdict-call latency for this trajectory
       if (g && !g.__error) {
         status.evaluate = true; const v = toVerdict(g.verdict); m.total++; m[v.toLowerCase()]++;
         if (v === "BLOCK") { const k = g.omega_domain || g.reason || "Blocked"; m.categories[k] = (m.categories[k] || 0) + 1; }
@@ -1286,6 +1379,7 @@ function selfTest() {
           layer: g.layer || "",
           trajectory_hash: g.trajectory_hash || "",
           deterministic: det,
+          eval_ms: evalMs,
         });
       } else if (!firstEvalErr) { firstEvalErr = g; }
     }
@@ -1390,9 +1484,12 @@ function selfTest() {
   }
   if (structuralMissing.length) console.log(`\n  ⚠ Missing structural evidence: ${structuralMissing.join(", ")}\n    → check engine connectivity. Run:  node scripts/delivery-kit.cjs --check`);
 
+  // shared runtime metrics — identical numbers across console + run-summary.json
+  const rtm = computeRuntimeMetrics(stages, perf, replay, ctx, report && report.summary);
+
   // console view of the measured pipeline instrumentation
   {
-    const tt = stages.total || (stages.manifest_parse + stages.governance_eval + stages.trajectory_replay + stages.report_generation + stages.pdf_generation) || 1;
+    const tt = rtm.total || 1;
     const line = (label, ms) => `  ${label.padEnd(30, " ")} ${fmtMs(ms).padStart(9)}   ${((ms / tt) * 100).toFixed(0).padStart(3)}%`;
     console.log(`\n— Pipeline instrumentation (measured per-stage) —`);
     console.log(line("Manifest parsing", stages.manifest_parse));
@@ -1401,6 +1498,30 @@ function selfTest() {
     console.log(line("Report generation", stages.report_generation));
     console.log(line("PDF generation", stages.pdf_generation));
     console.log(`  ${"Total end-to-end".padEnd(30, " ")} ${fmtMs(tt).padStart(9)}   100%`);
+
+    console.log(`\n— Runtime performance (throughput & efficiency) —`);
+    console.log(`  Total runtime:                ${fmtMs(rtm.total)}`);
+    console.log(`  Average latency:              ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`  Trajectories replayed:        ${rtm.N}`);
+    console.log(`  Runtime Governance evals:     ${rtm.M}`);
+    console.log(`  Effective evaluations/sec:    ${rtm.totalSec ? fmtRate(rtm.effEval) : "—"}`);
+    console.log(`  Effective trajectories/sec:   ${rtm.totalSec ? fmtRate(rtm.effTraj) : "—"}`);
+
+    if (rtm.trajStats && rtm.trajTimes.length > 1) {
+      console.log(`\n— Replay performance (per trajectory) —`);
+      for (const r of (ctx.replayResults || [])) console.log(`  Trajectory ${String(r.index).padEnd(3)} ${fmtMs(typeof r.eval_ms === "number" ? r.eval_ms : 0).padStart(9)}`);
+      console.log(`  ${"Average".padEnd(12)} ${fmtMs(rtm.trajStats.avg).padStart(9)}`);
+      console.log(`  ${"Fastest".padEnd(12)} ${fmtMs(rtm.trajStats.fast).padStart(9)}`);
+      console.log(`  ${"Slowest".padEnd(12)} ${fmtMs(rtm.trajStats.slow).padStart(9)}`);
+    }
+
+    console.log(`\n— Performance summary —`);
+    console.log(`  ✓ End-to-end runtime: ${fmtMs(rtm.total)}`);
+    console.log(`  ✓ Governance evaluations: ${rtm.M}`);
+    console.log(`  ✓ Average evaluation latency: ${perf ? fmtMs(perf.mean) : "—"}`);
+    console.log(`  ✓ Throughput: ${perf ? fmtRate(perf.eps) : "—"} evaluations/sec`);
+    console.log(`  ✓ Determinism: ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
+    console.log(`  ✓ Governance coverage: ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
   }
 
   // Per-stage timing block (measured wall-clock ms + each stage's share of total).
@@ -1421,6 +1542,26 @@ function selfTest() {
       trajectory_replay: sharePct(stages.trajectory_replay),
       report_generation: sharePct(stages.report_generation),
       pdf_generation: sharePct(stages.pdf_generation),
+    },
+    throughput: {
+      total_runtime_ms: r3(rtm.total),
+      average_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
+      trajectories_replayed: rtm.N,
+      governance_evaluations: rtm.M,
+      effective_evaluations_per_sec: rtm.totalSec ? +rtm.effEval.toFixed(2) : null,
+      effective_trajectories_per_sec: rtm.totalSec ? +rtm.effTraj.toFixed(2) : null,
+    },
+    replay_performance: (rtm.trajStats && rtm.trajTimes.length) ? {
+      per_trajectory_ms: (ctx.replayResults || []).map((r) => ({ index: r.index, label: r.label, eval_ms: typeof r.eval_ms === "number" ? r3(r.eval_ms) : null })),
+      average_ms: r3(rtm.trajStats.avg), fastest_ms: r3(rtm.trajStats.fast), slowest_ms: r3(rtm.trajStats.slow),
+    } : null,
+    performance_summary: {
+      end_to_end_runtime_ms: r3(rtm.total),
+      governance_evaluations: rtm.M,
+      average_evaluation_latency_ms: rtm.avg != null ? r3(rtm.avg) : null,
+      throughput_evaluations_per_sec: rtm.eps != null ? +rtm.eps.toFixed(2) : null,
+      determinism_pct: rtm.detPct,
+      governance_coverage_pct: rtm.cov,
     },
   };
 
