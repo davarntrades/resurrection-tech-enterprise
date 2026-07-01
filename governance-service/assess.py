@@ -459,9 +459,37 @@ def _healthcare_grounded(tools: list[dict], layer) -> list[dict]:
     return out
 
 
-def grounded_blocks(tools: list[dict], layer) -> list[dict]:
+# ── Sector scoping ─────────────────────────────────────────────────────────
+# When the caller declares an engagement sector (domains/industry), grounding
+# is scoped to it so a (e.g.) cybersecurity assessment does not surface
+# healthcare-domain blocks. Opt-in: with no scope, behaviour is unchanged.
+def scope_sector(domains: Optional[list[str]] = None, industry: Optional[str] = None) -> str:
+    key = f"{industry or ''} {' '.join(domains or [])}".lower()
+    if re.search(r"financ|bank|payment|capital|treasur", key): return "finance"
+    if re.search(r"health|clinic|medical|patient|pharma|hospital", key): return "healthcare"
+    if re.search(r"cyber|security|infosec|soc|mssp", key): return "cybersecurity"
+    if re.search(r"defen|military|classified", key): return "defence"
+    if re.search(r"insur|claim|underwrit", key): return "insurance"
+    if re.search(r"energy|utilit|grid|power|oil|gas", key): return "energy"
+    return ""
+
+
+def block_sector(b: dict) -> str:
+    t = f"{b.get('omega_domain','')} {b.get('risk_class','')} {b.get('label','')}".lower()
+    if re.search(r"health|patient|phi|clinic|prescrib|record[_ ]?modif|ehr|medic|dose|diagnos", t): return "healthcare"
+    if re.search(r"financ|payment|transfer|fund|treasur|wire|payout|ledger", t): return "finance"
+    if re.search(r"cyber|credential|privilege|exfil|ransom|shell|exec|intrusion|malware|lateral", t): return "cybersecurity"
+    if re.search(r"insur|claim|underwrit|policyholder", t): return "insurance"
+    if re.search(r"energy|grid|scada|turbine|substation", t): return "energy"
+    if re.search(r"defen|mission|classified|command", t): return "defence"
+    return ""
+
+
+def grounded_blocks(tools: list[dict], layer, scope: str = "") -> list[dict]:
     """Exercise each capability class through the engine's own adversarial
-    vocabulary; record the real BLOCK verdict + Ω domain + trajectory hash."""
+    vocabulary; record the real BLOCK verdict + Ω domain + trajectory hash.
+    When `scope` (an engagement sector) is set, cross-sector blocks are excluded
+    and the healthcare proxy injection only fires for healthcare engagements."""
     if layer is None:
         return []
     out, seen = [], set()
@@ -488,10 +516,16 @@ def grounded_blocks(tools: list[dict], layer) -> list[dict]:
             break
     # Clinical-agent proxies: surface the deployed healthcare Ω as live blocks
     # (only fires when the manifest carries the matching clinical capability).
-    have = {(b["proxy_tool"], b["risk_class"]) for b in out}
-    for b in _healthcare_grounded(tools, layer):
-        if (b["proxy_tool"], b["risk_class"]) not in have and len(out) < 40:
-            out.append(b)
+    # Skipped when the engagement is scoped to a non-healthcare sector, so a
+    # cybersecurity/finance report never force-injects healthcare findings.
+    if scope in ("", "healthcare"):
+        have = {(b["proxy_tool"], b["risk_class"]) for b in out}
+        for b in _healthcare_grounded(tools, layer):
+            if (b["proxy_tool"], b["risk_class"]) not in have and len(out) < 40:
+                out.append(b)
+    # Scope filter: drop blocks that confidently belong to a different sector.
+    if scope:
+        out = [b for b in out if (block_sector(b) in ("", scope))]
     return out
 
 
@@ -566,14 +600,15 @@ def measure_latency(tools: list[dict], layer, target: int = 60) -> Optional[dict
 
 
 def assess(payload: Any, catalog: list[dict], ground_layer=None,
-           fmt_hint: str = "", org: Optional[str] = None) -> dict:
+           fmt_hint: str = "", org: Optional[str] = None, scope: str = "") -> dict:
     """Full assessment: parse → infer → map (fail-closed) → ground. Returns the
-    JSON report the endpoint serves and the website renders."""
+    JSON report the endpoint serves and the website renders. `scope` (an
+    engagement sector) keeps grounding sector-consistent; empty = unchanged."""
     tools, fmt = parse_manifest(payload, fmt_hint)
     if not tools:
         raise ValueError("no tools parsed from manifest")
     assessed = assess_tools(tools, catalog)
-    blocks = grounded_blocks(tools, ground_layer)
+    blocks = grounded_blocks(tools, ground_layer, scope)
     latency = measure_latency(tools, ground_layer)
 
     risky = [a for a in assessed if a["status"] != "No-risk"]

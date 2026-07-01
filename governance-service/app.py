@@ -260,6 +260,10 @@ class AssessRequest(BaseModel):
     manifest_text: Optional[str] = Field(default=None, max_length=MAX_ASSESS_BYTES)
     org: Optional[str] = Field(default=None, max_length=120)
     format: Optional[str] = Field(default=None, max_length=20)
+    # Optional engagement sector scoping — keeps grounded blocks sector-consistent
+    # (e.g. a cybersecurity engagement won't surface healthcare-domain blocks).
+    domains: Optional[list[str]] = None
+    industry: Optional[str] = Field(default=None, max_length=60)
 
 
 # ── Core eval with timeout protection ───────────────────────────────────
@@ -407,9 +411,10 @@ async def assess_endpoint(req: AssessRequest, request: Request) -> JSONResponse:
     if len(tools) > MAX_ASSESS_TOOLS:
         raise HTTPException(status_code=413, detail=f"Too many tools (>{MAX_ASSESS_TOOLS}).")
     try:
+        scope = _assess.scope_sector(req.domains, req.industry)
         report = await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                None, lambda: _assess.assess(payload, catalog, layer, req.format or "", req.org)),
+                None, lambda: _assess.assess(payload, catalog, layer, req.format or "", req.org, scope)),
             EVAL_TIMEOUT_S * 4)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Assessment timed out")

@@ -782,10 +782,15 @@ function computeRuntimeMetrics(stages, perf, replay, ctx, summary) {
   const roundTripMs = perf ? perf.mean : null;
   const decisionMs = engineMeasured ? engineMs : roundTripMs; // headline "decision time"
   const decisionKind = engineMeasured ? "engine compute" : "deployment latency (incl. network)";
+  // Three-way latency decomposition: engine compute (server-measured) +
+  // network latency (round-trip − compute) = total deployment latency (round-trip).
+  const totalDeploymentMs = roundTripMs;
+  const networkMs = (engineMeasured && roundTripMs != null) ? Math.max(0, roundTripMs - engineMs) : null;
   return {
     total, N, M, totalSec, effEval, effTraj, detPct, cov, trajTimes, trajStats,
     avg: roundTripMs, eps: perf ? perf.eps : null,
     engineMeasured, engineMs, roundTripMs, decisionMs, decisionKind,
+    networkMs, totalDeploymentMs,
   };
 }
 // Performance grade from measured thresholds. Graded on the engine's average
@@ -878,9 +883,17 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
   ];
   const industryContext = `<div class="ictx"><span class="ictx-k">Industry context</span>
     <ul>${ctxRows.map(([k, v, meas]) => `<li${meas ? ' class="meas"' : ""}><span class="ic-l">${esc(k)}</span><span class="ic-v">${esc(v)}${meas ? ' <em>measured</em>' : ""}</span></li>`).join("")}</ul></div>`;
-  const engineKpiData = [
+  // Three-way latency decomposition (engine compute / network / total deployment).
+  const engineKpiData = X.engineMeasured ? [
+    ["Engine compute time", fmtMs(X.engineMs)],
+    ["Network latency", X.networkMs != null ? fmtMs(X.networkMs) : "—"],
+    ["Total deployment latency", roundTripDisp],
+    ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
+    ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
+    ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
+  ] : [
     [decisionLabel, decisionDisp],
-    ["Round-trip latency", roundTripDisp],
+    ["Total deployment latency", roundTripDisp],
     ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
     ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
     ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
@@ -903,7 +916,7 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
       </div></div>`;
   }
   const latencyNote = X.engineMeasured
-    ? `Governance decision time is the engine's own compute, measured server-side and reported per evaluation — it excludes HTTP, network and deployment round-trip. Round-trip latency is shown separately for transparency.`
+    ? `Latency decomposes into three parts: <b style="color:#cdd6e0">engine compute time</b> (the engine's own decision time, measured server-side and reported per evaluation), <b style="color:#cdd6e0">network latency</b> (transport round-trip = total − compute), and <b style="color:#cdd6e0">total deployment latency</b> (end-to-end round-trip). The engine is graded on compute alone; network and deployment time are not governance latency.`
     : `The engine did not separately report compute time on this run, so the figure shown is deployment latency, which includes network round-trip. It is not the engine's decision time.`;
   const engineSection = `<div class="sec"><span class="eyebrow">Runtime Governance Engine</span><h2>How fast and reliably the engine makes governance decisions.</h2>
     ${gradeCard}
@@ -974,8 +987,14 @@ function pipelineTimingMarkdown(stages, perf, replay, ctx, summary) {
   L.push(``, `## Runtime Governance Engine`, ``);
   if (g && g.grade) L.push(`**Runtime Governance grade: ${g.grade} — ${g.label}**  _(governance engine only — based on ${g.basis})_`, ``);
   else if (g && g.unmeasured) L.push(`**Runtime Governance grade: not separately measured**  _(${g.basis}; the engine grade is withheld rather than computed from network latency)_`, ``);
-  L.push(`- ${decisionLabel}: **${decisionDisp}**`);
-  L.push(`- Round-trip latency: ${roundTripDisp}`);
+  if (X.engineMeasured) {
+    L.push(`- Engine compute time: **${fmtMs(X.engineMs)}**`);
+    L.push(`- Network latency: ${X.networkMs != null ? fmtMs(X.networkMs) : "—"}`);
+    L.push(`- Total deployment latency: ${roundTripDisp}`);
+  } else {
+    L.push(`- ${decisionLabel}: **${decisionDisp}**`);
+    L.push(`- Total deployment latency: ${roundTripDisp}`);
+  }
   L.push(`- Throughput: ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
   L.push(`- Determinism: ${X.detPct != null ? X.detPct + "%" : "n/a"}`);
   L.push(`- Governance coverage: ${X.cov != null ? X.cov + "%" : "—"}`);
@@ -1065,15 +1084,39 @@ const SECTORS = {
   energy: { label: "Energy & Utilities", focus: ["operational-technology integrity", "grid/control actions", "safety-critical commands"], assets: ["OT/control systems", "safety systems", "customer data"], consequence: ["Unauthorised control action", "Safety-critical command issued", "Regulatory & safety investigation", "Service disruption", "Remediation & downtime"], exposure: "Severe — safety, regulatory and continuity-of-supply impact", workflows: "operational-technology and control workflows" },
   default: { label: "Enterprise", focus: ["unauthorised high-impact actions", "sensitive-data exposure", "privileged misuse"], assets: ["critical systems", "sensitive data", "privileged operations"], consequence: ["Unauthorised high-impact action", "Sensitive-data exposure", "Regulatory / contractual exposure", "Incident response", "Operational downtime"], exposure: "£1M–£10M+ per incident (impact, remediation, disclosure)", workflows: "automated agent workflows" },
 };
-function sectorProfile(industry, domains) {
+function sectorIdFor(industry, domains) {
   const key = `${industry || ""} ${(domains || []).join(" ")}`.toLowerCase();
-  if (/financ|bank|payment|capital|treasur/.test(key)) return SECTORS.finance;
-  if (/health|clinic|medical|patient|pharma|hospital/.test(key)) return SECTORS.healthcare;
-  if (/cyber|security|infosec|soc\b|mssp/.test(key)) return SECTORS.cybersecurity;
-  if (/defen|military|gov\b|classified|mod\b/.test(key)) return SECTORS.defence;
-  if (/insur|claim|underwrit|actuar/.test(key)) return SECTORS.insurance;
-  if (/energy|utilit|grid|power|oil|gas/.test(key)) return SECTORS.energy;
-  return SECTORS.default;
+  if (/financ|bank|payment|capital|treasur/.test(key)) return "finance";
+  if (/health|clinic|medical|patient|pharma|hospital/.test(key)) return "healthcare";
+  if (/cyber|security|infosec|soc\b|mssp/.test(key)) return "cybersecurity";
+  if (/defen|military|gov\b|classified|mod\b/.test(key)) return "defence";
+  if (/insur|claim|underwrit|actuar/.test(key)) return "insurance";
+  if (/energy|utilit|grid|power|oil|gas/.test(key)) return "energy";
+  return "default";
+}
+function sectorProfile(industry, domains) {
+  return SECTORS[sectorIdFor(industry, domains)] || SECTORS.default;
+}
+// Classify a grounded block (by its Ω domain / risk class / label) to a sector,
+// so cross-sector findings can be scoped out of a sector-specific engagement.
+// Returns "" when the block is generic/sector-neutral (always kept).
+function blockSectorId(b) {
+  const t = `${(b && b.omega_domain) || ""} ${(b && b.risk_class) || ""} ${(b && b.label) || ""}`.toLowerCase();
+  if (/health|patient|phi|clinic|prescrib|record[_ ]?modif|\behr\b|medic|dose|diagnos/.test(t)) return "healthcare";
+  if (/financ|payment|transfer|fund|treasur|wire|payout|ledger|\biban\b/.test(t)) return "finance";
+  if (/cyber|credential|privilege|exfil|ransom|\bshell\b|\bexec\b|intrusion|malware|lateral/.test(t)) return "cybersecurity";
+  if (/insur|claim|underwrit|policyholder|actuar/.test(t)) return "insurance";
+  if (/energy|grid|scada|turbine|substation|\bot\b/.test(t)) return "energy";
+  if (/defen|mission|classified|command/.test(t)) return "defence";
+  return "";
+}
+// Keep blocks that match the engagement sector or are sector-neutral. Drop
+// confidently cross-sector blocks (e.g. a healthcare Ω surfaced in a
+// cybersecurity engagement) so the report stays sector-consistent.
+function scopeBlocksToSector(blocks, sectorId) {
+  if (!sectorId || sectorId === "default") return { kept: blocks, dropped: 0 };
+  const kept = blocks.filter((b) => { const bs = blockSectorId(b); return !bs || bs === sectorId; });
+  return { kept, dropped: blocks.length - kept.length };
 }
 function executiveVerdict(s, blockedCount) {
   const uncovered = s.uncovered ?? 0;
@@ -1416,12 +1459,19 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   }
   const s = report.summary || {};
   const exposure = report.exposure || {};
-  const blocks = report.grounded_blocks || [];
   const att = report.attestation;
   const sector = sectorProfile(ctx.industry, ctx.domains);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  // Scope the engine's grounded blocks to the engagement sector so a (e.g.)
+  // cybersecurity report doesn't surface healthcare-domain findings. Cross-sector
+  // blocks are excluded and disclosed, not relabelled.
+  const allBlocks = report.grounded_blocks || [];
+  const scopedBlocks = scopeBlocksToSector(allBlocks, sectorId);
+  const blocks = scopedBlocks.kept;
+  const crossDomainDropped = scopedBlocks.dropped;
   const tools = toolModel(report, ctx.parsedTools || []);
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
-  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const blockedCount = replayBlockCount || blocks.length || s.verified_blocked_trajectories || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const conf = governanceConfidence(s, ev, replay);
@@ -1458,10 +1508,14 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
 
   // ---- items 2 & 3 · verified blocked trajectories with chains + explainers ----
   const headlineDiagram = blockedDiagramHtml(ctx, blocks);
+  const crossNote = crossDomainDropped > 0
+    ? `<p style="margin-top:10px;color:#8a929c">${crossDomainDropped} additional cross-domain finding${crossDomainDropped === 1 ? "" : "s"} outside the ${esc(sector.label)} scope ${crossDomainDropped === 1 ? "was" : "were"} also intercepted by the engine and are available on request; this report is scoped to the ${esc(sector.label)} engagement.</p>`
+    : "";
   const blockedSec = `
     <div class="sec"><span class="eyebrow">Verified blocked trajectories</span><h2>Catastrophic actions the engine intercepts — and why.</h2>
       ${headlineDiagram}
       ${blockedCasesHtml(ctx, blocks, sector)}
+      ${crossNote}
     </div>`;
 
   // ---- item 6 · per-trajectory replay summary ----
@@ -1560,13 +1614,14 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
   const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
   const s = (assess && assess.summary) || {};
   const att = assess && assess.attestation;
-  const blocks = (assess && assess.grounded_blocks) || [];
+  const sector = sectorProfile(ctx.industry, ctx.domains);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const blocks = scopeBlocksToSector((assess && assess.grounded_blocks) || [], sectorId).kept;
   const hashCount = blocks.filter((b) => b && b.hash).length;
   const rep = replay || { checked: 0, deterministic: 0 };
   const mono = "font-family:ui-monospace,Menlo,monospace";
-  const sector = sectorProfile(ctx.industry, ctx.domains);
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
-  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const blockedCount = replayBlockCount || blocks.length || s.verified_blocked_trajectories || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const conf = governanceConfidence(s, ev, rep);
@@ -1658,11 +1713,13 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const L = [`# Runtime Safety Audit — ${c.name}`, ``, `**Reference:** ${c.reference || "—"}  |  **Environment:** ${c.environment || "—"}  |  **Classification:** Confidential`];
   if (!report) { L.push(``, `> Engine assessment unavailable for this run. Coverage, exposure, and verified-blocked-trajectory sections come from the live Runtime Governance engine — set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run.`); return L.join("\n"); }
-  const s = report.summary || {}, ex = report.exposure || {}, blocks = report.grounded_blocks || [], att = report.attestation;
+  const s = report.summary || {}, ex = report.exposure || {}, att = report.attestation;
   const sector = sectorProfile(ctx.industry, ctx.domains);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const blocks = scopeBlocksToSector(report.grounded_blocks || [], sectorId).kept;
   const tools = toolModel(report, ctx.parsedTools || []);
   const replayBlocks = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK");
-  const blockedCount = replayBlocks.length || s.verified_blocked_trajectories || blocks.length || 0;
+  const blockedCount = replayBlocks.length || blocks.length || s.verified_blocked_trajectories || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const conf = governanceConfidence(s, ev, replay);
@@ -1756,9 +1813,10 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const s = (report && report.summary) || {};
   const sector = sectorProfile(ctx.industry, ctx.domains);
-  const blocks = (report && report.grounded_blocks) || [];
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const blocks = scopeBlocksToSector((report && report.grounded_blocks) || [], sectorId).kept;
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
-  const blockedCount = replayBlockCount || s.verified_blocked_trajectories || blocks.length || 0;
+  const blockedCount = replayBlockCount || blocks.length || s.verified_blocked_trajectories || 0;
   const ev = executiveVerdict(s, blockedCount);
   const rec = recommendEngagement(blockedCount, s, (ctx.replayResults || []).length, ev.risk);
   const rr = ctx.replayResults || [];
@@ -1961,6 +2019,10 @@ function selfTest() {
       manifest: Array.isArray(input.manifest) && input.manifest.length ? input.manifest : undefined,
       manifest_text: input.manifest_text,
       org: c.name, format: input.format || "generic",
+      // Scope grounding to the engagement sector so the engine (once updated)
+      // only surfaces in-sector Ω blocks. Harmlessly ignored by older engines.
+      industry: input.industry || undefined,
+      domains: (input.domains && input.domains.length) ? input.domains : undefined,
     });
     status.assess = !!report;
     stages.governance_eval = PERF.assessMs != null ? PERF.assessMs : 0; // measured /v1/assess round-trip
@@ -2156,8 +2218,14 @@ function selfTest() {
     console.log(`\n— Runtime Governance Engine —`);
     if (grade && grade.grade) console.log(`  ★ Runtime Governance grade:  ${grade.grade} (${grade.label})  [${grade.basis}]`);
     else if (grade && grade.unmeasured) console.log(`  Runtime Governance grade:  not separately measured (${grade.basis})`);
-    console.log(`  ${(decisionLbl + ":").padEnd(28)} ${decisionDisp}`);
-    console.log(`  Round-trip latency:          ${rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) : "—"}`);
+    if (rtm.engineMeasured) {
+      console.log(`  Engine compute time:         ${fmtMs(rtm.engineMs)}`);
+      console.log(`  Network latency:             ${rtm.networkMs != null ? fmtMs(rtm.networkMs) : "—"}`);
+      console.log(`  Total deployment latency:    ${rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) : "—"}`);
+    } else {
+      console.log(`  ${(decisionLbl + ":").padEnd(28)} ${decisionDisp}`);
+      console.log(`  Total deployment latency:    ${rtm.roundTripMs != null ? fmtMs(rtm.roundTripMs) : "—"}`);
+    }
     console.log(`  Throughput:                  ${perf ? fmtRate(perf.eps) + " evaluations/sec" : "—"}`);
     console.log(`  Determinism:                 ${rtm.detPct != null ? rtm.detPct + "%" : "n/a"}`);
     console.log(`  Governance coverage:         ${rtm.cov != null ? rtm.cov + "%" : "—"}`);
@@ -2196,6 +2264,12 @@ function selfTest() {
     governance_engine_compute_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
     round_trip_latency_ms: rtm.roundTripMs != null ? r3(rtm.roundTripMs) : null,
     engine_compute_measured: rtm.engineMeasured,
+    // three-way latency decomposition: engine compute + network = total deployment
+    latency_breakdown: {
+      engine_compute_ms: rtm.engineMeasured ? r3(rtm.engineMs) : null,
+      network_ms: rtm.networkMs != null ? r3(rtm.networkMs) : null,
+      total_deployment_ms: rtm.totalDeploymentMs != null ? r3(rtm.totalDeploymentMs) : null,
+    },
     transient_retries: PERF.transientRetries,
     throughput: {
       total_runtime_ms: r3(rtm.total),
