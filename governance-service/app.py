@@ -228,11 +228,33 @@ app = FastAPI(title="Morrison Runtime Governance", version=SERVICE_VERSION, life
 
 
 # ── Auth (optional) ──────────────────────────────────────────────────────
+def _tok_fp(v: str) -> str:
+    """Masked, one-way fingerprint of a token — length + sha256 prefix. Never
+    reveals the token itself; lets operators compare client vs server values."""
+    if not v:
+        return "none"
+    return f"len{len(v)}·{hashlib.sha256(v.encode()).hexdigest()[:10]}"
+
+
 async def require_token(authorization: str = Header(default="")) -> None:
     if not AUTH_TOKEN:
         return
     if authorization != f"Bearer {AUTH_TOKEN}":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        # Masked diagnostics: identify WHY the 401 occurs without logging or
+        # returning the raw token. Compare received_fp (client) vs expected_fp
+        # (this service) — differing fingerprints ⇒ token mismatch/rotation;
+        # scheme≠Bearer ⇒ header-format issue; header_present=false ⇒ no token.
+        scheme = authorization.split(" ", 1)[0] if authorization else "none"
+        received = authorization[7:] if authorization.startswith("Bearer ") else ""
+        log.warning(
+            "auth 401 on protected route: header_present=%s scheme=%s received=%s expected=%s"
+            % (bool(authorization), scheme, _tok_fp(received), _tok_fp(AUTH_TOKEN)))
+        raise HTTPException(status_code=401, detail={
+            "error": "unauthorized",
+            "hint": "Authorization must be exactly 'Bearer <GOVERNANCE_TOKEN>' matching the token configured on this service.",
+            "received": {"header_present": bool(authorization), "scheme": scheme, "token_fp": _tok_fp(received)},
+            "expected": {"scheme": "Bearer", "token_fp": _tok_fp(AUTH_TOKEN)},
+        })
 
 
 # ── Schemas ──────────────────────────────────────────────────────────────

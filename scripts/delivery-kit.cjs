@@ -170,6 +170,10 @@ function resolveChrome() {
 }
 const CHROME_NOT_FOUND = "No usable Chromium found (a snap stub doesn't count). Run:  npm run audit:chrome:install   (or set CHROME_BIN=/path/to/real/chrome)";
 const TOKEN = process.env.GOVERNANCE_TOKEN;
+// Masked, one-way token fingerprint (length + sha256 prefix) — never logs the
+// raw token; matches the engine's fingerprint so client vs server can compare.
+const crypto = require("node:crypto");
+const tokenFp = (t) => (t ? `len${String(t).length}·${crypto.createHash("sha256").update(String(t)).digest("hex").slice(0, 10)}` : "none");
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "customer";
 
@@ -295,9 +299,30 @@ async function preflight() {
   if (!a) { console.log("    UNREACHABLE ✗"); ok = false; }
   else for (const f of ["summary", "exposure", "tools", "grounded_blocks", "attestation"])
     console.log(`    - ${f}: ${a[f] != null ? "present ✓" : "MISSING ✗"}${f === "attestation" && a[f] == null ? "  (engine may omit on probe)" : ""}`);
+  console.log("• Authentication (/v1/evaluate is token-protected; /v1/assess is public)");
+  console.log(`    - GOVERNANCE_TOKEN here: ${TOKEN ? "set ✓ (" + tokenFp(TOKEN) + ")" : "NOT set ✗ — every /v1/evaluate will 401"}`);
+  console.log(`    - Header attached:       ${TOKEN ? "Authorization: Bearer <token> ✓" : "none (no token) ✗"}`);
   console.log("• /v1/evaluate");
   const e = await evaluate([{ tool: "probe_tool", args: {} }], ["finance"]);
-  if (!e || e.__error) { console.log(`    UNREACHABLE ✗ ${e && e.__error ? "(" + e.__error + ")" : ""}`); ok = false; }
+  if (e && e.__status === 401) {
+    ok = false;
+    let recvFp = null, expFp = null;
+    try { const d = (JSON.parse(e.__body || "{}").detail) || {}; recvFp = d.received && d.received.token_fp; expFp = d.expected && d.expected.token_fp; } catch { /* older engine returns plain string */ }
+    console.log(`    401 UNAUTHORIZED ✗ — header WAS ${TOKEN ? "sent" : "NOT sent (no token here)"}; the engine rejected the token.`);
+    console.log(`      client token fp:  ${tokenFp(TOKEN)}`);
+    if (recvFp || expFp) {
+      console.log(`      engine received:  ${recvFp || "?"}`);
+      console.log(`      engine expected:  ${expFp || "?"}`);
+      const diag = !TOKEN ? "NO GOVERNANCE_TOKEN is set here — set it to the engine's value."
+        : (recvFp && expFp && recvFp === expFp) ? "fingerprints MATCH — the engine may be running older code with a different token, or a proxy is altering the header."
+        : "MISMATCH: the token here differs from the engine's GOVERNANCE_TOKEN (rotated / stale / typo).";
+      console.log(`      → ${diag}`);
+    } else {
+      console.log(`      → The engine is older (plain 401 body). It means the token here does not match the engine's GOVERNANCE_TOKEN.`);
+    }
+    console.log(`      Fix: set the SAME GOVERNANCE_TOKEN in .env.delivery AND Railway → Variables → GOVERNANCE_TOKEN, then redeploy. Compare fingerprints in the Railway logs.`);
+  }
+  else if (!e || e.__error) { console.log(`    UNREACHABLE ✗ ${e && e.__error ? "(" + e.__error + ")" : ""}`); ok = false; }
   else {
     // omega_domain is conditional: the engine only returns it when a trajectory
     // intersects an Ω domain (a BLOCK). The benign preflight probe doesn't, so
@@ -2087,7 +2112,11 @@ function selfTest() {
       // surface the engine's structured error (error_id/type) when present
       let detail = bodySnippet(f.__body) || "(empty)";
       try { const j = JSON.parse(f.__body || "{}"); if (j && j.detail) detail = typeof j.detail === "object" ? JSON.stringify(j.detail) : String(j.detail); } catch { /* keep snippet */ }
-      console.warn(`  ! /v1/evaluate: no verdicts after retries. First failure: ${st}. Body:\n${f.__body != null ? f.__body : "(none)"}\n`);
+      // 401 is an auth-config problem, not an engine fault — give a masked, actionable message.
+      if (f.__status === 401) {
+        detail = `Unauthorized — /v1/evaluate requires a matching Bearer token. Token here: ${tokenFp(TOKEN)}. Set the SAME GOVERNANCE_TOKEN in .env.delivery and on the engine (Railway → Variables), then redeploy. Run 'npm run audit:check' for a fingerprint comparison.`;
+      }
+      console.warn(`  ! /v1/evaluate: no verdicts after retries. First failure: ${st}. Token(client): ${tokenFp(TOKEN)}. Body:\n${f.__body != null ? f.__body : "(none)"}\n`);
       emitCheck(false, `/v1/evaluate ${st} — ${detail}`);
     } else if (failures.length) {
       const ids = failures.map((x) => x.index).join(", ");
