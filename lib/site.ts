@@ -57,6 +57,7 @@ export const NAV_MENU = [
     links: [
       { href: "/enterprise-pathways", label: "Enterprise pathways & pricing" },
       { href: "/request-audit", label: "Request an audit" },
+      { href: "/enterprise-runtime-governance-assessment", label: "Enterprise Runtime Governance Assessment™" },
       { href: "/pilot", label: "Pilot scope of work" },
       { href: "/pay", label: "Payments & invoicing" },
       { href: "/book", label: "Book a consultation" },

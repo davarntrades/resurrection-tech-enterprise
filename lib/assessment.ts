@@ -175,6 +175,8 @@ export interface AssessmentData {
   incidents: string;
   // Section 5 — Multi-agent environment
   numAgents: string;
+  agentCount?: string;     // optional exact agent count → sharper narrative ("14 agents")
+  businessUnits?: string;  // optional number of business units the agents span
   sharedMemory: YesNo;
   sharedTools: YesNo;
   autonomousCoordination: YesNo;
@@ -200,7 +202,7 @@ export interface Scores {
 export type Band = "Low" | "Moderate" | "High" | "Critical";
 
 export type PathwayId =
-  | "workshop" | "audit" | "pilot" | "integration"
+  | "workshop" | "audit" | "enterprise_assessment" | "pilot" | "integration"
   | "managed_partner" | "embedded_licensing" | "distribution_partner";
 
 /** Partner / channel / licensing pathways — flagged separately in reporting. */
@@ -219,6 +221,7 @@ export interface Pathway {
 
 export interface Recommendation extends Pathway {
   why: string[];
+  summary?: string; // personalised "Based on your responses…" narrative
 }
 
 export const PATHWAYS: Record<PathwayId, Pathway> = {
@@ -235,6 +238,13 @@ export const PATHWAYS: Record<PathwayId, Pathway> = {
     tagline: "A catastrophic-trajectory exposure assessment of your live agent.",
     ctaLabel: "Request the Audit",
     ctaHref: "/request-audit",
+  },
+  enterprise_assessment: {
+    id: "enterprise_assessment",
+    title: "Enterprise Runtime Governance Assessment™",
+    tagline: "Multi-agent, cross-system governance review with board-ready executive evidence.",
+    ctaLabel: "Explore the Enterprise Assessment",
+    ctaHref: "/enterprise-runtime-governance-assessment",
   },
   pilot: {
     id: "pilot",
@@ -299,6 +309,87 @@ const TOOL_WEIGHT: Record<string, number> = {
   email_systems: 8, internal_documents: 6,
 };
 
+// ── Personalised recommendation narrative ──────────────────────────────────
+// Builds a natural-language summary that reflects the respondent's own answers,
+// ending in the recommended pathway — e.g. "Based on your responses, your
+// environment runs 14 autonomous agents across 3 business units, already in
+// production with shared tool execution. We recommend the Enterprise Runtime
+// Governance Assessment™." Works for every pathway class. Never fabricates:
+// each clause appears only when the underlying answer is present.
+const intToken = (v: string | undefined): number | null => {
+  const n = parseInt(String(v ?? "").replace(/[^0-9]/g, ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+const joinClauses = (items: string[]): string => {
+  const xs = items.filter(Boolean);
+  if (xs.length <= 1) return xs[0] ?? "";
+  return `${xs.slice(0, -1).join(", ")}, and ${xs[xs.length - 1]}`;
+};
+function agentScalePhrase(d: AssessmentData): string {
+  const autonomous = yes(d.canTakeActions) ? "autonomous " : "";
+  const exact = intToken(d.agentCount);
+  if (exact) return `${exact} ${autonomous}${exact === 1 ? "agent" : "agents"}`;
+  switch (d.numAgents) {
+    case "20+": return `more than 20 ${autonomous}agents`;
+    case "6–20": return `between 6 and 20 ${autonomous}agents`;
+    case "2–5": return `a small fleet of ${autonomous}agents`;
+    case "1": return `a single ${autonomous}agent`;
+    default: return yes(d.agentsDeployed) || yes(d.multipleAgents) ? `${autonomous}agents`.trim() : "";
+  }
+}
+function sensitivePhrase(d: AssessmentData): string {
+  const names = (d.toolAccess ?? []).filter((t) => SENSITIVE.includes(t))
+    .map((t) => TOOL_ACCESS.find((o) => o.value === t)?.label.toLowerCase() ?? t);
+  if (!names.length) return "";
+  if (names.length === 1) return `access to ${names[0]}`;
+  if (names.length === 2) return `access to ${names[0]} and ${names[1]}`;
+  return `access to ${names[0]}, ${names[1]}, and other sensitive systems`;
+}
+export function narrative(d: AssessmentData, _s: Scores, rec: Pathway): string {
+  // Partner / channel / licensing framing
+  if (isPartnerPathway(rec.id)) {
+    const ptype = PARTNER_TYPES.find((o) => o.value === d.partnerType)?.label.toLowerCase();
+    const reach = CUSTOMER_REACH.find((o) => o.value === d.customerReach)?.label;
+    const who = ptype ? ` as ${/^[aeiou]/.test(ptype) ? "an" : "a"} ${ptype}` : "";
+    const reachClause = reach ? `, serving ${reach.toLowerCase()}` : "";
+    const motion = d.intent === "embed_product"
+      ? "embed Runtime Governance inside your own product or platform"
+      : "bring Runtime Governance to your own customers";
+    return `Based on your responses, you're looking to ${motion}${who}${reachClause}. We recommend the ${rec.title}.`;
+  }
+
+  // Internal deployment framing
+  const industry = d.industry && d.industry !== "Other" ? `${d.industry.toLowerCase()} ` : "";
+  const scale = agentScalePhrase(d);
+  const units = intToken(d.businessUnits);
+  const unitsClause = units && units > 1 ? ` across ${units} business units` : "";
+  const lead = scale
+    ? `your ${industry}environment runs ${scale}${unitsClause}`
+    : yes(d.agentsDeployed)
+      ? `your ${industry}environment runs autonomous agents${unitsClause}`
+      : `you're preparing to deploy autonomous agents in your ${industry}environment`;
+
+  const prod = yes(d.inProduction) ? ", already in production" : yes(d.agentsDeployed) ? ", not yet in production" : "";
+
+  const features: string[] = [];
+  if (yes(d.sharedTools)) features.push("shared tool execution");
+  if (yes(d.autonomousCoordination)) features.push("autonomous multi-agent coordination");
+  if (yes(d.crossAgentComm)) features.push("cross-agent communication");
+  if (yes(d.sharedMemory)) features.push("shared memory");
+  if (yes(d.customerFacing)) features.push("customer-facing operation");
+  const sens = sensitivePhrase(d);
+  if (sens) features.push(sens);
+  const withClause = features.length ? ` with ${joinClauses(features)}` : "";
+
+  const regulated = REGULATED_INDUSTRY.includes(d.industry) ||
+    (d.compliance ?? []).some((c) => HARD_COMPLIANCE.includes(c));
+  const regClause = regulated ? " Operating in a regulated context, reachable Ω exposure must be measured and evidenced." : "";
+
+  return `Based on your responses, ${lead}${prod}${withClause}.${regClause} We recommend the ${rec.title}.`;
+}
+const withNarrative = (d: AssessmentData, s: Scores, rec: Recommendation): Recommendation =>
+  ({ ...rec, summary: narrative(d, s, rec) });
+
 export function score(d: AssessmentData): Scores {
   const tools = d.toolAccess ?? [];
   const controls = d.controls ?? [];
@@ -351,35 +442,35 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
   // scoring logic below. An empty/other intent falls through unchanged, keeping
   // Workshop / Audit / Pilot / Integration routing exactly as before.
   if (d.intent === "offer_clients") {
-    return { ...PATHWAYS.managed_partner, why: [
+    return withNarrative(d, s, { ...PATHWAYS.managed_partner, why: [
       "You indicated that you may want to offer Runtime Governance to your own clients or customers.",
       "This is a partnership, channel, or embedded-governance opportunity rather than a single internal deployment.",
       "The next step is to understand your customer base, existing service model, deployment capabilities, and partnership structure.",
-    ] };
+    ] });
   }
   if (d.intent === "embed_product") {
-    return { ...PATHWAYS.embedded_licensing, why: [
+    return withNarrative(d, s, { ...PATHWAYS.embedded_licensing, why: [
       "You indicated interest in embedding Runtime Governance into an existing product or platform.",
       "This may require licensing, technical integration, usage boundaries, support terms, and deployment architecture review.",
       "The next step is a licensing and technical-fit discussion.",
-    ] };
+    ] });
   }
   if (d.intent === "partnership") {
     // Managed-service / security / compliance firms fit the Managed Governance
     // Partner motion; everyone else fits the Strategic Alliance motion.
     const managed = ["msp_mssp", "cybersecurity", "compliance_grc"].includes(d.partnerType);
     if (managed) {
-      return { ...PATHWAYS.managed_partner, why: [
+      return withNarrative(d, s, { ...PATHWAYS.managed_partner, why: [
         "You indicated you are exploring a managed-service, MSP/MSSP, security, or compliance channel relationship.",
         "Your profile fits packaging Runtime Governance into your existing security, compliance, or assurance services.",
         "The next step is to understand your customer base, service model, deployment capabilities, and partnership structure.",
-      ] };
+      ] });
     }
-    return { ...PATHWAYS.distribution_partner, why: [
+    return withNarrative(d, s, { ...PATHWAYS.distribution_partner, why: [
       "You indicated you are exploring a strategic partnership, reseller, or channel relationship.",
       "This is a market-access and qualified-introduction motion rather than a single internal deployment.",
       "The next step is to align on target accounts, deal structure, and partnership terms.",
-    ] };
+    ] });
   }
 
   const tools = d.toolAccess ?? [];
@@ -405,11 +496,25 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
     if (sensitive) why.push("Sensitive tool access makes a bounded, observable pilot the right next step.");
     why.push("The pilot runs governance against your real trajectories with attested verdicts.");
   } else if ((production && actionsTools && sensitive && regulated) || s.exposure >= 70) {
-    id = "audit";
-    if (production) why.push("Agents are in production with tool access and the ability to take actions.");
-    if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
-    if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced.");
-    if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — a 48-hour audit quantifies it fast.`);
+    // High-complexity / multi-agent / cross-system estates outgrow the fixed,
+    // single-environment 48-hour Audit — route them to the Enterprise Assessment.
+    const enterpriseScale =
+      complexMulti || s.complexity >= 70 || ["6–20", "20+"].includes(d.numAgents) ||
+      yes(d.crossAgentComm) || d.companySize === "1000+";
+    if (enterpriseScale) {
+      id = "enterprise_assessment";
+      if (complexMulti) why.push("You operate a multi-agent environment, so exposure must be mapped across agents and the systems they touch — not a single environment.");
+      if (production) why.push("Agents are in production with tool access and the ability to take actions.");
+      if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
+      if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced for the board.");
+      why.push("The Enterprise Runtime Governance Assessment maps reachable Ω across the estate and delivers board-ready evidence, a governance roadmap, and an integration blueprint.");
+    } else {
+      id = "audit";
+      if (production) why.push("Agents are in production with tool access and the ability to take actions.");
+      if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
+      if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced.");
+      if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — a 48-hour audit quantifies it fast.`);
+    }
   } else {
     id = "workshop";
     why.push("You are early in the journey, so structured scoping comes before a full audit, pilot, or integration.");
@@ -418,7 +523,7 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
     why.push("The workshop is optional — if your answers already give us enough, we can move straight to an Audit, Pilot, or Integration discussion.");
   }
 
-  return { ...PATHWAYS[id], why };
+  return withNarrative(d, s, { ...PATHWAYS[id], why });
 }
 
 /** Plaintext, CRM-paste-friendly export (Notion / HubSpot / Salesforce / Airtable). */
@@ -448,6 +553,7 @@ export function crmSummary(
     ...partnerBlock,
     `— RECOMMENDED PATHWAY —`,
     L("Recommendation", rec.title),
+    L("Summary", rec.summary ?? ""),
     L("Rationale", rec.why.join(" ")),
     ``,
     `— ENGAGEMENT INTENT —`,

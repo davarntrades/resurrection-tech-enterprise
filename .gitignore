@@ -58,3 +58,12 @@ __pycache__/
 
 # Delivery-kit output (customer data — do not commit)
 /deliverables/
+
+# Delivery-kit local config (secrets)
+.env.delivery
+
+# Analyst Console local data (private client records)
+/console/data/
+
+# Locally downloaded browser (@puppeteer/browsers / playwright) — never commit
+/chrome/

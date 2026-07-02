@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import time
+import traceback
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
@@ -226,11 +228,33 @@ app = FastAPI(title="Morrison Runtime Governance", version=SERVICE_VERSION, life
 
 
 # ── Auth (optional) ──────────────────────────────────────────────────────
+def _tok_fp(v: str) -> str:
+    """Masked, one-way fingerprint of a token — length + sha256 prefix. Never
+    reveals the token itself; lets operators compare client vs server values."""
+    if not v:
+        return "none"
+    return f"len{len(v)}·{hashlib.sha256(v.encode()).hexdigest()[:10]}"
+
+
 async def require_token(authorization: str = Header(default="")) -> None:
     if not AUTH_TOKEN:
         return
     if authorization != f"Bearer {AUTH_TOKEN}":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        # Masked diagnostics: identify WHY the 401 occurs without logging or
+        # returning the raw token. Compare received_fp (client) vs expected_fp
+        # (this service) — differing fingerprints ⇒ token mismatch/rotation;
+        # scheme≠Bearer ⇒ header-format issue; header_present=false ⇒ no token.
+        scheme = authorization.split(" ", 1)[0] if authorization else "none"
+        received = authorization[7:] if authorization.startswith("Bearer ") else ""
+        log.warning(
+            "auth 401 on protected route: header_present=%s scheme=%s received=%s expected=%s"
+            % (bool(authorization), scheme, _tok_fp(received), _tok_fp(AUTH_TOKEN)))
+        raise HTTPException(status_code=401, detail={
+            "error": "unauthorized",
+            "hint": "Authorization must be exactly 'Bearer <GOVERNANCE_TOKEN>' matching the token configured on this service.",
+            "received": {"header_present": bool(authorization), "scheme": scheme, "token_fp": _tok_fp(received)},
+            "expected": {"scheme": "Bearer", "token_fp": _tok_fp(AUTH_TOKEN)},
+        })
 
 
 # ── Schemas ──────────────────────────────────────────────────────────────
@@ -258,6 +282,10 @@ class AssessRequest(BaseModel):
     manifest_text: Optional[str] = Field(default=None, max_length=MAX_ASSESS_BYTES)
     org: Optional[str] = Field(default=None, max_length=120)
     format: Optional[str] = Field(default=None, max_length=20)
+    # Optional engagement sector scoping — keeps grounded blocks sector-consistent
+    # (e.g. a cybersecurity engagement won't surface healthcare-domain blocks).
+    domains: Optional[list[str]] = None
+    industry: Optional[str] = Field(default=None, max_length=60)
 
 
 # ── Core eval with timeout protection ───────────────────────────────────
@@ -290,7 +318,52 @@ def _serialize(result: GovernanceResult, steps: list[dict]) -> dict:
     return body
 
 
+# ── Structured error reporting ─────────────────────────────────────────────
+# Full traceback is always written server-side and correlated by error_id.
+# The client receives a structured object (never a bare 500 string) so an
+# operator can match it to the log line; the traceback is included in the
+# response only when GOVERNANCE_DEBUG_ERRORS is enabled (internal diagnostics).
+DEBUG_ERRORS = os.getenv("GOVERNANCE_DEBUG_ERRORS", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _eval_error(exc: Exception, where: str) -> HTTPException:
+    error_id = uuid.uuid4().hex[:12]
+    # logs the real Python traceback (correlated by error_id) — not a generic string
+    log.exception(f"{where} failed (error_id={error_id}, type={exc.__class__.__name__})")
+    detail: dict[str, Any] = {
+        "error": "governance_evaluation_error",
+        "message": "The governance engine could not evaluate this trajectory.",
+        "where": where,
+        "type": exc.__class__.__name__,
+        "error_id": error_id,
+    }
+    if DEBUG_ERRORS:
+        detail["exception"] = str(exc)[:500]
+        detail["traceback"] = traceback.format_exc().splitlines()[-15:]
+    return HTTPException(status_code=500, detail=detail)
+
+
 # ── Endpoints ────────────────────────────────────────────────────────────
+def _deployment_identity() -> dict:
+    """Prove exactly which Railway service + deployment is serving this URL,
+    read from the running container's own environment. No secrets — Railway's
+    own build/deploy metadata. Absent keys mean 'not running on Railway'."""
+    g = os.getenv
+    return {
+        "on_railway": bool(g("RAILWAY_SERVICE_ID") or g("RAILWAY_DEPLOYMENT_ID")),
+        "project": g("RAILWAY_PROJECT_NAME"),
+        "environment": g("RAILWAY_ENVIRONMENT_NAME"),
+        "service_name": g("RAILWAY_SERVICE_NAME"),
+        "service_id": g("RAILWAY_SERVICE_ID"),
+        "deployment_id": g("RAILWAY_DEPLOYMENT_ID"),
+        "replica_id": g("RAILWAY_REPLICA_ID"),
+        "git_commit": g("RAILWAY_GIT_COMMIT_SHA"),
+        "git_branch": g("RAILWAY_GIT_BRANCH"),
+        "git_repo": g("RAILWAY_GIT_REPO_NAME"),
+        "public_domain": g("RAILWAY_PUBLIC_DOMAIN"),
+    }
+
+
 @app.get("/health")
 def health() -> dict:
     default = _layer_for(None, HORIZON)
@@ -306,6 +379,16 @@ def health() -> dict:
         "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
         "extended_rules": sorted(EXTENDED_RULES),
         "attestation": _attestation(default, HORIZON),
+        # Which container is serving this URL, and the fingerprint of the token
+        # THIS running process loaded — so a client can prove/compare without the
+        # secret ever leaving the box. token_fp is one-way (len + sha256 prefix).
+        "deployment": _deployment_identity(),
+        "auth": {
+            "evaluate_protected": bool(AUTH_TOKEN),
+            "governance_token_configured": bool(AUTH_TOKEN),
+            "governance_token_fp": _tok_fp(AUTH_TOKEN),
+            "token_source_env": "GOVERNANCE_TOKEN",
+        },
     }
 
 
@@ -315,14 +398,18 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     steps = [s.model_dump() for s in req.trajectory]
     try:
+        c0 = time.perf_counter()
         result = await _run(layer, "evaluate_plan", steps)
+        compute_ms = round((time.perf_counter() - c0) * 1000, 3)  # pure engine compute
     except HTTPException:
         raise
-    except Exception as exc:  # never leak a stack trace to the client
-        log.exception("evaluate_plan failed")
-        raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
+    except Exception as exc:  # structured error; full traceback logged server-side
+        raise _eval_error(exc, "evaluate_plan")
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    # Engine compute time (excludes HTTP/network/transport). Lets the client grade
+    # the governance engine on its true compute, not deployment round-trip.
+    body["engine_compute_ms"] = compute_ms
     _log_eval_metrics("/v1/evaluate", body, len(steps),
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
@@ -334,14 +421,16 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     call = {"tool": req.tool, "args": req.args}
     try:
+        c0 = time.perf_counter()
         result = await _run(layer, "evaluate", call)
+        compute_ms = round((time.perf_counter() - c0) * 1000, 3)
     except HTTPException:
         raise
     except Exception as exc:
-        log.exception("evaluate failed")
-        raise HTTPException(status_code=500, detail="Governance evaluation error") from exc
+        raise _eval_error(exc, "evaluate")
     body = _serialize(result, [call])
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    body["engine_compute_ms"] = compute_ms
     _log_eval_metrics("/v1/evaluate-step", body, 1,
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
@@ -374,9 +463,10 @@ async def assess_endpoint(req: AssessRequest, request: Request) -> JSONResponse:
     if len(tools) > MAX_ASSESS_TOOLS:
         raise HTTPException(status_code=413, detail=f"Too many tools (>{MAX_ASSESS_TOOLS}).")
     try:
+        scope = _assess.scope_sector(req.domains, req.industry)
         report = await asyncio.wait_for(
             asyncio.get_running_loop().run_in_executor(
-                None, lambda: _assess.assess(payload, catalog, layer, req.format or "", req.org)),
+                None, lambda: _assess.assess(payload, catalog, layer, req.format or "", req.org, scope)),
             EVAL_TIMEOUT_S * 4)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Assessment timed out")

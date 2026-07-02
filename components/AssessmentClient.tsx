@@ -21,7 +21,7 @@ const EMPTY: AssessmentData = {
   canTakeActions: "", multipleAgents: "", inProduction: "",
   toolAccess: [],
   controls: [], unsafePrevention: "", incidents: "",
-  numAgents: "", sharedMemory: "", sharedTools: "", autonomousCoordination: "", crossAgentComm: "",
+  numAgents: "", agentCount: "", businessUnits: "", sharedMemory: "", sharedTools: "", autonomousCoordination: "", crossAgentComm: "",
   compliance: [],
   successCriteria: [], successNotes: "",
   referralCode: "", referralSource: "",
@@ -243,6 +243,8 @@ function ResultView({ result, onRestart }: { result: { recommendation: Recommend
       <h2 className="rgq-result-title">{r.title}</h2>
       <p className="rgq-result-tagline">{r.tagline}</p>
 
+      {r.summary && <p className="rgq-result-summary">{r.summary}</p>}
+
       <div className="rgq-why">
         <span className="rgq-why-k">Why this pathway</span>
         <ul>{r.why.map((w, i) => <li key={i}>{w}</li>)}</ul>
@@ -431,6 +433,16 @@ function MultiAgentStep({ data, set }: { data: AssessmentData; set: SetFn }) {
           {NUM_AGENTS.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </Field>
+      <div className="rgq-yesno-grid">
+        <Field label="Exact agent count" hint="Optional — sharpens your recommendation">
+          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 14"
+            value={data.agentCount ?? ""} onChange={(e) => set("agentCount", e.target.value)} />
+        </Field>
+        <Field label="Business units involved" hint="Optional — how many units the agents span">
+          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 3"
+            value={data.businessUnits ?? ""} onChange={(e) => set("businessUnits", e.target.value)} />
+        </Field>
+      </div>
       <div className="rgq-yesno-grid">
         <YesNoField label="Shared memory?" value={data.sharedMemory} onChange={(v) => set("sharedMemory", v)} />
         <YesNoField label="Shared tools?" value={data.sharedTools} onChange={(v) => set("sharedTools", v)} />

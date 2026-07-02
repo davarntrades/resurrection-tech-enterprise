@@ -38,6 +38,8 @@ export const assessmentSchema = z.object({
 
   // Section 5 — Multi-agent environment
   numAgents: z.string().trim().max(20).optional().default(""),
+  agentCount: z.string().trim().max(12).optional().default(""),
+  businessUnits: z.string().trim().max(12).optional().default(""),
   sharedMemory: yesNo,
   sharedTools: yesNo,
   autonomousCoordination: yesNo,
