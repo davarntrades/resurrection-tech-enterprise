@@ -290,6 +290,72 @@ const toVerdict = (v) => {
   return "BLOCK"; // BLOCK / NO_VALID_SOLUTION / unknown → treat as blocked
 };
 
+// ---- auth-verify: PROVE which container serves the URL + compare token fps ---
+// Hits the public /health of the exact URL the client uses, prints the running
+// container's Railway identity + the fingerprint of the GOVERNANCE_TOKEN that
+// process actually loaded, and compares it to the client's token fingerprint.
+async function authVerify() {
+  console.log(`\nResurrection Tech — Auth Verify\n  url:    ${GOV}\n  client: GOVERNANCE_TOKEN ${TOKEN ? "set (" + tokenFp(TOKEN) + ")" : "NOT set"}\n`);
+  let res, text;
+  try {
+    res = await fetch(`${GOV}/health`, { signal: AbortSignal.timeout(15000) });
+    text = await res.text();
+  } catch (e) {
+    console.log(`✗ Could not reach ${GOV}/health — ${e.message}\n  The URL is unreachable from here (network/DNS/proxy). Confirm GOVERNANCE_URL and try from the Codespace.`);
+    return 1;
+  }
+  let h = null; try { h = JSON.parse(text); } catch { /* non-JSON */ }
+  console.log(`• GET /health → HTTP ${res.status}${h ? "" : " (non-JSON body)"}`);
+  if (!h) { console.log(`  body: ${bodySnippet(text)}`); return 1; }
+
+  const dep = h.deployment || {};
+  console.log(`\n— Which container is serving ${GOV} —`);
+  if (dep.on_railway) {
+    console.log(`  Railway service:   ${dep.service_name || "?"}  (id ${dep.service_id || "?"})`);
+    console.log(`  Environment:       ${dep.environment || "?"} · project ${dep.project || "?"}`);
+    console.log(`  Deployment id:     ${dep.deployment_id || "?"}${dep.replica_id ? " · replica " + dep.replica_id : ""}`);
+    console.log(`  Git:               ${dep.git_branch || "?"} @ ${(dep.git_commit || "?").slice(0, 12)}${dep.git_repo ? " (" + dep.git_repo + ")" : ""}`);
+    console.log(`  Public domain:     ${dep.public_domain || "?"}`);
+  } else {
+    console.log(`  (Railway identity not present — the engine build predates this diagnostic, OR it isn't running on Railway.)`);
+  }
+  console.log(`  Engine commit:     ${h.engine_commit || "?"} · service_version ${h.service_version || "?"}`);
+
+  const auth = h.auth || {};
+  const engineFp = auth.governance_token_fp;
+  const engineConfigured = auth.governance_token_configured;
+  console.log(`\n— Token comparison (fingerprints are one-way; no secret is exposed) —`);
+  console.log(`  client GOVERNANCE_TOKEN:  ${tokenFp(TOKEN)}`);
+  if (engineFp === undefined) {
+    console.log(`  engine GOVERNANCE_TOKEN:  (not reported — engine build predates this diagnostic; redeploy the engine)`);
+    console.log(`\n  → Cannot compare yet. Redeploy the engine so /health reports auth.governance_token_fp, then re-run.`);
+    return 1;
+  }
+  console.log(`  engine GOVERNANCE_TOKEN:  ${engineFp}${engineConfigured ? "" : "  (NOT CONFIGURED on the engine)"}`);
+
+  console.log("");
+  if (!engineConfigured) {
+    console.log(`  → The RUNNING engine has NO GOVERNANCE_TOKEN set, so require_token() lets every request through.`);
+    console.log(`    If you still get 401, a DIFFERENT deployment is serving this URL than the one you configured.`);
+    console.log(`    Fix: in Railway, confirm the service above is the one you edited, set GOVERNANCE_TOKEN on IT, and redeploy.`);
+    return 1;
+  }
+  if (!TOKEN) {
+    console.log(`  → MISMATCH: the engine requires a token but the client has none.`);
+    console.log(`    Fix: set GOVERNANCE_TOKEN in .env.delivery to the value whose fingerprint is ${engineFp}.`);
+    return 1;
+  }
+  if (tokenFp(TOKEN) === engineFp) {
+    console.log(`  ✓ MATCH — the client and the running engine share the same GOVERNANCE_TOKEN.`);
+    console.log(`    If /v1/evaluate still 401s, a proxy is altering the Authorization header — run 'npm run audit:check' to see the header the engine actually received.`);
+    return 0;
+  }
+  console.log(`  → MISMATCH — the client token (${tokenFp(TOKEN)}) ≠ the running engine token (${engineFp}).`);
+  console.log(`    EXACTLY what is wrong: the GOVERNANCE_TOKEN variable on the Railway ${dep.on_railway ? `service "${dep.service_name}" (${dep.environment} env, deployment ${dep.deployment_id})` : "service"} above holds a DIFFERENT value than your .env.delivery.`);
+  console.log(`    Fix: set them equal — update whichever is stale (Railway → Variables → GOVERNANCE_TOKEN, then redeploy; or .env.delivery), and re-run --auth-verify to confirm MATCH.`);
+  return 1;
+}
+
 // ---- preflight: one-command connectivity + field check ----------------------
 async function preflight() {
   console.log(`\nResurrection Tech — Delivery Kit · PREFLIGHT\n  engine: ${GOV}\n`);
@@ -1987,6 +2053,7 @@ function selfTest() {
   if (process.argv.includes("--print-chrome")) { const c = resolveChrome(); if (c) { process.stdout.write(c); process.exit(0); } process.exit(1); }
   if (process.argv.includes("--selftest")) { process.exit(selfTest()); }
   if (process.argv.includes("--check-chrome")) { process.exit(checkChrome() ? 0 : 1); }
+  if (process.argv.includes("--auth-verify")) { process.exit(await authVerify()); }
   if (process.argv.includes("--check")) { await preflight(); return; }
 
   const flag = (n) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : undefined; };

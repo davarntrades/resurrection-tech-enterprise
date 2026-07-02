@@ -344,6 +344,26 @@ def _eval_error(exc: Exception, where: str) -> HTTPException:
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
+def _deployment_identity() -> dict:
+    """Prove exactly which Railway service + deployment is serving this URL,
+    read from the running container's own environment. No secrets — Railway's
+    own build/deploy metadata. Absent keys mean 'not running on Railway'."""
+    g = os.getenv
+    return {
+        "on_railway": bool(g("RAILWAY_SERVICE_ID") or g("RAILWAY_DEPLOYMENT_ID")),
+        "project": g("RAILWAY_PROJECT_NAME"),
+        "environment": g("RAILWAY_ENVIRONMENT_NAME"),
+        "service_name": g("RAILWAY_SERVICE_NAME"),
+        "service_id": g("RAILWAY_SERVICE_ID"),
+        "deployment_id": g("RAILWAY_DEPLOYMENT_ID"),
+        "replica_id": g("RAILWAY_REPLICA_ID"),
+        "git_commit": g("RAILWAY_GIT_COMMIT_SHA"),
+        "git_branch": g("RAILWAY_GIT_BRANCH"),
+        "git_repo": g("RAILWAY_GIT_REPO_NAME"),
+        "public_domain": g("RAILWAY_PUBLIC_DOMAIN"),
+    }
+
+
 @app.get("/health")
 def health() -> dict:
     default = _layer_for(None, HORIZON)
@@ -359,6 +379,16 @@ def health() -> dict:
         "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
         "extended_rules": sorted(EXTENDED_RULES),
         "attestation": _attestation(default, HORIZON),
+        # Which container is serving this URL, and the fingerprint of the token
+        # THIS running process loaded — so a client can prove/compare without the
+        # secret ever leaving the box. token_fp is one-way (len + sha256 prefix).
+        "deployment": _deployment_identity(),
+        "auth": {
+            "evaluate_protected": bool(AUTH_TOKEN),
+            "governance_token_configured": bool(AUTH_TOKEN),
+            "governance_token_fp": _tok_fp(AUTH_TOKEN),
+            "token_source_env": "GOVERNANCE_TOKEN",
+        },
     }
 
 

@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "audit": "node scripts/delivery-kit.cjs",
     "audit:check": "node scripts/delivery-kit.cjs --check",
+    "audit:auth": "node scripts/delivery-kit.cjs --auth-verify",
     "audit:chrome": "node scripts/delivery-kit.cjs --check-chrome",
     "audit:chrome:install": "bash scripts/install-chromium.sh",
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
