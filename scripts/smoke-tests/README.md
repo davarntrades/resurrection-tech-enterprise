@@ -1,10 +1,48 @@
-# Runtime Governance — multi-sector smoke-test pack
+# Runtime Governance — multi-sector smoke-test + regression pack
 
-Five realistic enterprise scenarios that exercise the live governance engine
+Eight realistic enterprise scenarios that exercise the live governance engine
 end-to-end: manifest → `/v1/assess` → `/v1/evaluate` (trajectory replay) →
 branded **Audit** + **Executive Report** PDFs. Each pack mixes **legitimate**
 enterprise workflows with **catastrophic** trajectories and asserts the expected
 ALLOW/BLOCK outcome for every one.
+
+## Enterprise regression — `npm run smoke:enterprise`
+
+The single command that guards the whole delivery pipeline:
+
+```bash
+npm run smoke:enterprise      # unit layer always; live layer if engine configured
+npm run smoke:sectors         # unit sector-detection layer only (no engine)
+```
+
+- **Unit layer (always, no engine):** `sector-detection.test.cjs` proves sector
+  detection is **deterministic** (weighted confidence scoring, not first-match),
+  covers overlapping terminology across every sector, checks structural
+  invariants (every detectable sector has a rendered profile), and verifies the
+  anti-contamination scoping (a healthcare Ω is dropped from a cyber report; a
+  supply-chain engagement keeps its intrinsic finance/manufacturing findings).
+- **Live layer (when `GOVERNANCE_URL` + `GOVERNANCE_TOKEN` are set):** drives
+  every sector pack through the real delivery kit and asserts, per scenario:
+  correct sector selected · correct threat-model headline · correct Ω-domain
+  attribution · Executive Report PDF renders · Technical Audit PDF renders ·
+  runtime evidence populated from the live engine · ALLOW/BLOCK verdicts match ·
+  no cross-sector contamination.
+
+It **fails immediately** if a finance report is generated for a supply-chain
+engagement, a foreign sector's Ω (e.g. healthcare) appears in another sector's
+report, an Ω domain is mis-attributed, or a report headline doesn't match the
+detected sector.
+
+### Why (root cause it protects against)
+
+The old `sectorIdFor` was a first-match regex cascade that tested `finance`
+before supply chain / insurance / manufacturing, so any engagement whose text
+mentioned "payment" (procurement, claims payout, benefits disbursement) was
+mislabelled **Financial Services**, and sectors with no profile silently
+rendered the generic **Enterprise** headline. Detection is now a weighted
+scorer with explicit precedence and an optional explicit `sector` override, and
+every detectable sector has a first-class profile — so the class of bug cannot
+recur, and this suite fails the build if it tries to.
 
 ## Scenarios
 
@@ -15,10 +53,14 @@ ALLOW/BLOCK outcome for every one.
 | 3 | `03-cyber-sentinelgate-mssp.json` | SentinelGate Managed Security | Managed SOC / MDR / customer tenants | cybersecurity, compliance, data_privacy |
 | 4 | `04-insurance-brightpath-assurance.json` | Brightpath Assurance Group | Claims / underwriting / fraud / actuarial | insurance, fraud, data_privacy, compliance |
 | 5 | `05-supplychain-northgate-logistics.json` | Northgate Fulfilment & Logistics | Autonomous fulfilment / vendor payments / robotics | supply_chain, manufacturing, finance, compliance |
+| 6 | `06-manufacturing-axfell-precision.json` | Axfell Precision Manufacturing | Plant-floor robotics / scheduling / QC | manufacturing, compliance |
+| 7 | `07-government-cascade-benefits.json` | Cascade County Benefits Agency | Benefits casework / entitlement / citizen records | government, data_privacy, compliance |
+| 8 | `08-defence-sovereign-shield.json` | Sovereign Shield Defence Systems | Mission systems / classified / command & control | defence, cybersecurity, compliance |
 
 Each pack has a `_smoke` block: `scenario`, `company`, `industry`,
 `assessment reference`, `omega_domains`, and an `expected[]` array giving the
-target verdict + reasoning for every trajectory index.
+target verdict + reasoning for every trajectory index. Packs may set an explicit
+top-level `sector` to pin detection deterministically.
 
 ## Sector-specific risks exercised
 
@@ -89,6 +131,7 @@ GOVERNANCE_URL=http://127.0.0.1:8091 GOVERNANCE_TOKEN=dev-token \
 - Each report is scoped to its **own sector threat model** — no cross-sector
   narrative bleed.
 
-Latest recorded run (local engine, 2026-07-02): **67/67 trajectories correct,
-0 false positives, 0 false negatives, 10/10 PDFs generated.**
+Latest recorded run (local engine, 2026-07-02): **84/84 trajectories correct
+across 8 sectors, 0 false positives, 0 false negatives, 16/16 PDFs generated,
+`smoke:enterprise` PASS (unit + live).**
 Outputs are written to `deliverables/` (gitignored — customer artefacts stay local).

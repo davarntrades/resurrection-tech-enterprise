@@ -16,6 +16,8 @@
     "audit:chrome:install": "bash scripts/install-chromium.sh",
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
     "audit:setup": "bash scripts/setup-delivery.sh",
+    "smoke:enterprise": "node scripts/smoke-tests/enterprise-regression.cjs",
+    "smoke:sectors": "node scripts/smoke-tests/sector-detection.test.cjs",
     "console": "node console/server.cjs"
   },
   "dependencies": {

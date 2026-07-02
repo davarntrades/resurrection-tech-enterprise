@@ -1175,37 +1175,129 @@ const SECTORS = {
   energy: { label: "Energy & Utilities", focus: ["operational-technology integrity", "grid/control actions", "safety-critical commands"], assets: ["OT/control systems", "safety systems", "customer data"], consequence: ["Unauthorised control action", "Safety-critical command issued", "Regulatory & safety investigation", "Service disruption", "Remediation & downtime"], exposure: "Severe — safety, regulatory and continuity-of-supply impact", workflows: "operational-technology and control workflows" },
   supply_chain: { label: "Supply Chain & Logistics", focus: ["procurement fraud", "vendor-payment diversion", "shipment & routing integrity", "warehouse-robotics safety", "inventory manipulation"], assets: ["procurement & vendor master", "payment rails", "fulfilment & routing systems", "warehouse robotics", "inventory records"], consequence: ["Unauthorised purchase or payment diversion", "Shipment misrouting or diversion", "Unsafe robotic motion / worker-safety incident", "Inventory fraud / shrinkage", "Operational disruption & remediation"], exposure: "£1M–£20M+ per incident (diverted payments, fraud, downtime, safety)", workflows: "procurement, fulfilment and warehouse workflows" },
   manufacturing: { label: "Manufacturing", focus: ["robotic-motion safety", "production-schedule integrity", "quality-gate enforcement", "OT/plant-floor integrity"], assets: ["robotics & motion systems", "production schedules", "quality systems", "plant-floor controllers"], consequence: ["Unsafe robotic motion / worker-safety incident", "Unauthorised schedule or QC override", "Defective product released", "Regulatory & safety investigation", "Line downtime & remediation"], exposure: "Severe — worker safety, product-quality and continuity impact", workflows: "plant-floor and production workflows" },
+  government: { label: "Government & Public Sector", focus: ["benefits/entitlement fraud", "citizen-record exposure", "unauthorised determinations", "public-fund disbursement"], assets: ["citizen records", "benefits & entitlement systems", "case-management systems", "public funds"], consequence: ["Unauthorised benefit or payment issued", "Citizen-data exposure", "Statutory / regulatory investigation", "Mandatory breach notification", "Public-trust & remediation impact"], exposure: "Severe — statutory, public-trust and continuity-of-service impact", workflows: "casework and entitlement workflows" },
+  telecommunications: { label: "Telecommunications", focus: ["bulk provisioning abuse", "routing/BGP integrity", "lawful-intercept misuse", "subscriber-data exposure"], assets: ["subscriber data", "provisioning systems", "routing & network control", "interception controls"], consequence: ["Mass unauthorised provisioning", "Routing hijack / diversion", "Unlawful interception", "Regulatory investigation", "Service disruption & remediation"], exposure: "Severe — regulatory, privacy and continuity-of-service impact", workflows: "provisioning and network-control workflows" },
+  aerospace: { label: "Aerospace & Aviation", focus: ["flight-plan integrity", "airworthiness sign-off", "safety-critical commands", "dispatch integrity"], assets: ["flight-planning systems", "maintenance & airworthiness records", "safety-critical systems", "dispatch systems"], consequence: ["Unauthorised flight-plan change", "Sign-off without inspection", "Safety-critical command issued", "Regulatory & safety investigation", "Operational grounding & remediation"], exposure: "Mission-critical — severe safety and continuity impact", workflows: "flight-planning and maintenance workflows" },
   default: { label: "Enterprise", focus: ["unauthorised high-impact actions", "sensitive-data exposure", "privileged misuse"], assets: ["critical systems", "sensitive data", "privileged operations"], consequence: ["Unauthorised high-impact action", "Sensitive-data exposure", "Regulatory / contractual exposure", "Incident response", "Operational downtime"], exposure: "£1M–£10M+ per incident (impact, remediation, disclosure)", workflows: "automated agent workflows" },
 };
-function sectorIdFor(industry, domains) {
-  const key = `${industry || ""} ${(domains || []).join(" ")}`.toLowerCase();
-  // Logistics/manufacturing are tested before finance: procurement and vendor
-  // payments are intrinsic to these sectors, so their "payment" keywords must
-  // not let the finance branch grab a supply-chain/plant-floor engagement.
-  if (/supply[_ ]?chain|logistic|fulfil|warehouse|procure|freight|shipment|inventory|routing/.test(key)) return "supply_chain";
-  if (/manufactur|plant[_ ]?floor|assembly[_ ]?line|robotic|\bcnc\b|production[_ ]?line/.test(key)) return "manufacturing";
-  if (/financ|bank|payment|capital|treasur/.test(key)) return "finance";
-  if (/health|clinic|medical|patient|pharma|hospital/.test(key)) return "healthcare";
-  if (/cyber|security|infosec|soc\b|mssp/.test(key)) return "cybersecurity";
-  if (/defen|military|gov\b|classified|mod\b/.test(key)) return "defence";
-  if (/insur|claim|underwrit|actuar/.test(key)) return "insurance";
-  if (/energy|utilit|grid|power|oil|gas/.test(key)) return "energy";
-  return "default";
+// ── Deterministic sector detection ─────────────────────────────────────────
+// Replaces the old first-match cascade (which let finance's "payment" keyword
+// pre-empt supply-chain / insurance / manufacturing engagements). Every sector
+// is scored independently from weighted signals; the highest score wins, ties
+// are broken by an explicit precedence order — so the result never depends on
+// the order rules happen to be written in.
+//
+// Signal weights:
+//   • explicit `sector` override          → decisive (short-circuits scoring)
+//   • Ω-domain that names a sector         → 10 (first/primary domain: +4 more)
+//   • strong industry keyword              → 6
+//   • weak / ambiguous industry keyword    → 2
+// Neutral, cross-cutting domains (compliance, data_privacy, fraud, enterprise)
+// never vote for a sector.
+
+// Canonical Ω-domain / alias → sector. Only sector-defining domains appear;
+// cross-cutting ones are deliberately absent so they cast no vote.
+const DOMAIN_TO_SECTOR = {
+  finance: "finance", banking: "finance", fintech: "finance", payments: "finance", treasury: "finance", capital_markets: "finance", trading: "finance",
+  healthcare: "healthcare", clinical: "healthcare", health: "healthcare",
+  cybersecurity: "cybersecurity", cyber: "cybersecurity", infosec: "cybersecurity", security: "cybersecurity",
+  insurance: "insurance", underwriting: "insurance", claims: "insurance", actuarial: "insurance",
+  supply_chain: "supply_chain", logistics: "supply_chain", procurement: "supply_chain", fulfilment: "supply_chain", fulfillment: "supply_chain",
+  manufacturing: "manufacturing", industrial: "manufacturing",
+  energy: "energy", utilities: "energy", power: "energy",
+  government: "government", public_sector: "government", govtech: "government",
+  defence: "defence", defense: "defence", military: "defence",
+  telecommunications: "telecommunications", telecom: "telecommunications",
+  aerospace: "aerospace", aviation: "aerospace",
+};
+
+// Per-sector industry-text signals. `strong` = unambiguous; `weak` = shared /
+// ambiguous terms that only tip a decision when strong signals are absent.
+const SECTOR_SIGNALS = {
+  finance: { strong: ["financ", "banking", "\\bbank\\b", "fintech", "treasur", "swift", "wire transfer", "capital market", "trading desk", "payment rail", "aml", "kyc"], weak: ["payment", "capital", "trading", "settlement"] },
+  healthcare: { strong: ["health", "clinical", "hospital", "\\bphi\\b", "\\behr\\b", "patient", "medication", "pharma", "clinician", "\\bhipaa\\b"], weak: ["medical", "\\bcare\\b", "dose", "diagnos", "discharge"] },
+  cybersecurity: { strong: ["cybersecurity", "\\bcyber\\b", "infosec", "\\bmssp\\b", "managed soc", "\\bsoc\\b", "incident response", "\\bmdr\\b", "\\bedr\\b", "malware", "threat detection", "endpoint"], weak: ["security", "credential", "intrusion"] },
+  insurance: { strong: ["insurance", "insurer", "underwrit", "actuar", "policyholder", "reinsuranc", "claims automation", "\\bsiu\\b"], weak: ["\\bclaim\\b", "\\bpolicy\\b", "payout"] },
+  supply_chain: { strong: ["supply chain", "supply_chain", "logistic", "fulfil", "warehouse", "procure", "freight", "shipment", "\\b3pl\\b", "distribution centre", "distribution center"], weak: ["vendor", "inventory", "\\broute\\b", "routing", "dispatch", "shipping"] },
+  manufacturing: { strong: ["manufactur", "plant floor", "plant_floor", "assembly line", "production line", "\\bcnc\\b", "shop floor", "industrial control"], weak: ["robotic", "\\brobot\\b", "production", "factory", "\\bmotion\\b", "\\bqc\\b"] },
+  energy: { strong: ["energy", "utilit", "\\bgrid\\b", "\\bscada\\b", "substation", "power generation", "\\boil\\b", "\\bgas\\b", "renewables"], weak: ["power", "turbine", "\\bot\\b"] },
+  government: { strong: ["government", "public sector", "public-sector", "citizen", "benefits agency", "entitlement", "municipal", "federal agency", "\\bgovtech\\b"], weak: ["\\bgov\\b", "agency", "benefit", "welfare"] },
+  defence: { strong: ["defence", "defense", "military", "classified", "weapons", "mission system", "command and control", "\\bc2\\b", "sovereign"], weak: ["\\bmission\\b", "\\bmod\\b", "tactical"] },
+  telecommunications: { strong: ["telecommunications", "telecom", "\\bcarrier\\b", "\\b5g\\b", "lawful intercept", "\\bbgp\\b", "network operator"], weak: ["provision", "\\bpeer\\b", "subscriber"] },
+  aerospace: { strong: ["aerospace", "aviation", "airline", "flight plan", "airworthi", "dispatch release"], weak: ["flight", "aircraft"] },
+};
+
+const NEUTRAL_DOMAINS = new Set(["compliance", "data_privacy", "privacy", "fraud", "enterprise", "governance", "operations", "general"]);
+
+// Precedence for tie-breaking only (never a first-match shortcut). Lower index
+// wins an exact score tie.
+const SECTOR_PRECEDENCE = ["defence", "government", "healthcare", "energy", "aerospace", "insurance", "cybersecurity", "manufacturing", "supply_chain", "finance", "telecommunications"];
+
+const _canonSector = (s) => {
+  if (!s) return "";
+  const k = String(s).trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (SECTORS[k]) return k;
+  if (DOMAIN_TO_SECTOR[k]) return DOMAIN_TO_SECTOR[k];
+  return "";
+};
+
+// Score every sector; returns a sorted [{ sector, score }] array (desc), with
+// ties ordered by SECTOR_PRECEDENCE. Exposed for tests + explainability.
+function sectorScores(industry, domains) {
+  const text = String(industry || "").toLowerCase();
+  const doms = (domains || []).map((d) => String(d || "").trim().toLowerCase());
+  const scores = {};
+  const bump = (sec, n) => { if (sec) scores[sec] = (scores[sec] || 0) + n; };
+  doms.forEach((d, i) => {
+    if (NEUTRAL_DOMAINS.has(d)) return;
+    bump(DOMAIN_TO_SECTOR[d] || (SECTORS[d] ? d : ""), i === 0 ? 14 : 10);
+  });
+  for (const [sec, sig] of Object.entries(SECTOR_SIGNALS)) {
+    for (const kw of sig.strong) if (new RegExp(kw).test(text)) bump(sec, 6);
+    for (const kw of (sig.weak || [])) if (new RegExp(kw).test(text)) bump(sec, 2);
+  }
+  return Object.entries(scores)
+    .map(([sector, score]) => ({ sector, score }))
+    .sort((a, b) => b.score - a.score
+      || SECTOR_PRECEDENCE.indexOf(a.sector) - SECTOR_PRECEDENCE.indexOf(b.sector));
 }
-function sectorProfile(industry, domains) {
-  return SECTORS[sectorIdFor(industry, domains)] || SECTORS.default;
+
+// Deterministic winner. `explicit` (an input `sector` field) short-circuits.
+function sectorIdFor(industry, domains, explicit) {
+  const forced = _canonSector(explicit);
+  if (forced) return forced;
+  const ranked = sectorScores(industry, domains);
+  return ranked.length && ranked[0].score > 0 ? ranked[0].sector : "default";
+}
+function sectorProfile(industry, domains, explicit) {
+  return SECTORS[sectorIdFor(industry, domains, explicit)] || SECTORS.default;
 }
 // Classify a grounded block (by its Ω domain / risk class / label) to a sector,
 // so cross-sector findings can be scoped out of a sector-specific engagement.
 // Returns "" when the block is generic/sector-neutral (always kept).
 function blockSectorId(b) {
-  const t = `${(b && b.omega_domain) || ""} ${(b && b.risk_class) || ""} ${(b && b.label) || ""}`.toLowerCase();
-  if (/health|patient|phi|clinic|prescrib|record[_ ]?modif|\behr\b|medic|dose|diagnos/.test(t)) return "healthcare";
-  if (/financ|payment|transfer|fund|treasur|wire|payout|ledger|\biban\b/.test(t)) return "finance";
-  if (/cyber|credential|privilege|exfil|ransom|\bshell\b|\bexec\b|intrusion|malware|lateral/.test(t)) return "cybersecurity";
-  if (/insur|claim|underwrit|policyholder|actuar/.test(t)) return "insurance";
-  if (/energy|grid|scada|turbine|substation|\bot\b/.test(t)) return "energy";
-  if (/defen|mission|classified|command/.test(t)) return "defence";
+  // Prefer the explicit Ω domain the engine assigned — exact and unambiguous.
+  // (A neutral/cross-cutting domain like data_privacy casts no sector vote.)
+  const dom = String((b && b.omega_domain) || "").trim().toLowerCase();
+  if (dom && !NEUTRAL_DOMAINS.has(dom)) {
+    const canon = SECTORS[dom] ? dom : DOMAIN_TO_SECTOR[dom];
+    if (canon) return canon;
+  }
+  // Fall back to label/risk-class keywords ONLY when no Ω domain is present.
+  // Sector-specific terms are tested before finance's generic money words so a
+  // shared token ("payout", "vendor payment") can't let finance grab an
+  // insurance or supply-chain finding.
+  const t = `${(b && b.risk_class) || ""} ${(b && b.label) || ""}`.toLowerCase();
+  if (/health|patient|\bphi\b|clinic|prescrib|record[_ ]?modif|\behr\b|medication|dosage|diagnos|discharge/.test(t)) return "healthcare";
+  if (/insur|\bclaim\b|underwrit|policyholder|actuar/.test(t)) return "insurance";
+  if (/supply|logistic|procure|\bvendor\b|warehouse|freight|shipment|inventory|purchase order/.test(t)) return "supply_chain";
+  if (/manufactur|\brobot\b|\bcnc\b|assembly|production line|quality gate/.test(t)) return "manufacturing";
+  if (/cyber|credential|privilege|exfil|ransom|\bshell\b|\bexec\b|intrusion|malware|lateral|\bedr\b/.test(t)) return "cybersecurity";
+  if (/energy|\bgrid\b|scada|turbine|substation/.test(t)) return "energy";
+  if (/govern|citizen|\bbenefit\b|entitlement|welfare/.test(t)) return "government";
+  if (/defen|\bmission\b|classified|weapons|command/.test(t)) return "defence";
+  if (/telecom|\bcarrier\b|\bbgp\b|intercept|provision/.test(t)) return "telecommunications";
+  if (/financ|payment|transfer|\bfund\b|treasur|wire|payout|ledger|\biban\b|swift/.test(t)) return "finance";
   return "";
 }
 // Keep blocks that match the engagement sector or are sector-neutral. Drop
@@ -1219,6 +1311,13 @@ function blockSectorId(b) {
 const SECTOR_ADJACENT = {
   supply_chain: new Set(["finance", "manufacturing"]),
   manufacturing: new Set(["supply_chain"]),
+  // Cybersecurity and defence share the same "secret / classified data leaves
+  // the boundary" egress family — a secret-exfil finding legitimately matches
+  // either domain's egress rule, so neither is cross-sector leakage for the
+  // other. (Genuinely foreign Ω — e.g. healthcare in a cyber report — is still
+  // dropped, because it is not in this set.)
+  cybersecurity: new Set(["defence"]),
+  defence: new Set(["cybersecurity"]),
 };
 const EMPTY_SET = new Set();
 function scopeBlocksToSector(blocks, sectorId) {
@@ -1569,8 +1668,8 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   const s = report.summary || {};
   const exposure = report.exposure || {};
   const att = report.attestation;
-  const sector = sectorProfile(ctx.industry, ctx.domains);
-  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const sector = sectorProfile(ctx.industry, ctx.domains, ctx.sector);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains, ctx.sector);
   // Scope the engine's grounded blocks to the engagement sector so a (e.g.)
   // cybersecurity report doesn't surface healthcare-domain findings. Cross-sector
   // blocks are excluded and disclosed, not relabelled.
@@ -1723,8 +1822,8 @@ function reportHtml(c, m, assess, replay, perf, ctx, stages) {
   const meta = [["Customer", c.name], ["Period", c.period || "—"], ["Reference", c.reference || "—"], ["Classification", "Board · Confidential"]];
   const s = (assess && assess.summary) || {};
   const att = assess && assess.attestation;
-  const sector = sectorProfile(ctx.industry, ctx.domains);
-  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const sector = sectorProfile(ctx.industry, ctx.domains, ctx.sector);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains, ctx.sector);
   const blocks = scopeBlocksToSector((assess && assess.grounded_blocks) || [], sectorId).kept;
   const hashCount = blocks.filter((b) => b && b.hash).length;
   const rep = replay || { checked: 0, deterministic: 0 };
@@ -1823,8 +1922,8 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
   const L = [`# Runtime Safety Audit — ${c.name}`, ``, `**Reference:** ${c.reference || "—"}  |  **Environment:** ${c.environment || "—"}  |  **Classification:** Confidential`];
   if (!report) { L.push(``, `> Engine assessment unavailable for this run. Coverage, exposure, and verified-blocked-trajectory sections come from the live Runtime Governance engine — set GOVERNANCE_URL/GOVERNANCE_TOKEN and re-run.`); return L.join("\n"); }
   const s = report.summary || {}, ex = report.exposure || {}, att = report.attestation;
-  const sector = sectorProfile(ctx.industry, ctx.domains);
-  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const sector = sectorProfile(ctx.industry, ctx.domains, ctx.sector);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains, ctx.sector);
   const blocks = scopeBlocksToSector(report.grounded_blocks || [], sectorId).kept;
   const tools = toolModel(report, ctx.parsedTools || []);
   const replayBlocks = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK");
@@ -1921,8 +2020,8 @@ function reportMarkdown(c, m, report, replay, perf, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const isLive = (m.source === "engine" || m.source === "decisions") && (m.total || 0) > 0;
   const s = (report && report.summary) || {};
-  const sector = sectorProfile(ctx.industry, ctx.domains);
-  const sectorId = sectorIdFor(ctx.industry, ctx.domains);
+  const sector = sectorProfile(ctx.industry, ctx.domains, ctx.sector);
+  const sectorId = sectorIdFor(ctx.industry, ctx.domains, ctx.sector);
   const blocks = scopeBlocksToSector((report && report.grounded_blocks) || [], sectorId).kept;
   const replayBlockCount = (ctx.replayResults || []).filter((r) => r.verdict === "BLOCK").length;
   const blockedCount = replayBlockCount || blocks.length || s.verified_blocked_trajectories || 0;
@@ -2067,7 +2166,15 @@ function selfTest() {
   return ok ? 0 : 1;
 }
 
-(async () => {
+// Expose the pure detection/scoping helpers so the regression suite can unit-
+// test them without the CLI side effects. The CLI below runs only when this
+// file is executed directly (not when required as a module).
+module.exports = {
+  SECTORS, SECTOR_SIGNALS, DOMAIN_TO_SECTOR, SECTOR_PRECEDENCE, NEUTRAL_DOMAINS,
+  sectorScores, sectorIdFor, sectorProfile, blockSectorId, scopeBlocksToSector, SECTOR_ADJACENT,
+};
+
+if (require.main === module) (async () => {
   if (process.argv.includes("--print-chrome")) { const c = resolveChrome(); if (c) { process.stdout.write(c); process.exit(0); } process.exit(1); }
   if (process.argv.includes("--selftest")) { process.exit(selfTest()); }
   if (process.argv.includes("--check-chrome")) { process.exit(checkChrome() ? 0 : 1); }
@@ -2226,6 +2333,9 @@ function selfTest() {
     parsedTools, // computed (and timed) during the manifest-parse stage above
     industry: input.industry || (input.domains && input.domains[0]) || (report && report.industry) || "",
     domains: input.domains || [],
+    // Optional explicit override: input.sector short-circuits detection so a
+    // caller can pin the sector deterministically regardless of terminology.
+    sector: input.sector || (input.customer && input.customer.sector) || undefined,
   };
   const auditHtmlPath = path.join(outDir, "audit.html");
   const auditMdPath = path.join(outDir, "audit.md");
