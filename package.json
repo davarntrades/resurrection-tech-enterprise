@@ -21,6 +21,7 @@
     "smoke:adversarial": "node scripts/smoke-tests/overlap-adversarial.test.cjs",
     "smoke:stress": "node --expose-gc scripts/smoke-tests/stress-test.cjs",
     "smoke:baseline": "node scripts/smoke-tests/enterprise-regression.cjs --update-baseline",
+    "smoke:mutation": "node scripts/smoke-tests/mutation-test.cjs",
     "smoke:ci": "node scripts/smoke-tests/sector-detection.test.cjs && node scripts/smoke-tests/overlap-adversarial.test.cjs && node scripts/smoke-tests/enterprise-regression.cjs --report",
     "console": "node console/server.cjs"
   },

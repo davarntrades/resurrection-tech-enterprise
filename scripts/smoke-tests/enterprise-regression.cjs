@@ -63,8 +63,12 @@ function evaluate(trajectory, domains) {
   return JSON.parse(out);
 }
 
+// SMOKE_ONLY=<scenario> scopes the run to a single sector — used by the mutation
+// harness (npm run smoke:mutation) to exercise a gate quickly. Unset = all 11.
+const ONLY = process.env.SMOKE_ONLY || "";
 const packs = fs.readdirSync(PACK_DIR).filter((f) => /^\d+.*\.json$/.test(f)).sort()
-  .map((f) => ({ file: f, ...JSON.parse(fs.readFileSync(path.join(PACK_DIR, f), "utf8")) }));
+  .map((f) => ({ file: f, ...JSON.parse(fs.readFileSync(path.join(PACK_DIR, f), "utf8")) }))
+  .filter((p) => !ONLY || p._smoke.scenario === ONLY);
 
 // ── Layer 1: unit ────────────────────────────────────────────────────────────
 console.log(C.bold("\n[1/3] Unit — deterministic detection, anti-contamination, adversarial robustness"));
@@ -94,6 +98,14 @@ if (!GOV || !TOK) {
     const checks = [];
     const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail: detail || "" });
 
+    const outDir = path.join(ROOT, "deliverables", `${slug(p.customer.name)}-${slug(p.customer.period || p.customer.reference || "report")}`);
+    // Clear prior artifacts FIRST so every check validates freshly-generated
+    // output. Without this a stale PDF/report from an earlier run would mask a
+    // broken pipeline (a real blind spot surfaced by mutation testing).
+    for (const f of ["audit.pdf", "executive-report.pdf", "audit.md", "executive-report.md", "audit.html", "executive-report.html", "run-summary.json"]) {
+      try { fs.rmSync(path.join(outDir, f), { force: true }); } catch { /* ignore */ }
+    }
+
     let ran = true, runErr = "";
     try {
       execFileSync("node", [path.join(ROOT, "scripts", "delivery-kit.cjs"), path.join(PACK_DIR, p.file)],
@@ -101,7 +113,6 @@ if (!GOV || !TOK) {
     } catch (e) { ran = false; runErr = (e && e.message || String(e)).slice(0, 120); }
     add("audit runs", ran, runErr);
 
-    const outDir = path.join(ROOT, "deliverables", `${slug(p.customer.name)}-${slug(p.customer.period || p.customer.reference || "report")}`);
     const readIf = (f) => { try { return fs.readFileSync(path.join(outDir, f), "utf8"); } catch { return ""; } };
     const summary = (() => { try { return JSON.parse(readIf("run-summary.json")); } catch { return null; } })();
     const auditMd = readIf("audit.md");
@@ -186,6 +197,10 @@ if (!GOV || !TOK) {
 let baselineOk = true;
 const baselineDrift = [];
 if (results.length && !NO_BASELINE) {
+  if (UPDATE_BASELINE && ONLY) {
+    console.log(C.red("\n[3/3] Refusing to write baseline from a SMOKE_ONLY-scoped run (would drop the other sectors). Re-run without SMOKE_ONLY."));
+    process.exit(2);
+  }
   if (UPDATE_BASELINE) {
     const baseline = {
       _comment: "Golden baseline for the enterprise regression CI gate. Regenerate intentionally with `npm run smoke:baseline`. A diff here fails the build.",

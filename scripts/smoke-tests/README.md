@@ -13,6 +13,7 @@ npm run smoke:enterprise   # full stack + baseline CI gate + validation report
 npm run smoke:sectors      # unit: deterministic sector detection (no engine)
 npm run smoke:adversarial  # unit: overlap + adversarial/malformed manifests (no engine)
 npm run smoke:stress       # live: 1/10/100/500/1000-tool scale + determinism
+npm run smoke:mutation     # live: mutation testing — proves the suite catches breakage
 npm run smoke:baseline     # regenerate baseline.json (intentional, after a real change)
 npm run smoke:ci           # unit + adversarial + full enterprise gate (the CI entry)
 ```
@@ -44,6 +45,54 @@ layers run anywhere with no engine.
 
 Every run writes a `VALIDATION-REPORT.md` (sectors, trajectories, pass/fail,
 latency, coverage, deterministic-replay status, overall readiness).
+
+## Mutation testing — `npm run smoke:mutation`
+
+**What it proves.** Passing regression tests only tell you the system works
+*today*; they don't tell you the tests would *notice* if it broke. Mutation
+testing closes that gap: it deliberately breaks a critical governance/reporting
+behaviour, runs the real regression gate, and confirms the gate **fails and says
+what broke**. A mutation the suite fails to catch ("survives") is a blind spot.
+
+**Why it matters for enterprise confidence.** A green regression is only
+trustworthy if it goes red when it should. Mutation testing is the evidence that
+the baseline CI gate has teeth — that a real verdict flip, Ω mislabel, sector
+mislabel, missing PDF, or lost runtime evidence would actually stop a release,
+not slip through.
+
+**How it works (nothing persists).** Each mutation is applied at the narrowest
+faithful layer, then reverted in a `finally`:
+
+- a **mutating engine proxy** in front of the real engine rewrites `/v1/evaluate`
+  responses (verdict flips, wrong Ω, corrupted hash, stripped runtime evidence) —
+  the engine itself is never touched;
+- temporary **string-edits of `delivery-kit.cjs`** (sector label / Chromium /
+  recommendation), reverted from an in-memory snapshot.
+
+The real `enterprise-regression.cjs` gate is then run (scoped to one sector) and
+must exit non-zero with the expected message. Afterwards the harness asserts
+`delivery-kit.cjs` is byte-for-byte restored and the clean suite passes again.
+
+**Ten mutations, all caught:**
+
+| Mutation | Expected failure detected | Status |
+|---|---|---|
+| 1. Sector mislabelling | supply_chain → finance / headline mismatch | PASS |
+| 2. Wrong Ω attribution | cross-sector Ω / Ω drift | PASS |
+| 3. ALLOW → BLOCK | verdict mismatch / FP increase | PASS |
+| 4. BLOCK → ALLOW | verdict mismatch / FN increase | PASS |
+| 5. Missing runtime evidence | runtime evidence (source ≠ engine) | PASS |
+| 6. Corrupted trajectory hash | trajectory_hash replay drift | PASS |
+| 7. Missing PDF section | technical audit PDF renders (0 bytes) | PASS |
+| 8. Missing recommendation | recommendation engine produced none | PASS |
+| 9. Disabled healthcare attribution | Ω healthcare → null drift | PASS |
+| 10. Removed finance/payment rule | verdict mismatch / FN increase | PASS |
+
+Mutation testing surfaced one **genuine blind spot** in the regression (test
+infra, not engine logic): the PDF check read whatever file was on disk, so a
+stale PDF from a prior run could mask a broken pipeline. Fixed by clearing each
+pack's output artifacts before regenerating — the "missing PDF" mutation is now
+caught. No Runtime Governance engine logic was changed.
 
 It **fails immediately** if a finance report is generated for a supply-chain
 engagement, a foreign sector's Ω (e.g. healthcare) appears in another sector's

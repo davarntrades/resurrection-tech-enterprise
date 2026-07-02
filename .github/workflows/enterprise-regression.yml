@@ -97,6 +97,9 @@ jobs:
       - name: Stress + scale determinism
         run: npm run smoke:stress
 
+      - name: Mutation testing — prove the gate catches breakage
+        run: npm run smoke:mutation
+
       - name: Upload validation report
         if: always()
         uses: actions/upload-artifact@v4
