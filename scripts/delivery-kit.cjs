@@ -1173,10 +1173,17 @@ const SECTORS = {
   defence: { label: "Defence", focus: ["mission-system integrity", "classified-asset access", "command-chain integrity"], assets: ["mission systems", "classified assets", "command & control"], consequence: ["Unauthorised mission-system action", "Classified data exposure", "Command-integrity compromise", "Security review & containment", "Operational stand-down"], exposure: "Mission-critical — severe national-security and operational impact", workflows: "mission and command-chain workflows" },
   insurance: { label: "Insurance", focus: ["fraudulent claims", "policyholder-data exposure", "unauthorised payouts", "underwriting integrity"], assets: ["policyholder data", "claims systems", "payout rails"], consequence: ["Fraudulent payout executed", "Policyholder-data exposure", "Regulatory investigation", "Breach notification", "Remediation & downtime"], exposure: "£1M–£15M+ per incident (payouts, fines, remediation)", workflows: "claims and underwriting workflows" },
   energy: { label: "Energy & Utilities", focus: ["operational-technology integrity", "grid/control actions", "safety-critical commands"], assets: ["OT/control systems", "safety systems", "customer data"], consequence: ["Unauthorised control action", "Safety-critical command issued", "Regulatory & safety investigation", "Service disruption", "Remediation & downtime"], exposure: "Severe — safety, regulatory and continuity-of-supply impact", workflows: "operational-technology and control workflows" },
+  supply_chain: { label: "Supply Chain & Logistics", focus: ["procurement fraud", "vendor-payment diversion", "shipment & routing integrity", "warehouse-robotics safety", "inventory manipulation"], assets: ["procurement & vendor master", "payment rails", "fulfilment & routing systems", "warehouse robotics", "inventory records"], consequence: ["Unauthorised purchase or payment diversion", "Shipment misrouting or diversion", "Unsafe robotic motion / worker-safety incident", "Inventory fraud / shrinkage", "Operational disruption & remediation"], exposure: "£1M–£20M+ per incident (diverted payments, fraud, downtime, safety)", workflows: "procurement, fulfilment and warehouse workflows" },
+  manufacturing: { label: "Manufacturing", focus: ["robotic-motion safety", "production-schedule integrity", "quality-gate enforcement", "OT/plant-floor integrity"], assets: ["robotics & motion systems", "production schedules", "quality systems", "plant-floor controllers"], consequence: ["Unsafe robotic motion / worker-safety incident", "Unauthorised schedule or QC override", "Defective product released", "Regulatory & safety investigation", "Line downtime & remediation"], exposure: "Severe — worker safety, product-quality and continuity impact", workflows: "plant-floor and production workflows" },
   default: { label: "Enterprise", focus: ["unauthorised high-impact actions", "sensitive-data exposure", "privileged misuse"], assets: ["critical systems", "sensitive data", "privileged operations"], consequence: ["Unauthorised high-impact action", "Sensitive-data exposure", "Regulatory / contractual exposure", "Incident response", "Operational downtime"], exposure: "£1M–£10M+ per incident (impact, remediation, disclosure)", workflows: "automated agent workflows" },
 };
 function sectorIdFor(industry, domains) {
   const key = `${industry || ""} ${(domains || []).join(" ")}`.toLowerCase();
+  // Logistics/manufacturing are tested before finance: procurement and vendor
+  // payments are intrinsic to these sectors, so their "payment" keywords must
+  // not let the finance branch grab a supply-chain/plant-floor engagement.
+  if (/supply[_ ]?chain|logistic|fulfil|warehouse|procure|freight|shipment|inventory|routing/.test(key)) return "supply_chain";
+  if (/manufactur|plant[_ ]?floor|assembly[_ ]?line|robotic|\bcnc\b|production[_ ]?line/.test(key)) return "manufacturing";
   if (/financ|bank|payment|capital|treasur/.test(key)) return "finance";
   if (/health|clinic|medical|patient|pharma|hospital/.test(key)) return "healthcare";
   if (/cyber|security|infosec|soc\b|mssp/.test(key)) return "cybersecurity";
@@ -1204,9 +1211,20 @@ function blockSectorId(b) {
 // Keep blocks that match the engagement sector or are sector-neutral. Drop
 // confidently cross-sector blocks (e.g. a healthcare Ω surfaced in a
 // cybersecurity engagement) so the report stays sector-consistent.
+// Sectors whose workflows intrinsically span another sector's Ω. A supply-chain
+// engagement legitimately moves vendor payments (finance Ω) and drives warehouse
+// robotics (manufacturing Ω), so those findings are in-scope, not cross-sector
+// leakage to be dropped. Kept deliberately narrow so genuine foreign findings
+// (e.g. a healthcare Ω in a finance engagement) are still scoped out.
+const SECTOR_ADJACENT = {
+  supply_chain: new Set(["finance", "manufacturing"]),
+  manufacturing: new Set(["supply_chain"]),
+};
+const EMPTY_SET = new Set();
 function scopeBlocksToSector(blocks, sectorId) {
   if (!sectorId || sectorId === "default") return { kept: blocks, dropped: 0 };
-  const kept = blocks.filter((b) => { const bs = blockSectorId(b); return !bs || bs === sectorId; });
+  const adj = SECTOR_ADJACENT[sectorId] || EMPTY_SET;
+  const kept = blocks.filter((b) => { const bs = blockSectorId(b); return !bs || bs === sectorId || adj.has(bs); });
   return { kept, dropped: blocks.length - kept.length };
 }
 function executiveVerdict(s, blockedCount) {
