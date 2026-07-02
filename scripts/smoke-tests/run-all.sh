@@ -34,7 +34,7 @@ python3 scripts/smoke-tests/_validate.py
 
 echo
 echo "== Full audits (PDF generation) =="
-for f in scripts/smoke-tests/0*.json; do
+for f in scripts/smoke-tests/[0-9]*.json; do
   echo "---- $(basename "$f") ----"
   node scripts/delivery-kit.cjs "$f" | grep -A9 "Deliverables ("
 done

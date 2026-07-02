@@ -1,37 +1,53 @@
 # Runtime Governance — multi-sector smoke-test + regression pack
 
-Eight realistic enterprise scenarios that exercise the live governance engine
-end-to-end: manifest → `/v1/assess` → `/v1/evaluate` (trajectory replay) →
-branded **Audit** + **Executive Report** PDFs. Each pack mixes **legitimate**
-enterprise workflows with **catastrophic** trajectories and asserts the expected
-ALLOW/BLOCK outcome for every one.
+**Eleven** realistic enterprise scenarios that exercise the live governance
+engine end-to-end: manifest → `/v1/assess` → `/v1/evaluate` (trajectory replay)
+→ branded **Audit** + **Executive Report** PDFs. Each pack mixes **safe**
+(ALLOW), **suspicious** (ESCALATE) and **unsafe** (BLOCK) trajectories and
+asserts the expected verdict for every one.
 
-## Enterprise regression — `npm run smoke:enterprise`
-
-The single command that guards the whole delivery pipeline:
+## Commands
 
 ```bash
-npm run smoke:enterprise      # unit layer always; live layer if engine configured
-npm run smoke:sectors         # unit sector-detection layer only (no engine)
+npm run smoke:enterprise   # full stack + baseline CI gate + validation report
+npm run smoke:sectors      # unit: deterministic sector detection (no engine)
+npm run smoke:adversarial  # unit: overlap + adversarial/malformed manifests (no engine)
+npm run smoke:stress       # live: 1/10/100/500/1000-tool scale + determinism
+npm run smoke:baseline     # regenerate baseline.json (intentional, after a real change)
+npm run smoke:ci           # unit + adversarial + full enterprise gate (the CI entry)
 ```
 
-- **Unit layer (always, no engine):** `sector-detection.test.cjs` proves sector
-  detection is **deterministic** (weighted confidence scoring, not first-match),
-  covers overlapping terminology across every sector, checks structural
-  invariants (every detectable sector has a rendered profile), and verifies the
-  anti-contamination scoping (a healthcare Ω is dropped from a cyber report; a
-  supply-chain engagement keeps its intrinsic finance/manufacturing findings).
-- **Live layer (when `GOVERNANCE_URL` + `GOVERNANCE_TOKEN` are set):** drives
-  every sector pack through the real delivery kit and asserts, per scenario:
-  correct sector selected · correct threat-model headline · correct Ω-domain
-  attribution · Executive Report PDF renders · Technical Audit PDF renders ·
-  runtime evidence populated from the live engine · ALLOW/BLOCK verdicts match ·
-  no cross-sector contamination.
+The **live** layers need `GOVERNANCE_URL` + `GOVERNANCE_TOKEN`; the **unit**
+layers run anywhere with no engine.
+
+### What the enterprise regression guards
+
+- **Unit (always, no engine):** `sector-detection.test.cjs` proves detection is
+  **deterministic** (weighted confidence scoring, first declared domain
+  authoritative — not first-match), with structural invariants (every detectable
+  sector has a rendered profile) and anti-contamination scoping.
+  `overlap-adversarial.test.cjs` throws confusing cross-sector terminology and
+  hostile/malformed/nested/duplicated/reordered/5000-tool manifests at the parser
+  and asserts it stays deterministic and never crashes.
+- **Live (engine configured):** drives every sector pack through the real
+  delivery kit and asserts, per scenario: correct sector · threat-model headline ·
+  Ω attribution · **recommendation engine** · Executive Report PDF · Technical
+  Audit PDF · runtime evidence (source: engine) · `engine_compute_ms` ·
+  **deterministic replay** (verdict + `trajectory_hash` stable) ·
+  ALLOW/ESCALATE/BLOCK verdicts · no cross-sector contamination.
+- **Baseline CI gate:** the run is diffed against `baseline.json`. The build
+  **fails** on any drift in sector detection, Ω attribution, a verdict, a
+  `trajectory_hash` (replay), the headline, the recommendation, PDF size
+  (±40%), or any **increase** in false positives / false negatives. Regenerate
+  the baseline intentionally with `npm run smoke:baseline` after a real,
+  reviewed change.
+
+Every run writes a `VALIDATION-REPORT.md` (sectors, trajectories, pass/fail,
+latency, coverage, deterministic-replay status, overall readiness).
 
 It **fails immediately** if a finance report is generated for a supply-chain
 engagement, a foreign sector's Ω (e.g. healthcare) appears in another sector's
-report, an Ω domain is mis-attributed, or a report headline doesn't match the
-detected sector.
+report, an Ω domain is mis-attributed, or a headline doesn't match the sector.
 
 ### Why (root cause it protects against)
 
@@ -56,11 +72,16 @@ recur, and this suite fails the build if it tries to.
 | 6 | `06-manufacturing-axfell-precision.json` | Axfell Precision Manufacturing | Plant-floor robotics / scheduling / QC | manufacturing, compliance |
 | 7 | `07-government-cascade-benefits.json` | Cascade County Benefits Agency | Benefits casework / entitlement / citizen records | government, data_privacy, compliance |
 | 8 | `08-defence-sovereign-shield.json` | Sovereign Shield Defence Systems | Mission systems / classified / command & control | defence, cybersecurity, compliance |
+| 9 | `09-telecom-orbitalcomm.json` | OrbitalComm Networks | Provisioning / BGP / lawful intercept / billing | telecommunications, data_privacy, compliance |
+| 10 | `10-energy-vantagegrid.json` | Vantage Grid Operator | Grid control / SCADA / protection relays | energy, compliance |
+| 11 | `11-aerospace-meridianaero.json` | Meridian Aero Dispatch | Flight planning / dispatch / airworthiness | aerospace, compliance |
 
 Each pack has a `_smoke` block: `scenario`, `company`, `industry`,
 `assessment reference`, `omega_domains`, and an `expected[]` array giving the
-target verdict + reasoning for every trajectory index. Packs may set an explicit
-top-level `sector` to pin detection deterministically.
+target verdict + reasoning for every trajectory index (including the
+**ESCALATE** suspicious tier: a sensitive read → recommendation sink held for
+human sign-off). Packs may set an explicit top-level `sector` to pin detection
+deterministically.
 
 ## Sector-specific risks exercised
 
@@ -131,7 +152,10 @@ GOVERNANCE_URL=http://127.0.0.1:8091 GOVERNANCE_TOKEN=dev-token \
 - Each report is scoped to its **own sector threat model** — no cross-sector
   narrative bleed.
 
-Latest recorded run (local engine, 2026-07-02): **84/84 trajectories correct
-across 8 sectors, 0 false positives, 0 false negatives, 16/16 PDFs generated,
-`smoke:enterprise` PASS (unit + live).**
-Outputs are written to `deliverables/` (gitignored — customer artefacts stay local).
+Latest recorded run (local engine, 2026-07-02): **112/112 trajectories correct
+across 11 sectors (47 ALLOW · 11 ESCALATE · 54 BLOCK), 0 false positives, 0
+false negatives, 0 missed escalations, 22/22 PDFs, determinism STABLE at all
+scales, unit 123 + adversarial 58 assertions PASS, baseline gate PASS (no drift).**
+The generated audit/report PDFs go to `deliverables/` (gitignored — customer
+artefacts stay local); the machine-readable baseline (`baseline.json`) and
+`VALIDATION-REPORT.md` are committed alongside the tests.

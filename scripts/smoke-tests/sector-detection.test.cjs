@@ -56,10 +56,15 @@ eq(K.sectorIdFor("Benefits disbursement and entitlement payments", ["government"
 // A genuine finance engagement is still finance (no false demotion).
 eq(K.sectorIdFor("Wire transfers, treasury and payment operations", ["finance"]), "finance", "pure finance still finance");
 
-// ── 4. Determinism — detection is order-independent and repeatable ──────────
-eq(K.sectorIdFor("supply chain logistics", ["compliance", "finance", "supply_chain"]),
-   K.sectorIdFor("supply chain logistics", ["supply_chain", "finance", "compliance"]),
-   "same signals, different domain order → NOT necessarily equal (first-domain weighted)"); // documents first-domain weighting
+// ── 4. Determinism — primary declared domain is authoritative + repeatable ──
+// The FIRST non-neutral declared domain wins and prose cannot overturn it.
+// Leading neutral domains (compliance, …) are skipped when picking the primary.
+eq(K.sectorIdFor("supply chain logistics", ["finance", "supply_chain"]), "finance",
+   "primary declared domain (finance) wins over logistics prose");
+eq(K.sectorIdFor("supply chain logistics", ["supply_chain", "finance"]), "supply_chain",
+   "primary declared domain (supply_chain) wins");
+eq(K.sectorIdFor("supply chain logistics", ["compliance", "finance", "supply_chain"]), "finance",
+   "leading neutral domain skipped; finance is the primary declaration");
 // Repeatability: same input → same output every call.
 {
   const a = K.sectorIdFor("Managed SOC incident response", ["cybersecurity"]);

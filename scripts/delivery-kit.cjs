@@ -1128,7 +1128,12 @@ function parseManifestTools(input) {
     }
   }
   if (!arr) return [];
-  return arr.map((t) => ({ name: toolName(t), capabilities: (t && t.capabilities) || [], raw: t })).filter((t) => t.name && t.name.toLowerCase() !== "name");
+  // Coerce the name to a string: a malformed manifest can carry a numeric /
+  // array / object `name`, and toolName then returns a non-string that would
+  // crash the downstream .toLowerCase(). Stay robust on hostile input.
+  return arr
+    .map((t) => ({ name: String(toolName(t) || "").trim(), capabilities: (t && t.capabilities) || [], raw: t }))
+    .filter((t) => t.name && t.name.toLowerCase() !== "name");
 }
 const CAP_RULES = [
   [/transfer|payment|wire|disburse|refund|invoice|payout|remit/i, "Payments", "Critical"],
@@ -1243,18 +1248,34 @@ const _canonSector = (s) => {
 
 // Score every sector; returns a sorted [{ sector, score }] array (desc), with
 // ties ordered by SECTOR_PRECEDENCE. Exposed for tests + explainability.
+//
+// Weighting is deliberately domain-dominant: the caller's DECLARED domains are
+// the authoritative signal, and the FIRST non-neutral domain is the primary
+// declaration. Industry prose only corroborates — it can reorder sectors that
+// have no declared domain, but it cannot overturn the declared primary (a
+// "defence logistics" engagement declared as [defence, …] stays defence even
+// though the prose is logistics-heavy). This keeps detection deterministic and
+// predictable rather than at the mercy of how prose happens to be worded.
+const W_PRIMARY_DOMAIN = 100;   // first non-neutral declared domain
+const W_SECONDARY_DOMAIN = 50;  // subsequent declared domains
+const W_STRONG_KW = 6;          // strong industry keyword
+const W_WEAK_KW = 2;            // weak / ambiguous industry keyword
 function sectorScores(industry, domains) {
   const text = String(industry || "").toLowerCase();
   const doms = (domains || []).map((d) => String(d || "").trim().toLowerCase());
   const scores = {};
   const bump = (sec, n) => { if (sec) scores[sec] = (scores[sec] || 0) + n; };
-  doms.forEach((d, i) => {
-    if (NEUTRAL_DOMAINS.has(d)) return;
-    bump(DOMAIN_TO_SECTOR[d] || (SECTORS[d] ? d : ""), i === 0 ? 14 : 10);
-  });
+  let primaryAssigned = false;
+  for (const d of doms) {
+    if (NEUTRAL_DOMAINS.has(d)) continue;               // neutral domains never vote
+    const sec = DOMAIN_TO_SECTOR[d] || (SECTORS[d] ? d : "");
+    if (!sec) continue;
+    bump(sec, primaryAssigned ? W_SECONDARY_DOMAIN : W_PRIMARY_DOMAIN);
+    primaryAssigned = true;
+  }
   for (const [sec, sig] of Object.entries(SECTOR_SIGNALS)) {
-    for (const kw of sig.strong) if (new RegExp(kw).test(text)) bump(sec, 6);
-    for (const kw of (sig.weak || [])) if (new RegExp(kw).test(text)) bump(sec, 2);
+    for (const kw of sig.strong) if (new RegExp(kw).test(text)) bump(sec, W_STRONG_KW);
+    for (const kw of (sig.weak || [])) if (new RegExp(kw).test(text)) bump(sec, W_WEAK_KW);
   }
   return Object.entries(scores)
     .map(([sector, score]) => ({ sector, score }))
@@ -2172,6 +2193,7 @@ function selfTest() {
 module.exports = {
   SECTORS, SECTOR_SIGNALS, DOMAIN_TO_SECTOR, SECTOR_PRECEDENCE, NEUTRAL_DOMAINS,
   sectorScores, sectorIdFor, sectorProfile, blockSectorId, scopeBlocksToSector, SECTOR_ADJACENT,
+  parseManifestTools, classifyTool, toolModel, toolName,
 };
 
 if (require.main === module) (async () => {

@@ -1,0 +1,106 @@
+name: Enterprise regression (Runtime Governance validation)
+
+# Future-proofs the delivery kit + Runtime Governance validation. Fails the
+# build on ANY drift in sector detection, Ω attribution, verdicts, trajectory
+# hashes (deterministic replay), report headlines, the recommendation engine,
+# PDF generation, or any increase in false positives / false negatives —
+# measured against the committed baseline (scripts/smoke-tests/baseline.json).
+#
+# Two jobs:
+#   • unit        — deterministic detection + overlap/adversarial (no engine)
+#   • full-stack  — spins up the pinned governance engine + Chromium and runs
+#                   the baseline-gated enterprise regression + stress suite.
+
+on:
+  push:
+    paths:
+      - "scripts/delivery-kit.cjs"
+      - "scripts/smoke-tests/**"
+      - "governance-service/**"
+      - "package.json"
+      - ".github/workflows/enterprise-regression.yml"
+  pull_request:
+    paths:
+      - "scripts/delivery-kit.cjs"
+      - "scripts/smoke-tests/**"
+      - "governance-service/**"
+      - "package.json"
+      - ".github/workflows/enterprise-regression.yml"
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Unit — detection + adversarial (no engine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Deterministic sector detection + anti-contamination
+        run: npm run smoke:sectors
+      - name: Overlap + adversarial robustness
+        run: npm run smoke:adversarial
+
+  full-stack:
+    name: Full-stack — engine + baseline gate + stress
+    runs-on: ubuntu-latest
+    env:
+      GOVERNANCE_URL: http://127.0.0.1:8091
+      GOVERNANCE_TOKEN: ci-enterprise-regression-token
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Vendor the pinned Runtime Governance engine
+        run: |
+          set -euo pipefail
+          # Use the exact engine ref the service image pins, so the CI verdicts
+          # + trajectory hashes match the committed baseline.
+          ENGINE_REPO="$(grep -oP 'ARG ENGINE_REPO=\K\S+' governance-service/Dockerfile || echo https://github.com/davarntrades/Morrison-Runtime-Governance.git)"
+          ENGINE_REF="$(grep -oP 'ARG ENGINE_REF=\K\S+' governance-service/Dockerfile)"
+          echo "engine repo=$ENGINE_REPO ref=$ENGINE_REF"
+          git clone --filter=blob:none --no-checkout "$ENGINE_REPO" /tmp/engine
+          git -C /tmp/engine checkout "$ENGINE_REF"
+          cp -r /tmp/engine/morrison_governance governance-service/morrison_governance
+
+      - name: Install engine service deps
+        run: pip install -r governance-service/requirements.txt
+
+      - name: Start the governance engine
+        working-directory: governance-service
+        run: |
+          GOVERNANCE_TOKEN="$GOVERNANCE_TOKEN" PYTHONPATH="$PWD" \
+            nohup python3 -m uvicorn app:app --host 127.0.0.1 --port 8091 --log-level warning > /tmp/engine.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8091/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8091/health >/dev/null || { echo "engine failed to start"; cat /tmp/engine.log; exit 1; }
+          echo "engine up"
+
+      - name: Install Chromium for PDF rendering
+        run: npx --yes playwright@1.49.0 install --with-deps chromium
+
+      - name: Install Node deps
+        run: npm ci || npm install
+
+      - name: Enterprise regression + baseline CI gate
+        run: node scripts/smoke-tests/enterprise-regression.cjs --report
+
+      - name: Stress + scale determinism
+        run: npm run smoke:stress
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-validation-report
+          path: scripts/smoke-tests/VALIDATION-REPORT.md
+          if-no-files-found: ignore

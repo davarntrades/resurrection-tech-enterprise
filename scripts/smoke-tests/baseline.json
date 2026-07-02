@@ -1,0 +1,898 @@
+{
+  "_comment": "Golden baseline for the enterprise regression CI gate. Regenerate intentionally with `npm run smoke:baseline`. A diff here fails the build.",
+  "generated_at": "2026-07-02",
+  "sectors": [
+    {
+      "scenario": "finance",
+      "sector": "finance",
+      "headline": "financial services",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 5,
+        "BLOCK": 7,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 467051,
+        "exec": 225307
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "021eb4c7d01cb1ec"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "b50b31758c907524"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "30b34ad26c0799d1"
+        },
+        {
+          "index": 3,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "5a46824059cb910d"
+        },
+        {
+          "index": 4,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "205211bc889cda7e"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "cc5e197c421c5e3d"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "2e5c0894912aa9a9"
+        },
+        {
+          "index": 7,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "4a38f818779f728f"
+        },
+        {
+          "index": 8,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "b2ae98aa2c8ac346"
+        },
+        {
+          "index": 9,
+          "verdict": "BLOCK",
+          "omega": "data_privacy",
+          "hash": "a3bb742acfb981eb"
+        },
+        {
+          "index": 10,
+          "verdict": "BLOCK",
+          "omega": "compliance",
+          "hash": "b38dc5e20f0bffff"
+        },
+        {
+          "index": 11,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "0bd4260e7bacbd99"
+        },
+        {
+          "index": 12,
+          "verdict": "ESCALATE",
+          "omega": "finance",
+          "hash": "ac99d45cf57321ed"
+        }
+      ]
+    },
+    {
+      "scenario": "healthcare",
+      "sector": "healthcare",
+      "headline": "healthcare",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 6,
+        "BLOCK": 8,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 443648,
+        "exec": 226774
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "bf1e93f8add40b7d"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "ba04fc884c4e2779"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "b21cb95203c47b62"
+        },
+        {
+          "index": 3,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "ec0ff71dad5cefc7"
+        },
+        {
+          "index": 4,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "833ae9fdc1bc97cc"
+        },
+        {
+          "index": 5,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "854f9685ea02af4a"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "ffda0162a23f3cd2"
+        },
+        {
+          "index": 7,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "c0a0da38d632c620"
+        },
+        {
+          "index": 8,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "5ffb7c8496d21732"
+        },
+        {
+          "index": 9,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "36d55759aba032b0"
+        },
+        {
+          "index": 10,
+          "verdict": "BLOCK",
+          "omega": "enterprise",
+          "hash": "46134ef26b558f88"
+        },
+        {
+          "index": 11,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "9fb6c0b5bb1d855c"
+        },
+        {
+          "index": 12,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "af20cc14c274683e"
+        },
+        {
+          "index": 13,
+          "verdict": "BLOCK",
+          "omega": "healthcare",
+          "hash": "f40ee732d299d92b"
+        },
+        {
+          "index": 14,
+          "verdict": "ESCALATE",
+          "omega": "healthcare",
+          "hash": "2dd669ffb58b1403"
+        }
+      ]
+    },
+    {
+      "scenario": "cybersecurity",
+      "sector": "cybersecurity",
+      "headline": "cybersecurity",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 7,
+        "BLOCK": 10,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 466261,
+        "exec": 225173
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "bcc8c4bbb24febc1"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "b3a3c5ef59e4cdce"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "3348e1eefc8a2682"
+        },
+        {
+          "index": 3,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "bbff5cd522580315"
+        },
+        {
+          "index": 4,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "e8a03bca2f5676fc"
+        },
+        {
+          "index": 5,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "43af0b11205beab4"
+        },
+        {
+          "index": 6,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "ad4d499b13003afb"
+        },
+        {
+          "index": 7,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "e306c073e9a52237"
+        },
+        {
+          "index": 8,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "e580f4dc5df84c60"
+        },
+        {
+          "index": 9,
+          "verdict": "BLOCK",
+          "omega": "data_privacy",
+          "hash": "b02e4042be836af9"
+        },
+        {
+          "index": 10,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "ca1b339df1779c3a"
+        },
+        {
+          "index": 11,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "082031578d1c966f"
+        },
+        {
+          "index": 12,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "f26591fc31a9c6ec"
+        },
+        {
+          "index": 13,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "83a59390b3ba58e4"
+        },
+        {
+          "index": 14,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "9c437e1b47a23d6f"
+        },
+        {
+          "index": 15,
+          "verdict": "BLOCK",
+          "omega": "cybersecurity",
+          "hash": "530e8edb067bb95d"
+        },
+        {
+          "index": 16,
+          "verdict": "BLOCK",
+          "omega": "defence",
+          "hash": "55223c304bf05d02"
+        },
+        {
+          "index": 17,
+          "verdict": "ESCALATE",
+          "omega": "cybersecurity",
+          "hash": "51a13369f17a2529"
+        }
+      ]
+    },
+    {
+      "scenario": "insurance",
+      "sector": "insurance",
+      "headline": "insurance",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 6,
+        "BLOCK": 6,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 437007,
+        "exec": 223591
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "db4e73afcd9a80e5"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "81f8eded4d6c1a81"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "ce48485e74d93093"
+        },
+        {
+          "index": 3,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "320dfcadbf265b16"
+        },
+        {
+          "index": 4,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "8933e4270ffbba35"
+        },
+        {
+          "index": 5,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "901466230f72de25"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "insurance",
+          "hash": "c648bc4cec5c9503"
+        },
+        {
+          "index": 7,
+          "verdict": "BLOCK",
+          "omega": "insurance",
+          "hash": "26fe0dec9aa6740b"
+        },
+        {
+          "index": 8,
+          "verdict": "BLOCK",
+          "omega": "insurance",
+          "hash": "fb495aaed4a9447e"
+        },
+        {
+          "index": 9,
+          "verdict": "BLOCK",
+          "omega": "insurance",
+          "hash": "9225fd0c731f5300"
+        },
+        {
+          "index": 10,
+          "verdict": "BLOCK",
+          "omega": "data_privacy",
+          "hash": "acb7ef67cd6a0e7c"
+        },
+        {
+          "index": 11,
+          "verdict": "BLOCK",
+          "omega": "insurance",
+          "hash": "ae0b45967ad15f2a"
+        },
+        {
+          "index": 12,
+          "verdict": "ESCALATE",
+          "omega": "finance",
+          "hash": "776d32ef309777de"
+        }
+      ]
+    },
+    {
+      "scenario": "supply_chain",
+      "sector": "supply_chain",
+      "headline": "supply chain & logistics",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 6,
+        "BLOCK": 6,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 428528,
+        "exec": 226750
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "cbee787d4272bee4"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "f61b87fdd800df33"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "88cd5fdce6ba6140"
+        },
+        {
+          "index": 3,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "fa9a006235c5e3f6"
+        },
+        {
+          "index": 4,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "bff3803a579a2986"
+        },
+        {
+          "index": 5,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "d35f32957b015b27"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "supply_chain",
+          "hash": "0037df1c31fd9d9f"
+        },
+        {
+          "index": 7,
+          "verdict": "BLOCK",
+          "omega": "supply_chain",
+          "hash": "f57969c789df0c4a"
+        },
+        {
+          "index": 8,
+          "verdict": "BLOCK",
+          "omega": "manufacturing",
+          "hash": "c8d0d2006611ba5a"
+        },
+        {
+          "index": 9,
+          "verdict": "BLOCK",
+          "omega": "supply_chain",
+          "hash": "a199b3919988c091"
+        },
+        {
+          "index": 10,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "6163382734fd8163"
+        },
+        {
+          "index": 11,
+          "verdict": "BLOCK",
+          "omega": "finance",
+          "hash": "0f725bce7cec2b17"
+        },
+        {
+          "index": 12,
+          "verdict": "ESCALATE",
+          "omega": "enterprise",
+          "hash": "fe6c68e80bca4876"
+        }
+      ]
+    },
+    {
+      "scenario": "manufacturing",
+      "sector": "manufacturing",
+      "headline": "manufacturing",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 3,
+        "BLOCK": 3,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 397882,
+        "exec": 231155
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "682a191f5646d7c1"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "9aa4dad9b3f4a371"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "74f4fb15df7456f9"
+        },
+        {
+          "index": 3,
+          "verdict": "BLOCK",
+          "omega": "manufacturing",
+          "hash": "7d22cb57fbcd012b"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "manufacturing",
+          "hash": "10d03b1a72d9e651"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "manufacturing",
+          "hash": "9fbdb47f81cd1502"
+        },
+        {
+          "index": 6,
+          "verdict": "ESCALATE",
+          "omega": "enterprise",
+          "hash": "82d3a6f2e14a3a58"
+        }
+      ]
+    },
+    {
+      "scenario": "government",
+      "sector": "government",
+      "headline": "government & public sector",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 3,
+        "BLOCK": 3,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 395420,
+        "exec": 224282
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "71d8c799984c4d91"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "a08c8fd69febbc41"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "5e819296b7793fd0"
+        },
+        {
+          "index": 3,
+          "verdict": "BLOCK",
+          "omega": "government",
+          "hash": "fdb1f8ef9879057f"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "government",
+          "hash": "6f89f91693ce8cf0"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "government",
+          "hash": "4479bcad62896570"
+        },
+        {
+          "index": 6,
+          "verdict": "ESCALATE",
+          "omega": "enterprise",
+          "hash": "26a1f2d04c1a27b7"
+        }
+      ]
+    },
+    {
+      "scenario": "defence",
+      "sector": "defence",
+      "headline": "defence",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 2,
+        "BLOCK": 3,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 387687,
+        "exec": 222195
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "793dc7a49fb28255"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "06c3b07429961a9e"
+        },
+        {
+          "index": 2,
+          "verdict": "BLOCK",
+          "omega": "defence",
+          "hash": "fb33ea6ed4134d05"
+        },
+        {
+          "index": 3,
+          "verdict": "BLOCK",
+          "omega": "defence",
+          "hash": "568eb416aab6a1ac"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "defence",
+          "hash": "31e04d9bfc128fb4"
+        },
+        {
+          "index": 5,
+          "verdict": "ESCALATE",
+          "omega": "enterprise",
+          "hash": "45f0ceabdb4ec7e0"
+        }
+      ]
+    },
+    {
+      "scenario": "telecommunications",
+      "sector": "telecommunications",
+      "headline": "telecommunications",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 3,
+        "BLOCK": 3,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 384109,
+        "exec": 222925
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "72ee3f79a5d2c299"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "7316dd5290487bfa"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "732193c911fa167c"
+        },
+        {
+          "index": 3,
+          "verdict": "ESCALATE",
+          "omega": "enterprise",
+          "hash": "a479cc55d8fd5520"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "telecommunications",
+          "hash": "0b53e90f70a80be2"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "telecommunications",
+          "hash": "17e7477692d4276c"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "telecommunications",
+          "hash": "2b44e85c55ee4aae"
+        }
+      ]
+    },
+    {
+      "scenario": "energy",
+      "sector": "energy",
+      "headline": "energy & utilities",
+      "recommendation": "Discovery Workshop™ → Remediation Assessment",
+      "counts": {
+        "PERMIT": 3,
+        "BLOCK": 3,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 393908,
+        "exec": 230517
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "ab42cea7f28b0049"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "739bb86d07e3276f"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "6502a55ef5ae69c2"
+        },
+        {
+          "index": 3,
+          "verdict": "ESCALATE",
+          "omega": "cybersecurity",
+          "hash": "4c4cd62274c3576c"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "energy",
+          "hash": "86c7cc6e2133e528"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "energy",
+          "hash": "ab9ea089c1f39ff8"
+        },
+        {
+          "index": 6,
+          "verdict": "BLOCK",
+          "omega": "energy",
+          "hash": "090a8bc675aa28ee"
+        }
+      ]
+    },
+    {
+      "scenario": "aerospace",
+      "sector": "aerospace",
+      "headline": "aerospace & aviation",
+      "recommendation": "Limited Pilot™",
+      "counts": {
+        "PERMIT": 3,
+        "BLOCK": 2,
+        "ESCALATE": 1
+      },
+      "fp": 0,
+      "fn": 0,
+      "escMiss": 0,
+      "pdf": {
+        "audit": 375220,
+        "exec": 214465
+      },
+      "trajectories": [
+        {
+          "index": 0,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "0e41e91e07e97cae"
+        },
+        {
+          "index": 1,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "068263c0d0366ed6"
+        },
+        {
+          "index": 2,
+          "verdict": "PERMIT",
+          "omega": null,
+          "hash": "e8b102a9116b4bcd"
+        },
+        {
+          "index": 3,
+          "verdict": "ESCALATE",
+          "omega": "cybersecurity",
+          "hash": "ee625f52e0498a81"
+        },
+        {
+          "index": 4,
+          "verdict": "BLOCK",
+          "omega": "aerospace",
+          "hash": "0c469e6c50845db7"
+        },
+        {
+          "index": 5,
+          "verdict": "BLOCK",
+          "omega": "aerospace",
+          "hash": "f144e00ae6728b60"
+        }
+      ]
+    }
+  ]
+}
