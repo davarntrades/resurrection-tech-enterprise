@@ -67,3 +67,7 @@ __pycache__/
 
 # Locally downloaded browser (@puppeteer/browsers / playwright) — never commit
 /chrome/
+
+# Runtime Governance gateway local store (customer runtime data — never commit)
+/.runtime-data/
+/deliverables/runtime-reports/
