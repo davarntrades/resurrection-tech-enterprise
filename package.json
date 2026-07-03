@@ -21,7 +21,8 @@
     "audit:chrome:install": "bash scripts/install-chromium.sh",
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
     "audit:setup": "bash scripts/setup-delivery.sh",
-    "console": "node console/server.cjs"
+    "console": "node console/server.cjs",
+    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

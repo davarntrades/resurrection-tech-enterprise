@@ -109,7 +109,11 @@ const server = http.createServer(async (req, res) => {
       if (auth.role === "viewer") return send(res, 403, { error: "ingest role required" });
       const b = await readBody(req);
       const r = await rt.gateway.govern({ auth, trajectory: b.trajectory, domains: b.domains, horizon: b.horizon, label: b.label, agent: b.agent, correlation_id: b.correlation_id });
-      return send(res, r.ok ? 200 : 400, r);
+      return send(res, r.ok ? 200 : (r.status || 400), r);   // honours 429 (rate-limited)
+    }
+    if (p === "/v1/audit/verify" && req.method === "GET") {
+      // Tamper-evidence: recompute the per-environment hash chain (org-scoped).
+      return send(res, 200, await rt.store.verifyChain(org_id, environment_id));
     }
     if (p === "/v1/manifests" && req.method === "POST") {
       const b = await readBody(req);
@@ -132,6 +136,7 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     // Fail closed: a tenant-scope violation is a 403, never a 500 or a leak.
     if (e && (e.code === "TENANT_MISMATCH" || e.status === 403)) return send(res, 403, { error: e.message || "forbidden" });
+    rt.log.error("request_error", { method: req.method, path: req.url, error: (e && e.message) || String(e) });
     return send(res, 500, { error: e && e.message ? e.message : String(e) });
   }
 });

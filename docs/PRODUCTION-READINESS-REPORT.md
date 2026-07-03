@@ -40,11 +40,14 @@ Assessment outcome:
   exploit. **[VERIFIED]**
 - The engine is **byte‑for‑byte unchanged**: `git diff main..HEAD --
   governance-service/ morrison_governance` is empty. **[VERIFIED]**
-- **Fit for a single‑tenant, shadow‑mode pilot** after a short, well‑scoped
-  hardening list (observability, store‑failure handling, durable store). **Not
-  yet fit** for multi‑tenant enforcement due to remaining audit‑integrity and
-  operational gaps (tamper‑evidence, observability, rate limiting, database‑level
-  isolation). Details in §5–§9.
+- A subsequent hardening pass (**Addendum B**) implemented and **[TESTED]**
+  observability, store‑failure resilience, a tamper‑evident hash‑chained audit
+  log, per‑key rate limiting, and scheduled reporting. With those, the platform
+  is **fit for a single‑tenant, shadow‑mode pilot** (remaining work is
+  operational provisioning of a durable store) and **substantially closer for
+  multi‑tenant enforcement** — the residual is infrastructure verification
+  (live Supabase + database‑level RLS + load test), which is labelled
+  **[IMPLEMENTED‑UNTESTED]**, not missing capability. Details in §5–§9 + Addendum B.
 
 Nothing in this report depends on marketing claims; where the platform is
 sufficient it is stated plainly, and where it is not, the specific missing
@@ -159,11 +162,14 @@ cited commands.
 | End‑to‑end + replay | `npm run runtime:test` | 40 | **40/40 [VERIFIED]** | onboarding, RBAC, tenant isolation (decisions), shadow/enforce, rollback, manifest versioning+diff, metrics/trends/search/export, exact+shape replay, reporting |
 | Hardening (items 1–5) | `npm run runtime:harden` | 25 | **25/25 [VERIFIED]** | fail‑closed admin (HTTP), provenance, aggregation parity, indexed replay, durability guard |
 | Manifest isolation | `npm run runtime:isolation` | 23 | **23/23 [VERIFIED]** | cross‑tenant read/write/delete, enumeration, forged ids, same‑tenant, contract stability, HTTP 403 proof |
-| **Platform total** | | **88** | **88/88** | |
+| Enterprise hardening | `npm run runtime:enterprise` | 18 | **18/18 [VERIFIED]** | observability events (L1), store‑failure fail‑safe + fail‑closed (L2), tamper‑evident chain + tamper/deletion detection (L3), per‑key rate limiting (L5), scheduled report fan‑out (L6) |
+| **Platform total** | | **106** | **106/106** | |
 
 Coverage gaps (explicitly not covered by automated tests here):
-concurrency/load (L8/L9), Supabase SQL execution (L7/L8), Next.js build (L7),
-tamper‑evidence (L3, not implemented). These are **not** claimed as passing.
+concurrency/load (L8/L9), Supabase SQL + RLS execution (L7/L8/L4), Next.js build
+(L7), multi‑node chain‑head atomicity and multi‑node rate‑limit sharing (new,
+below). These are **not** claimed as passing. See **Addendum B** for the items
+that moved from FUTURE to TESTED in this pass.
 
 The engine's own validation (regression / mutation / benchmark suites) lives on
 a separate change set and exercises the frozen engine + delivery‑kit layer; it
@@ -230,12 +236,15 @@ enforcement. This is a distinct build phase, not a hardening pass.
 Scores are relative and for prioritisation only; each is bounded by the evidence
 above, not by aspiration.
 
-| Product | Score /100 | Basis |
-|---|---|---|
-| Runtime Assessment | 88 | Mature engine + delivery kit; unchanged. Ship as‑is. |
-| Limited Pilot (single‑tenant, shadow) | 74 | Core loop **[VERIFIED]**; blocked only by operational items L1/L2/L7 (short). |
-| Enterprise Integration (multi‑tenant, enforce) | 64 | IDOR fixed; held below “ready” by L1, L3, L4, L5. |
-| Enterprise SaaS | 34 | Isolation improved; scale paths **[IMPLEMENTED‑UNTESTED]**; self‑service absent. |
+Scores were revised upward in **Addendum B** after L1/L2/L3/L5/L6 moved from
+FUTURE to TESTED. Original vs post‑hardening:
+
+| Product | Original | Post‑hardening | Basis |
+|---|---|---|---|
+| Runtime Assessment | 88 | **88** | Mature engine + delivery kit; unchanged. Ship as‑is. |
+| Limited Pilot (single‑tenant, shadow) | 74 | **82** | Observability (L1) + store resilience (L2) now **[TESTED]**; only operational provisioning (durable store) remains. |
+| Enterprise Integration (multi‑tenant, enforce) | 64 | **80** | Tamper‑evidence (L3), rate limiting (L5), observability (L1), resilience (L2), scheduled reporting (L6) now **[TESTED]**; conditioned on infra verification (Supabase live + RLS + load test — **[IMPLEMENTED‑UNTESTED]**). |
+| Enterprise SaaS | 34 | **40** | Same controls help; held down by multi‑node chain‑head atomicity, in‑process rate limiting, absent self‑service, and no load test. |
 
 ---
 
@@ -268,3 +277,37 @@ engine was not modified and its determinism, provenance, and fail‑closed
 behaviour under the platform are demonstrated by 88 passing automated assertions.
 Every conclusion in this report is reproducible from the cited commands and
 commits; unverified paths are labelled and are not represented as tested.
+
+---
+
+## Addendum B — Enterprise hardening pass (L1/L2/L3/L5/L6)
+
+Five limitations from §5 were implemented and tested in this pass, **without
+engine changes** (`git diff main -- governance-service` remains empty). Evidence:
+`npm run runtime:enterprise` → **18/18 [VERIFIED]**; the pre‑existing suites still
+pass (`runtime:test` 40, `runtime:harden` 25, `runtime:isolation` 23) → **106
+platform assertions total**.
+
+| Was | Now | Control | Evidence |
+|---|---|---|---|
+| L1 no observability | **[TESTED]** | `lib/runtime/log.js` — one JSON event per decision + per error, with counters + a recent‑events ring; wired into `gateway.govern` and `server.cjs`. Metadata only (asserted no raw args). | `runtime:enterprise` L1 |
+| L2 no store‑failure resilience | **[TESTED]** | `govern()` wraps persistence: on a store outage it still returns the verdict (`recorded:false` + error logged), and fails **closed** under `RUNTIME_REQUIRE_RECORD`. | `runtime:enterprise` L2 |
+| L3 no tamper‑evidence | **[TESTED]** | Per‑environment hash chain (`seq`,`prev_hash`,`entry_hash`) in `store.appendDecision`; `store.verifyChain` detects alteration **and** deletion. `GET /v1/audit/verify` exposes it. | `runtime:enterprise` L3 |
+| L5 no rate limiting | **[TESTED]** | `lib/runtime/ratelimit.js` per‑key sliding window; enforced in `govern()` → 429. Off unless `RUNTIME_RATE_LIMIT` set. | `runtime:enterprise` L5 |
+| L6 reporting not scheduled | **[TESTED]** (handler) / **[IMPLEMENTED]** (cron) | `reports.generateAllDue` fans out per active org; `app/api/runtime/cron/reports` + `vercel.json` daily cron drive the cadence. | `runtime:enterprise` L6 |
+
+**Still open (unchanged honesty):**
+- **L4 per‑tenant RLS** — policies are provided in the schema but commented, because the gateway uses the Supabase **service role, which bypasses RLS**. They apply only to a future non‑service‑role access path. The **tested** isolation control remains the application‑layer org scoping (the IDOR fix). **[IMPLEMENTED‑UNTESTED]**
+- **L7/L8** — live Supabase (SQL + RLS), Next.js build, and load/scale testing are still not executed here. **[IMPLEMENTED‑UNTESTED] / [INFERRED]**
+- **New scale caveats introduced by this pass (disclosed):** the hash‑chain head is a per‑environment serialization point — a **multi‑node** deployment must advance it in a transaction (documented in the schema); the rate limiter is **in‑process** — multi‑node needs a shared store. Neither affects a single‑node pilot or a single‑tenant enterprise deployment; both matter at SaaS scale.
+
+**Performance:** with the chain on the ingestion path, `govern()` round‑trip is
+~1.1 ms on the file store (engine ~0.23 ms) — no measurable regression. On
+Supabase the chain adds two DB operations (head read + head update) per
+decision; this is **[IMPLEMENTED‑UNTESTED]** for latency and is the main reason
+the SaaS‑scale claim remains unverified.
+
+**Net effect:** Limited Pilot 74 → **82** and Enterprise Integration 64 → **80**,
+each backed by passing tests for the controls that moved, with the residual
+(RLS execution, Supabase, load test) explicitly labelled unverified rather than
+claimed.

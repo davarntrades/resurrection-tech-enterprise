@@ -110,6 +110,11 @@ create table if not exists public.rg_decisions (
   engine_service_version text,
   attestation          jsonb,
   trajectory_full      jsonb,                             -- only when store_payloads
+  -- Tamper-evidence (L3): per-environment hash chain. seq is monotonic per
+  -- environment; entry_hash = sha256(prev_hash | canonical(core fields)).
+  seq                  bigint,
+  prev_hash            text,
+  entry_hash           text,
   created_at           timestamptz default now()
 );
 create index if not exists rg_dec_org_time_idx  on public.rg_decisions(org_id, created_at desc);
@@ -217,8 +222,22 @@ create table if not exists public.rg_reports (
 );
 create index if not exists rg_reports_org_idx on public.rg_reports(org_id, period, generated_at desc);
 
--- RLS: service-role only (the gateway uses the service key; browser never
--- touches these tables directly — reads go through the authenticated API).
+-- Per-environment hash-chain heads (L3). One row per environment; advanced on
+-- each decision append. NOTE: a multi-node deployment MUST advance this inside a
+-- transaction (SELECT ... FOR UPDATE) to keep the chain strictly ordered.
+create table if not exists public.rg_chain_heads (
+  environment_id text primary key,
+  org_id         text,
+  seq            bigint not null default 0,
+  head_hash      text,
+  updated_at     timestamptz default now(),
+  created_at     timestamptz default now()
+);
+create unique index if not exists rg_dec_env_seq_uidx on public.rg_decisions(environment_id, seq);
+
+-- RLS: service-role only by default (the gateway uses the service key; browser
+-- never touches these tables directly — reads go through the authenticated API,
+-- which enforces org scoping in application code — see lib/runtime).
 alter table public.rg_orgs               enable row level security;
 alter table public.rg_environments       enable row level security;
 alter table public.rg_api_keys           enable row level security;
@@ -226,4 +245,25 @@ alter table public.rg_manifests          enable row level security;
 alter table public.rg_manifest_versions  enable row level security;
 alter table public.rg_decisions          enable row level security;
 alter table public.rg_reports            enable row level security;
--- (No permissive policies created ⇒ only the service role can read/write.)
+alter table public.rg_chain_heads        enable row level security;
+-- (No permissive policies ⇒ only the service role can read/write.)
+
+-- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────
+-- The service role BYPASSES RLS, so these policies only take effect for a FUTURE
+-- non-service-role access path (e.g. a per-tenant JWT). They are provided so a
+-- direct-DB or edge access path can be added without weakening isolation. They
+-- are NOT a substitute for the application-layer org scoping (which is the
+-- tested control) and were NOT executed against a live database in this change.
+-- To activate: run these AND have the caller set `select set_config('app.current_org', <org_id>, true)`
+-- per request under a non-service role.
+--
+--   create policy rg_dec_tenant on public.rg_decisions
+--     using (org_id = current_setting('app.current_org', true));
+--   create policy rg_manifests_tenant on public.rg_manifests
+--     using (org_id = current_setting('app.current_org', true));
+--   create policy rg_mv_tenant on public.rg_manifest_versions
+--     using (org_id = current_setting('app.current_org', true));
+--   create policy rg_reports_tenant on public.rg_reports
+--     using (org_id = current_setting('app.current_org', true));
+--   create policy rg_env_tenant on public.rg_environments
+--     using (org_id = current_setting('app.current_org', true));
