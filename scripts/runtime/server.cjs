@@ -98,6 +98,10 @@ const server = http.createServer(async (req, res) => {
     // ── Authenticated (Bearer API key) ───────────────────────────────────────
     const auth = await rt.admin.authenticate(bearer(req));
     if (!auth) return send(res, 401, { error: "valid API key required (Authorization: Bearer <key>)" });
+    // Tenant context: org_id is ALWAYS the authenticated key's org (never the
+    // client). An env-scoped key pins its own environment; an org-level key may
+    // name an environment_id, but manifest ops verify it belongs to org_id
+    // (fail-closed → 403), so a forged/other-tenant id is rejected.
     const org_id = auth.org.id;
     const environment_id = auth.environment ? auth.environment.id : q.environment_id;
 
@@ -111,8 +115,8 @@ const server = http.createServer(async (req, res) => {
       const b = await readBody(req);
       return send(res, 200, await rt.manifests.putManifest({ org_id, environment_id, manifest: b.manifest, domains: b.domains, note: b.note, reassess: b.reassess !== false }));
     }
-    if (p === "/v1/manifests/current" && req.method === "GET") return send(res, 200, (await rt.manifests.currentManifest(environment_id)) || { error: "no manifest" });
-    if (p === "/v1/manifests/history" && req.method === "GET") return send(res, 200, await rt.manifests.manifestHistory(environment_id));
+    if (p === "/v1/manifests/current" && req.method === "GET") return send(res, 200, (await rt.manifests.currentManifest(org_id, environment_id)) || { error: "no manifest" });
+    if (p === "/v1/manifests/history" && req.method === "GET") return send(res, 200, await rt.manifests.manifestHistory(org_id, environment_id));
     if (p === "/v1/metrics" && req.method === "GET") return send(res, 200, await rt.metrics.summary({ org_id, environment_id: q.all ? undefined : environment_id, since: q.since, until: q.until }));
     if (p === "/v1/trends" && req.method === "GET") return send(res, 200, await rt.metrics.trends({ org_id, environment_id: q.all ? undefined : environment_id, since: q.since, until: q.until, bucket: q.bucket || "day" }));
     if (p === "/v1/decisions" && req.method === "GET") return send(res, 200, await rt.store.queryDecisions({ org_id, environment_id: q.all ? undefined : environment_id, verdict: q.verdict, omega_domain: q.omega_domain, rule: q.rule, q: q.q, since: q.since, until: q.until, limit: Number(q.limit || 200) }));
@@ -126,6 +130,8 @@ const server = http.createServer(async (req, res) => {
 
     return send(res, 404, { error: "not found", path: p });
   } catch (e) {
+    // Fail closed: a tenant-scope violation is a 403, never a 500 or a leak.
+    if (e && (e.code === "TENANT_MISMATCH" || e.status === 403)) return send(res, 403, { error: e.message || "forbidden" });
     return send(res, 500, { error: e && e.message ? e.message : String(e) });
   }
 });

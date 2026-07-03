@@ -54,7 +54,7 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   const m2 = await rt.manifests.putManifest({ org_id: acme.org.id, environment_id: acme.production.id, manifest: [{ name: "read_account" }, { name: "transfer_funds" }, { name: "wire_transfer" }], domains: ["finance"] });
   ok(m2.changed && m2.version.version === 2, "adding a tool creates v2");
   eq(m2.diff.added, ["wire_transfer"], "diff reports the added tool");
-  eq((await rt.manifests.manifestHistory(acme.production.id)).length, 2, "history keeps both versions");
+  eq((await rt.manifests.manifestHistory(acme.org.id, acme.production.id)).length, 2, "history keeps both versions");
 
   // ── Continuous ingestion — shadow mode observes, never blocks ──────────────
   const safe = await rt.gateway.govern({ auth: authA, trajectory: [{ tool: "read_account", args: {} }], domains: ["finance"], label: "read" });

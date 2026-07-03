@@ -13,6 +13,7 @@
     "runtime:report": "node scripts/runtime/report.cjs",
     "runtime:test": "node scripts/runtime/gateway.test.cjs",
     "runtime:harden": "node scripts/runtime/hardening.test.cjs",
+    "runtime:isolation": "node scripts/runtime/manifest-isolation.test.cjs",
     "audit": "node scripts/delivery-kit.cjs",
     "audit:check": "node scripts/delivery-kit.cjs --check",
     "audit:auth": "node scripts/delivery-kit.cjs --auth-verify",
