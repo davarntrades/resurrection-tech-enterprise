@@ -33,7 +33,9 @@ const path = require("node:path");
 const rt = require("../../lib/runtime");
 
 const PORT = Number(process.env.RUNTIME_PORT || 8790);
-const ADMIN_KEY = process.env.RUNTIME_ADMIN_KEY || "rt-admin-dev";   // gate for /admin/* (set in prod)
+// Item 1: fail CLOSED. No default admin key — if RUNTIME_ADMIN_KEY is unset the
+// /admin/* control plane is DISABLED (not left open on a well-known default).
+const ADMIN_KEY = process.env.RUNTIME_ADMIN_KEY || null;
 const DASHBOARD = path.join(__dirname, "dashboard.html");
 
 const send = (res, code, obj, type) => {
@@ -46,7 +48,13 @@ const readBody = (req) => new Promise((resolve) => {
   req.on("end", () => { try { resolve(c.length ? JSON.parse(Buffer.concat(c).toString()) : {}); } catch { resolve({}); } });
 });
 const bearer = (req) => { const h = req.headers.authorization || ""; const m = h.match(/^Bearer\s+(.+)$/i); return m ? m[1].trim() : ""; };
-const isAdmin = (req) => (req.headers["x-admin-key"] || "") === ADMIN_KEY;
+// Admin gate: disabled entirely unless RUNTIME_ADMIN_KEY is configured, then a
+// constant-time-ish exact match. Returns { ok } / { disabled } so callers emit
+// the right status (503 when unconfigured, 401 when the key is wrong).
+const adminGate = (req) => {
+  if (!ADMIN_KEY) return { disabled: true };
+  return { ok: (req.headers["x-admin-key"] || "") === ADMIN_KEY };
+};
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -62,21 +70,27 @@ const server = http.createServer(async (req, res) => {
     if (p === "/health") return send(res, 200, await rt.health());
 
     // ── Admin (x-admin-key) ──────────────────────────────────────────────────
+    const denyAdmin = (req) => {
+      const g = adminGate(req);
+      if (g.disabled) return { code: 503, body: { error: "admin control plane disabled — set RUNTIME_ADMIN_KEY to enable /admin/*" } };
+      if (!g.ok) return { code: 401, body: { error: "admin key required (x-admin-key)" } };
+      return null;
+    };
     if (p === "/admin/onboard" && req.method === "POST") {
-      if (!isAdmin(req)) return send(res, 401, { error: "admin key required (x-admin-key)" });
+      const d = denyAdmin(req); if (d) return send(res, d.code, d.body);
       const b = await readBody(req);
       if (!b.name) return send(res, 400, { error: "name required" });
       return send(res, 200, await rt.admin.onboardCustomer(b));
     }
     if (p === "/admin/keys" && req.method === "POST") {
-      if (!isAdmin(req)) return send(res, 401, { error: "admin key required" });
+      const d = denyAdmin(req); if (d) return send(res, d.code, d.body);
       const b = await readBody(req);
       if (!b.org_id) return send(res, 400, { error: "org_id required" });
       return send(res, 200, await rt.admin.issueApiKey(b));
     }
     let m;
     if ((m = p.match(/^\/admin\/environments\/([^/]+)\/mode$/)) && req.method === "POST") {
-      if (!isAdmin(req)) return send(res, 401, { error: "admin key required" });
+      const d = denyAdmin(req); if (d) return send(res, d.code, d.body);
       const b = await readBody(req);
       return send(res, 200, await rt.admin.setMode(m[1], b.mode));
     }
@@ -119,7 +133,8 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`Runtime Governance Gateway → http://127.0.0.1:${PORT}`);
   console.log(`  engine:  ${rt.engine.ENGINE_URL}`);
-  console.log(`  store:   ${rt.store.backend()}  (${rt.store.backend() === "file" ? rt.store.DATA_DIR : "supabase"})`);
-  console.log(`  admin:   x-admin-key: ${ADMIN_KEY === "rt-admin-dev" ? "rt-admin-dev (set RUNTIME_ADMIN_KEY in prod)" : "configured"}`);
+  console.log(`  store:   ${rt.store.backend()}  (${rt.store.durable() ? "durable" : "NON-DURABLE dev file store — " + rt.store.DATA_DIR})`);
+  console.log(`  admin:   ${ADMIN_KEY ? "enabled (x-admin-key configured)" : "DISABLED — set RUNTIME_ADMIN_KEY to enable /admin/*"}`);
+  if (!rt.store.durable()) console.log(`  ⚠ file store is not durable/concurrency-safe — configure Supabase for live customer traffic (set RUNTIME_REQUIRE_DURABLE=1 to enforce).`);
 });
 module.exports = server;

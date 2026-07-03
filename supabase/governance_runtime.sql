@@ -102,6 +102,13 @@ create table if not exists public.rg_decisions (
   agent                text,
   correlation_id       text,
   engine_ok            boolean,
+  -- Engine provenance (item 2): the exact ruleset + build that produced the
+  -- verdict, recorded verbatim from the engine attestation. Makes evidence
+  -- defensible and replay drift detectable months later.
+  engine_commit        text,
+  ruleset_hash         text,
+  engine_service_version text,
+  attestation          jsonb,
   trajectory_full      jsonb,                             -- only when store_payloads
   created_at           timestamptz default now()
 );
@@ -111,6 +118,82 @@ create index if not exists rg_dec_verdict_idx   on public.rg_decisions(org_id, v
 create index if not exists rg_dec_rule_idx      on public.rg_decisions(org_id, rule);
 create index if not exists rg_dec_omega_idx     on public.rg_decisions(org_id, omega_domain);
 create index if not exists rg_dec_hash_idx      on public.rg_decisions(trajectory_hash);
+create index if not exists rg_dec_id_idx        on public.rg_decisions(id);            -- indexed replay lookup (item 4)
+create index if not exists rg_dec_ruleset_idx   on public.rg_decisions(ruleset_hash);  -- provenance / drift queries
+
+-- ── Server-side aggregation (item 3) ─────────────────────────────────────────
+-- SQL count()/group by + percentile_cont, so metrics are correct at ANY scale
+-- and immune to the PostgREST 1000-row response cap that truncated in-app
+-- aggregation. Returns the normalised shape lib/runtime/store.aggregate expects.
+create or replace function public.rg_metrics(
+  p_org text, p_env text default null, p_since timestamptz default null, p_until timestamptz default null
+) returns jsonb language sql stable as $$
+  with f as (
+    select * from public.rg_decisions d
+    where (p_org  is null or d.org_id = p_org)
+      and (p_env  is null or d.environment_id = p_env)
+      and (p_since is null or d.created_at >= p_since)
+      and (p_until is null or d.created_at <= p_until)
+  )
+  select jsonb_build_object(
+    'total', (select count(*) from f),
+    'verdict_counts', jsonb_build_object(
+      'ALLOW',    (select count(*) from f where verdict='ALLOW'),
+      'ESCALATE', (select count(*) from f where verdict='ESCALATE'),
+      'BLOCK',    (select count(*) from f where verdict='BLOCK'),
+      'ENGINE_UNAVAILABLE', (select count(*) from f where verdict='ENGINE_UNAVAILABLE')),
+    'engine_verdict_counts', jsonb_build_object(
+      'ALLOW',    (select count(*) from f where engine_verdict='ALLOW'),
+      'ESCALATE', (select count(*) from f where engine_verdict='ESCALATE'),
+      'BLOCK',    (select count(*) from f where engine_verdict='BLOCK'),
+      'ENGINE_UNAVAILABLE', (select count(*) from f where engine_verdict='ENGINE_UNAVAILABLE')),
+    'enforced',     (select count(*) from f where enforced),
+    'human_review', (select count(*) from f where requires_human_review),
+    'compute', (select jsonb_build_object(
+      'mean', round(avg(engine_compute_ms)::numeric,3),
+      'p50', percentile_cont(0.50) within group (order by engine_compute_ms),
+      'p95', percentile_cont(0.95) within group (order by engine_compute_ms),
+      'p99', percentile_cont(0.99) within group (order by engine_compute_ms),
+      'max', max(engine_compute_ms)) from f where engine_compute_ms is not null),
+    'roundtrip', (select jsonb_build_object(
+      'mean', round(avg(round_trip_ms)::numeric,3),
+      'p50', percentile_cont(0.50) within group (order by round_trip_ms),
+      'p95', percentile_cont(0.95) within group (order by round_trip_ms),
+      'max', max(round_trip_ms)) from f where round_trip_ms is not null),
+    'rules', coalesce((select jsonb_agg(x) from (
+      select jsonb_build_object('key', rule, 'count', count(*)) x from f where rule is not null
+      group by rule order by count(*) desc limit 10) t), '[]'::jsonb),
+    'omega', coalesce((select jsonb_agg(x) from (
+      select jsonb_build_object('key', omega_domain, 'count', count(*)) x from f where omega_domain is not null
+      group by omega_domain order by count(*) desc limit 10) t), '[]'::jsonb),
+    'by_environment_kind', coalesce((select jsonb_object_agg(environment_kind, c) from (
+      select environment_kind, count(*) c from f where environment_kind is not null group by environment_kind) t), '{}'::jsonb)
+  );
+$$;
+
+create or replace function public.rg_trends(
+  p_org text, p_env text default null, p_since timestamptz default null, p_until timestamptz default null, p_bucket text default 'day'
+) returns jsonb language sql stable as $$
+  with f as (
+    select *, date_trunc(case when p_bucket in ('hour','day','week') then p_bucket else 'day' end, created_at) as b
+    from public.rg_decisions d
+    where (p_org  is null or d.org_id = p_org)
+      and (p_env  is null or d.environment_id = p_env)
+      and (p_since is null or d.created_at >= p_since)
+      and (p_until is null or d.created_at <= p_until)
+  )
+  select coalesce(jsonb_agg(row order by row->>'bucket'), '[]'::jsonb) from (
+    select jsonb_build_object(
+      'bucket', to_char(b, 'YYYY-MM-DD"T"HH24:MI:SS'),
+      'ALLOW',    count(*) filter (where verdict='ALLOW'),
+      'ESCALATE', count(*) filter (where verdict='ESCALATE'),
+      'BLOCK',    count(*) filter (where verdict='BLOCK'),
+      'total',    count(*),
+      'avg_engine_compute_ms', round(avg(engine_compute_ms)::numeric,3)
+    ) as row
+    from f group by b
+  ) t;
+$$;
 
 -- Reports: persisted daily/weekly/monthly/quarterly governance evidence -------
 create table if not exists public.rg_reports (

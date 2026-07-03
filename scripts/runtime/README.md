@@ -64,13 +64,44 @@ Exercises onboarding, RBAC, tenant isolation, shadow/enforce, manifest
 versioning + diff, metrics/trends/search/export, exact + shape-only replay, and
 period reporting — against the live engine, using an isolated file store.
 
-## Storage
+## Storage & security posture (hardened — items 1–5)
 
-- **File store** (default): `.runtime-data/` (gitignored). Zero setup — a pilot
-  starts immediately.
-- **Supabase** (production): set `NEXT_PUBLIC_SUPABASE_URL` +
-  `SUPABASE_SERVICE_ROLE_KEY` and apply `supabase/governance_runtime.sql`. The
-  code path is identical; no rewrite.
+- **Admin control plane is fail-closed.** `/admin/*` is **disabled** unless
+  `RUNTIME_ADMIN_KEY` is set (no default key). Wrong key → 401.
+- **Engine provenance** — every decision records the engine `attestation`
+  (`ruleset_hash`, `engine_commit`, version). Replay detects **engine drift**
+  and only claims determinism against the same ruleset.
+- **Aggregation is store-side** — Supabase computes metrics via the
+  `rg_metrics` / `rg_trends` SQL functions (`count`/`group by`/`percentile_cont`),
+  correct at any scale (immune to the PostgREST 1000-row cap). The file backend
+  aggregates in a bounded single pass.
+- **Durable-storage guard** — `health.store.durable` reports the backend;
+  set `RUNTIME_REQUIRE_DURABLE=1` to **refuse live traffic on the non-durable
+  file store**.
+
+Backends:
+- **File store** (default): `.runtime-data/` (gitignored). **Dev/CI only** — not
+  durable or concurrency-safe. Fine for local runs and tests.
+- **Supabase** (production/pilots): set `NEXT_PUBLIC_SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY` and apply `supabase/governance_runtime.sql`
+  (tables + `rg_metrics`/`rg_trends` functions). The code path is identical.
+
+### Environment variables
+
+| Var | Purpose |
+|---|---|
+| `GOVERNANCE_URL` / `GOVERNANCE_TOKEN` | the (unchanged) engine + its bearer token |
+| `RUNTIME_ADMIN_KEY` | **required** to enable `/admin/*` (fail-closed if unset) |
+| `RUNTIME_REQUIRE_DURABLE` | `1` → refuse live ingestion unless Supabase is configured |
+| `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | durable production store |
+| `RUNTIME_PORT` / `RUNTIME_DATA_DIR` | gateway port / file-store location |
+
+## Test
+
+```bash
+GOVERNANCE_URL=… GOVERNANCE_TOKEN=… npm run runtime:test     # end-to-end + replay (40)
+GOVERNANCE_URL=… GOVERNANCE_TOKEN=… npm run runtime:harden   # items 1–5 (25)
+```
 
 Decision rows store **metadata only** (verdict, Ω, rule, hash, latency, tool
 names) — never raw customer arguments — unless an environment opts into
