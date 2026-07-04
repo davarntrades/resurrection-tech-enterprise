@@ -31,7 +31,8 @@
     "console": "node console/server.cjs",
     "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs",
     "runtime:preflight": "node scripts/runtime/preflight.cjs",
-    "runtime:set-mode": "node scripts/runtime/set-mode.cjs"
+    "runtime:set-mode": "node scripts/runtime/set-mode.cjs",
+    "runtime:adminauth": "node scripts/runtime/adminauth.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

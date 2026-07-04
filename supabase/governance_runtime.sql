@@ -235,6 +235,20 @@ create table if not exists public.rg_chain_heads (
 );
 create unique index if not exists rg_dec_env_seq_uidx on public.rg_decisions(environment_id, seq);
 
+-- Operator action audit (admin dashboard): who onboarded / enforced / rotated a
+-- key, and when. Written by lib/runtime/adminaudit.js; degrades to a structured
+-- log event if this table is absent, so it is safe to add after the fact.
+create table if not exists public.rg_admin_audit (
+  id          text primary key,
+  action      text not null,                 -- login | onboard | set_mode | issue_key | rotate_key
+  actor       text,                           -- operator | admin-key
+  via         text,                           -- session | admin-key
+  target      text,                           -- org_id / environment_id acted on
+  meta        jsonb,
+  created_at  timestamptz default now()
+);
+create index if not exists rg_admin_audit_created_idx on public.rg_admin_audit(created_at desc);
+
 -- RLS: service-role only by default (the gateway uses the service key; browser
 -- never touches these tables directly — reads go through the authenticated API,
 -- which enforces org scoping in application code — see lib/runtime).
@@ -246,6 +260,7 @@ alter table public.rg_manifest_versions  enable row level security;
 alter table public.rg_decisions          enable row level security;
 alter table public.rg_reports            enable row level security;
 alter table public.rg_chain_heads        enable row level security;
+alter table public.rg_admin_audit        enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────
