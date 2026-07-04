@@ -83,20 +83,28 @@ The backend layer is implemented and unit-tested; the browser UI that consumes i
 **Remaining for Phase 1:** operator UI is Phase 2; multi-operator accounts (vs. the single
 bootstrap operator) is a later hardening.
 
-### Phase 2 — Control-room screens
-- **Onboard** — company name + slug → click Create → credentials generated → production + staging
-  environments created → ingest key shown once.
-- **Customer environment view** — per customer:
-  - Shadow / Enforce toggle (with a confirm on the enforce cutover, and one-click rollback)
-  - Evidence: ALLOW/ESCALATE/BLOCK counters, latency, rule/Ω frequency, recent decisions
-  - Reports: daily / weekly / monthly / quarterly
-  - Ingest key rotation
-  - Export audit pack
+### Phase 2 — Control-room screens — ✅ SHIPPED
+Live at **`/admin/runtime`** (`app/admin/runtime/page.tsx` → `components/admin/RuntimeAdminClient.tsx`,
+`styles/runtime-admin.css`). A session-gated single-page control room over the Phase-1 API. Two
+operator-scoped read routes were added so the dashboard can see any tenant's data via the session
+(the customer-key `/metrics` `/reports` routes are unchanged):
+`GET /api/runtime/admin/evidence` and `GET|POST /api/runtime/admin/reports`.
+
+- **Login gate** — operator password → session cookie; sign-out.
+- **Onboard** — company name + slug → Create → ingest key shown once (copy button) + org/env ids.
+- **Customers** — every org with its environments; per environment:
+  - **Shadow / Enforce toggle** (confirm dialog on the enforce cutover; flip back = one-click rollback)
+  - **Evidence** — ALLOW/ESCALATE/BLOCK counters, would-block, engine p95, top rules/Ω, recent
+    decisions table, **Export JSON**
+  - **Reports** — list + generate (daily / weekly / monthly / quarterly)
+  - **Rotate key** — issue a fresh ingest key (shown once)
+- **Readiness** — the preflight config-audit card (green/red per check) — Phase 3 item, delivered early.
+- **Audit** — the operator action log.
 
 ### Phase 3 — Readiness in the browser
-- Preflight readiness card: green/red per check (config audit + capability), "green = safe to
-  onboard" — no terminal needed.
-- Optional: alerting on BLOCK spikes / evidence-recording failures / engine unreachability.
+- ✅ Preflight readiness card (config audit) — shipped in the Readiness tab; "green = safe to onboard",
+  no terminal needed. (The shadow→enforce capability half of the gate stays in `npm run runtime:preflight`.)
+- Remaining: alerting on BLOCK spikes / evidence-recording failures / engine unreachability.
 
 ## Non-goals / guardrails (unchanged)
 - The Runtime Governance engine stays frozen — this is all platform/operator surface, never engine
