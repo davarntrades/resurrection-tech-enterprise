@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!rt.reports.PERIODS.includes(body?.period))
     return NextResponse.json({ error: `period must be one of ${rt.reports.PERIODS.join("|")}` }, { status: 400 });
   try {
-    const report = await rt.reports.generate({ org_id, environment_id: body?.environment_id || undefined, period: body.period });
+    const report = await rt.reports.generate({ org_id, environment_id: body?.environment_id || undefined, period: body.period, ref: body?.ref });
     await rt.adminaudit.record({ action: "generate_report", actor: authz.identity, via: authz.via, target: org_id, meta: { period: body.period } });
     return NextResponse.json({ ok: true, report });
   } catch (e: any) {

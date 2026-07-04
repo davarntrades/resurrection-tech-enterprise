@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
   const r = rt.adminauth.login(String(body?.password || ""));
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "invalid credentials" ? 401 : 503 });
+  if (!r.ok || !r.token) return NextResponse.json({ error: r.error || "login unavailable" }, { status: r.error === "invalid credentials" ? 401 : 503 });
 
   await rt.adminaudit.record({ action: "login", actor: "operator", via: "session" });
   const res = NextResponse.json({ ok: true, exp: r.exp });
