@@ -108,7 +108,7 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
       <section className="radmin-card">
         <h2>✅ {result.org?.name} onboarded</h2>
         <p className="radmin-muted">Production + staging environments created (both in shadow mode).</p>
-        <KeyReveal label="Ingest key (shown once — send to the customer)" value={result.ingest_key} />
+        <KeyReveal label="Ingest key (shown once — send to the customer)" value={result.ingest_key} warning={result.warning} />
         <div className="radmin-kv">
           <div><span>Org id</span><code>{result.org?.id}</code></div>
           <div><span>Production env</span><code>{result.production?.id}</code></div>
@@ -170,6 +170,7 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<null | "evidence" | "reports" | "keys">(null);
   const [newKey, setNewKey] = useState("");
+  const [newKeyWarn, setNewKeyWarn] = useState("");
   const enforce = env.mode === "enforce";
 
   const toggle = async () => {
@@ -182,7 +183,7 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
   const rotate = async () => {
     if (!window.confirm("Rotate the ingest key for this environment? The old key keeps working until you revoke it; a new key is issued now.")) return;
     setBusy(true);
-    try { const d = await api("keys", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, label: `${env.kind} ingest` }) }); setNewKey(d.key); setOpen("keys"); }
+    try { const d = await api("keys", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, label: `${env.kind} ingest` }) }); setNewKey(d.key); setNewKeyWarn(d.warning || ""); setOpen("keys"); }
     catch (e: any) { alert(e.message); } finally { setBusy(false); }
   };
 
@@ -204,7 +205,7 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
         </div>
       </div>
       {open === "keys" && newKey && (
-        <div className="radmin-env-body"><KeyReveal label="New ingest key (shown once)" value={newKey} /></div>
+        <div className="radmin-env-body"><KeyReveal label="New ingest key (shown once)" value={newKey} warning={newKeyWarn} /></div>
       )}
       {open === "evidence" && <div className="radmin-env-body"><EvidenceView org={org} env={env} /></div>}
       {open === "reports" && <div className="radmin-env-body"><ReportsView org={org} env={env} /></div>}
@@ -373,7 +374,7 @@ function FreqList({ title, rows }: { title: string; rows?: any[] }) {
     </div>
   );
 }
-function KeyReveal({ label, value }: { label: string; value: string }) {
+function KeyReveal({ label, value, warning }: { label: string; value: string; warning?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="radmin-keyreveal">
@@ -384,6 +385,7 @@ function KeyReveal({ label, value }: { label: string; value: string }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {warning && <div className="radmin-err" style={{ marginTop: 8 }}>{warning}</div>}
     </div>
   );
 }

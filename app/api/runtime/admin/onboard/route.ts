@@ -24,10 +24,17 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); } catch { /* empty */ }
   if (!body?.name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
+  // Do not issue a key the /evaluate endpoint can't see: on a non-durable store
+  // (ephemeral per-instance file store on serverless) an issued key won't persist
+  // across invocations. Refuse when durability is required; warn otherwise.
+  const durable = rt.store.durable();
+  if (!durable && /^(1|true|yes)$/i.test(process.env.RUNTIME_REQUIRE_DURABLE || ""))
+    return NextResponse.json({ error: "refusing to onboard on a non-durable store — configure Supabase so issued keys persist (NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" }, { status: 503 });
+
   try {
     const result = await rt.admin.onboardCustomer({ name: body.name, slug: body.slug, plan: body.plan });
     await rt.adminaudit.record({ action: "onboard", actor: authz.identity, via: authz.via, target: result.org?.id, meta: { name: body.name, slug: result.org?.slug } });
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, durable, ...(durable ? {} : { warning: "store is NON-DURABLE (ephemeral file store) — this key may not authenticate on /evaluate across requests. Configure Supabase." }) });
   } catch (e: any) {
     // A store/schema/config failure returns a legible JSON error, not an opaque 500.
     return NextResponse.json({ error: e?.message || "onboarding failed" }, { status: 500 });
