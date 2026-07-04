@@ -148,8 +148,10 @@ to your environment mode** (`shadow → enforce`), performed by Resurrection Tec
   requires human review, `ALLOW` passes through.
 - Fail-closed: if the engine is ever unreachable in enforce mode, actions are **blocked**, not waved through.
 
-> *Operator note (Resurrection Tech): this is `admin.setMode(environmentId, "enforce")` — an instant,
-> logged, per-environment flip with a `mode_changed_at` timestamp.*
+> *Operator note (Resurrection Tech): enforcement is the environment's `mode` field — there is no
+> feature flag or separate route. Flip it with `npm run runtime:set-mode -- <environment_id> enforce`
+> (or `admin.setMode(environmentId, "enforce")`). It is an instant, logged, per-environment change with
+> a `mode_changed_at` timestamp; the next `/evaluate` call (which re-authenticates per request) enforces.*
 
 ---
 

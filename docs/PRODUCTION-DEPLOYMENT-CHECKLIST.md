@@ -70,6 +70,23 @@ curl -s https://resurrection-tech.com/api/runtime/health | jq
 #   store.durable == true             → A6 PASS
 ```
 
+## Enabling enforcement (shadow → enforce)
+
+Enforcement is **not** an env var, feature flag, or HTTP route — it is the `mode` field on an
+environment. Flip it server-side (the next `/evaluate` call, which re-authenticates per request,
+enforces immediately — no redeploy):
+
+```bash
+# load production env so it targets the real (Supabase) store
+set -a; source .env.production; set +a
+
+npm run runtime:set-mode -- --list                      # find the environment id
+npm run runtime:set-mode -- <environment_id> enforce    # go authoritative
+npm run runtime:set-mode -- <environment_id> shadow     # instant rollback
+```
+
+Equivalent SQL: `update rg_environments set mode='enforce', mode_changed_at=now() where id='<id>';`
+
 ## Sign-off
 
 - [ ] `npm run runtime:preflight` exits **0** (all required checks PASS)
