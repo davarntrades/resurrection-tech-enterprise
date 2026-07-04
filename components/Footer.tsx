@@ -39,7 +39,7 @@ export function Footer() {
           <Link href="/#what">What we do</Link>
           <Link href="/why-runtime-governance">Why Runtime Governance</Link>
           <Link href="/integrations">How it integrates</Link>
-          <Link href="/#model">Operating model</Link>
+          <Link href="/#onboarding">Onboarding pathway</Link>
           <Link href="/#reachability">Ω Reachability</Link>
           <Link href="/enterprise-pathways">Why pricing scales</Link>
         </div>

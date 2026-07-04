@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Runtime Governance — Live Dashboard</title>
+<style>
+  :root{--bg:#0b0e13;--panel:#141922;--line:#232a36;--txt:#e7ecf3;--dim:#8a929c;
+        --allow:#3fb950;--escalate:#d29922;--block:#f85149;--accent:#58a6ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid var(--line);background:#0d1117}
+  header h1{font-size:16px;margin:0;font-weight:650}
+  header .sp{flex:1}
+  input,select,button{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font-size:13px}
+  button{cursor:pointer;background:var(--accent);border-color:var(--accent);color:#04101f;font-weight:600}
+  button.ghost{background:var(--panel);color:var(--txt);border-color:var(--line);font-weight:500}
+  main{padding:22px;max-width:1200px;margin:0 auto}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .cards{grid-template-columns:1fr 1fr}
+  @media(max-width:820px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .kpi .v{font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .kpi .k{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .kpi.allow .v{color:var(--allow)} .kpi.escalate .v{color:var(--escalate)} .kpi.block .v{color:var(--block)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .pill.ALLOW{background:rgba(63,185,80,.15);color:var(--allow)} .pill.ESCALATE{background:rgba(210,153,34,.15);color:var(--escalate)} .pill.BLOCK{background:rgba(248,81,73,.15);color:var(--block)}
+  .muted{color:var(--dim)} .err{color:var(--block)}
+  .bar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;display:flex}
+  .bar i{display:block;height:100%}
+</style>
+</head>
+<body>
+<header>
+  <h1>◆ Runtime Governance — Live</h1>
+  <span class="sp"></span>
+  <input id="base" placeholder="Gateway URL" style="width:230px" />
+  <input id="key" placeholder="API key (Bearer)" style="width:230px" type="password" />
+  <select id="bucket"><option value="hour">hourly</option><option value="day" selected>daily</option><option value="week">weekly</option></select>
+  <button id="go">Connect</button>
+  <button id="auto" class="ghost">Auto: off</button>
+</header>
+<main>
+  <div id="status" class="muted" style="margin-bottom:14px">Enter the gateway URL + an API key, then Connect. Metadata only — no customer payloads are shown.</div>
+  <div class="grid kpis" id="kpis" style="margin-bottom:16px"></div>
+  <div class="card" style="margin-bottom:16px">
+    <h2>Verdict trend</h2>
+    <div id="chart"></div>
+  </div>
+  <div class="grid cards" style="margin-bottom:16px">
+    <div class="card"><h2>Ω-domain frequency</h2><div id="omega"></div></div>
+    <div class="card"><h2>Rule frequency</h2><div id="rules"></div></div>
+  </div>
+  <div class="card"><h2>Recent governed decisions</h2><div id="recent"></div></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { base: localStorage.rtBase || location.origin, key: localStorage.rtKey || "", timer: null };
+$("base").value = state.base; $("key").value = state.key;
+
+async function api(path){
+  const r = await fetch(state.base.replace(/\/$/,"") + path, { headers: { authorization: "Bearer " + state.key }});
+  if(!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0,120));
+  return r.json();
+}
+function kpi(cls,v,k){return `<div class="card kpi ${cls}"><div class="v">${v}</div><div class="k">${k}</div></div>`}
+function freqTable(rows){
+  if(!rows||!rows.length) return '<div class="muted">No data yet.</div>';
+  const max = Math.max(...rows.map(r=>r.count));
+  return '<table>'+rows.map(r=>`<tr><td>${r.key}</td><td class="n">${r.count}</td><td style="width:38%"><div class="bar"><i style="width:${Math.round(r.count/max*100)}%;background:var(--accent)"></i></div></td></tr>`).join('')+'</table>';
+}
+function chart(series){
+  if(!series||!series.length) return '<div class="muted">No decisions in window yet.</div>';
+  const W=1040,H=160,pad=24, max=Math.max(1,...series.map(s=>s.total));
+  const x=i=>pad+ i*( (W-2*pad)/Math.max(1,series.length-1) );
+  const y=v=>H-pad - (v/max)*(H-2*pad);
+  const line=(key,col)=>{const d=series.map((s,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(s[key]).toFixed(1)}`).join(' ');return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2"/>`};
+  const dots=(key,col)=>series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s[key]).toFixed(1)}" r="2.5" fill="${col}"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:100%">
+    ${line('total','#58a6ff')}${line('BLOCK','#f85149')}${line('ESCALATE','#d29922')}${line('ALLOW','#3fb950')}
+    ${dots('total','#58a6ff')}
+    </svg>
+    <div class="muted" style="font-size:12px;margin-top:6px">
+      <span style="color:#58a6ff">■ total</span> &nbsp; <span style="color:#3fb950">■ allow</span> &nbsp; <span style="color:#d29922">■ escalate</span> &nbsp; <span style="color:#f85149">■ block</span> &nbsp; · ${series.length} ${$("bucket").value} buckets</div>`;
+}
+function recent(rows){
+  if(!rows||!rows.length) return '<div class="muted">No decisions yet.</div>';
+  return '<table><tr><th>Time</th><th>Verdict</th><th>Engine</th><th>Ω</th><th>Rule</th><th class="n">compute</th><th>env</th></tr>'+
+    rows.slice(0,20).map(r=>`<tr><td class="muted">${(r.created_at||'').slice(11,19)}</td><td><span class="pill ${r.verdict}">${r.verdict}</span></td><td class="muted">${r.engine_verdict||''}</td><td>${r.omega_domain||''}</td><td class="muted">${r.rule||''}</td><td class="n">${r.engine_compute_ms!=null?r.engine_compute_ms+'ms':''}</td><td class="muted">${r.environment_kind||''}/${r.mode||''}</td></tr>`).join('')+'</table>';
+}
+async function refresh(){
+  try{
+    const [m,t,d] = await Promise.all([api('/v1/metrics'), api('/v1/trends?bucket='+$("bucket").value), api('/v1/decisions?limit=20')]);
+    const v=m.verdicts, lat=m.latency.engine_compute_ms;
+    $("kpis").innerHTML = kpi('',m.total,'Governed')
+      + kpi('allow',v.ALLOW,'Allow ('+v.allow_pct+'%)')
+      + kpi('escalate',v.ESCALATE,'Escalate ('+v.escalate_pct+'%)')
+      + kpi('block',v.BLOCK,'Block ('+v.block_pct+'%)')
+      + kpi('',(lat.mean!=null?lat.mean:'—')+'ms','Avg engine')
+      + kpi('',(m.would_block||0),'Would-block (shadow)');
+    $("chart").innerHTML = chart(t);
+    $("omega").innerHTML = freqTable(m.omega_frequency);
+    $("rules").innerHTML = freqTable(m.rule_frequency);
+    $("recent").innerHTML = recent(d);
+    $("status").innerHTML = '<span style="color:var(--allow)">● connected</span> — '+m.total+' decisions · updated '+new Date().toLocaleTimeString();
+  }catch(e){ $("status").innerHTML = '<span class="err">● '+e.message+'</span>'; }
+}
+$("go").onclick=()=>{ state.base=$("base").value; state.key=$("key").value; localStorage.rtBase=state.base; localStorage.rtKey=state.key; refresh(); };
+$("bucket").onchange=refresh;
+$("auto").onclick=()=>{ if(state.timer){clearInterval(state.timer);state.timer=null;$("auto").textContent="Auto: off";} else {state.timer=setInterval(refresh,5000);$("auto").textContent="Auto: 5s";refresh();} };
+if(state.key) refresh();
+</script>
+</body>
+</html>

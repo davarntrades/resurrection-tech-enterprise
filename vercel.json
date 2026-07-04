@@ -16,5 +16,8 @@
   "redirects": [
     { "source": "/audit", "destination": "/request-audit", "permanent": true },
     { "source": "/pricing", "destination": "/enterprise-pathways", "permanent": false }
+  ],
+  "crons": [
+    { "path": "/api/runtime/cron/reports", "schedule": "0 6 * * *" }
   ]
 }

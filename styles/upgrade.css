@@ -359,36 +359,47 @@
 }
 
 /* ---------- Model-agnostic middleware (Priority 2) ---------- */
-/* Agnostic badge strip */
+/* Agnostic capability grid — uniform, aligned rows instead of a ragged strip */
 .mw-agnostic {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 760px;
-  margin: 0 auto 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 820px;
+  margin: 0 auto 34px;
 }
 .mw-ag {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
   font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.04em;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
   color: var(--ink-2);
   border: 1px solid var(--line-2);
-  border-radius: 999px;
-  padding: 6px 13px;
-  background: var(--panel);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  transition: border-color .35s var(--ease), color .35s var(--ease),
+    transform .35s var(--ease), box-shadow .35s var(--ease);
+}
+.mw-ag:hover {
+  border-color: rgba(76,125,255,0.4);
+  color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -22px var(--accent-glow), 0 0 0 1px rgba(76,125,255,0.1);
 }
 .mw-ag-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex: none;
   background: var(--accent-bright);
   box-shadow: 0 0 8px var(--accent-glow);
 }
+@media (max-width: 720px) { .mw-agnostic { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .mw-agnostic { grid-template-columns: 1fr; } }
 
 .mw-arch {
   display: flex;
@@ -1014,4 +1025,168 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .hero h1 .hero-cat { animation: none; text-shadow: 0 0 18px rgba(229,72,77,0.4); }
+}
+
+/* ---------- Repeatable onboarding pathway (vertical stepper) ---------- */
+.pathway-steps {
+  list-style: none;
+  margin: 40px auto 0;
+  padding: 0;
+  max-width: 880px;
+  position: relative;
+}
+/* Continuous rail behind the number nodes */
+.pathway-steps::before {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 26px;
+  bottom: 26px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--accent-dim), var(--line-2) 45%, var(--accent-dim));
+  opacity: 0.6;
+}
+.pathway-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 20px;
+  padding-bottom: 20px;
+}
+.pathway-step:last-child { padding-bottom: 0; }
+.pathway-node {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: radial-gradient(circle at 30% 25%, var(--panel-3), var(--panel));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pathway-n {
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.pathway-body {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 18px 22px;
+  transition: border-color .35s var(--ease), transform .35s var(--ease), box-shadow .35s var(--ease);
+}
+.pathway-step:hover .pathway-body {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -30px rgba(0,0,0,0.9);
+}
+.pathway-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pathway-step-head h3 {
+  font-size: 16.5px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+.pathway-tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 4px 11px;
+  white-space: nowrap;
+}
+.pathway-body p {
+  margin: 9px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* Highlighted step — Shadow Mode: the pivotal "insert one layer" moment */
+.pathway-step.is-key .pathway-node {
+  border-color: rgba(76,125,255,0.5);
+  background: radial-gradient(circle at 30% 25%, rgba(76,125,255,0.28), var(--panel));
+  box-shadow: 0 0 0 4px rgba(76,125,255,0.08), 0 0 18px -4px var(--accent-glow);
+}
+.pathway-step.is-key .pathway-n { color: var(--accent-bright); }
+.pathway-step.is-key .pathway-body {
+  border-color: rgba(76,125,255,0.4);
+  background: linear-gradient(135deg, rgba(76,125,255,0.08), rgba(109,92,255,0.04) 60%, var(--panel));
+  box-shadow: 0 0 0 1px rgba(76,125,255,0.12), 0 18px 44px -28px var(--accent-glow);
+}
+.pathway-step.is-key .pathway-tag {
+  color: var(--accent-bright);
+  border-color: rgba(76,125,255,0.4);
+}
+
+/* Before / after insert diagram inside the highlighted step */
+.pathway-insert {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-2);
+}
+.pathway-insert-col { display: flex; flex-direction: column; gap: 9px; }
+.pathway-insert-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pathway-insert-label.is-after { color: var(--accent-bright); }
+.pathway-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.pf-node {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: var(--panel-2);
+}
+.pf-node.pf-gov {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink);
+  border-color: rgba(76,125,255,0.45);
+  background: rgba(76,125,255,0.1);
+}
+.pf-verdicts {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--accent-bright);
+}
+.pf-arr { color: var(--ink-3); font-size: 12px; }
+
+@media (max-width: 640px) {
+  .pathway-step { grid-template-columns: 40px 1fr; gap: 14px; }
+  .pathway-steps::before { left: 19px; }
+  .pathway-node { width: 40px; height: 40px; }
+  .pathway-n { font-size: 12px; }
+  .pathway-insert { grid-template-columns: 1fr; }
 }
