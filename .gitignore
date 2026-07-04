@@ -71,3 +71,5 @@ __pycache__/
 # Runtime Governance gateway local store (customer runtime data — never commit)
 /.runtime-data/
 /deliverables/runtime-reports/
+.env*
+.env.production
