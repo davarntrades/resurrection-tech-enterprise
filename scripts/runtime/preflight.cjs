@@ -59,26 +59,32 @@ async function runCapabilityChild() {
       return;
     }
     const org = await rt.admin.onboardCustomer({ name: "Preflight Co", slug: "preflight" });
-    const auth = await rt.admin.authenticate(org.ingest_key);
     const traj = [{ tool: "transfer_funds", args: { destination_account: "attacker" } }];
     const dom = ["finance"];
+    // admin.authenticate() snapshots the environment (incl. its mode) at auth
+    // time, and gateway.govern() reads auth.environment. The hosted
+    // /api/runtime/evaluate route re-authenticates on EVERY request, so a mode
+    // flip takes effect on the next call. We mirror that here — re-authenticate
+    // after each setMode — so the self-test reflects production behaviour rather
+    // than reusing a stale pre-flip auth snapshot.
+    const govern = async () => rt.gateway.govern({ auth: await rt.admin.authenticate(org.ingest_key), trajectory: traj, domains: dom });
 
     // Shadow: observe-only. verdict ALLOW while the engine would BLOCK.
-    const s = await rt.gateway.govern({ auth, trajectory: traj, domains: dom });
+    const s = await govern();
     push("Shadow Mode observes",
       s.mode === "shadow" && s.verdict === "ALLOW" && s.engine_verdict === "BLOCK" ? PASS : FAIL,
       `mode=${s.mode} verdict=${s.verdict} engine_verdict=${s.engine_verdict} (would-block recorded: ${s.recorded})`);
 
     // Enforce: authoritative. Same trajectory now BLOCKs.
     await rt.admin.setMode(org.production.id, "enforce");
-    const e = await rt.gateway.govern({ auth, trajectory: traj, domains: dom });
+    const e = await govern();
     push("Enforcement Mode blocks",
       e.mode === "enforce" && e.verdict === "BLOCK" ? PASS : FAIL,
       `mode=${e.mode} verdict=${e.verdict} enforced=${e.enforced}`);
 
     // Rollback: flip back to shadow — instant, observe-only again.
     await rt.admin.setMode(org.production.id, "shadow");
-    const r = await rt.gateway.govern({ auth, trajectory: traj, domains: dom });
+    const r = await govern();
     push("Rollback restores shadow",
       r.mode === "shadow" && r.verdict === "ALLOW" ? PASS : FAIL,
       `mode=${r.mode} verdict=${r.verdict} (agents uninterrupted)`);
