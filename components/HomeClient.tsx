@@ -154,6 +154,108 @@ export function HomeClient() {
           </div>
         </header>
 
+        {/* ===== REPEATABLE ONBOARDING PATHWAY — the operational heart, placed right after the hero ===== */}
+        <section className="section section--tight pathway" id="onboarding" data-screen-label="Onboarding pathway">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">The repeatable onboarding pathway</span>
+              <h2>One pathway. Every customer. Repeatable.</h2>
+              <p>
+                The same seven steps take any organisation from first assessment to enforced,
+                monthly-reported governance — a familiar SaaS motion that inserts one layer and
+                replaces nothing.
+              </p>
+            </div>
+
+            <ol className="pathway-steps reveal">
+              {([
+                {
+                  n: "01",
+                  h: "Runtime Assessment",
+                  p: "Current architecture, deployment model, risks, and the recommended pathway — already built and ready to run.",
+                  tag: "Already built",
+                },
+                {
+                  n: "02",
+                  h: "Discovery",
+                  p: "You already know their models, tools, autonomy level, and regulations. Walk in prepared, not exploring.",
+                  tag: "Prepared",
+                },
+                {
+                  n: "03",
+                  h: "API Credentials",
+                  p: "API key, endpoint, and documentation. A familiar SaaS model your team already understands.",
+                  tag: "Familiar SaaS",
+                },
+                {
+                  n: "04",
+                  h: "Shadow Mode",
+                  p: "Insert one layer; replace nothing. Governance observes every trajectory in production without touching a single existing tool.",
+                  tag: "Insert one layer",
+                  highlight: true,
+                },
+                {
+                  n: "05",
+                  h: "Evidence Report",
+                  p: "Collect every decision, blocked trajectory, false positive, latency figure, and audit-log entry — evidence gathered inside their own environment.",
+                  tag: "Their environment",
+                },
+                {
+                  n: "06",
+                  h: "Enable Enforcement",
+                  p: "Observe-only becomes observe-and-enforce with one configuration change. No agent rebuild, no redeployment.",
+                  tag: "One config change",
+                },
+                {
+                  n: "07",
+                  h: "Monthly Reporting",
+                  p: "Ongoing governance evidence, renewals, and executive visibility — governance as a standing operational role.",
+                  tag: "Standing role",
+                },
+              ] as { n: string; h: string; p: string; tag: string; highlight?: boolean }[]).map((s) => (
+                <li key={s.n} className={`pathway-step${s.highlight ? " is-key" : ""}`}>
+                  <div className="pathway-node" aria-hidden="true">
+                    <span className="pathway-n">{s.n}</span>
+                  </div>
+                  <div className="pathway-body">
+                    <div className="pathway-step-head">
+                      <h3>{s.h}</h3>
+                      <span className="pathway-tag">{s.tag}</span>
+                    </div>
+                    <p>{s.p}</p>
+                    {s.highlight && (
+                      <div className="pathway-insert">
+                        <div className="pathway-insert-col">
+                          <span className="pathway-insert-label">Before</span>
+                          <div className="pathway-flow">
+                            <span className="pf-node">LLM / Agent</span>
+                            <span className="pf-arr" aria-hidden="true">→</span>
+                            <span className="pf-node">Tools</span>
+                            <span className="pf-arr" aria-hidden="true">→</span>
+                            <span className="pf-node">Production</span>
+                          </div>
+                        </div>
+                        <div className="pathway-insert-col">
+                          <span className="pathway-insert-label is-after">After</span>
+                          <div className="pathway-flow">
+                            <span className="pf-node">LLM / Agent</span>
+                            <span className="pf-arr" aria-hidden="true">→</span>
+                            <span className="pf-node pf-gov">Runtime Governance<span className="pf-verdicts">ALLOW · ESCALATE · BLOCK</span></span>
+                            <span className="pf-arr" aria-hidden="true">→</span>
+                            <span className="pf-node">Tools</span>
+                            <span className="pf-arr" aria-hidden="true">→</span>
+                            <span className="pf-node">Production</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
         {/* ===== PARTNER REFERRAL BAND — discoverability for partners / advisors / introducers ===== */}
         <section className="home-referral reveal" aria-label="Partner referrals">
           <div className="wrap">
@@ -955,32 +1057,6 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== OPERATING MODEL (FLOW) ===== */}
-        <section className="section section--tight" id="model" data-screen-label="Operating model">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">The operating model</span>
-              <h2>Audit → Pilot → Integration → Retainer</h2>
-              <p>
-                A continuous operational role, not a single-report delivery. Each stage lights up as
-                governance moves into the client environment.
-              </p>
-            </div>
-            <div className="flow reveal">
-              <div className="flow-track">
-                {[
-                  ["STAGE 01", "Audit", "Identify reachable Ω exposure before deployment.", "// 48-hour catastrophic trajectory exposure assessment. Entry point, not deliverable."],
-                  ["STAGE 02", "Pilot", "Validate runtime constraints under realistic operational conditions.", "// Staging deployment. Validation, not theatre."],
-                  ["STAGE 03", "Integration", "Embed runtime governance into the client environment.", "// Operational embedment, not a slide deck."],
-                  ["STAGE 04", "Retainer", "Ongoing Ω governance, threat-surface monitoring, incident review, and model/planner revalidation — keeping forbidden states aligned as systems, tools, models, and regulations change.", "// Ongoing assurance, not a renewal fee."],
-                ].map(([idx, h, p, more], i, arr) => (
-                  <Section key={h as string} idx={idx as string} h={h as string} p={p as string} more={more as string} last={i === arr.length - 1} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ===== REACHABILITY ===== */}
         <section className="section" id="reachability" data-screen-label="Reachability">
           <div className="wrap">
@@ -1163,24 +1239,6 @@ function TrustBar() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Section({ idx, h, p, more, last }: { idx: string; h: string; p: string; more: string; last: boolean }) {
-  return (
-    <>
-      <div className="flow-stage">
-        <div className="st-idx"><span>{idx}</span><span className="dot" /></div>
-        <h3>{h}</h3>
-        <p>{p}</p>
-        <div className="st-more"><p>{more}</p></div>
-      </div>
-      {!last && (
-        <div className="flow-arrow" aria-hidden="true">
-          <ArrowR />
-        </div>
-      )}
-    </>
   );
 }
 
