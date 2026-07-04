@@ -29,7 +29,8 @@
     "smoke:mutation": "node scripts/smoke-tests/mutation-test.cjs",
     "smoke:ci": "node scripts/smoke-tests/sector-detection.test.cjs && node scripts/smoke-tests/overlap-adversarial.test.cjs && node scripts/smoke-tests/enterprise-regression.cjs --report",
     "console": "node console/server.cjs",
-    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs"
+    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs",
+    "runtime:preflight": "node scripts/runtime/preflight.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
