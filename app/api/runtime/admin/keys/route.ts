@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
   const org_id = String(body?.org_id || "");
   if (!org_id) return NextResponse.json({ error: "org_id required" }, { status: 400 });
 
+  // Guard against issuing a key /evaluate can't see on a non-durable store.
+  const durable = rt.store.durable();
+  if (!durable && /^(1|true|yes)$/i.test(process.env.RUNTIME_REQUIRE_DURABLE || ""))
+    return NextResponse.json({ error: "refusing to issue a key on a non-durable store — configure Supabase so the key persists (NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" }, { status: 503 });
+
   try {
     if (body?.rotate_key_id) await rt.admin.revokeApiKey(String(body.rotate_key_id));
     const issued = await rt.admin.issueApiKey({
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
     await rt.adminaudit.record({ action: body?.rotate_key_id ? "rotate_key" : "issue_key", actor: authz.identity, via: authz.via, target: org_id, meta: { rotated: body?.rotate_key_id || null } });
     // Plaintext key is returned ONCE.
-    return NextResponse.json({ ok: true, key: issued.key, record: issued.record });
+    return NextResponse.json({ ok: true, key: issued.key, record: issued.record, durable, ...(durable ? {} : { warning: "store is NON-DURABLE (ephemeral file store) — this key may not authenticate on /evaluate across requests. Configure Supabase." }) });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "key operation failed" }, { status: 500 });
   }
