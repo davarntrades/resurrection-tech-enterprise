@@ -22,7 +22,8 @@
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
     "audit:setup": "bash scripts/setup-delivery.sh",
     "console": "node console/server.cjs",
-    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs"
+    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs",
+    "runtime:preflight": "node scripts/runtime/preflight.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
