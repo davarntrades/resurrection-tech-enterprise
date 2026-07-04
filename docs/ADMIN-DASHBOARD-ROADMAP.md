@@ -54,14 +54,34 @@ and `npm run runtime:set-mode` (shadow ⇄ enforce).
 
 ## Phased plan
 
-### Phase 1 — Foundation (auth + admin routes)
-- Operator authentication (login/session); stop pasting the admin key into a browser.
-- Admin API routes (thin wrappers, all auth-gated):
+### Phase 1 — Foundation (auth + admin routes) — ✅ SHIPPED (backend)
+The backend layer is implemented and unit-tested; the browser UI that consumes it is Phase 2.
+
+- **Operator authentication** — `lib/runtime/adminauth.js`: HMAC-signed, short-lived (12h)
+  httpOnly session cookies. `POST /api/runtime/admin/login` (operator password → cookie) and
+  `POST .../logout`. Every admin route accepts a **session cookie OR** the `x-admin-key` header
+  (curl/CLI back-compat). Unit-tested end-to-end (`npm run runtime:adminauth`, 20 assertions:
+  password check, issue/verify, tamper + wrong-secret + expiry rejection, both guard paths).
+- **Admin API routes** (thin wrappers, all auth-gated):
   - `POST /api/runtime/admin/set-mode` → `admin.setMode(environment_id, mode)`
-  - `POST /api/runtime/admin/keys` → rotate (`revokeApiKey` + `issueApiKey`), list
-  - `GET  /api/runtime/admin/orgs` + `.../environments` → `listOrgs` / `listEnvironments`
-  - `GET  /api/runtime/admin/preflight` → the non-mutating config audit as JSON
-- An action audit log (who onboarded / who enforced / who rotated a key, and when).
+  - `GET|POST /api/runtime/admin/keys` → list / issue / rotate (`revokeApiKey` + `issueApiKey`)
+  - `GET  /api/runtime/admin/orgs` (`?withEnvironments=1`) + `.../environments?org_id=` → `listOrgs` / `listEnvironments`
+  - `GET  /api/runtime/admin/preflight` → non-mutating config audit JSON (`lib/runtime/preflight.js`)
+  - `GET  /api/runtime/admin/audit` → the operator action log
+  - `POST /api/runtime/admin/onboard` — hardened: JSON errors (no opaque 500), session auth, audited
+- **Action audit log** — `lib/runtime/adminaudit.js` + `rg_admin_audit` table. Records who
+  onboarded / enforced / rotated a key, and when. Fail-safe: a missing table or store outage
+  degrades to a structured log event and never blocks the operator action.
+
+**Config for operator login** (both optional; degrade off cleanly if unset):
+- `RUNTIME_OPERATOR_PASSWORD` — operator login password (falls back to `RUNTIME_ADMIN_KEY`).
+- `RUNTIME_SESSION_SECRET` — HMAC secret (falls back to a value derived from `RUNTIME_ADMIN_KEY`).
+- `RUNTIME_SESSION_TTL_SEC` — session lifetime, default 43200 (12h).
+
+**Migration:** re-run `supabase/governance_runtime.sql` (idempotent — adds `rg_admin_audit`).
+
+**Remaining for Phase 1:** operator UI is Phase 2; multi-operator accounts (vs. the single
+bootstrap operator) is a later hardening.
 
 ### Phase 2 — Control-room screens
 - **Onboard** — company name + slug → click Create → credentials generated → production + staging
