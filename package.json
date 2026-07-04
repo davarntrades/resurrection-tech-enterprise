@@ -9,6 +9,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "runtime:server": "node scripts/runtime/server.cjs",
+    "runtime:report": "node scripts/runtime/report.cjs",
+    "runtime:test": "node scripts/runtime/gateway.test.cjs",
+    "runtime:harden": "node scripts/runtime/hardening.test.cjs",
+    "runtime:isolation": "node scripts/runtime/manifest-isolation.test.cjs",
     "audit": "node scripts/delivery-kit.cjs",
     "audit:check": "node scripts/delivery-kit.cjs --check",
     "audit:auth": "node scripts/delivery-kit.cjs --auth-verify",
@@ -23,7 +28,8 @@
     "smoke:baseline": "node scripts/smoke-tests/enterprise-regression.cjs --update-baseline",
     "smoke:mutation": "node scripts/smoke-tests/mutation-test.cjs",
     "smoke:ci": "node scripts/smoke-tests/sector-detection.test.cjs && node scripts/smoke-tests/overlap-adversarial.test.cjs && node scripts/smoke-tests/enterprise-regression.cjs --report",
-    "console": "node console/server.cjs"
+    "console": "node console/server.cjs",
+    "runtime:enterprise": "node scripts/runtime/enterprise.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
