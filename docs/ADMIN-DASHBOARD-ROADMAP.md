@@ -101,10 +101,25 @@ operator-scoped read routes were added so the dashboard can see any tenant's dat
 - **Readiness** — the preflight config-audit card (green/red per check) — Phase 3 item, delivered early.
 - **Audit** — the operator action log.
 
-### Phase 3 — Readiness in the browser
-- ✅ Preflight readiness card (config audit) — shipped in the Readiness tab; "green = safe to onboard",
-  no terminal needed. (The shadow→enforce capability half of the gate stays in `npm run runtime:preflight`.)
-- Remaining: alerting on BLOCK spikes / evidence-recording failures / engine unreachability.
+### Phase 3 — Readiness + alerting in the browser — ✅ SHIPPED
+- ✅ Preflight readiness card (config audit) — Readiness tab; "green = safe to onboard".
+  (The shadow→enforce capability half of the gate stays in `npm run runtime:preflight`.)
+- ✅ **Alerting** (`lib/runtime/alerts.js`) on the operator-critical signals:
+  - `engine_unreachable`, `store_non_durable` — live global conditions
+  - `record_failure` — raised **in real time from the gateway** when a decision can't be persisted
+  - `block_spike` — configurable threshold of BLOCK verdicts in a window
+  - Persisted to `rg_alerts` (graceful — degrades to a log event if the table is absent), with an
+    in-process cooldown so a repeating condition can't spam. Delivery channels are optional +
+    config-gated: `RUNTIME_ALERT_WEBHOOK` (Slack-compatible) and email via `RESEND_API_KEY` +
+    `RUNTIME_ALERT_EMAIL_TO`/`_FROM`. Structured log always.
+  - **Alerts tab** in the dashboard: live "ALL CLEAR / N FIRING" status + recent alerts + on-demand sweep.
+  - Periodic sweep rides the existing daily reports cron (no extra Vercel cron entry — Hobby-friendly).
+  - Config: `RUNTIME_ALERT_BLOCK_SPIKE` (default 10), `RUNTIME_ALERT_WINDOW_MIN` (60),
+    `RUNTIME_ALERT_COOLDOWN_MIN` (5).
+  - Tested: `npm run runtime:alerts` (8 assertions — raise/persist/list, cooldown, evaluate conditions,
+    block_spike threshold, sweep).
+- Remaining (future): more-frequent alert cadence needs a dedicated cron (paid plan) or an external
+  uptime monitor hitting `/api/runtime/health`.
 
 ## Non-goals / guardrails (unchanged)
 - The Runtime Governance engine stays frozen — this is all platform/operator surface, never engine

@@ -249,6 +249,21 @@ create table if not exists public.rg_admin_audit (
 );
 create index if not exists rg_admin_audit_created_idx on public.rg_admin_audit(created_at desc);
 
+-- Operational alerts (Phase 3): engine_unreachable / record_failure / block_spike
+-- / store_non_durable. Written by lib/runtime/alerts.js; degrades to a log event
+-- if this table is absent, so it is safe to add after the fact.
+create table if not exists public.rg_alerts (
+  id              text primary key,
+  kind            text not null,
+  severity        text not null default 'warning',   -- critical | warning
+  org_id          text,
+  environment_id  text,
+  message         text,
+  meta            jsonb,
+  created_at      timestamptz default now()
+);
+create index if not exists rg_alerts_created_idx on public.rg_alerts(created_at desc);
+
 -- RLS: service-role only by default (the gateway uses the service key; browser
 -- never touches these tables directly — reads go through the authenticated API,
 -- which enforces org scoping in application code — see lib/runtime).
@@ -261,6 +276,7 @@ alter table public.rg_decisions          enable row level security;
 alter table public.rg_reports            enable row level security;
 alter table public.rg_chain_heads        enable row level security;
 alter table public.rg_admin_audit        enable row level security;
+alter table public.rg_alerts             enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────

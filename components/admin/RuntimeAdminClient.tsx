@@ -23,7 +23,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "customers" | "onboard" | "readiness" | "audit";
+type Tab = "customers" | "onboard" | "readiness" | "alerts" | "audit";
 
 export default function RuntimeAdminClient() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -49,7 +49,7 @@ export default function RuntimeAdminClient() {
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["customers", "onboard", "readiness", "audit"] as Tab[]).map((t) => (
+          {(["customers", "onboard", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -64,6 +64,7 @@ export default function RuntimeAdminClient() {
         {tab === "customers" && <CustomersPanel />}
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
         {tab === "readiness" && <ReadinessPanel />}
+        {tab === "alerts" && <AlertsPanel />}
         {tab === "audit" && <AuditPanel />}
       </main>
     </div>
@@ -326,6 +327,56 @@ function ReadinessPanel() {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// ── Alerts (Phase 3) ─────────────────────────────────────────────────────────
+function AlertsPanel() {
+  const [data, setData] = useState<any>(null); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => { setErr(""); try { setData(await api("alerts?limit=100")); } catch (e: any) { setErr(e.message); } }, []);
+  useEffect(() => { load(); }, [load]);
+  const sweep = async () => { setBusy(true); try { await api("alerts", { method: "POST" }); await load(); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-muted">Loading alerts…</div>;
+  const conds: any[] = data.conditions || []; const recent: any[] = data.recent || [];
+  return (
+    <section className="radmin-card">
+      <div className="radmin-row">
+        <h2>Operational alerts</h2>
+        <span className={`radmin-ready ${conds.length ? "bad" : "ok"}`}>{conds.length ? `${conds.length} FIRING` : "ALL CLEAR"}</span>
+        <button className="radmin-btn sm" disabled={busy} onClick={sweep}>{busy ? "Sweeping…" : "Run sweep"}</button>
+        <button className="radmin-btn sm" onClick={load}>Refresh</button>
+      </div>
+      <p className="radmin-muted">Live conditions across engine reachability, store durability, and BLOCK-spike thresholds. Record-failure alerts fire in real time from the gateway.</p>
+      <ul className="radmin-checks">
+        {conds.length === 0 && <li className="radmin-check pass"><span className="radmin-check-tag">OK</span><span className="radmin-check-name">No conditions firing</span><span className="radmin-check-detail radmin-muted">engine reachable · store durable · no BLOCK spike</span></li>}
+        {conds.map((c, i) => (
+          <li key={i} className={`radmin-check ${c.severity === "critical" ? "fail" : "warn"}`}>
+            <span className="radmin-check-tag">{c.severity === "critical" ? "CRIT" : "WARN"}</span>
+            <span className="radmin-check-name">{c.kind}</span>
+            <span className="radmin-check-detail radmin-muted">{c.message}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="radmin-row"><span className="radmin-muted">Recent alerts</span></div>
+      {recent.length === 0 ? <div className="radmin-muted">No alerts recorded yet (durable once <code>rg_alerts</code> exists).</div> : (
+        <div className="radmin-table-wrap">
+          <table className="radmin-table">
+            <thead><tr><th>Time</th><th>Severity</th><th>Kind</th><th>Message</th></tr></thead>
+            <tbody>
+              {recent.map((r, i) => (
+                <tr key={i}>
+                  <td>{(r.created_at || "").replace("T", " ").slice(0, 19)}</td>
+                  <td><span className={`radmin-verdict ${r.severity === "critical" ? "block" : "escalate"}`}>{r.severity}</span></td>
+                  <td className="radmin-muted">{r.kind}</td>
+                  <td>{r.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

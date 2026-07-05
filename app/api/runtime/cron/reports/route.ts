@@ -31,5 +31,12 @@ export async function GET(req: NextRequest) {
     results.push(await rt.reports.generateAllDue({ period }));
   }
   rt.log.info("cron_reports", { periods, orgs: results.reduce((n, r) => n + r.generated, 0) });
-  return NextResponse.json({ ok: true, periods, results });
+
+  // Phase 3 — periodic alert sweep rides the daily cron (no extra Vercel cron
+  // entry needed). Real-time record_failure alerts fire inline from the gateway.
+  let alerts: any = null;
+  try { alerts = await rt.alerts.sweep(); rt.log.info("cron_alerts", alerts); }
+  catch (e: any) { rt.log.warn("cron_alerts_failed", { error: e?.message || String(e) }); }
+
+  return NextResponse.json({ ok: true, periods, results, alerts });
 }
