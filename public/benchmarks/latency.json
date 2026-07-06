@@ -1,6 +1,6 @@
 {
   "schema": "rt.benchmark.v1",
-  "generated_utc": "2026-06-29 11:14:15Z",
+  "generated_utc": "2026-07-06 10:51:59Z",
   "environment": {
     "python": "3.12.13",
     "platform": "Linux-6.17.0-1018-azure-x86_64-with-glibc2.39",
@@ -30,125 +30,125 @@
       "steps": 1,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0744,
-      "p95_ms": 0.0968,
-      "p99_ms": 0.1068,
-      "avg_ms": 0.0771,
-      "min_ms": 0.0712,
-      "max_ms": 0.1834,
-      "throughput_per_s": 12970.0
+      "p50_ms": 0.0729,
+      "p95_ms": 0.0963,
+      "p99_ms": 0.114,
+      "avg_ms": 0.0758,
+      "min_ms": 0.0699,
+      "max_ms": 0.1776,
+      "throughput_per_s": 13193.0
     },
     "short_2": {
       "steps": 2,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0922,
-      "p95_ms": 0.1142,
-      "p99_ms": 0.1343,
-      "avg_ms": 0.0953,
-      "min_ms": 0.0884,
-      "max_ms": 0.2223,
-      "throughput_per_s": 10493.0
+      "p50_ms": 0.0904,
+      "p95_ms": 0.1146,
+      "p99_ms": 0.1481,
+      "avg_ms": 0.094,
+      "min_ms": 0.0873,
+      "max_ms": 0.2341,
+      "throughput_per_s": 10638.0
     },
     "medium_4": {
       "steps": 4,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.1638,
-      "p95_ms": 0.191,
-      "p99_ms": 0.2796,
-      "avg_ms": 0.1706,
-      "min_ms": 0.1585,
-      "max_ms": 0.4037,
-      "throughput_per_s": 5862.0
+      "p50_ms": 0.1616,
+      "p95_ms": 0.1858,
+      "p99_ms": 0.2081,
+      "avg_ms": 0.1665,
+      "min_ms": 0.1569,
+      "max_ms": 0.395,
+      "throughput_per_s": 6006.0
     },
     "long_8": {
       "steps": 8,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.3032,
-      "p95_ms": 0.3304,
-      "p99_ms": 0.3611,
-      "avg_ms": 0.3098,
-      "min_ms": 0.2929,
-      "max_ms": 0.6264,
-      "throughput_per_s": 3228.0
+      "p50_ms": 0.2988,
+      "p95_ms": 0.3235,
+      "p99_ms": 0.4387,
+      "avg_ms": 0.3073,
+      "min_ms": 0.29,
+      "max_ms": 0.6747,
+      "throughput_per_s": 3254.0
     },
     "very_long_16": {
       "steps": 16,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.5943,
-      "p95_ms": 0.6263,
-      "p99_ms": 0.7195,
-      "avg_ms": 0.5967,
-      "min_ms": 0.566,
-      "max_ms": 1.6034,
-      "throughput_per_s": 1676.0
+      "p50_ms": 0.5857,
+      "p95_ms": 0.6009,
+      "p99_ms": 0.6793,
+      "avg_ms": 0.5842,
+      "min_ms": 0.5581,
+      "max_ms": 1.29,
+      "throughput_per_s": 1712.0
     },
     "multi_agent": {
       "steps": 3,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.1284,
-      "p95_ms": 0.1518,
-      "p99_ms": 0.1698,
-      "avg_ms": 0.1323,
-      "min_ms": 0.1238,
-      "max_ms": 0.287,
-      "throughput_per_s": 7559.0
+      "p50_ms": 0.126,
+      "p95_ms": 0.1487,
+      "p99_ms": 0.1523,
+      "avg_ms": 0.1291,
+      "min_ms": 0.122,
+      "max_ms": 0.2278,
+      "throughput_per_s": 7746.0
     }
   },
   "scaling_by_trajectory_length": {
     "1": {
       "steps": 1,
-      "avg_ms": 0.077
+      "avg_ms": 0.0758
     },
     "2": {
       "steps": 2,
-      "avg_ms": 0.0995
+      "avg_ms": 0.0935
     },
     "4": {
       "steps": 4,
-      "avg_ms": 0.1687
+      "avg_ms": 0.1661
     },
     "8": {
       "steps": 8,
-      "avg_ms": 0.3102
+      "avg_ms": 0.3052
     },
     "16": {
       "steps": 16,
-      "avg_ms": 0.5955
+      "avg_ms": 0.5817
     },
     "32": {
       "steps": 32,
-      "avg_ms": 1.1655
+      "avg_ms": 1.1534
     }
   },
   "scaling_by_domain_count": {
     "1": {
       "domains": 1,
       "rules": 13,
-      "avg_ms": 0.129,
-      "p95_ms": 0.1483
+      "avg_ms": 0.1284,
+      "p95_ms": 0.1479
     },
     "3": {
       "domains": 3,
       "rules": 17,
-      "avg_ms": 0.1418,
-      "p95_ms": 0.1618
+      "avg_ms": 0.1413,
+      "p95_ms": 0.1605
     },
     "6": {
       "domains": 6,
       "rules": 25,
-      "avg_ms": 0.1554,
-      "p95_ms": 0.1747
+      "avg_ms": 0.1547,
+      "p95_ms": 0.1742
     },
     "9": {
       "domains": 9,
       "rules": 34,
-      "avg_ms": 0.1668,
-      "p95_ms": 0.1866
+      "avg_ms": 0.1654,
+      "p95_ms": 0.1845
     }
   }
 }
