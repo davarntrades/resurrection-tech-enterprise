@@ -132,3 +132,34 @@
 a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center; }
 .radmin-deliv-share { flex-basis: 100%; }
 .radmin-code { font-family: var(--mono); font-size: 11.5px; color: var(--accent-bright); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 11px; margin-top: 8px; overflow-x: auto; white-space: nowrap; }
+
+/* ---------- Overview KPIs ---------- */
+.radmin-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+@media (max-width: 820px) { .radmin-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .radmin-kpis { grid-template-columns: 1fr 1fr; } }
+.radmin-kpi { border: 1px solid var(--line-2); border-radius: var(--radius-sm, 9px); background: var(--panel-2); padding: 16px 16px; }
+.radmin-kpi-v { font-size: clamp(20px, 2.4vw, 26px); font-weight: 560; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.radmin-kpi-l { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-top: 8px; line-height: 1.4; }
+.radmin-kpi.ok .radmin-kpi-v { color: var(--ok); }
+.radmin-kpi.warn .radmin-kpi-v { color: #d9a441; }
+.radmin-kpi.omega .radmin-kpi-v { color: var(--omega); }
+
+/* ---------- Customer badges ---------- */
+.radmin-badges { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 6px; }
+.radmin-badge { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; }
+.radmin-badge.ok { color: var(--ok); border-color: rgba(63,178,127,0.4); background: rgba(63,178,127,0.08); }
+.radmin-badge.accent { color: var(--accent-bright); border-color: rgba(76,125,255,0.4); background: rgba(76,125,255,0.1); }
+.radmin-badge.omega { color: var(--omega); border-color: rgba(229,72,77,0.35); }
+.radmin-badge.warn { color: #d9a441; border-color: rgba(217,164,65,0.35); }
+.radmin-badge.ghost { color: var(--ink-3); }
+
+/* ---------- Evidence: window selector + trend ---------- */
+.radmin-windows { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.radmin-win { font-family: var(--mono); font-size: 11px; color: var(--ink-3); background: transparent; border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: all .2s var(--ease); }
+.radmin-win:hover { color: var(--ink); }
+.radmin-win.on { color: var(--ink); background: var(--panel-2); border-color: rgba(76,125,255,0.45); }
+.radmin-win-note { font-size: 10.5px; margin-left: 4px; }
+.radmin-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.radmin-trend { font-size: 11px; font-family: var(--mono); white-space: nowrap; }
+.radmin-trend.good { color: var(--ok); }
+.radmin-trend.bad { color: var(--omega); }
