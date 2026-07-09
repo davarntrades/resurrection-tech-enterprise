@@ -23,11 +23,11 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "customers" | "onboard" | "readiness" | "alerts" | "audit";
+type Tab = "overview" | "customers" | "onboard" | "readiness" | "alerts" | "audit";
 
 export default function RuntimeAdminClient() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
-  const [tab, setTab] = useState<Tab>("customers");
+  const [tab, setTab] = useState<Tab>("overview");
 
   const check = useCallback(async () => {
     try { await api("orgs"); setAuthed(true); }
@@ -49,7 +49,7 @@ export default function RuntimeAdminClient() {
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["customers", "onboard", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "customers", "onboard", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -61,6 +61,7 @@ export default function RuntimeAdminClient() {
       </header>
 
       <main className="radmin-main">
+        {tab === "overview" && <OverviewPanel onOpenCustomers={() => setTab("customers")} />}
         {tab === "customers" && <CustomersPanel />}
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
         {tab === "readiness" && <ReadinessPanel />}
@@ -135,13 +136,74 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ── Customers (list + per-environment control) ───────────────────────────────
+// ── Overview (operator dashboard) ────────────────────────────────────────────
+function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
+  const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
+  const load = useCallback(async () => { setErr(""); try { setData(await api("overview")); } catch (e: any) { setErr(e.message); } }, []);
+  useEffect(() => { load(); }, [load]);
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-muted">Loading overview…</div>;
+  const p = data.platform || {};
+  const kpis: Array<[string, any, string?]> = [
+    ["Customers", p.customers ?? 0],
+    ["Environments", p.environments ?? 0],
+    ["Production active", p.production_active ?? 0],
+    ["Enforce", p.enforce ?? 0, "ok"],
+    ["Shadow", p.shadow ?? 0],
+    ["Total evaluations", Number(p.evaluations ?? 0).toLocaleString()],
+    ["Catastrophic actions prevented", p.blocked ?? 0, "omega"],
+    ["Avg latency", p.avg_latency_ms != null ? `${p.avg_latency_ms}ms` : "—"],
+    ["Reports generated", p.reports ?? 0],
+    ["Audit packs published", p.audit_packs ?? 0],
+    ["Active alerts (24h)", p.active_alerts ?? 0, p.active_alerts > 0 ? "warn" : undefined],
+    ["Engine", p.engine_reachable ? "reachable" : "down", p.engine_reachable ? "ok" : "omega"],
+  ];
+  return (
+    <section className="radmin-card">
+      <div className="radmin-row" style={{ margin: "0 0 6px" }}><h2>Platform overview</h2><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
+      <div className="radmin-kpis">
+        {kpis.map(([label, val, tone], i) => (
+          <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
+        ))}
+      </div>
+      {p.engine_commit && <div className="radmin-muted" style={{ marginTop: 12 }}>Runtime engine commit <code>{p.engine_commit}</code></div>}
+      <div className="radmin-row"><button className="radmin-btn" onClick={onOpenCustomers}>View customers →</button></div>
+    </section>
+  );
+}
+
+// ── Customer summary badges ──────────────────────────────────────────────────
+function ago(iso?: string | null) {
+  if (!iso) return "—";
+  const d = Date.now() - Date.parse(iso);
+  if (isNaN(d)) return "—";
+  const m = Math.floor(d / 60000), h = Math.floor(d / 3600000), day = Math.floor(d / 86400000);
+  if (day > 0) return `${day}d ago`; if (h > 0) return `${h}h ago`; if (m > 0) return `${m}m ago`; return "just now";
+}
+function CustomerBadges({ b }: { b: any }) {
+  if (!b) return null;
+  return (
+    <div className="radmin-badges">
+      {b.enterprise_ready && <span className="radmin-badge ok">Enterprise Ready</span>}
+      {(b.modes || []).map((m: string, i: number) => <span key={i} className={`radmin-badge${m === "enforce" ? " accent" : ""}`}>{m === "enforce" ? "Enforce" : "Shadow"}</span>)}
+      <span className="radmin-badge ghost">Evals {Number(b.evaluations ?? 0).toLocaleString()}</span>
+      {b.blocked > 0 && <span className="radmin-badge omega">Blocked {b.blocked}</span>}
+      <span className="radmin-badge ghost">Activity {ago(b.last_activity)}</span>
+      <span className="radmin-badge ghost">Report {ago(b.last_report)}</span>
+      <span className="radmin-badge ghost">Pack {ago(b.last_audit_pack)}</span>
+      {b.last_alert && <span className="radmin-badge warn">Alert {ago(b.last_alert)}</span>}
+      {b.runtime_version && <span className="radmin-badge ghost">Runtime {String(b.runtime_version).slice(0, 10)}</span>}
+    </div>
+  );
+}
+
+// ── Customers (list + badges + per-environment control) ──────────────────────
 function CustomersPanel() {
   const [orgs, setOrgs] = useState<any[] | null>(null);
   const [err, setErr] = useState("");
   const load = useCallback(async () => {
     setErr("");
-    try { const d = await api("orgs?withEnvironments=1"); setOrgs(d.orgs || []); }
+    try { const d = await api("overview"); setOrgs(d.customers || []); }
     catch (e: any) { setErr(e.message); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -158,6 +220,7 @@ function CustomersPanel() {
             <div><h2>{o.name}</h2><code className="radmin-muted">{o.id}</code></div>
             <span className={`radmin-pill ${o.status === "active" ? "ok" : ""}`}>{o.plan || "pilot"}</span>
           </div>
+          <CustomerBadges b={o.badges} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={load} />
           ))}
@@ -217,17 +280,27 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
 }
 
 // ── Evidence ─────────────────────────────────────────────────────────────────
+const WINDOWS: Array<[string, string]> = [["all", "All time"], ["24h", "Last 24h"], ["7d", "7 days"], ["30d", "30 days"]];
+// pct change vs previous; goodUp=true means an increase is "good" (green).
+function trendOf(cur: number, prev: number | null | undefined, goodUp: boolean) {
+  if (prev == null || prev === 0) return null;
+  const pct = Math.round(((cur - prev) / prev) * 100);
+  if (pct === 0) return null;
+  return { pct, good: pct > 0 === goodUp };
+}
 function EvidenceView({ org, env }: { org: any; env: any }) {
   const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
+  const [win, setWin] = useState("7d");
   const load = useCallback(async () => {
     setErr("");
-    try { setData(await api(`evidence?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}&limit=25`)); }
+    try { setData(await api(`evidence?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}&limit=25&window=${win}`)); }
     catch (e: any) { setErr(e.message); }
-  }, [org.id, env.id]);
+  }, [org.id, env.id, win]);
   useEffect(() => { load(); }, [load]);
   if (err) return <div className="radmin-err">{err}</div>;
   if (!data) return <div className="radmin-muted">Loading evidence…</div>;
   const s = data.summary || {}; const v = s.verdicts || {}; const lat = s.latency?.engine_compute_ms || {};
+  const pv = data.previous?.verdicts || {}; const plat = data.previous?.latency?.engine_compute_ms || {};
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
@@ -235,13 +308,19 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
   };
   return (
     <div className="radmin-evidence">
+      <div className="radmin-windows">
+        {WINDOWS.map(([w, label]) => (
+          <button key={w} className={`radmin-win${win === w ? " on" : ""}`} onClick={() => setWin(w)}>{label}</button>
+        ))}
+        {data.previous && <span className="radmin-muted radmin-win-note">▲▼ vs previous period</span>}
+      </div>
       <div className="radmin-stats">
-        <Stat label="Total" value={s.total ?? 0} />
-        <Stat label="Allow" value={v.ALLOW ?? 0} tone="ok" />
-        <Stat label="Escalate" value={v.ESCALATE ?? 0} tone="warn" />
-        <Stat label="Block" value={v.BLOCK ?? 0} tone="omega" />
-        <Stat label="Would-block (shadow)" value={s.would_block ?? 0} />
-        <Stat label="Engine p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} />
+        <Stat label="Total" value={s.total ?? 0} trend={trendOf(s.total ?? 0, data.previous?.total, true)} />
+        <Stat label="Allow" value={v.ALLOW ?? 0} tone="ok" trend={trendOf(v.ALLOW ?? 0, pv.ALLOW, true)} />
+        <Stat label="Escalate" value={v.ESCALATE ?? 0} tone="warn" trend={trendOf(v.ESCALATE ?? 0, pv.ESCALATE, false)} />
+        <Stat label="Block" value={v.BLOCK ?? 0} tone="omega" trend={trendOf(v.BLOCK ?? 0, pv.BLOCK, false)} />
+        <Stat label="Would-block (shadow)" value={s.would_block ?? 0} trend={trendOf(s.would_block ?? 0, data.previous?.would_block, false)} />
+        <Stat label="Engine p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
       </div>
       <div className="radmin-freq">
         <FreqList title="Top rules" rows={s.rule_frequency} />
@@ -470,8 +549,16 @@ function AuditPanel() {
 }
 
 // ── Small shared pieces ──────────────────────────────────────────────────────
-function Stat({ label, value, tone }: { label: string; value: any; tone?: string }) {
-  return <div className={`radmin-stat${tone ? " " + tone : ""}`}><div className="radmin-stat-v">{value}</div><div className="radmin-stat-l">{label}</div></div>;
+function Stat({ label, value, tone, trend }: { label: string; value: any; tone?: string; trend?: { pct: number; good: boolean } | null }) {
+  return (
+    <div className={`radmin-stat${tone ? " " + tone : ""}`}>
+      <div className="radmin-stat-top">
+        <div className="radmin-stat-v">{value}</div>
+        {trend && <span className={`radmin-trend ${trend.good ? "good" : "bad"}`}>{trend.pct > 0 ? "▲" : "▼"} {Math.abs(trend.pct)}%</span>}
+      </div>
+      <div className="radmin-stat-l">{label}</div>
+    </div>
+  );
 }
 function FreqList({ title, rows }: { title: string; rows?: any[] }) {
   return (
