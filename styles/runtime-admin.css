@@ -120,3 +120,15 @@
 .radmin-keyrow code { flex: 1; overflow-x: auto; color: var(--accent-bright); font-size: 12.5px; white-space: nowrap; }
 
 .radmin-orgs { display: flex; flex-direction: column; gap: 0; }
+
+/* ---------- Audit pack / deliverables (Secure Delivery) ---------- */
+.radmin-pack { border: 1px solid var(--line-2); border-radius: var(--radius-sm, 9px); background: var(--panel); padding: 14px 16px; margin-bottom: 12px; }
+.radmin-pack-sum { font-size: 12.5px; line-height: 1.5; margin: 4px 0 10px; }
+.radmin-deliv { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.radmin-deliv-row { border: 1px solid var(--line); border-radius: var(--radius-sm, 9px); background: var(--bg-1, #0b0d10); padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.radmin-deliv-meta { min-width: 0; }
+.radmin-deliv-name { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.radmin-deliv-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.radmin-deliv-share { flex-basis: 100%; }
+.radmin-code { font-family: var(--mono); font-size: 11.5px; color: var(--accent-bright); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 11px; margin-top: 8px; overflow-x: auto; white-space: nowrap; }

@@ -121,6 +121,31 @@ operator-scoped read routes were added so the dashboard can see any tenant's dat
 - Remaining (future): more-frequent alert cadence needs a dedicated cron (paid plan) or an external
   uptime monitor hitting `/api/runtime/health`.
 
+### Phase 4 — Audit Pack / Secure Delivery in the Control Room — ✅ SHIPPED
+The standalone "48-Hour Audit / Secure Delivery" console is now integrated into the Control Room as
+an **Audit pack** view per customer environment — the customer/environment is the source of truth.
+
+- **Architecture (front-end + shared store):** the existing generator (`scripts/delivery-kit.cjs`, run
+  from the console where Chromium lives) is **not rebuilt**. A new `scripts/runtime/publish-audit.cjs`
+  uploads a generated `deliverables/<slug>/` directory to object storage and records it under a
+  customer environment. The Control Room reads from that shared store — so no Chromium runs on Vercel.
+- **`lib/runtime/deliverables.js`** — publish / list / read + secure shares (expiring, revocable,
+  optional password). **`lib/runtime/store.js`** gains object-storage helpers (Supabase Storage bucket
+  `rg-deliverables` when configured; local `.runtime-data/deliverables/` otherwise).
+- **Routes** (operator-authed): `GET /api/runtime/admin/deliverables` (packs + shares),
+  `GET …/deliverables/file?id=&mode=preview|download`, `GET|POST …/deliverables/share`. Plus the
+  **customer-facing** `GET /api/runtime/share/<token>` — credential-free, not behind the admin Basic
+  Auth (`proxy.ts` only matches `/admin/*`).
+- **UI:** the environment's **Audit pack** button lists each pack (with its run-summary line) and every
+  deliverable (`audit.html/.md/.pdf`, `executive-report.html/.pdf`, `run-summary.json`) with
+  **Preview · Download · Share securely** — matching the radmin dark style.
+- **Schema:** `rg_audit_packs`, `rg_deliverables`, `rg_shares` + the `rg-deliverables` Storage bucket
+  (idempotent migration).
+- **Workflow:** onboard → collect evidence → (console) generate audit → `npm run runtime:publish-audit`
+  → preview/download/share securely in the Control Room → continue monitoring in shadow/enforce.
+- Tested: `npm run runtime:deliverables` (10 assertions — publish, list, byte round-trip, share
+  create/resolve/revoke/expiry/password).
+
 ## Non-goals / guardrails (unchanged)
 - The Runtime Governance engine stays frozen — this is all platform/operator surface, never engine
   logic. No `governance-service/` or `morrison_governance` changes.

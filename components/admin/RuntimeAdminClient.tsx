@@ -169,7 +169,7 @@ function CustomersPanel() {
 
 function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState<null | "evidence" | "reports" | "keys">(null);
+  const [open, setOpen] = useState<null | "evidence" | "reports" | "audit" | "keys">(null);
   const [newKey, setNewKey] = useState("");
   const [newKeyWarn, setNewKeyWarn] = useState("");
   const enforce = env.mode === "enforce";
@@ -202,6 +202,7 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
           </button>
           <button className="radmin-btn sm" onClick={() => setOpen(open === "evidence" ? null : "evidence")}>Evidence</button>
           <button className="radmin-btn sm" onClick={() => setOpen(open === "reports" ? null : "reports")}>Reports</button>
+          <button className="radmin-btn sm" onClick={() => setOpen(open === "audit" ? null : "audit")}>Audit pack</button>
           <button className="radmin-btn sm" disabled={busy} onClick={rotate}>Rotate key</button>
         </div>
       </div>
@@ -210,6 +211,7 @@ function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => vo
       )}
       {open === "evidence" && <div className="radmin-env-body"><EvidenceView org={org} env={env} /></div>}
       {open === "reports" && <div className="radmin-env-body"><ReportsView org={org} env={env} /></div>}
+      {open === "audit" && <div className="radmin-env-body"><DeliverablesView org={org} env={env} /></div>}
     </div>
   );
 }
@@ -299,6 +301,63 @@ function ReportsView({ org, env }: { org: any; env: any }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ── Audit pack / Deliverables (Secure Delivery) ──────────────────────────────
+function DeliverablesView({ org, env }: { org: any; env: any }) {
+  const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
+  const [shares, setShares] = useState<Record<string, string>>({}); const [busyId, setBusyId] = useState("");
+  const load = useCallback(async () => {
+    setErr("");
+    try { setData(await api(`deliverables?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`)); }
+    catch (e: any) { setErr(e.message); }
+  }, [org.id, env.id]);
+  useEffect(() => { load(); }, [load]);
+  const fileUrl = (id: string, mode: string) => `/api/runtime/admin/deliverables/file?id=${encodeURIComponent(id)}&mode=${mode}`;
+  const share = async (d: any) => {
+    setBusyId(d.id);
+    try { const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) }); setShares((s) => ({ ...s, [d.id]: r.url })); }
+    catch (e: any) { alert(e.message); } finally { setBusyId(""); }
+  };
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-muted">Loading deliverables…</div>;
+  const packs: any[] = data.packs || [];
+  const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
+  if (!packs.length) return (
+    <div className="radmin-muted">
+      No audit packs yet. Generate one in the console (48-Hour Audit), then publish it:
+      <div className="radmin-code">npm run runtime:publish-audit -- --org {org.id} --env {env.id} --dir deliverables/&lt;slug&gt;</div>
+    </div>
+  );
+  return (
+    <div>
+      {packs.map((p) => (
+        <div key={p.id} className="radmin-pack">
+          <div className="radmin-row" style={{ margin: "0 0 6px" }}>
+            <span className="radmin-pill">{p.name || "Audit pack"}</span>
+            <span className="radmin-muted">{p.reference ? p.reference + " · " : ""}{(p.created_at || "").slice(0, 10)}</span>
+          </div>
+          {p.summary?.assess_summary && <div className="radmin-muted radmin-pack-sum">{p.summary.assess_summary}</div>}
+          <ul className="radmin-deliv">
+            {(p.deliverables || []).map((d: any) => (
+              <li key={d.id} className="radmin-deliv-row">
+                <div className="radmin-deliv-meta">
+                  <div className="radmin-deliv-name">{d.filename}</div>
+                  <div className="radmin-muted">{d.kind}{d.size ? ` · ${(d.size / 1024).toFixed(0)} KB` : ""}</div>
+                </div>
+                <div className="radmin-deliv-actions">
+                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noreferrer">Preview</a>
+                  <a className="radmin-btn sm" href={fileUrl(d.id, "download")}>Download</a>
+                  {shareable(d.filename) && <button className="radmin-btn sm primary" disabled={busyId === d.id} onClick={() => share(d)}>{busyId === d.id ? "…" : "Share securely"}</button>}
+                </div>
+                {shares[d.id] && <div className="radmin-deliv-share"><KeyReveal label="Secure link — expires in 7 days, revocable" value={shares[d.id]} /></div>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
