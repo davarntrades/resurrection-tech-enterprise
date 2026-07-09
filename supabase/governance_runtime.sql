@@ -264,6 +264,55 @@ create table if not exists public.rg_alerts (
 );
 create index if not exists rg_alerts_created_idx on public.rg_alerts(created_at desc);
 
+-- Audit deliverables (Control Room): a pack is one audit run for a customer
+-- environment; deliverables are its files (audit.html/.md/.pdf, executive-report
+-- .html/.pdf, run-summary.json) stored in the rg-deliverables Storage bucket.
+create table if not exists public.rg_audit_packs (
+  id              text primary key,
+  org_id          text not null references public.rg_orgs(id) on delete cascade,
+  environment_id  text references public.rg_environments(id) on delete cascade,
+  name            text,
+  reference       text,
+  summary         jsonb,
+  created_at      timestamptz default now()
+);
+create index if not exists rg_audit_packs_env_idx on public.rg_audit_packs(environment_id, created_at desc);
+
+create table if not exists public.rg_deliverables (
+  id              text primary key,
+  pack_id         text not null references public.rg_audit_packs(id) on delete cascade,
+  org_id          text,
+  environment_id  text,
+  filename        text not null,
+  kind            text,
+  mime            text,
+  size            bigint,
+  storage_path    text not null,       -- object key in the rg-deliverables bucket
+  created_at      timestamptz default now()
+);
+create index if not exists rg_deliverables_pack_idx on public.rg_deliverables(pack_id);
+
+-- Secure delivery links: capability tokens, expiring + revocable + optional pw.
+create table if not exists public.rg_shares (
+  id                text primary key,
+  token             text not null unique,
+  deliverable_id    text not null references public.rg_deliverables(id) on delete cascade,
+  org_id            text,
+  filename          text,
+  expires_at        timestamptz not null,
+  password_hash     text,
+  revoked           boolean default false,
+  accessed          integer default 0,
+  last_accessed_at  timestamptz,
+  created_at        timestamptz default now()
+);
+create index if not exists rg_shares_token_idx on public.rg_shares(token);
+
+-- Private Storage bucket for the deliverable bytes (served only via the app).
+insert into storage.buckets (id, name, public)
+  values ('rg-deliverables', 'rg-deliverables', false)
+  on conflict (id) do nothing;
+
 -- RLS: service-role only by default (the gateway uses the service key; browser
 -- never touches these tables directly — reads go through the authenticated API,
 -- which enforces org scoping in application code — see lib/runtime).
@@ -277,6 +326,9 @@ alter table public.rg_reports            enable row level security;
 alter table public.rg_chain_heads        enable row level security;
 alter table public.rg_admin_audit        enable row level security;
 alter table public.rg_alerts             enable row level security;
+alter table public.rg_audit_packs        enable row level security;
+alter table public.rg_deliverables       enable row level security;
+alter table public.rg_shares             enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────

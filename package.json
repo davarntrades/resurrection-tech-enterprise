@@ -34,7 +34,9 @@
     "runtime:set-mode": "node scripts/runtime/set-mode.cjs",
     "runtime:adminauth": "node scripts/runtime/adminauth.test.cjs",
     "runtime:seq": "node scripts/runtime/decisionseq.test.cjs",
-    "runtime:alerts": "node scripts/runtime/alerts.test.cjs"
+    "runtime:alerts": "node scripts/runtime/alerts.test.cjs",
+    "runtime:deliverables": "node scripts/runtime/deliverables.test.cjs",
+    "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
