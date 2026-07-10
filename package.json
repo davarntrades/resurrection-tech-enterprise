@@ -36,6 +36,7 @@
     "runtime:seq": "node scripts/runtime/decisionseq.test.cjs",
     "runtime:alerts": "node scripts/runtime/alerts.test.cjs",
     "runtime:deliverables": "node scripts/runtime/deliverables.test.cjs",
+    "runtime:reports": "node scripts/runtime/reports.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs"
   },
   "dependencies": {

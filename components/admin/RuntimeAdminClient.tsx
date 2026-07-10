@@ -330,12 +330,60 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
         <FreqBars title="Top rules" rows={s.rule_frequency} color="#6f97ff" />
         <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" />
       </div>
-      <div className="radmin-row"><span className="radmin-muted">Recent decisions</span><button className="radmin-btn sm" onClick={exportJson}>Export JSON</button></div>
+      <div className="radmin-row"><span className="radmin-muted">Evidence export</span><button className="radmin-btn sm" onClick={exportJson}>Export window JSON</button></div>
+      <DecisionSearch org={org} env={env} />
+    </div>
+  );
+}
+
+// Decision search — the MSSP query surface ("every BLOCK event for Customer A
+// over the last month", without the CLI). Auto-runs; filters narrow it down.
+function DecisionSearch({ org, env }: { org: any; env: any }) {
+  const [verdict, setVerdict] = useState(""); const [omega, setOmega] = useState(""); const [rule, setRule] = useState("");
+  const [since, setSince] = useState(""); const [until, setUntil] = useState(""); const [q, setQ] = useState("");
+  const [rows, setRows] = useState<any[] | null>(null); const [count, setCount] = useState(0);
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const qs = useCallback(() => {
+    const p = new URLSearchParams({ org_id: org.id, environment_id: env.id, limit: "500" });
+    if (verdict) p.set("verdict", verdict);
+    if (omega) p.set("omega_domain", omega);
+    if (rule) p.set("rule", rule);
+    if (since) p.set("since", new Date(since).toISOString());
+    if (until) p.set("until", new Date(until + "T23:59:59").toISOString());
+    if (q) p.set("q", q);
+    return p.toString();
+  }, [org.id, env.id, verdict, omega, rule, since, until, q]);
+  const search = useCallback(async () => {
+    setBusy(true); setErr("");
+    try { const d = await api(`decisions?${qs()}`); setRows(d.decisions || []); setCount(d.count || 0); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }, [qs]);
+  useEffect(() => { search(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const lastMonth = () => {
+    const d = new Date(); const u = d.toISOString().slice(0, 10);
+    d.setMonth(d.getMonth() - 1); setSince(d.toISOString().slice(0, 10)); setUntil(u); setVerdict("BLOCK");
+  };
+  return (
+    <div className="radmin-search">
+      <div className="radmin-search-bar">
+        <select className="radmin-select" value={verdict} onChange={(e) => setVerdict(e.target.value)}>
+          <option value="">Any verdict</option>{["ALLOW", "ESCALATE", "BLOCK"].map((x) => <option key={x} value={x}>{x}</option>)}
+        </select>
+        <input className="radmin-select" placeholder="Ω domain" value={omega} onChange={(e) => setOmega(e.target.value)} />
+        <input className="radmin-select" placeholder="Rule" value={rule} onChange={(e) => setRule(e.target.value)} />
+        <input className="radmin-select" type="date" value={since} onChange={(e) => setSince(e.target.value)} title="From" />
+        <input className="radmin-select" type="date" value={until} onChange={(e) => setUntil(e.target.value)} title="To" />
+        <button className="radmin-btn sm primary" disabled={busy} onClick={search}>{busy ? "…" : "Search"}</button>
+        <button className="radmin-btn sm" onClick={lastMonth} title="Preset: BLOCK events, last month">BLOCK · last month</button>
+        <a className="radmin-btn sm" href={`/api/runtime/admin/decisions?${qs()}&format=csv`}>Export CSV</a>
+      </div>
+      {err && <div className="radmin-err">{err}</div>}
+      <div className="radmin-muted" style={{ fontSize: 11, margin: "2px 0 8px" }}>{rows ? `${count} decision${count === 1 ? "" : "s"}` : "Searching…"}</div>
       <div className="radmin-table-wrap">
         <table className="radmin-table">
           <thead><tr><th>Time</th><th>Verdict</th><th>Engine</th><th>Ω</th><th>Rule</th><th>ms</th></tr></thead>
           <tbody>
-            {(data.recent || []).map((d: any, i: number) => (
+            {(rows || []).map((d: any, i: number) => (
               <tr key={i}>
                 <td>{(d.created_at || "").replace("T", " ").slice(0, 19)}</td>
                 <td><span className={`radmin-verdict ${String(d.verdict).toLowerCase()}`}>{d.verdict}</span></td>
@@ -345,7 +393,7 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
                 <td>{d.engine_compute_ms ?? "—"}</td>
               </tr>
             ))}
-            {!(data.recent || []).length && <tr><td colSpan={6} className="radmin-muted">No decisions recorded yet.</td></tr>}
+            {rows && !rows.length && <tr><td colSpan={6} className="radmin-muted">No matching decisions.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -356,33 +404,103 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
 // ── Reports ──────────────────────────────────────────────────────────────────
 function ReportsView({ org, env }: { org: any; env: any }) {
   const [reports, setReports] = useState<any[] | null>(null);
-  const [period, setPeriod] = useState("monthly"); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [period, setPeriod] = useState("monthly"); const [month, setMonth] = useState("");
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   const load = useCallback(async () => {
     setErr("");
-    try { const d = await api(`reports?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`); setReports(d.reports || []); }
+    try { const d = await api(`reports?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}${month ? `&month=${month}` : ""}`); setReports(d.reports || []); }
     catch (e: any) { setErr(e.message); }
-  }, [org.id, env.id]);
+  }, [org.id, env.id, month]);
   useEffect(() => { load(); }, [load]);
-  const generate = async () => {
+  const generate = async (p?: string) => {
     setBusy(true); setErr("");
-    try { await api("reports", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period }) }); await load(); }
+    try { await api("reports", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: p || period }) }); setMonth(""); await load(); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
   return (
     <div>
-      <div className="radmin-row">
+      <div className="radmin-row" style={{ margin: "0 0 4px" }}>
+        <span className="radmin-muted">Generate</span>
         <select value={period} onChange={(e) => setPeriod(e.target.value)} className="radmin-select">
           {["daily", "weekly", "monthly", "quarterly"].map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <button className="radmin-btn sm" disabled={busy} onClick={generate}>{busy ? "Generating…" : "Generate report"}</button>
+        <button className="radmin-btn sm primary" disabled={busy} onClick={() => generate()}>{busy ? "Generating…" : "Generate report"}</button>
+        <span style={{ flex: 1 }} />
+        <span className="radmin-muted">History</span>
+        <input className="radmin-select" style={{ width: 130 }} type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+        {month && <button className="radmin-btn sm" onClick={() => setMonth("")}>Clear</button>}
       </div>
       {err && <div className="radmin-err">{err}</div>}
-      {!reports ? <div className="radmin-muted">Loading…</div> : !reports.length ? <div className="radmin-muted">No reports yet.</div> : (
-        <ul className="radmin-reports">
-          {reports.map((r: any, i: number) => (
-            <li key={i}><span className="radmin-pill">{r.period}</span> <span>{r.headline || r.id}</span> <span className="radmin-muted">{(r.generated_at || r.created_at || "").slice(0, 10)}</span></li>
-          ))}
-        </ul>
+      {!reports ? <div className="radmin-muted">Loading…</div>
+        : !reports.length ? <div className="radmin-muted">No reports{month ? " for this month" : " yet"}. Use <b>Generate report</b> above.</div>
+          : <div className="radmin-repcards">{reports.map((r: any) => <ReportCard key={r.id} r={r} onRegenerate={() => generate(r.period)} regenBusy={busy} />)}</div>}
+    </div>
+  );
+}
+
+const RISK_TONE: Record<string, string> = { High: "omega", Medium: "warn", Low: "ok" };
+function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () => void; regenBusy: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState(""); const [busy, setBusy] = useState(false);
+  const ex = r.summary?.executive || {}; const te = r.summary?.technical || {};
+  const t = r.totals || {};
+  const fileUrl = (fmt: string) => `/api/runtime/admin/reports/file?id=${encodeURIComponent(r.id)}&format=${fmt}`;
+  const share = async () => {
+    setBusy(true);
+    try { const d = await api("reports/share", { method: "POST", body: JSON.stringify({ id: r.id, expires_in_days: 7 }) }); setShareUrl(d.url); }
+    catch (e: any) { alert(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="radmin-repcard">
+      <button className="radmin-repcard-head" onClick={() => setOpen(!open)}>
+        <span className="radmin-repcard-left">
+          <span className={`radmin-chev${open ? " open" : ""}`}>▸</span>
+          <span className="radmin-pill">{r.period}</span>
+          <span className="radmin-repcard-date">{(r.generated_at || r.created_at || "").slice(0, 10)}</span>
+          {ex.risk && <span className={`radmin-badge ${RISK_TONE[ex.risk] || "ghost"}`}>{ex.risk} risk</span>}
+        </span>
+        <span className="radmin-repcard-metrics">
+          <span style={{ color: "#3fb27f" }}>{t.ALLOW ?? 0} A</span>
+          <span style={{ color: "#d9a441" }}>{t.ESCALATE ?? 0} E</span>
+          <span style={{ color: "#e5484d" }}>{t.BLOCK ?? 0} B</span>
+          <span className="radmin-muted">· {r.trajectories ?? 0} evals</span>
+        </span>
+      </button>
+      {open && (
+        <div className="radmin-repcard-body">
+          <p className="radmin-repcard-headline">{r.headline}</p>
+          <div className="radmin-repcols">
+            <section>
+              <h4>Executive summary</h4>
+              <p><b>Overall posture.</b> {ex.posture}</p>
+              <p><b>Risk level.</b> <span className={`radmin-badge ${RISK_TONE[ex.risk] || "ghost"}`}>{ex.risk}</span></p>
+              <p><b>Key findings</b></p><ul>{(ex.key_findings || []).map((x: string, i: number) => <li key={i}>{x}</li>)}</ul>
+              <p><b>Business impact.</b> {ex.business_impact}</p>
+              <p><b>Recommended actions</b></p><ul>{(ex.recommended_actions || []).map((x: string, i: number) => <li key={i}>{x}</li>)}</ul>
+            </section>
+            <section>
+              <h4>Technical summary</h4>
+              <div className="radmin-kv">
+                <div><span>Decisions</span><code>{te.decisions ?? 0}</code></div>
+                <div><span>Would-block</span><code>{te.would_block ?? 0}</code></div>
+                <div><span>Enforced</span><code>{String(te.enforced)}</code></div>
+                <div><span>Human review</span><code>{te.human_review ?? 0}</code></div>
+                <div><span>Mean / p95 ms</span><code>{te.latency?.engine_compute_ms?.mean ?? "—"} / {te.latency?.engine_compute_ms?.p95 ?? "—"}</code></div>
+              </div>
+              <FreqBars title="Rules triggered" rows={te.rules} color="#6f97ff" />
+              <FreqBars title="Ω domains" rows={te.omega} color="#d9a441" />
+              <p className="radmin-muted" style={{ fontSize: 11, marginTop: 8 }}>Evidence: {te.evidence_ref}</p>
+            </section>
+          </div>
+          <div className="radmin-repcard-actions">
+            <a className="radmin-btn sm" href={fileUrl("html")}>Download HTML</a>
+            <a className="radmin-btn sm" href={fileUrl("md")}>Download MD</a>
+            <a className="radmin-btn sm" href={fileUrl("json")}>Download JSON</a>
+            <button className="radmin-btn sm primary" disabled={busy} onClick={share}>{busy ? "…" : "Share securely"}</button>
+            <button className="radmin-btn sm" disabled={regenBusy} onClick={onRegenerate}>Regenerate</button>
+          </div>
+          {shareUrl && <KeyReveal label="Secure link — expires in 7 days, revocable" value={shareUrl} />}
+        </div>
       )}
     </div>
   );
