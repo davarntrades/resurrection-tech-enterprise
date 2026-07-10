@@ -510,6 +510,9 @@ function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () =
 function DeliverablesView({ org, env }: { org: any; env: any }) {
   const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
   const [shares, setShares] = useState<Record<string, string>>({}); const [busyId, setBusyId] = useState("");
+  const [gen, setGen] = useState(false); const [pub, setPub] = useState(false);
+  const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
+  const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
   const load = useCallback(async () => {
     setErr("");
     try { setData(await api(`deliverables?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`)); }
@@ -522,25 +525,65 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
     try { const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) }); setShares((s) => ({ ...s, [d.id]: r.url })); }
     catch (e: any) { alert(e.message); } finally { setBusyId(""); }
   };
-  if (err) return <div className="radmin-err">{err}</div>;
-  if (!data) return <div className="radmin-muted">Loading deliverables…</div>;
-  const packs: any[] = data.packs || [];
+  const generate = async () => {
+    setGen(true); setErr("");
+    try { await api("deliverables/generate", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: "monthly" }) }); await load(); }
+    catch (e: any) { setErr(e.message); } finally { setGen(false); }
+  };
+  const publish = async () => {
+    if (!files || !files.length) return;
+    setPub(true); setErr("");
+    try {
+      const fd = new FormData();
+      fd.append("org_id", org.id); fd.append("environment_id", env.id);
+      if (packName) fd.append("name", packName); if (packRef) fd.append("reference", packRef);
+      for (const f of Array.from(files)) fd.append("files", f);
+      const res = await fetch("/api/runtime/admin/deliverables/publish", { method: "POST", credentials: "same-origin", body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error || `HTTP ${res.status}`);
+      setShowUpload(false); setFiles(null); setPackName(""); setPackRef(""); await load();
+    } catch (e: any) { setErr(e.message); } finally { setPub(false); }
+  };
   const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
-  if (!packs.length) return (
-    <div className="radmin-muted">
-      No audit packs yet. Generate one in the console (48-Hour Audit), then publish it:
-      <div className="radmin-code">npm run runtime:publish-audit -- --org {org.id} --env {env.id} --dir deliverables/&lt;slug&gt;</div>
+  const packs: any[] = data?.packs || [];
+
+  const ActionBar = (
+    <div>
+      <div className="radmin-actionbar">
+        <button className="radmin-btn primary" disabled={gen} onClick={generate}>{gen ? "Generating…" : "Generate evidence pack"}</button>
+        <button className="radmin-btn" onClick={() => setShowUpload(!showUpload)}>Publish (upload)…</button>
+        <span style={{ flex: 1 }} />
+        <button className="radmin-btn sm" onClick={() => setShowDev(!showDev)}>Developer</button>
+      </div>
+      {showUpload && (
+        <div className="radmin-upload">
+          <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
+          <input className="radmin-select" placeholder="Pack name (optional)" value={packName} onChange={(e) => setPackName(e.target.value)} />
+          <input className="radmin-select" placeholder="Reference (optional)" value={packRef} onChange={(e) => setPackRef(e.target.value)} />
+          <button className="radmin-btn sm primary" disabled={pub || !files?.length} onClick={publish}>{pub ? "Publishing…" : "Publish"}</button>
+          <span className="radmin-muted" style={{ fontSize: 11, flexBasis: "100%" }}>Upload the files the console generated (audit.html/.md/.pdf, executive-report.*, run-summary.json).</span>
+        </div>
+      )}
+      {showDev && (
+        <div className="radmin-code">npm run runtime:publish-audit -- --org {org.id} --env {env.id} --dir deliverables/&lt;slug&gt;</div>
+      )}
     </div>
   );
+
+  if (err && !data) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-muted">Loading deliverables…</div>;
   return (
     <div>
+      {ActionBar}
+      {err && <div className="radmin-err">{err}</div>}
+      {!packs.length && <div className="radmin-muted" style={{ marginTop: 10 }}>No audit packs yet. <b>Generate evidence pack</b> creates one from live evidence; <b>Publish (upload)</b> attaches the console-generated 48-Hour Audit (with branded PDFs).</div>}
       {packs.map((p) => (
         <div key={p.id} className="radmin-pack">
           <div className="radmin-row" style={{ margin: "0 0 6px" }}>
             <span className="radmin-pill">{p.name || "Audit pack"}</span>
             <span className="radmin-muted">{p.reference ? p.reference + " · " : ""}{(p.created_at || "").slice(0, 10)}</span>
           </div>
-          {p.summary?.assess_summary && <div className="radmin-muted radmin-pack-sum">{p.summary.assess_summary}</div>}
+          {(p.summary?.assess_summary || p.summary?.headline) && <div className="radmin-muted radmin-pack-sum">{p.summary.assess_summary || p.summary.headline}</div>}
           <ul className="radmin-deliv">
             {(p.deliverables || []).map((d: any) => (
               <li key={d.id} className="radmin-deliv-row">
