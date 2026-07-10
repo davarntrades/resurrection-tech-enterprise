@@ -217,3 +217,36 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .radmin-upload { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; padding: 12px 14px; border: 1px dashed var(--line-2); border-radius: var(--radius-sm, 9px); background: var(--bg-1, #0b0d10); }
 .radmin-upload input[type=file] { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); max-width: 100%; }
 .radmin-upload .radmin-select { width: auto; min-width: 150px; }
+
+/* ---------- Polish: help icons, chart animation, collapsible customers, sparklines ---------- */
+.radmin-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line-strong); color: var(--ink-3); font-size: 9.5px; font-family: var(--mono); cursor: help; position: relative; flex: none; }
+.radmin-info:hover, .radmin-info:focus { color: var(--ink); border-color: var(--accent); outline: none; }
+.radmin-info::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 240px; background: var(--panel-3); color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 11px; font-family: var(--mono); font-size: 10.5px; line-height: 1.5; letter-spacing: 0; text-transform: none; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .18s var(--ease); box-shadow: 0 12px 34px -18px rgba(0,0,0,0.9); }
+.radmin-info:hover::after, .radmin-info:focus::after { opacity: 1; }
+@media (max-width: 560px) { .radmin-info::after { width: 200px; left: auto; right: 0; transform: none; } }
+
+/* Subtle chart transition when switching 24h / 7d / 30d */
+@keyframes radmin-fade-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.radmin-anim .radmin-chart { animation: radmin-fade-rise .32s var(--ease) both; }
+.radmin-anim .radmin-chart:nth-child(2) { animation-delay: .04s; }
+.radmin-anim .radmin-chart:nth-child(3) { animation-delay: .08s; }
+.radmin-anim .radmin-chart:nth-child(4) { animation-delay: .12s; }
+.radmin-anim .radmin-chart:nth-child(5) { animation-delay: .16s; }
+.radmin-svg rect, .radmin-svg polyline { transition: opacity .3s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .radmin-anim .radmin-chart { animation: none; } }
+
+/* Last-evaluated timestamp */
+.radmin-lasteval { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+/* Collapsible customer card */
+.radmin-cust-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: transparent; border: none; cursor: pointer; text-align: left; padding: 2px 0; }
+.radmin-cust-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.radmin-cust-name { font-size: 16px; font-weight: 560; letter-spacing: -0.01em; color: var(--ink); }
+.radmin-cust-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.radmin-cust-evals { font-family: var(--mono); font-size: 11px; }
+.radmin-cust-body { margin-top: 12px; }
+.radmin-cust-body > code { display: inline-block; margin-bottom: 8px; }
+
+/* Mini sparkline */
+.radmin-minispark { width: 66px; height: 18px; display: block; opacity: 0.9; }
+.radmin-minispark-empty { display: inline-block; width: 66px; height: 1px; background: var(--line-2); }
