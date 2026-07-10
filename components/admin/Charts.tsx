@@ -10,6 +10,24 @@ const C = { allow: "#3fb27f", escalate: "#d9a441", block: "#e5484d", accent: "#6
 function Empty({ h = 90 }: { h?: number }) {
   return <div className="radmin-chart-empty" style={{ height: h }}>No data in this window</div>;
 }
+
+// Small hover/focus help icon with a tooltip (keyboard-accessible).
+export function Info({ tip }: { tip: string }) {
+  return <span className="radmin-info" data-tip={tip} tabIndex={0} role="img" aria-label={tip}>?</span>;
+}
+
+// Tiny sparkline for at-a-glance customer health (7-day decision volume).
+export function MiniSpark({ points, w = 66, h = 18 }: { points?: number[]; w?: number; h?: number }) {
+  const pts = (points || []).map(Number).filter((v) => !isNaN(v));
+  if (pts.length < 2) return <span className="radmin-minispark-empty" title="not enough activity yet" />;
+  const max = Math.max(1, ...pts);
+  const d = pts.map((v, i) => `${(i / (pts.length - 1)) * w},${h - (v / max) * (h - 3) - 1.5}`).join(" ");
+  return (
+    <svg className="radmin-minispark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+      <polyline fill="none" stroke="#6f97ff" strokeWidth={1.2} points={d} vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
 function ChartCard({ title, legend, children }: { title: string; legend?: ReactNode; children: ReactNode }) {
   return (
     <div className="radmin-chart">
@@ -87,12 +105,13 @@ export function LatencySpark({ series }: { series?: Bucket[] }) {
 }
 
 // Frequency bars — rules / Ω domains.
-export function FreqBars({ title, rows, color = C.accent }: { title: string; rows?: Array<{ key: string; count: number; pct: number }>; color?: string }) {
+export function FreqBars({ title, rows, color = C.accent, info }: { title: string; rows?: Array<{ key: string; count: number; pct: number }>; color?: string; info?: string }) {
   const data = (rows || []).slice(0, 6);
-  if (!data.length) return <ChartCard title={title}><Empty h={54} /></ChartCard>;
+  const legend = info ? <Info tip={info} /> : undefined;
+  if (!data.length) return <ChartCard title={title} legend={legend}><Empty h={54} /></ChartCard>;
   const max = Math.max(...data.map((r) => r.pct || r.count));
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} legend={legend}>
       <div className="radmin-fbars">
         {data.map((r, i) => (
           <div key={i} className="radmin-fbar">

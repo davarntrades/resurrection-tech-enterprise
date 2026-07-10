@@ -10,7 +10,9 @@
  */
 import "@/styles/runtime-admin.css";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { VolumeChart, RatioBar, LatencySpark, FreqBars } from "./Charts";
+import { VolumeChart, RatioBar, LatencySpark, FreqBars, Info, MiniSpark } from "./Charts";
+
+const OMEGA_TIP = "Ω (Omega) domains are the catastrophic-risk categories the engine governs — e.g. finance, healthcare, infrastructure. Every blocked or escalated action is attributed to the Ω domain whose safety boundary it would cross.";
 
 // ── API helper (cookie auto-sent same-origin) ────────────────────────────────
 async function api(path: string, opts: RequestInit = {}) {
@@ -161,7 +163,12 @@ function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
   ];
   return (
     <section className="radmin-card">
-      <div className="radmin-row" style={{ margin: "0 0 6px" }}><h2>Platform overview</h2><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
+      <div className="radmin-row" style={{ margin: "0 0 6px" }}>
+        <h2>Platform overview</h2>
+        <span className="radmin-lasteval">Last evaluated {ago(p.last_activity)}</span>
+        <span style={{ flex: 1 }} />
+        <button className="radmin-btn sm" onClick={load}>Refresh</button>
+      </div>
       <div className="radmin-kpis">
         {kpis.map(([label, val, tone], i) => (
           <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
@@ -213,21 +220,45 @@ function CustomersPanel() {
   if (!orgs) return <div className="radmin-muted">Loading customers…</div>;
   if (!orgs.length) return <div className="radmin-empty">No customers yet. Use the <b>Onboard</b> tab to create the first.</div>;
 
+  // Collapse cards by default once the list grows, so operators can scan many
+  // customers at a glance and expand the one they need.
+  const collapsible = orgs.length > 3;
   return (
     <div className="radmin-orgs">
-      {orgs.map((o) => (
-        <section key={o.id} className="radmin-card">
-          <div className="radmin-org-head">
-            <div><h2>{o.name}</h2><code className="radmin-muted">{o.id}</code></div>
-            <span className={`radmin-pill ${o.status === "active" ? "ok" : ""}`}>{o.plan || "pilot"}</span>
-          </div>
+      {orgs.map((o) => <CustomerCard key={o.id} o={o} onChange={load} defaultOpen={!collapsible} />)}
+    </div>
+  );
+}
+
+function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => void; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const b = o.badges || {};
+  return (
+    <section className="radmin-card">
+      <button className="radmin-cust-head" onClick={() => setOpen(!open)}>
+        <span className="radmin-cust-left">
+          <span className={`radmin-chev${open ? " open" : ""}`}>▸</span>
+          <span className="radmin-cust-name">{o.name}</span>
+          {b.enterprise_ready && <span className="radmin-badge ok">Enterprise Ready</span>}
+          {(b.modes || []).map((m: string, i: number) => <span key={i} className={`radmin-badge${m === "enforce" ? " accent" : ""}`}>{m === "enforce" ? "Enforce" : "Shadow"}</span>)}
+        </span>
+        <span className="radmin-cust-right">
+          <MiniSpark points={b.spark} />
+          <span className="radmin-muted radmin-cust-evals">{Number(b.evaluations ?? 0).toLocaleString()} evals</span>
+          {b.blocked > 0 && <span className="radmin-badge omega">{b.blocked} blocked</span>}
+          <span className={`radmin-pill ${o.status === "active" ? "ok" : ""}`}>{o.plan || "pilot"}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="radmin-cust-body">
+          <code className="radmin-muted">{o.id}</code>
           <CustomerBadges b={o.badges} />
           {(o.environments || []).map((e: any) => (
-            <EnvRow key={e.id} org={o} env={e} onChange={load} />
+            <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}
-        </section>
-      ))}
-    </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -323,12 +354,12 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
         <Stat label="Would-block (shadow)" value={s.would_block ?? 0} trend={trendOf(s.would_block ?? 0, data.previous?.would_block, false)} />
         <Stat label="Engine p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
       </div>
-      <div className="radmin-charts">
+      <div className="radmin-charts radmin-anim" key={win}>
         <VolumeChart series={data.trends} />
         <RatioBar allow={v.ALLOW ?? 0} escalate={v.ESCALATE ?? 0} block={v.BLOCK ?? 0} />
         <LatencySpark series={data.trends} />
         <FreqBars title="Top rules" rows={s.rule_frequency} color="#6f97ff" />
-        <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" />
+        <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" info={OMEGA_TIP} />
       </div>
       <div className="radmin-row"><span className="radmin-muted">Evidence export</span><button className="radmin-btn sm" onClick={exportJson}>Export window JSON</button></div>
       <DecisionSearch org={org} env={env} />
@@ -369,7 +400,7 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
         <select className="radmin-select" value={verdict} onChange={(e) => setVerdict(e.target.value)}>
           <option value="">Any verdict</option>{["ALLOW", "ESCALATE", "BLOCK"].map((x) => <option key={x} value={x}>{x}</option>)}
         </select>
-        <input className="radmin-select" placeholder="Ω domain" value={omega} onChange={(e) => setOmega(e.target.value)} />
+        <span className="radmin-search-omega"><input className="radmin-select" placeholder="Ω domain" value={omega} onChange={(e) => setOmega(e.target.value)} /><Info tip={OMEGA_TIP} /></span>
         <input className="radmin-select" placeholder="Rule" value={rule} onChange={(e) => setRule(e.target.value)} />
         <input className="radmin-select" type="date" value={since} onChange={(e) => setSince(e.target.value)} title="From" />
         <input className="radmin-select" type="date" value={until} onChange={(e) => setUntil(e.target.value)} title="To" />
@@ -488,7 +519,7 @@ function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () =
                 <div><span>Mean / p95 ms</span><code>{te.latency?.engine_compute_ms?.mean ?? "—"} / {te.latency?.engine_compute_ms?.p95 ?? "—"}</code></div>
               </div>
               <FreqBars title="Rules triggered" rows={te.rules} color="#6f97ff" />
-              <FreqBars title="Ω domains" rows={te.omega} color="#d9a441" />
+              <FreqBars title="Ω domains" rows={te.omega} color="#d9a441" info={OMEGA_TIP} />
               <p className="radmin-muted" style={{ fontSize: 11, marginTop: 8 }}>Evidence: {te.evidence_ref}</p>
             </section>
           </div>
