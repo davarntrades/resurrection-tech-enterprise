@@ -32,23 +32,30 @@ export async function GET(req: NextRequest) {
   const window = sp.get("window") || "";
   const span = WINDOWS[window];
 
+  // Time-series bucket for the charts: hourly for 24h, daily otherwise.
+  const bucket = window === "24h" ? "hour" : "day";
+  const now = Date.now();
+  const trendsSince = new Date(now - (span || WINDOWS["30d"])).toISOString();
+
   try {
+    const trendsP = rt.metrics.trends({ org_id, environment_id, since: trendsSince, bucket });
     if (!span) {
-      const [summary, recent] = await Promise.all([
+      const [summary, recent, trends] = await Promise.all([
         rt.metrics.summary({ org_id, environment_id }),
         rt.store.queryDecisions({ org_id, environment_id, limit }),
+        trendsP,
       ]);
-      return NextResponse.json({ window: "all", summary, previous: null, recent });
+      return NextResponse.json({ window: "all", bucket, summary, previous: null, recent, trends });
     }
-    const now = Date.now();
     const curSince = new Date(now - span).toISOString();
     const prevSince = new Date(now - 2 * span).toISOString();
-    const [summary, previous, recent] = await Promise.all([
+    const [summary, previous, recent, trends] = await Promise.all([
       rt.metrics.summary({ org_id, environment_id, since: curSince }),
       rt.metrics.summary({ org_id, environment_id, since: prevSince, until: curSince }),
       rt.store.queryDecisions({ org_id, environment_id, since: curSince, limit }),
+      trendsP,
     ]);
-    return NextResponse.json({ window, summary, previous, recent });
+    return NextResponse.json({ window, bucket, summary, previous, recent, trends });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "failed to load evidence" }, { status: 500 });
   }
