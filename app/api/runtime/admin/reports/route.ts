@@ -21,11 +21,14 @@ export async function GET(req: NextRequest) {
   const sp = new URL(req.url).searchParams;
   const org_id = sp.get("org_id") || "";
   if (!org_id) return NextResponse.json({ error: "org_id required" }, { status: 400 });
-  return NextResponse.json({
-    reports: await rt.reports.listReports({
-      org_id, environment_id: sp.get("environment_id") || undefined, period: sp.get("period") || undefined,
-    }),
+  let reports = await rt.reports.listReports({
+    org_id, environment_id: sp.get("environment_id") || undefined, period: sp.get("period") || undefined,
   });
+  const month = sp.get("month");        // filter history by YYYY-MM
+  if (month) reports = reports.filter((r: any) => (r.generated_at || "").slice(0, 7) === month);
+  // Attach the executive + technical summary the report card expands into.
+  const enriched = reports.map((r: any) => ({ ...r, summary: rt.reports.summarize(r) }));
+  return NextResponse.json({ reports: enriched });
 }
 
 export async function POST(req: NextRequest) {

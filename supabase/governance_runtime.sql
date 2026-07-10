@@ -291,6 +291,8 @@ create table if not exists public.rg_deliverables (
   created_at      timestamptz default now()
 );
 create index if not exists rg_deliverables_pack_idx on public.rg_deliverables(pack_id);
+-- Ad-hoc shared files (e.g. a rendered report) have no pack.
+alter table public.rg_deliverables alter column pack_id drop not null;
 
 -- Secure delivery links: capability tokens, expiring + revocable + optional pw.
 create table if not exists public.rg_shares (
