@@ -10,6 +10,7 @@
  */
 import "@/styles/runtime-admin.css";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { VolumeChart, RatioBar, LatencySpark, FreqBars } from "./Charts";
 
 // ── API helper (cookie auto-sent same-origin) ────────────────────────────────
 async function api(path: string, opts: RequestInit = {}) {
@@ -322,9 +323,12 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
         <Stat label="Would-block (shadow)" value={s.would_block ?? 0} trend={trendOf(s.would_block ?? 0, data.previous?.would_block, false)} />
         <Stat label="Engine p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
       </div>
-      <div className="radmin-freq">
-        <FreqList title="Top rules" rows={s.rule_frequency} />
-        <FreqList title="Top Ω domains" rows={s.omega_frequency} />
+      <div className="radmin-charts">
+        <VolumeChart series={data.trends} />
+        <RatioBar allow={v.ALLOW ?? 0} escalate={v.ESCALATE ?? 0} block={v.BLOCK ?? 0} />
+        <LatencySpark series={data.trends} />
+        <FreqBars title="Top rules" rows={s.rule_frequency} color="#6f97ff" />
+        <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" />
       </div>
       <div className="radmin-row"><span className="radmin-muted">Recent decisions</span><button className="radmin-btn sm" onClick={exportJson}>Export JSON</button></div>
       <div className="radmin-table-wrap">
@@ -557,17 +561,6 @@ function Stat({ label, value, tone, trend }: { label: string; value: any; tone?:
         {trend && <span className={`radmin-trend ${trend.good ? "good" : "bad"}`}>{trend.pct > 0 ? "▲" : "▼"} {Math.abs(trend.pct)}%</span>}
       </div>
       <div className="radmin-stat-l">{label}</div>
-    </div>
-  );
-}
-function FreqList({ title, rows }: { title: string; rows?: any[] }) {
-  return (
-    <div className="radmin-freq-col">
-      <div className="radmin-freq-title">{title}</div>
-      {(rows || []).slice(0, 5).map((r: any, i: number) => (
-        <div key={i} className="radmin-freq-row"><span>{r.key}</span><span className="radmin-muted">{r.count} · {r.pct}%</span></div>
-      ))}
-      {!(rows || []).length && <div className="radmin-muted">—</div>}
     </div>
   );
 }

@@ -163,3 +163,25 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .radmin-trend { font-size: 11px; font-family: var(--mono); white-space: nowrap; }
 .radmin-trend.good { color: var(--ok); }
 .radmin-trend.bad { color: var(--omega); }
+
+/* ---------- Evidence charts (inline SVG) ---------- */
+.radmin-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+@media (max-width: 720px) { .radmin-charts { grid-template-columns: 1fr; } }
+.radmin-chart { border: 1px solid var(--line-2); border-radius: var(--radius-sm, 9px); background: var(--panel); padding: 12px 14px; }
+.radmin-chart-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.radmin-chart-title { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.radmin-chart-empty { display: flex; align-items: center; justify-content: center; color: var(--ink-4, #4a525c); font-family: var(--mono); font-size: 11px; }
+.radmin-svg { width: 100%; height: 96px; display: block; }
+.radmin-axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--ink-4, #4a525c); margin-top: 4px; }
+.radmin-legend { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 4px; }
+.radmin-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin: 0 2px 0 8px; }
+.radmin-legend i:first-child { margin-left: 0; }
+.radmin-ratio { display: flex; height: 22px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line-2); }
+.radmin-seg { height: 100%; }
+.radmin-ratio-legend { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; margin-top: 8px; }
+.radmin-fbars { display: flex; flex-direction: column; gap: 7px; }
+.radmin-fbar { display: grid; grid-template-columns: 34% 1fr auto; align-items: center; gap: 8px; }
+.radmin-fbar-k { font-family: var(--mono); font-size: 11px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radmin-fbar-track { height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+.radmin-fbar-fill { display: block; height: 100%; border-radius: 999px; }
+.radmin-fbar-v { font-family: var(--mono); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
