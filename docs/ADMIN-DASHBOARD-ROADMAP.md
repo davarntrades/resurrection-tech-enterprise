@@ -146,6 +146,23 @@ an **Audit pack** view per customer environment — the customer/environment is 
 - Tested: `npm run runtime:deliverables` (10 assertions — publish, list, byte round-trip, share
   create/resolve/revoke/expiry/password).
 
+### Executive-ready UX passes — ✅ SHIPPED (increments 1–4)
+Beyond "working," the control room was polished toward executive-grade in four increments:
+- **1 — Overview + badges + trends:** operator Overview tab (platform KPIs incl. catastrophic actions
+  prevented), per-customer summary badges (Enterprise Ready / mode / last report·pack·alert·activity /
+  runtime version), and Evidence KPI cards with time windows (24h/7d/30d) + previous-period ▲/▼ deltas.
+- **2 — Charts:** inline-SVG decision-volume-over-time, ALLOW/BLOCK ratio, latency-trend sparkline,
+  rule + Ω frequency bars (no chart dependency).
+- **3 — Reports + search:** expandable report cards with an **Executive summary** (posture, risk, key
+  findings, business impact, recommended actions) and **Technical summary** (rules, Ω, engine metrics,
+  latency, decision stats, evidence ref); Download HTML/MD/JSON, Share securely, Regenerate; month
+  history filter. Plus the **operator decision search** (`GET /admin/decisions`, verdict/Ω/rule/date/
+  text → JSON or CSV) — the MSSP "every BLOCK event for Customer A last month" query, no CLI.
+- **4 — Audit Pack first-class UI:** **Generate evidence pack** (one click, no Chromium — renders the
+  live-evidence report to HTML/MD/JSON and publishes it) and **Publish (upload)** (drag the console's
+  branded 48-Hour Audit files into the browser → stored under the customer), alongside the existing
+  Preview / Download / Share Securely. The CLI now lives in a collapsed **Developer** section.
+
 ## Non-goals / guardrails (unchanged)
 - The Runtime Governance engine stays frozen — this is all platform/operator surface, never engine
   logic. No `governance-service/` or `morrison_governance` changes.
