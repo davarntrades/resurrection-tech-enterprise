@@ -1,9 +1,16 @@
 :root{
-  --bg:#08090b; --panel:#0f1216; --panel-2:#0b0d10; --line:rgba(255,255,255,.08);
+  /* Exact Control Room design-system tokens (styles/design-system.css) so the
+     Analyst Console reads as another page of the Operator Control Room. */
+  --bg:#08090b; --panel:#0f1216; --panel-2:#0b0d10; --panel-3:#14181d;
+  --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.12); --line-strong:rgba(255,255,255,.20);
   --ink:#f3f5f7; --ink-2:#aab2bd; --ink-3:#6b7480; --ink-4:#474e58;
-  --gold:#e0a93f; --gold-br:#f2c66a; --gold-dim:#6b4f1c;
-  --ok:#3fb27f; --omega:#e5484d; --mono:ui-monospace,Menlo,Consolas,monospace;
-  --radius:14px;
+  --accent:#4c7dff; --accent-bright:#6f97ff; --accent-glow:rgba(76,125,255,.45);
+  --ok:#3fb27f; --omega:#e5484d; --amber:#d9a441;
+  /* Legacy 'gold' tokens now alias the Control Room blue accent — existing rules
+     inherit it, so interactive accents match the Control Room without gold. */
+  --gold:var(--accent); --gold-br:var(--accent-bright); --gold-dim:rgba(76,125,255,.45);
+  --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --radius:14px; --radius-sm:9px; --ease:cubic-bezier(0.22,1,0.36,1);
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink-2);font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
@@ -17,13 +24,13 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:16p
 .who{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
 .who b{color:var(--ink)}
 .who .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--ink-4)}
-.who .dot.ok{background:var(--ok)} .who .dot.warn{background:var(--gold)}
+.who .dot.ok{background:var(--ok)} .who .dot.warn{background:var(--amber)}
 
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 @media(max-width:880px){.grid{grid-template-columns:1fr}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px}
 .card h2{color:var(--ink);font-size:15px;margin:0 0 4px}
-.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
 .hint{color:var(--ink-3);font-size:12px;margin:2px 0 16px}
 
 label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:12px 0 5px}
@@ -31,10 +38,13 @@ input,select,textarea{width:100%;background:var(--panel-2);border:1px solid var(
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold-dim)}
 textarea{resize:vertical;min-height:96px;font-family:var(--mono);font-size:12px}
 .row{display:flex;gap:12px}.row>*{flex:1}
-.btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,var(--gold-br),var(--gold));color:#1a1407;border:0;border-radius:10px;padding:11px 18px;font-weight:600;font-size:13px;cursor:pointer}
+/* Buttons — Control Room style: mono, blue-tinted primary, neutral ghost. */
+.btn{display:inline-flex;align-items:center;gap:8px;background:rgba(76,125,255,.14);color:var(--ink);border:1px solid rgba(76,125,255,.45);border-radius:var(--radius-sm);padding:10px 16px;font-family:var(--mono);font-weight:500;font-size:12.5px;letter-spacing:.02em;cursor:pointer;transition:all .25s var(--ease)}
+.btn:hover{background:rgba(76,125,255,.22)}
 .btn:disabled{opacity:.5;cursor:default}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-2)}
-.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn.ghost{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--line-strong)}
+.btn.sm{padding:6px 11px;font-size:11.5px;border-radius:var(--radius-sm)}
 
 .stages{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px}
 .stage{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--ink-3)}
@@ -60,9 +70,9 @@ th{text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.08em;te
 td{padding:9px 9px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ink-2);vertical-align:middle}
 td.m{color:var(--ink)}
 .pill{font-family:var(--mono);font-size:9.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
-.pill.intake{color:var(--gold);border-color:var(--gold-dim)}
+.pill.intake{color:var(--amber);border-color:rgba(217,164,65,.4)}
 .pill.delivered,.pill.complete{color:var(--ok);border-color:rgba(63,178,127,.4)}
-.pill.running{color:var(--gold-br);border-color:var(--gold-dim)}
+.pill.running{color:var(--amber);border-color:rgba(217,164,65,.4)}
 select.mini{font-size:11px;padding:5px 7px;width:auto}
 .empty{color:var(--ink-4);font-size:12.5px;padding:14px 4px}
 .note{margin-top:14px;font-size:11px;color:var(--ink-4);border-top:1px dashed var(--line);padding-top:12px}
@@ -74,7 +84,7 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .run-done .rd-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 22px}
 .run-done .rd-list li{font-family:var(--mono);font-size:12px;color:var(--ok)}
 .run-done .rd-list li.no{color:var(--omega)}
-.run-done .rd-list li.pend{color:var(--gold-br)}
+.run-done .rd-list li.pend{color:var(--amber)}
 
 /* clickable client name */
 .linklike{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-align:left}
@@ -88,7 +98,7 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .dsec{margin-top:20px}
 .dsec .eyebrow{display:block;margin-bottom:8px}
 .audit-row{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);margin-top:8px}
-.audit-row .ar-d{font-family:var(--mono);font-size:11px;color:var(--gold-br)}
+.audit-row .ar-d{font-family:var(--mono);font-size:11px;color:var(--amber)}
 .audit-row .ar-e{color:var(--ink-2);font-size:12.5px;margin-top:2px}
 .audit-row .ar-f{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:3px}
 .manifest{background:#06070a;border:1px solid var(--line);border-radius:9px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--ink-3);max-height:220px;overflow:auto;white-space:pre-wrap}
@@ -98,8 +108,8 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .tiles--exec{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 .tile{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 .tile .tv{display:block;color:var(--ink);font-size:24px;font-weight:600;letter-spacing:-.02em}
-.tiles--exec .tile{border-left:3px solid var(--gold-dim)}
-.tiles--exec .tile .tv{color:var(--gold-br);font-size:22px}
+.tiles--exec .tile{border-left:3px solid rgba(76,125,255,.4)}
+.tiles--exec .tile .tv{color:var(--ink);font-size:22px}
 .tile .tk{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
 .dash-sub{margin-top:20px}
 .dash-sub .eyebrow{display:block;margin-bottom:10px}
@@ -114,7 +124,7 @@ select.mini{font-size:11px;padding:5px 7px;width:auto}
 .tl-item{display:flex;gap:12px;align-items:flex-start;padding:7px 0;position:relative}
 .tl-item:not(:last-child):before{content:"";position:absolute;left:5px;top:18px;bottom:-7px;width:1px;background:var(--line)}
 .tl-dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;margin-top:3px;background:var(--ink-4);border:2px solid var(--panel)}
-.tl-dot.tl-audit{background:var(--gold)} .tl-dot.tl-share{background:var(--ok)} .tl-dot.tl-created{background:var(--accent)} .tl-dot.tl-status{background:var(--gold-br)}
+.tl-dot.tl-audit{background:var(--amber)} .tl-dot.tl-share{background:var(--ok)} .tl-dot.tl-created{background:var(--accent)} .tl-dot.tl-status{background:var(--amber)}
 .tl-l{color:var(--ink-2);font-size:12.5px}
 .tl-t{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:1px}
 .docnote{font-size:12px;padding:5px 8px}
