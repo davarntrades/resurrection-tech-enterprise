@@ -573,17 +573,6 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const [gen, setGen] = useState(false); const [pub, setPub] = useState(false);
   const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
   const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
-  // TEMPORARY visible diagnostics for the deployed-site nav investigation.
-  const DIAG_BUILD = "diag-2026-07-11a";
-  const [diag, setDiag] = useState<string>("");
-  const absUrl = (u: string) => { try { return new URL(u, window.location.origin).href; } catch { return u; } };
-  const record = (label: string, url: string, d: any, p: any) =>
-    setDiag(`${label} · build ${DIAG_BUILD} · host ${typeof window !== "undefined" ? window.location.host : "?"} · org ${org.id} · env ${env.id} · pack ${p?.id ?? "-"} · deliverable ${d?.id ?? "-"} · url ${absUrl(url)}`);
-  const copyUrl = async (url: string) => {
-    const abs = absUrl(url);
-    try { await navigator.clipboard?.writeText(abs); setDiag(`copied: ${abs}`); }
-    catch { setDiag(`copy unavailable — destination is: ${abs}`); }
-  };
   const load = useCallback(async () => {
     setErr("");
     try { setData(await api(`deliverables?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`)); }
@@ -649,11 +638,6 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   return (
     <div>
       {ActionBar}
-      {/* TEMPORARY visible diagnostics — confirms this build is live + shows the exact nav target. */}
-      <div className="radmin-code" style={{ fontSize: 11, whiteSpace: "normal", wordBreak: "break-all" }}>
-        🔎 Control Room diagnostics · build <b>{DIAG_BUILD}</b> · host {typeof window !== "undefined" ? window.location.host : "?"} · org {org.id} · env {env.id} · packs {packs.length}
-        {diag && <><br />→ {diag}</>}
-      </div>
       {err && <div className="radmin-err">{err}</div>}
       {!packs.length && <div className="radmin-muted" style={{ marginTop: 10 }}>No audit packs yet. <b>Generate evidence pack</b> creates one from live evidence; <b>Publish (upload)</b> attaches the console-generated 48-Hour Audit (with branded PDFs).</div>}
       {packs.map((p) => (
@@ -678,15 +662,9 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
                   <div className="radmin-muted">{d.kind}{d.size ? ` · ${(d.size / 1024).toFixed(0)} KB` : ""}</div>
                 </div>
                 <div className="radmin-deliv-actions">
-                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noopener noreferrer" onClick={() => record("Preview click fired", fileUrl(d.id, "preview"), d, p)}>Preview</a>
-                  <a className="radmin-btn sm" href={fileUrl(d.id, "download")} onClick={() => record("Download click fired", fileUrl(d.id, "download"), d, p)}>Download</a>
+                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noopener noreferrer">Preview</a>
+                  <a className="radmin-btn sm" href={fileUrl(d.id, "download")}>Download</a>
                   {shareable(d.filename) && <button className="radmin-btn sm primary" disabled={busyId === d.id} onClick={() => share(d)}>{busyId === d.id ? "…" : "Share securely"}</button>}
-                </div>
-                {/* TEMPORARY: exact destination + manual controls for the deployed-site investigation. */}
-                <div className="radmin-muted" style={{ fontSize: 11, wordBreak: "break-all", marginTop: 4 }}>
-                  → {fileUrl(d.id, "preview")}
-                  <button className="radmin-btn sm" style={{ marginLeft: 6 }} onClick={() => copyUrl(fileUrl(d.id, "preview"))}>Copy destination URL</button>
-                  <button className="radmin-btn sm" style={{ marginLeft: 6 }} onClick={() => { const u = fileUrl(d.id, "preview"); const w = window.open(u, "_blank", "noopener,noreferrer"); record(`window.open → ${w === null ? "NULL (popup blocked)" : "returned a window"}`, u, d, p); }}>Open (JS)</button>
                 </div>
                 {shares[d.id] && <div className="radmin-deliv-share"><KeyReveal label="Secure link — expires in 7 days, revocable" value={shares[d.id]} /></div>}
               </li>
