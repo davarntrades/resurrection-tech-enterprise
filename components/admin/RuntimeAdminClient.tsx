@@ -11,6 +11,7 @@
 import "@/styles/runtime-admin.css";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { VolumeChart, RatioBar, LatencySpark, FreqBars, Info, MiniSpark } from "./Charts";
+import { deliverableFileUrl } from "@/lib/deliverable-url";
 
 const OMEGA_TIP = "Ω (Omega) domains are the catastrophic-risk categories the engine governs — e.g. finance, healthcare, infrastructure. Every blocked or escalated action is attributed to the Ω domain whose safety boundary it would cross.";
 
@@ -550,7 +551,10 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
     catch (e: any) { setErr(e.message); }
   }, [org.id, env.id]);
   useEffect(() => { load(); }, [load]);
-  const fileUrl = (id: string, mode: string) => `/api/runtime/admin/deliverables/file?id=${encodeURIComponent(id)}&mode=${mode}`;
+  // Relative, same-origin URL (see lib/deliverable-url): keeps Preview/Download
+  // on the canonical host so the operator cookie rides along and iPad Safari
+  // renders the PDF inline instead of crossing the apex→www 307.
+  const fileUrl = (id: string, mode: string) => deliverableFileUrl(id, mode);
   const share = async (d: any) => {
     setBusyId(d.id);
     try { const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) }); setShares((s) => ({ ...s, [d.id]: r.url })); }
@@ -623,7 +627,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
                   <div className="radmin-muted">{d.kind}{d.size ? ` · ${(d.size / 1024).toFixed(0)} KB` : ""}</div>
                 </div>
                 <div className="radmin-deliv-actions">
-                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noreferrer">Preview</a>
+                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noopener noreferrer">Preview</a>
                   <a className="radmin-btn sm" href={fileUrl(d.id, "download")}>Download</a>
                   {shareable(d.filename) && <button className="radmin-btn sm primary" disabled={busyId === d.id} onClick={() => share(d)}>{busyId === d.id ? "…" : "Share securely"}</button>}
                 </div>
