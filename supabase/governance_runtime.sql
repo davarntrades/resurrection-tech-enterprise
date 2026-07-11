@@ -325,6 +325,21 @@ create table if not exists public.rg_hubs (
 create index if not exists rg_hubs_token_idx on public.rg_hubs(token);
 create index if not exists rg_hubs_org_idx on public.rg_hubs(org_id);
 
+-- Per-org CUSTOMER notification preferences (managed service). Opt-in, separate
+-- from the operator OPS alerts in rg_alerts. Recipients + per-event toggles are
+-- stored as JSON; delivery is by secure email only (no customer login).
+create table if not exists public.rg_notify_prefs (
+  id             text primary key,
+  org_id         text not null unique,
+  enabled        boolean default false,
+  recipients     jsonb default '[]'::jsonb,
+  events         jsonb default '{}'::jsonb,
+  last_weekly_at timestamptz,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
+);
+create index if not exists rg_notify_prefs_org_idx on public.rg_notify_prefs(org_id);
+
 -- Private Storage bucket for the deliverable bytes (served only via the app).
 insert into storage.buckets (id, name, public)
   values ('rg-deliverables', 'rg-deliverables', false)
@@ -347,6 +362,7 @@ alter table public.rg_audit_packs        enable row level security;
 alter table public.rg_deliverables       enable row level security;
 alter table public.rg_shares             enable row level security;
 alter table public.rg_hubs               enable row level security;
+alter table public.rg_notify_prefs       enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────

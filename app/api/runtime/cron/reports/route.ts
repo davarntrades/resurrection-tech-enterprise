@@ -6,6 +6,7 @@
  * customer key required — this is an internal scheduled job. */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import { runWeeklyCustomerSummaries } from "@/lib/customerNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,5 +39,16 @@ export async function GET(req: NextRequest) {
   try { alerts = await rt.alerts.sweep(); rt.log.info("cron_alerts", alerts); }
   catch (e: any) { rt.log.warn("cron_alerts_failed", { error: e?.message || String(e) }); }
 
-  return NextResponse.json({ ok: true, periods, results, alerts });
+  // Managed-service: weekly CUSTOMER summaries ride the weekly cadence (Mondays,
+  // or an explicit ?period=weekly). Opt-in, de-duped per week. Best-effort.
+  let customer_summaries: any = null;
+  if (periods.includes("weekly")) {
+    try {
+      const origin = req.headers.get("origin") || `https://${req.headers.get("host") || "resurrection-tech.com"}`;
+      customer_summaries = await runWeeklyCustomerSummaries({ origin });
+      rt.log.info("cron_customer_summaries", customer_summaries);
+    } catch (e: any) { rt.log.warn("cron_customer_summaries_failed", { error: e?.message || String(e) }); }
+  }
+
+  return NextResponse.json({ ok: true, periods, results, alerts, customer_summaries });
 }

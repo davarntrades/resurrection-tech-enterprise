@@ -6,6 +6,7 @@
  * Auth: operator session OR x-admin-key. */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import { notifyCustomer } from "@/lib/customerNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +37,12 @@ export async function POST(req: NextRequest) {
     ];
     const result = await rt.deliverables.publishUploaded({ org_id, environment_id, name: "Runtime Evidence Pack", reference: null, files });
     await rt.adminaudit.record({ action: "generate_evidence_pack", actor: authz.identity, via: authz.via, target: environment_id, meta: { pack_id: result.pack.id, period } });
-    return NextResponse.json({ ok: true, pack_id: result.pack.id, deliverables: result.deliverables.length });
+
+    // Managed-service: notify opted-in customers that new evidence is available.
+    const origin = req.headers.get("origin") || `https://${req.headers.get("host") || "resurrection-tech.com"}`;
+    const notified = await notifyCustomer({ org_id, event: "new_evidence", origin, context: { packName: result.pack.name } });
+
+    return NextResponse.json({ ok: true, pack_id: result.pack.id, deliverables: result.deliverables.length, customer_notified: !!notified.sent });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "generate failed" }, { status: 500 });
   }
