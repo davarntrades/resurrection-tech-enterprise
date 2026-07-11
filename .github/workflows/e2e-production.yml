@@ -1,38 +1,91 @@
-name: E2E — Control Room Preview (production)
+name: E2E — Control Room Preview (production, manual)
 
-# Automatic gate: reproduces Customers → Dry Run Customer → Audit pack → Preview
-# on the LIVE site (WebKit / Safari engine). If Preview does not open the PDF,
-# this job fails — and so does the build.
+# ─────────────────────────────────────────────────────────────────────────────
+# DORMANT / MANUAL-ONLY.
+#
+# This workflow is prepared but intentionally NOT active. It runs ONLY when a
+# maintainer triggers it by hand (Actions → this workflow → "Run workflow").
+# It deliberately does NOT run on push, pull_request, merge, schedule, or any
+# deployment event, and it is not wired to any deploy pipeline.
+#
+# It also does nothing against production until the required repository secrets
+# are configured — the first job step fails fast with a clear message if any are
+# missing. See docs/ci/production-e2e.md for the required secrets and the steps
+# to activate automatic execution later.
+# ─────────────────────────────────────────────────────────────────────────────
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *" # every 6h, catch production drift
+    inputs:
+      base_url:
+        description: "Optional E2E_BASE_URL override for this run (else uses the E2E_BASE_URL secret)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-production-manual
+  cancel-in-progress: false
 
 jobs:
   preview-e2e:
+    name: Production Preview E2E (WebKit)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Install WebKit (Safari engine)
-        run: npx playwright install --with-deps webkit
-      - name: Run production Preview E2E
-        run: npm run test:e2e
+      # Fail SAFELY and clearly if the workflow is run before it's configured.
+      # No secret values are ever printed — only their presence is checked.
+      - name: Preflight — required secrets present
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+        run: |
+          missing=()
+          [ -n "$E2E_BASE_URL" ]      || missing+=("E2E_BASE_URL")
+          [ -n "$ADMIN_USER" ]        || missing+=("ADMIN_USER")
+          [ -n "$ADMIN_PASSWORD" ]    || missing+=("ADMIN_PASSWORD")
+          [ -n "$RUNTIME_ADMIN_KEY" ] || missing+=("RUNTIME_ADMIN_KEY")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Production E2E not configured::Missing repository secret(s): ${missing[*]}"
+            {
+              echo "### ❌ Production E2E is dormant — not configured"
+              echo ""
+              echo "This workflow is intentionally inactive. To run it, add the missing repository secret(s):"
+              echo ""
+              for m in "${missing[@]}"; do echo "- \`$m\`"; done
+              echo ""
+              echo "See \`docs/ci/production-e2e.md\` for what each secret is and how to activate."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "All required secrets are present — proceeding."
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install WebKit (Safari engine)
+        run: npx playwright install --with-deps webkit
+
+      - name: Run production Preview E2E
+        env:
+          # Manual override input wins; otherwise the configured secret is used.
+          E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_BASE_URL }}
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
-      - name: Upload trace on failure
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
