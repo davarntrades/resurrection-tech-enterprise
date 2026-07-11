@@ -634,7 +634,14 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
             <span className="radmin-pill">{p.name || "Audit pack"}</span>
             <span className="radmin-muted">{p.reference ? p.reference + " · " : ""}{(p.created_at || "").slice(0, 10)}</span>
           </div>
-          {(p.summary?.assess_summary || p.summary?.headline) && <div className="radmin-muted radmin-pack-sum">{p.summary.assess_summary || p.summary.headline}</div>}
+          {(() => {
+            // Render ONLY a string. A pack's summary.assess_summary can be a
+            // coverage OBJECT ({tools, risky, covered, …}); rendering that as a
+            // React child throws (React #31) and crashes the whole Control Room
+            // ("This page couldn't load"). Pick the first usable string, else skip.
+            const s = [p.summary?.assess_summary, p.summary?.headline].find((x: any) => typeof x === "string" && x.trim());
+            return s ? <div className="radmin-muted radmin-pack-sum">{s}</div> : null;
+          })()}
           <ul className="radmin-deliv">
             {(p.deliverables || []).map((d: any) => (
               <li key={d.id} className="radmin-deliv-row">
