@@ -143,41 +143,69 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
 // ── Overview (operator dashboard) ────────────────────────────────────────────
 function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
   const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
-  const load = useCallback(async () => { setErr(""); try { setData(await api("overview")); } catch (e: any) { setErr(e.message); } }, []);
+  // cache: "no-store" + the route's no-store header ⇒ Refresh always re-reads live.
+  const load = useCallback(async () => { setErr(""); try { setData(await api("overview", { cache: "no-store" })); } catch (e: any) { setErr(e.message); } }, []);
   useEffect(() => { load(); }, [load]);
   if (err) return <div className="radmin-err">{err}</div>;
   if (!data) return <div className="radmin-muted">Loading overview…</div>;
   const p = data.platform || {};
+  const ae = p.audit_evidence;
+  // These cards read LIVE runtime decisions (rg_decisions) — NOT audit replays.
   const kpis: Array<[string, any, string?]> = [
     ["Customers", p.customers ?? 0],
     ["Environments", p.environments ?? 0],
     ["Production active", p.production_active ?? 0],
     ["Enforce", p.enforce ?? 0, "ok"],
     ["Shadow", p.shadow ?? 0],
-    ["Total evaluations", Number(p.evaluations ?? 0).toLocaleString()],
-    ["Catastrophic actions prevented", p.blocked ?? 0, "omega"],
-    ["Avg latency", p.avg_latency_ms != null ? `${p.avg_latency_ms}ms` : "—"],
+    ["Live runtime evaluations", Number(p.evaluations ?? 0).toLocaleString()],
+    ["Live catastrophic actions prevented", p.blocked ?? 0, "omega"],
+    ["Live avg latency", p.avg_latency_ms != null ? `${p.avg_latency_ms}ms` : "—"],
     ["Reports generated", p.reports ?? 0],
-    ["Audit packs published", p.audit_packs ?? 0],
+    ["Published audit packs", p.audit_packs ?? 0],
     ["Active alerts (24h)", p.active_alerts ?? 0, p.active_alerts > 0 ? "warn" : undefined],
     ["Engine", p.engine_reachable ? "reachable" : "down", p.engine_reachable ? "ok" : "omega"],
   ];
+  const auditKpis: Array<[string, any, string?]> = ae ? [
+    ["Assessed trajectories", ae.trajectories ?? 0],
+    ["Evaluations incl. replay", ae.evaluations_incl_replay ?? 0],
+    ["Blocked", ae.blocked ?? 0, "omega"],
+    ["Escalated", ae.escalated ?? 0, ae.escalated > 0 ? "warn" : undefined],
+    ["Deterministic replay", ae.replay || "—", ae.replay_deterministic ? "ok" : undefined],
+  ] : [];
   return (
-    <section className="radmin-card">
-      <div className="radmin-row" style={{ margin: "0 0 6px" }}>
-        <h2>Platform overview</h2>
-        <span className="radmin-lasteval">Last evaluated {ago(p.last_activity)}</span>
-        <span style={{ flex: 1 }} />
-        <button className="radmin-btn sm" onClick={load}>Refresh</button>
-      </div>
-      <div className="radmin-kpis">
-        {kpis.map(([label, val, tone], i) => (
-          <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
-        ))}
-      </div>
-      {p.engine_commit && <div className="radmin-muted" style={{ marginTop: 12 }}>Runtime engine commit <code>{p.engine_commit}</code></div>}
-      <div className="radmin-row"><button className="radmin-btn" onClick={onOpenCustomers}>View customers →</button></div>
-    </section>
+    <>
+      <section className="radmin-card">
+        <div className="radmin-row" style={{ margin: "0 0 6px" }}>
+          <h2>Platform overview <span className="radmin-muted" style={{ fontSize: 12, fontWeight: 400 }}>· live runtime traffic</span></h2>
+          <span className="radmin-lasteval">Last live runtime decision {ago(p.last_activity)}</span>
+          <span style={{ flex: 1 }} />
+          <button className="radmin-btn sm" onClick={load}>Refresh</button>
+        </div>
+        <div className="radmin-kpis">
+          {kpis.map(([label, val, tone], i) => (
+            <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
+          ))}
+        </div>
+        {p.engine_commit && <div className="radmin-muted" style={{ marginTop: 12 }}>Runtime engine commit <code>{p.engine_commit}</code></div>}
+        <div className="radmin-row"><button className="radmin-btn" onClick={onOpenCustomers}>View customers →</button></div>
+      </section>
+      {ae && (
+        <section className="radmin-card">
+          <div className="radmin-row" style={{ margin: "0 0 6px" }}>
+            <h2>Audit evidence <span className="radmin-muted" style={{ fontSize: 12, fontWeight: 400 }}>· latest published pack</span></h2>
+            <span className="radmin-lasteval">Generated {ago(ae.generated_at)}</span>
+          </div>
+          <div className="radmin-muted" style={{ margin: "0 0 8px", fontSize: 12 }}>
+            From the latest audit pack’s run-summary{ae.source ? ` (${ae.source})` : ""}. Kept separate from live runtime telemetry above — replayed audit trajectories are never counted as production evaluations.
+          </div>
+          <div className="radmin-kpis">
+            {auditKpis.map(([label, val, tone], i) => (
+              <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 
