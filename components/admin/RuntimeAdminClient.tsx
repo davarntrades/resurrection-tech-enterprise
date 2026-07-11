@@ -234,6 +234,58 @@ function CustomerBadges({ b }: { b: any }) {
   );
 }
 
+// Per-customer Evidence Hub — one durable, credential-free, revocable link that
+// aggregates all of the customer's evidence. Operator-only management here; the
+// hub page itself is served credential-free at /evidence/hub/<token>.
+function EvidenceHubControl({ org }: { org: any }) {
+  const [hub, setHub] = useState<any>(null); const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false); const [emailTo, setEmailTo] = useState(""); const [note, setNote] = useState("");
+  const load = useCallback(async () => {
+    try { const d = await api(`hub?org_id=${encodeURIComponent(org.id)}`); setHub(d.hub); } catch { /* ignore */ } finally { setLoaded(true); }
+  }, [org.id]);
+  useEffect(() => { load(); }, [load]);
+  const post = async (opts: { rotate?: boolean; email?: string } = {}) => {
+    setBusy(true); setNote("");
+    try {
+      const d = await api("hub", { method: "POST", body: JSON.stringify({ org_id: org.id, ...opts }) });
+      setHub((h: any) => ({ token: d.token, path: d.path, url: d.url, created_at: h?.created_at, accessed: h?.accessed || 0 }));
+      if (opts.email) setNote(d.emailed_to ? `✓ Sent to ${d.emailed_to}` : d.email_error ? `✗ ${d.email_error}` : "");
+      else if (opts.rotate) setNote("Link rotated — the previous link is revoked.");
+    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const revoke = async () => {
+    if (!hub?.token || !window.confirm("Revoke this customer's Evidence Hub link? Their bookmarked URL will stop working.")) return;
+    setBusy(true); setNote("");
+    try { await api("hub", { method: "POST", body: JSON.stringify({ revoke: hub.token }) }); setHub(null); setNote("Link revoked."); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  if (!loaded) return null;
+  return (
+    <div className="radmin-hub" style={{ margin: "12px 0 6px", padding: "12px 14px", border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--bg-1, #0b0d10)" }}>
+      <div className="radmin-row" style={{ margin: "0 0 6px" }}>
+        <span className="radmin-pill">Evidence Hub</span>
+        <span className="radmin-muted" style={{ fontSize: 11 }}>
+          {hub ? `Durable customer link${hub.accessed ? ` · opened ${hub.accessed}×` : ""}` : "One durable, credential-free link aggregating all this customer's evidence."}
+        </span>
+      </div>
+      {hub ? (
+        <>
+          <KeyReveal label="Customer Evidence Hub — bookmark-able, revocable" value={hub.url} />
+          <div className="radmin-row" style={{ margin: "8px 0 0", gap: 8 }}>
+            <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} type="email" placeholder="Email hub link to customer (optional)" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} />
+            <button className="radmin-btn sm" disabled={busy || !emailTo.trim()} onClick={() => post({ email: emailTo.trim() })}>{busy ? "…" : "Send to customer"}</button>
+            <button className="radmin-btn sm" disabled={busy} onClick={() => post({ rotate: true })}>Rotate</button>
+            <button className="radmin-btn sm" disabled={busy} onClick={revoke}>Revoke</button>
+          </div>
+        </>
+      ) : (
+        <button className="radmin-btn sm primary" disabled={busy} onClick={() => post()}>{busy ? "…" : "Create Evidence Hub link"}</button>
+      )}
+      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
 // ── Customers (list + badges + per-environment control) ──────────────────────
 function CustomersPanel() {
   const [orgs, setOrgs] = useState<any[] | null>(null);
@@ -282,6 +334,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
         <div className="radmin-cust-body">
           <code className="radmin-muted">{o.id}</code>
           <CustomerBadges b={o.badges} />
+          <EvidenceHubControl org={o} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}

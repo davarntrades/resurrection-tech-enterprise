@@ -310,6 +310,21 @@ create table if not exists public.rg_shares (
 );
 create index if not exists rg_shares_token_idx on public.rg_shares(token);
 
+-- Per-customer Evidence Hub: one durable, revocable, credential-free link per
+-- org that aggregates all of that customer's packs/deliverables (managed service).
+create table if not exists public.rg_hubs (
+  id                text primary key,
+  token             text not null unique,
+  org_id            text not null,
+  name              text,
+  revoked           boolean default false,
+  accessed          integer default 0,
+  last_accessed_at  timestamptz,
+  created_at        timestamptz default now()
+);
+create index if not exists rg_hubs_token_idx on public.rg_hubs(token);
+create index if not exists rg_hubs_org_idx on public.rg_hubs(org_id);
+
 -- Private Storage bucket for the deliverable bytes (served only via the app).
 insert into storage.buckets (id, name, public)
   values ('rg-deliverables', 'rg-deliverables', false)
@@ -331,6 +346,7 @@ alter table public.rg_alerts             enable row level security;
 alter table public.rg_audit_packs        enable row level security;
 alter table public.rg_deliverables       enable row level security;
 alter table public.rg_shares             enable row level security;
+alter table public.rg_hubs               enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────
