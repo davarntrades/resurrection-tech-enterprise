@@ -359,6 +359,24 @@ create table if not exists public.rg_recommendations (
 create index if not exists rg_recommendations_org_idx on public.rg_recommendations(org_id);
 create index if not exists rg_recommendations_status_idx on public.rg_recommendations(org_id, status);
 
+-- Per-customer engagement record (operator CRM — Control Room only, never a
+-- customer surface). Next review date, cadence, delivery schedule, contacts,
+-- and running notes for running the managed service.
+create table if not exists public.rg_engagements (
+  id                text primary key,
+  org_id            text not null unique,
+  next_review_date  date,
+  last_review_date  date,
+  cadence           text default 'monthly',
+  delivery_schedule text,
+  contacts          jsonb default '[]'::jsonb,
+  notes             jsonb default '[]'::jsonb,
+  created_at        timestamptz default now(),
+  updated_at        timestamptz default now()
+);
+create index if not exists rg_engagements_org_idx on public.rg_engagements(org_id);
+create index if not exists rg_engagements_review_idx on public.rg_engagements(next_review_date);
+
 -- Private Storage bucket for the deliverable bytes (served only via the app).
 insert into storage.buckets (id, name, public)
   values ('rg-deliverables', 'rg-deliverables', false)
@@ -383,6 +401,7 @@ alter table public.rg_shares             enable row level security;
 alter table public.rg_hubs               enable row level security;
 alter table public.rg_notify_prefs       enable row level security;
 alter table public.rg_recommendations    enable row level security;
+alter table public.rg_engagements        enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────

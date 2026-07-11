@@ -286,6 +286,102 @@ function EvidenceHubControl({ org }: { org: any }) {
   );
 }
 
+// ── Engagement management (operator CRM — Control Room only) ──────────────────
+const CADENCE_OPTS = ["weekly", "biweekly", "monthly", "quarterly", "ad_hoc"];
+function EngagementControl({ org }: { org: any }) {
+  const [eng, setEng] = useState<any>(null);
+  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const [open, setOpenState] = useState(false);
+  const [cName, setCName] = useState(""); const [cEmail, setCEmail] = useState(""); const [cRole, setCRole] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const load = useCallback(async () => {
+    try { const d = await api(`engagement?org_id=${encodeURIComponent(org.id)}`); setEng(d.engagement); }
+    catch (e: any) { setNote(`✗ ${e.message}`); }
+  }, [org.id]);
+  useEffect(() => { load(); }, [load]);
+  const save = async (patch: any) => {
+    setBusy(true); setNote("");
+    try { const d = await api("engagement", { method: "POST", body: JSON.stringify({ org_id: org.id, ...patch }) }); setEng(d.engagement); setNote("✓ Saved"); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const addContact = async () => {
+    if (!cName.trim() && !cEmail.trim()) return;
+    await save({ add_contact: { name: cName.trim(), email: cEmail.trim(), role: cRole.trim() } });
+    setCName(""); setCEmail(""); setCRole("");
+  };
+  const addNote = async () => { if (!noteText.trim()) return; await save({ note: noteText.trim() }); setNoteText(""); };
+  if (!eng) return null;
+  const dueSoon = eng.next_review_date && eng.next_review_date <= new Date().toISOString().slice(0, 10);
+  return (
+    <div className="radmin-hub" style={{ margin: "6px 0", padding: "12px 14px", border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--bg-1, #0b0d10)" }}>
+      <div className="radmin-row" style={{ margin: "0 0 6px", justifyContent: "space-between" }}>
+        <span>
+          <span className="radmin-pill">Engagement</span>
+          <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>
+            {eng.next_review_date ? <>Next review {eng.next_review_date}{dueSoon ? " · due" : ""}</> : "No review scheduled"} · {eng.cadence}
+          </span>
+        </span>
+        <button className="radmin-btn sm" onClick={() => setOpenState((o) => !o)}>{open ? "Close" : "Manage"}</button>
+      </div>
+      {open && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="radmin-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <label className="radmin-muted" style={{ fontSize: 11 }}>Next review
+              <input className="radmin-select" type="date" defaultValue={eng.next_review_date || ""} disabled={busy}
+                onBlur={(e) => e.target.value !== (eng.next_review_date || "") && save({ next_review_date: e.target.value })} style={{ marginLeft: 6 }} />
+            </label>
+            <label className="radmin-muted" style={{ fontSize: 11 }}>Cadence
+              <select className="radmin-select" value={eng.cadence} disabled={busy} onChange={(e) => save({ cadence: e.target.value })} style={{ marginLeft: 6, maxWidth: 130 }}>
+                {CADENCE_OPTS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+          </div>
+          <input className="radmin-select" placeholder="Delivery schedule (e.g. monthly executive report + weekly summary)" defaultValue={eng.delivery_schedule || ""} disabled={busy}
+            onBlur={(e) => e.target.value !== (eng.delivery_schedule || "") && save({ delivery_schedule: e.target.value })} />
+
+          {/* Contacts */}
+          <div>
+            <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 4 }}>Contacts</div>
+            {(eng.contacts || []).length ? (
+              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 6px", display: "flex", flexDirection: "column", gap: 4 }}>
+                {eng.contacts.map((c: any) => (
+                  <li key={c.id} className="radmin-row" style={{ gap: 8, fontSize: 12, alignItems: "center" }}>
+                    <span>{c.name || "—"}{c.role ? ` · ${c.role}` : ""}{c.email ? ` · ${c.email}` : ""}</span>
+                    <button className="radmin-btn sm" style={{ marginLeft: "auto" }} disabled={busy} onClick={() => save({ remove_contact: c.id })}>Remove</button>
+                  </li>
+                ))}
+              </ul>
+            ) : <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 6 }}>No contacts yet.</div>}
+            <div className="radmin-row" style={{ gap: 6, flexWrap: "wrap" }}>
+              <input className="radmin-select" placeholder="Name" value={cName} onChange={(e) => setCName(e.target.value)} style={{ maxWidth: 130 }} />
+              <input className="radmin-select" placeholder="Email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} style={{ maxWidth: 170 }} />
+              <input className="radmin-select" placeholder="Role" value={cRole} onChange={(e) => setCRole(e.target.value)} style={{ maxWidth: 120 }} />
+              <button className="radmin-btn sm" disabled={busy || (!cName.trim() && !cEmail.trim())} onClick={addContact}>Add contact</button>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 4 }}>Notes</div>
+            <div className="radmin-row" style={{ gap: 6 }}>
+              <input className="radmin-select" placeholder="Add a note (meeting summary, action item…)" value={noteText} onChange={(e) => setNoteText(e.target.value)} style={{ flex: 1, minWidth: 200 }} />
+              <button className="radmin-btn sm" disabled={busy || !noteText.trim()} onClick={addNote}>Add note</button>
+            </div>
+            {(eng.notes || []).length > 0 && (
+              <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
+                {eng.notes.slice(0, 6).map((n: any) => (
+                  <li key={n.id} style={{ fontSize: 12 }}><span className="radmin-muted" style={{ fontSize: 10 }}>{String(n.at).slice(0, 10)}</span> · {n.text}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
 // ── Recommendations tracker (operator-managed, customer-visible) ──────────────
 const REC_STATUS: { key: string; label: string }[] = [
   { key: "open", label: "Open" },
@@ -478,6 +574,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
           <EvidenceHubControl org={o} />
           <RecommendationsControl org={o} />
           <CustomerNotifyControl org={o} />
+          <EngagementControl org={o} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}
