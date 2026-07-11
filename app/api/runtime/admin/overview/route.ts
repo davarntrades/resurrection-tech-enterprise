@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   if (!authz.ok) return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
   try {
     const [platform, customers] = await Promise.all([rt.overview.platform(), rt.overview.customers()]);
-    return NextResponse.json({ platform, customers });
+    // Never cache: Refresh must always reflect current live telemetry + packs.
+    return NextResponse.json({ platform, customers }, { headers: { "cache-control": "no-store, max-age=0" } });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "failed to load overview" }, { status: 500 });
   }
