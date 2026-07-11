@@ -24,15 +24,16 @@ export async function GET(req: NextRequest) {
   try {
     const del = await rt.deliverables.getDeliverable(id);
     if (!del) return NextResponse.json({ error: "deliverable not found" }, { status: 404 });
-    const bytes = await rt.deliverables.readBytes(del);
-    return new NextResponse(new Uint8Array(bytes), {
-      status: 200,
-      headers: {
-        "content-type": del.mime || "application/octet-stream",
-        "content-disposition": `${mode === "download" ? "attachment" : "inline"}; filename="${del.filename}"`,
-        "cache-control": "private, no-store",
-      },
+    const bytes: Buffer = await rt.deliverables.readBytes(del);
+    // Serve with Content-Length + Range support so iPad/iOS Safari can render a
+    // PDF inline (its viewer sends a Range request and rejects a length-less 200).
+    const plan = rt.deliverables.planByteResponse({
+      size: bytes.length, mime: del.mime, filename: del.filename, mode,
+      range: req.headers.get("range"),
     });
+    if (plan.status === 416) return new NextResponse(null, { status: 416, headers: plan.headers });
+    const slice = bytes.subarray(plan.start, plan.end + 1);
+    return new NextResponse(new Uint8Array(slice), { status: plan.status, headers: plan.headers });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "failed to read deliverable" }, { status: 500 });
   }
