@@ -17,6 +17,8 @@ const C = {
   accent: "#6f97ff", ok: "#3fb27f", mono: "'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace",
 };
 const SHAREABLE = /\.(pdf|html)$/i;
+const STATUS_LABEL: Record<string, string> = { open: "Open", acknowledged: "Acknowledged", in_progress: "In Progress", resolved: "Resolved" };
+const SEV_COLOR: Record<string, string> = { critical: "#e5484d", high: "#e5893f", medium: "#c9a227", low: "#6b7480" };
 const fmt = (iso?: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "—");
 const kindLabel = (f: string) => (/executive/i.test(f) ? "Executive report" : /\.pdf$/i.test(f) ? "Audit report" : /\.html$/i.test(f) ? "Report (HTML)" : "Evidence");
 
@@ -43,6 +45,7 @@ export default async function EvidenceHubPage({ params }: { params: Promise<{ to
 
   const orgName: string = res.org?.name || "Your organisation";
   const packs: any[] = res.packs || [];
+  const recommendations: any[] = res.recommendations || [];
   const timeline: any[] = res.timeline || [];
   const btn = { display: "inline-block", textDecoration: "none", fontFamily: C.mono, fontSize: 12, padding: "7px 12px", borderRadius: 9, border: `1px solid ${C.line}`, color: C.ink2 } as const;
   const accentBtn = { ...btn, background: "rgba(76,125,255,.14)", borderColor: "rgba(76,125,255,.45)", color: C.ink } as const;
@@ -101,6 +104,28 @@ export default async function EvidenceHubPage({ params }: { params: Promise<{ to
             </section>
           );
         })}
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <section style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.panel, padding: "20px 22px", marginTop: 8, marginBottom: 16 }}>
+            <div style={{ ...label, marginBottom: 12 }}>Recommendations</div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+              {recommendations.map((r) => {
+                const resolved = r.status === "resolved";
+                return (
+                  <li key={r.id} style={{ padding: "12px 14px", background: C.inset, border: `1px solid ${C.line}`, borderRadius: 10, opacity: resolved ? 0.6 : 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: r.detail ? 6 : 0 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEV_COLOR[r.severity] || C.ink3, flex: "0 0 8px" }} />
+                      <span style={{ color: C.ink, fontSize: 13.5, textDecoration: resolved ? "line-through" : "none" }}>{r.title}</span>
+                      <span style={{ ...label, marginLeft: "auto" }}>{r.severity} · {STATUS_LABEL[r.status] || r.status}</span>
+                    </div>
+                    {r.detail && <div style={{ color: C.ink3, fontSize: 12.5, lineHeight: 1.55, paddingLeft: 16 }}>{r.detail}</div>}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         {/* Timeline */}
         {timeline.length > 0 && (

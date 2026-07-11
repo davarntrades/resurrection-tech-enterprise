@@ -340,6 +340,25 @@ create table if not exists public.rg_notify_prefs (
 );
 create index if not exists rg_notify_prefs_org_idx on public.rg_notify_prefs(org_id);
 
+-- Per-customer governance recommendations (managed service). Operator raises and
+-- tracks them through open → acknowledged → in_progress → resolved; the customer
+-- views them read-only in the Evidence Hub and delivered reports.
+create table if not exists public.rg_recommendations (
+  id             text primary key,
+  org_id         text not null,
+  environment_id text,
+  title          text not null,
+  detail         text,
+  severity       text default 'medium',
+  status         text default 'open',
+  source         text,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now(),
+  resolved_at    timestamptz
+);
+create index if not exists rg_recommendations_org_idx on public.rg_recommendations(org_id);
+create index if not exists rg_recommendations_status_idx on public.rg_recommendations(org_id, status);
+
 -- Private Storage bucket for the deliverable bytes (served only via the app).
 insert into storage.buckets (id, name, public)
   values ('rg-deliverables', 'rg-deliverables', false)
@@ -363,6 +382,7 @@ alter table public.rg_deliverables       enable row level security;
 alter table public.rg_shares             enable row level security;
 alter table public.rg_hubs               enable row level security;
 alter table public.rg_notify_prefs       enable row level security;
+alter table public.rg_recommendations    enable row level security;
 -- (No permissive policies ⇒ only the service role can read/write.)
 
 -- ── OPTIONAL per-tenant RLS (L4, defence-in-depth) ───────────────────────────
