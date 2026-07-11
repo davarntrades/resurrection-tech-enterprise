@@ -37,7 +37,8 @@
     "runtime:alerts": "node scripts/runtime/alerts.test.cjs",
     "runtime:deliverables": "node scripts/runtime/deliverables.test.cjs",
     "runtime:reports": "node scripts/runtime/reports.test.cjs",
-    "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs"
+    "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
@@ -51,6 +52,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
