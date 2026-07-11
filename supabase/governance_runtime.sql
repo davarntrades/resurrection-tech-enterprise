@@ -217,10 +217,14 @@ create table if not exists public.rg_reports (
   top_rules      jsonb,
   top_omega      jsonb,
   trajectories   integer,
+  recommendations jsonb,                                    -- open-recommendation snapshot at report time (managed service)
   generated_at   timestamptz default now(),
   created_at     timestamptz default now()
 );
 create index if not exists rg_reports_org_idx on public.rg_reports(org_id, period, generated_at desc);
+-- Managed-service #4: recommendations snapshot embedded in each report. Added
+-- after rg_reports shipped, so evolve existing tables in place (re-run safe).
+alter table public.rg_reports add column if not exists recommendations jsonb;
 
 -- Per-environment hash-chain heads (L3). One row per environment; advanced on
 -- each decision append. NOTE: a multi-node deployment MUST advance this inside a
