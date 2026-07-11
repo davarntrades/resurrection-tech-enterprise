@@ -570,6 +570,9 @@ function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () =
 function DeliverablesView({ org, env }: { org: any; env: any }) {
   const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
   const [shares, setShares] = useState<Record<string, string>>({}); const [busyId, setBusyId] = useState("");
+  const [shareTok, setShareTok] = useState<Record<string, string>>({}); // token per deliverable (for delivery)
+  const [emailTo, setEmailTo] = useState<Record<string, string>>({}); const [emailBusyId, setEmailBusyId] = useState("");
+  const [emailNote, setEmailNote] = useState<Record<string, string>>({});
   const [gen, setGen] = useState(false); const [pub, setPub] = useState(false);
   const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
   const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
@@ -585,8 +588,23 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const fileUrl = (id: string, mode: string) => deliverableFileUrl(id, mode);
   const share = async (d: any) => {
     setBusyId(d.id);
-    try { const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) }); setShares((s) => ({ ...s, [d.id]: r.url })); }
+    try {
+      const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) });
+      setShares((s) => ({ ...s, [d.id]: r.url })); setShareTok((t) => ({ ...t, [d.id]: r.token }));
+    }
     catch (e: any) { alert(e.message); } finally { setBusyId(""); }
+  };
+  // Managed-service delivery: email the existing secure link to a customer
+  // contact. The link is unchanged (credential-free, expiring, revocable).
+  const emailShare = async (d: any) => {
+    const to = (emailTo[d.id] || "").trim(); const token = shareTok[d.id];
+    if (!to || !token) return;
+    setEmailBusyId(d.id); setEmailNote((n) => ({ ...n, [d.id]: "" }));
+    try {
+      const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ email_share: token, email: to }) });
+      setEmailNote((n) => ({ ...n, [d.id]: `✓ Sent to ${r.emailed_to}` }));
+    } catch (e: any) { setEmailNote((n) => ({ ...n, [d.id]: `✗ ${e.message}` })); }
+    finally { setEmailBusyId(""); }
   };
   const generate = async () => {
     setGen(true); setErr("");
@@ -666,7 +684,20 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
                   <a className="radmin-btn sm" href={fileUrl(d.id, "download")}>Download</a>
                   {shareable(d.filename) && <button className="radmin-btn sm primary" disabled={busyId === d.id} onClick={() => share(d)}>{busyId === d.id ? "…" : "Share securely"}</button>}
                 </div>
-                {shares[d.id] && <div className="radmin-deliv-share"><KeyReveal label="Secure link — expires in 7 days, revocable" value={shares[d.id]} /></div>}
+                {shares[d.id] && (
+                  <div className="radmin-deliv-share">
+                    <KeyReveal label="Secure link — expires in 7 days, revocable" value={shares[d.id]} />
+                    <div className="radmin-row" style={{ margin: "8px 0 0", gap: 8 }}>
+                      <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} type="email" inputMode="email"
+                        placeholder="Email this link to the customer (optional)"
+                        value={emailTo[d.id] || ""} onChange={(e) => setEmailTo((t) => ({ ...t, [d.id]: e.target.value }))} />
+                      <button className="radmin-btn sm" disabled={emailBusyId === d.id || !(emailTo[d.id] || "").trim()} onClick={() => emailShare(d)}>
+                        {emailBusyId === d.id ? "Sending…" : "Send to customer"}
+                      </button>
+                    </div>
+                    {emailNote[d.id] && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{emailNote[d.id]}</div>}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
