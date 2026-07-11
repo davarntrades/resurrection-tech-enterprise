@@ -4,6 +4,7 @@
  * Auth: operator session OR x-admin-key. */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import { notifyCustomer } from "@/lib/customerNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,15 @@ export async function POST(req: NextRequest) {
       org_id, environment_id, name: String(form.get("name") || "") || undefined, reference: String(form.get("reference") || "") || undefined, files,
     });
     await rt.adminaudit.record({ action: "publish_audit", actor: authz.identity, via: authz.via, target: environment_id, meta: { pack_id: result.pack.id, files: result.deliverables.length } });
-    return NextResponse.json({ ok: true, pack: result.pack, deliverables: result.deliverables.length });
+
+    // Managed-service: notify opted-in customers that new evidence is available
+    // (and, when the pack includes an executive report, that too). Best-effort.
+    const origin = req.headers.get("origin") || `https://${req.headers.get("host") || "resurrection-tech.com"}`;
+    const hasExec = (result.deliverables || []).some((d: any) => /executive-report\.(pdf|html)$/i.test(d.filename || ""));
+    const notified = await notifyCustomer({ org_id, event: "new_evidence", origin, context: { packName: result.pack.name } });
+    if (hasExec) await notifyCustomer({ org_id, event: "executive_report", origin, context: { packName: result.pack.name } });
+
+    return NextResponse.json({ ok: true, pack: result.pack, deliverables: result.deliverables.length, customer_notified: !!notified.sent });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "publish failed" }, { status: 500 });
   }

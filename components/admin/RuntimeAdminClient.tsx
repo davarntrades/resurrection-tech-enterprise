@@ -286,6 +286,73 @@ function EvidenceHubControl({ org }: { org: any }) {
   );
 }
 
+// ── Customer notifications (opt-in, per-org, managed service) ─────────────────
+const NOTIFY_EVENTS: { key: string; label: string }[] = [
+  { key: "new_evidence", label: "New evidence available" },
+  { key: "executive_report", label: "Executive report generated" },
+  { key: "weekly_summary", label: "Weekly Runtime Governance summary" },
+  { key: "significant_event", label: "Significant governance event" },
+];
+function CustomerNotifyControl({ org }: { org: any }) {
+  const [prefs, setPrefs] = useState<any>(null); const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const [recips, setRecips] = useState(""); const [sig, setSig] = useState("");
+  const load = useCallback(async () => {
+    try { const d = await api(`notify?org_id=${encodeURIComponent(org.id)}`); setPrefs(d.prefs); setRecips((d.prefs?.recipients || []).join(", ")); }
+    catch { /* ignore */ } finally { setLoaded(true); }
+  }, [org.id]);
+  useEffect(() => { load(); }, [load]);
+  const save = async (patch: any) => {
+    setBusy(true); setNote("");
+    try {
+      const d = await api("notify", { method: "POST", body: JSON.stringify({ org_id: org.id, ...patch }) });
+      if (d.prefs) { setPrefs(d.prefs); setRecips((d.prefs.recipients || []).join(", ")); setNote("✓ Saved"); }
+    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const test = async () => {
+    setBusy(true); setNote("");
+    try { await api("notify", { method: "POST", body: JSON.stringify({ org_id: org.id, test: true }) }); setNote("✓ Test sent"); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const sendSig = async () => {
+    if (!sig.trim()) return;
+    setBusy(true); setNote("");
+    try { const d = await api("notify", { method: "POST", body: JSON.stringify({ org_id: org.id, significant_event: true, message: sig.trim() }) });
+      setNote(d.sent ? "✓ Alert sent to customer" : d.skipped ? `Not sent — ${d.skipped}` : "Sent"); setSig(""); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  if (!loaded) return null;
+  const ev = prefs?.events || {};
+  const enabled = !!prefs?.enabled;
+  return (
+    <div className="radmin-hub" style={{ margin: "6px 0", padding: "12px 14px", border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--bg-1, #0b0d10)" }}>
+      <div className="radmin-row" style={{ margin: "0 0 6px", justifyContent: "space-between" }}>
+        <span><span className="radmin-pill">Customer alerts</span> <span className={`radmin-badge${enabled ? " ok" : ""}`} style={{ marginLeft: 6 }}>{enabled ? "On" : "Off"}</span></span>
+        <button className="radmin-btn sm" disabled={busy} onClick={() => save({ enabled: !enabled })}>{enabled ? "Disable" : "Enable"}</button>
+      </div>
+      <span className="radmin-muted" style={{ fontSize: 11 }}>Opt-in email updates to the customer&rsquo;s contacts. No customer login — every alert links to their Evidence Hub.</span>
+      <div className="radmin-row" style={{ margin: "8px 0 0", gap: 8 }}>
+        <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} placeholder="Recipient emails (comma-separated)" value={recips} onChange={(e) => setRecips(e.target.value)} />
+        <button className="radmin-btn sm" disabled={busy} onClick={() => save({ recipients: recips })}>Save recipients</button>
+        <button className="radmin-btn sm" disabled={busy || !(prefs?.recipients || []).length} onClick={test}>Send test</button>
+      </div>
+      <div className="radmin-row" style={{ margin: "8px 0 0", gap: 12, flexWrap: "wrap" }}>
+        {NOTIFY_EVENTS.map((e) => (
+          <label key={e.key} className="radmin-muted" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="checkbox" checked={ev[e.key] !== false} disabled={busy} onChange={(ce) => save({ events: { [e.key]: ce.target.checked } })} />
+            {e.label}
+          </label>
+        ))}
+      </div>
+      <div className="radmin-row" style={{ margin: "8px 0 0", gap: 8 }}>
+        <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} placeholder="Significant event message (sent now)" value={sig} onChange={(e) => setSig(e.target.value)} />
+        <button className="radmin-btn sm" disabled={busy || !sig.trim()} onClick={sendSig}>Send event</button>
+      </div>
+      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
 // ── Customers (list + badges + per-environment control) ──────────────────────
 function CustomersPanel() {
   const [orgs, setOrgs] = useState<any[] | null>(null);
@@ -335,6 +402,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
           <code className="radmin-muted">{o.id}</code>
           <CustomerBadges b={o.badges} />
           <EvidenceHubControl org={o} />
+          <CustomerNotifyControl org={o} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}

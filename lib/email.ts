@@ -97,6 +97,43 @@ export async function sendSecureShareEmail(opts: {
   }
 }
 
+/**
+ * Generic customer-facing notification (managed-service alerts). Reuses the
+ * shared Resend client + house email shell. Used by lib/customerNotify.ts for
+ * opt-in per-org events (new evidence, executive report, weekly summary,
+ * significant governance event). Delivery stays credential-free — the CTA is a
+ * secure link only. Returns { ok } | { ok:false, error } and never throws.
+ */
+export async function sendCustomerNotification(opts: {
+  to: string | string[];
+  subject: string;
+  heading: string;
+  body: string;
+  orgName?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  footerNote?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const resend = getResend();
+  if (!resend) return { ok: false, error: "email is not configured (RESEND_API_KEY unset)" };
+  const { to, subject, heading, body, orgName, ctaLabel, ctaUrl, footerNote } = opts;
+  const inner = `
+    <div style="color:#f3f5f7;font-size:16px;margin-bottom:6px">${esc(heading)}${orgName ? ` — ${esc(orgName)}` : ""}</div>
+    <p style="color:#aab2bd;font-size:13px;line-height:1.6;margin:0 0 18px;white-space:pre-wrap">${esc(body)}</p>
+    ${ctaUrl && ctaLabel ? `<a href="${esc(ctaUrl)}" style="display:inline-block;background:rgba(76,125,255,.14);border:1px solid rgba(76,125,255,.45);color:#f3f5f7;text-decoration:none;border-radius:9px;padding:12px 20px;font-size:14px">${esc(ctaLabel)} &rarr;</a>` : ""}
+    <p style="color:#6b7480;font-size:11px;line-height:1.6;margin:18px 0 0">
+      ${footerNote ? `${esc(footerNote)}<br/>` : ""}
+      ${ctaUrl ? `If the button doesn't work, paste this URL into your browser:<br/><span style="color:#aab2bd;word-break:break-all">${esc(ctaUrl)}</span>` : "You are receiving this because your organisation opted in to Runtime Governance updates from Resurrection Tech."}
+    </p>`;
+  try {
+    const r: any = await resend.emails.send({ from: FROM, to, subject, html: shell(inner) });
+    if (r?.error) return { ok: false, error: String(r.error?.message || r.error) };
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "email send failed" };
+  }
+}
+
 export async function sendAuditEmails(data: AuditRequestInput, reference: string) {
   const resend = getResend();
   if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
