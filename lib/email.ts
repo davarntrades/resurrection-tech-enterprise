@@ -49,6 +49,54 @@ const esc = (s: string) =>
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/**
+ * Deliver a secure evidence/report link to a customer contact (managed-service
+ * delivery). Reuses the shared Resend client + house email shell. The link
+ * itself stays credential-free, expiring and revocable — this only sends it.
+ * Returns { ok } | { ok:false, error } and never throws.
+ */
+export async function sendSecureShareEmail(opts: {
+  to: string | string[];
+  url: string;
+  filename: string;
+  orgName?: string | null;
+  expiresAt?: string | null;
+  note?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const resend = getResend();
+  if (!resend) return { ok: false, error: "email is not configured (RESEND_API_KEY unset)" };
+  const { to, url, filename, orgName, expiresAt, note } = opts;
+  const expires = expiresAt ? new Date(expiresAt).toUTCString() : null;
+  const kind = /executive/i.test(filename) ? "Executive report" : /\.pdf$/i.test(filename) ? "Audit report" : "Evidence";
+  const inner = `
+    <div style="color:#f3f5f7;font-size:16px;margin-bottom:6px">${esc(kind)} ready${orgName ? ` for ${esc(orgName)}` : ""}</div>
+    <p style="color:#aab2bd;font-size:13px;line-height:1.6;margin:0 0 18px">
+      Resurrection Tech has published new Runtime Governance evidence for you. Open it securely below —
+      no account or password required.
+    </p>
+    ${note ? `<p style="color:#aab2bd;font-size:13px;line-height:1.6;margin:0 0 18px;border-left:2px solid rgba(76,125,255,.5);padding-left:12px">${esc(note)}</p>` : ""}
+    <a href="${esc(url)}" style="display:inline-block;background:rgba(76,125,255,.14);border:1px solid rgba(76,125,255,.45);color:#f3f5f7;text-decoration:none;border-radius:9px;padding:12px 20px;font-size:14px">
+      Open ${esc(filename)} &rarr;
+    </a>
+    <p style="color:#6b7480;font-size:11px;line-height:1.6;margin:18px 0 0">
+      ${expires ? `This secure link expires on ${esc(expires)} and can be revoked at any time.<br/>` : ""}
+      If the button doesn't work, paste this URL into your browser:<br/>
+      <span style="color:#aab2bd;word-break:break-all">${esc(url)}</span>
+    </p>`;
+  try {
+    const r: any = await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `${kind} ready${orgName ? ` — ${orgName}` : ""} · Resurrection Tech`,
+      html: shell(inner),
+    });
+    if (r?.error) return { ok: false, error: String(r.error?.message || r.error) };
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "email send failed" };
+  }
+}
+
 export async function sendAuditEmails(data: AuditRequestInput, reference: string) {
   const resend = getResend();
   if (!resend) return { sent: false, reason: "RESEND_API_KEY not configured" };
