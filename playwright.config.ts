@@ -16,15 +16,27 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   retries: 0,
-  reporter: [["list"]],
+  reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: BASE,
     ignoreHTTPSErrors: true,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     // HTTP Basic Auth for the /admin/* proxy (proxy.ts). Only applied when set.
     httpCredentials:
       process.env.ADMIN_USER && process.env.ADMIN_PASSWORD
         ? { username: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD }
         : undefined,
   },
-  projects: [{ name: "webkit", use: { ...devices["Desktop Safari"] } }],
+  projects: [
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    // Local-only: validate the flow with a pre-installed Chromium when WebKit
+    // can't be downloaded (set E2E_CHROMIUM to the chrome binary). Not used in CI.
+    ...(process.env.E2E_CHROMIUM
+      ? [{
+          name: "chromium-local",
+          use: { ...devices["Desktop Chrome"], launchOptions: { executablePath: process.env.E2E_CHROMIUM } },
+        }]
+      : []),
+  ],
 });
