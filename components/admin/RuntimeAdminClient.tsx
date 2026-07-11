@@ -286,6 +286,80 @@ function EvidenceHubControl({ org }: { org: any }) {
   );
 }
 
+// ── Recommendations tracker (operator-managed, customer-visible) ──────────────
+const REC_STATUS: { key: string; label: string }[] = [
+  { key: "open", label: "Open" },
+  { key: "acknowledged", label: "Acknowledged" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "resolved", label: "Resolved" },
+];
+const REC_SEV = ["low", "medium", "high", "critical"];
+const SEV_HUE: Record<string, string> = { critical: "#e5484d", high: "#e5893f", medium: "#c9a227", low: "#6b7480" };
+function RecommendationsControl({ org }: { org: any }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  const [summary, setSummary] = useState<any>(null);
+  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const [title, setTitle] = useState(""); const [detail, setDetail] = useState(""); const [severity, setSeverity] = useState("medium");
+  const [adding, setAdding] = useState(false);
+  const load = useCallback(async () => {
+    try { const d = await api(`recommendations?org_id=${encodeURIComponent(org.id)}`); setItems(d.recommendations || []); setSummary(d.summary || null); }
+    catch (e: any) { setNote(`✗ ${e.message}`); }
+  }, [org.id]);
+  useEffect(() => { load(); }, [load]);
+  const create = async () => {
+    if (!title.trim()) return;
+    setBusy(true); setNote("");
+    try { await api("recommendations", { method: "POST", body: JSON.stringify({ org_id: org.id, title: title.trim(), detail: detail.trim(), severity }) });
+      setTitle(""); setDetail(""); setSeverity("medium"); setAdding(false); await load(); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const setStatus = async (id: string, status: string) => {
+    setBusy(true); setNote("");
+    try { await api("recommendations", { method: "POST", body: JSON.stringify({ id, status }) }); await load(); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  if (!items) return null;
+  return (
+    <div className="radmin-hub" style={{ margin: "6px 0", padding: "12px 14px", border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--bg-1, #0b0d10)" }}>
+      <div className="radmin-row" style={{ margin: "0 0 6px", justifyContent: "space-between" }}>
+        <span><span className="radmin-pill">Recommendations</span>{summary ? <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>{summary.open} open · {summary.total} total</span> : null}</span>
+        <button className="radmin-btn sm" disabled={busy} onClick={() => setAdding((a) => !a)}>{adding ? "Cancel" : "Add"}</button>
+      </div>
+      {adding && (
+        <div style={{ margin: "6px 0 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <input className="radmin-select" placeholder="Recommendation title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <textarea className="radmin-select" placeholder="Detail (optional)" value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} style={{ resize: "vertical" }} />
+          <div className="radmin-row" style={{ gap: 8 }}>
+            <select className="radmin-select" value={severity} onChange={(e) => setSeverity(e.target.value)} style={{ maxWidth: 140 }}>
+              {REC_SEV.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button className="radmin-btn sm primary" disabled={busy || !title.trim()} onClick={create}>{busy ? "…" : "Create"}</button>
+          </div>
+        </div>
+      )}
+      {!items.length ? (
+        <div className="radmin-muted" style={{ fontSize: 11 }}>No recommendations yet. These appear in the customer&rsquo;s Evidence Hub and reports.</div>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+          {items.map((r) => (
+            <li key={r.id} style={{ padding: "8px 10px", border: "1px solid var(--line-2)", borderRadius: 8, opacity: r.status === "resolved" ? 0.55 : 1 }}>
+              <div className="radmin-row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEV_HUE[r.severity] || "#6b7480", flex: "0 0 8px" }} />
+                <span style={{ fontSize: 13, textDecoration: r.status === "resolved" ? "line-through" : "none" }}>{r.title}</span>
+                <select className="radmin-select" value={r.status} disabled={busy} onChange={(e) => setStatus(r.id, e.target.value)} style={{ marginLeft: "auto", maxWidth: 150, fontSize: 11 }}>
+                  {REC_STATUS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              </div>
+              {r.detail && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4, paddingLeft: 16 }}>{r.detail}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
 // ── Customer notifications (opt-in, per-org, managed service) ─────────────────
 const NOTIFY_EVENTS: { key: string; label: string }[] = [
   { key: "new_evidence", label: "New evidence available" },
@@ -402,6 +476,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
           <code className="radmin-muted">{o.id}</code>
           <CustomerBadges b={o.badges} />
           <EvidenceHubControl org={o} />
+          <RecommendationsControl org={o} />
           <CustomerNotifyControl org={o} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
