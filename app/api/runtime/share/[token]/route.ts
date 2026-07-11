@@ -22,13 +22,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
     return NextResponse.json({ error: msg }, { status: r.status });
   }
   const del: any = r.deliverable;
-  return new NextResponse(new Uint8Array(r.bytes as Buffer), {
-    status: 200,
-    headers: {
-      "content-type": del.mime || "application/octet-stream",
-      "content-disposition": `inline; filename="${del.filename}"`,
-      "cache-control": "private, no-store",
-      "x-robots-tag": "noindex, nofollow",
-    },
+  const bytes = r.bytes as Buffer;
+  // Serve with Content-Length + Range so iPad/iOS Safari renders the shared PDF
+  // inline (its viewer sends a Range request and rejects a length-less 200).
+  const plan = rt.deliverables.planByteResponse({
+    size: bytes.length, mime: del.mime, filename: del.filename, mode: "preview",
+    range: req.headers.get("range"),
   });
+  const headers = { ...plan.headers, "x-robots-tag": "noindex, nofollow" };
+  if (plan.status === 416) return new NextResponse(null, { status: 416, headers });
+  const slice = bytes.subarray(plan.start, plan.end + 1);
+  return new NextResponse(new Uint8Array(slice), { status: plan.status, headers });
 }
