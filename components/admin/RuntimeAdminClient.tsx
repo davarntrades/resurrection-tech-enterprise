@@ -548,9 +548,50 @@ function CustomersPanel() {
   );
 }
 
+// ── Customer lifecycle (computed from live data — operator guidance) ──────────
+const PRE_TELEMETRY_STEPS = ["Send first event", "Governance evaluates", "Evidence generated", "Audit available"];
+function LifecyclePanel({ lc }: { lc: any }) {
+  if (!lc) return null;
+  const stages: any[] = lc.stages || [];
+  const firstIncomplete = stages.findIndex((s) => !s.done);
+  return (
+    <div className="radmin-hub" style={{ margin: "6px 0", padding: "12px 14px", border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--bg-1, #0b0d10)" }}>
+      <div className="radmin-row" style={{ margin: "0 0 8px", justifyContent: "space-between" }}>
+        <span><span className="radmin-pill">Customer status</span> <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 6 }}>{lc.state} · {lc.done_count}/{lc.total_stages}</span></span>
+      </div>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
+        {stages.map((s, i) => (
+          <li key={s.key} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: s.done ? "var(--ok, #3fb27f)" : i === firstIncomplete ? "var(--ink, #f3f5f7)" : "var(--ink3, #6b7480)" }}>
+            <span style={{ fontSize: 12 }}>{s.done ? "✓" : "○"}</span>
+            <span style={{ fontWeight: i === firstIncomplete ? 600 : 400 }}>{s.label}</span>
+          </li>
+        ))}
+      </ul>
+      {/* Next operator action — always the first incomplete stage */}
+      {lc.next_action && (
+        <div style={{ marginTop: 10, padding: "9px 11px", borderRadius: 8, border: "1px solid rgba(76,125,255,.45)", background: "rgba(76,125,255,.10)" }}>
+          <div className="radmin-muted" style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 3 }}>Next operator action</div>
+          <div style={{ fontSize: 13, color: "var(--ink, #f3f5f7)" }}>{lc.next_action.label}</div>
+          {lc.next_action.detail && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 2 }}>{lc.next_action.detail}</div>}
+        </div>
+      )}
+      {/* For new organisations, show what happens next */}
+      {lc.pre_telemetry && (
+        <div style={{ marginTop: 10 }}>
+          <div className="radmin-muted" style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 4 }}>Next steps</div>
+          <ol style={{ margin: 0, paddingLeft: 18, color: "var(--ink3, #6b7480)", fontSize: 12, lineHeight: 1.6 }}>
+            {PRE_TELEMETRY_STEPS.map((s, i) => <li key={i}>{s}</li>)}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => void; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const b = o.badges || {};
+  const lc = o.lifecycle;
   return (
     <section className="radmin-card">
       <button className="radmin-cust-head" onClick={() => setOpen(!open)}>
@@ -562,6 +603,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
         </span>
         <span className="radmin-cust-right">
           <MiniSpark points={b.spark} />
+          {lc?.state && <span className="radmin-badge" title={lc.next_action?.label || ""}>{lc.state}</span>}
           <span className="radmin-muted radmin-cust-evals">{Number(b.evaluations ?? 0).toLocaleString()} evals</span>
           {b.blocked > 0 && <span className="radmin-badge omega">{b.blocked} blocked</span>}
           <span className={`radmin-pill ${o.status === "active" ? "ok" : ""}`}>{o.plan || "pilot"}</span>
@@ -570,6 +612,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
       {open && (
         <div className="radmin-cust-body">
           <code className="radmin-muted">{o.id}</code>
+          <LifecyclePanel lc={lc} />
           <CustomerBadges b={o.badges} />
           <EvidenceHubControl org={o} />
           <RecommendationsControl org={o} />
