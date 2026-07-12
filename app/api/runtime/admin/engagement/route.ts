@@ -1,7 +1,7 @@
 /** Runtime Governance — engagement management (operator CRM, operator-authed).
  *   GET  ?org_id=                                → the org's engagement record
  *   GET  ?due=1                                  → orgs due for review (soonest first)
- *   POST { org_id, next_review_date?/last_review_date?/cadence?/delivery_schedule? }
+ *   POST { org_id, stage?/next_review_date?/last_review_date?/cadence?/delivery_schedule? }
  *   POST { org_id, add_contact:{name,email,role} }
  *   POST { org_id, remove_contact:<id> }
  *   POST { org_id, note:"..." }
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (url.searchParams.get("due")) return NextResponse.json({ due: await E.dueForReview() });
   const org_id = url.searchParams.get("org_id") || "";
   if (!org_id) return NextResponse.json({ error: "org_id required" }, { status: 400 });
-  return NextResponse.json({ engagement: await E.get(org_id), cadences: E.CADENCES });
+  return NextResponse.json({ engagement: await E.get(org_id), cadences: E.CADENCES, stages: E.STAGES });
 }
 
 export async function POST(req: NextRequest) {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     else if (body?.note != null) { engagement = await E.addNote(org_id, String(body.note)); action = "engagement_add_note"; }
     else {
       const patch: any = {};
-      for (const k of ["next_review_date", "last_review_date", "cadence", "delivery_schedule"]) if (body[k] !== undefined) patch[k] = body[k];
+      for (const k of ["stage", "next_review_date", "last_review_date", "cadence", "delivery_schedule"]) if (body[k] !== undefined) patch[k] = body[k];
       engagement = await E.set(org_id, patch);
     }
     await rt.adminaudit.record({ action, actor: authz.identity, via: authz.via, target: org_id });
