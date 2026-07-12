@@ -1033,6 +1033,9 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const [genType, setGenType] = useState(""); const [pub, setPub] = useState(false);
   const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
   const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
+  const [showManifest, setShowManifest] = useState(false); const [manifestText, setManifestText] = useState("");
+  const [manifestDomains, setManifestDomains] = useState(""); const [manifestNote, setManifestNote] = useState("");
+  const [manifestBusy, setManifestBusy] = useState(false); const [manifestStatus, setManifestStatus] = useState("");
   const load = useCallback(async () => {
     setErr("");
     try { setData(await api(`deliverables?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`)); }
@@ -1082,6 +1085,26 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
       setShowUpload(false); setFiles(null); setPackName(""); setPackRef(""); await load();
     } catch (e: any) { setErr(e.message); } finally { setPub(false); }
   };
+  const chooseManifest = async (file?: File) => {
+    if (!file) return;
+    setManifestStatus("");
+    try { setManifestText(await file.text()); }
+    catch { setManifestStatus("✗ Could not read that file"); }
+  };
+  const uploadManifest = async () => {
+    setManifestBusy(true); setManifestStatus(""); setErr("");
+    try {
+      let parsed: any;
+      try { parsed = JSON.parse(manifestText); } catch { throw new Error("Manifest must be valid JSON"); }
+      const manifest = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.tools) ? parsed.tools : null);
+      if (!manifest?.length) throw new Error('Use a JSON tool array or an object containing a "tools" array');
+      const domains = manifestDomains.split(",").map((x) => x.trim()).filter(Boolean);
+      const result = await api("manifests", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, manifest, domains, note: manifestNote }) });
+      setManifestStatus(`✓ Manifest ready · ${result.tool_count} tools · version ${result.version?.version || "current"}`);
+      setManifestText(""); setManifestNote(""); setShowManifest(false); await load();
+    } catch (e: any) { setManifestStatus(`✗ ${e.message}`); }
+    finally { setManifestBusy(false); }
+  };
   const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
   const packs: any[] = data?.packs || [];
 
@@ -1093,6 +1116,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
         <button className="radmin-btn primary" disabled={busy} onClick={() => generate("monthly_evidence")}>{genType === "monthly_evidence" ? "Generating…" : "Generate monthly evidence"}</button>
         <button className="radmin-btn" disabled={busy} onClick={() => generate("executive_summary")}>{genType === "executive_summary" ? "Generating…" : "Generate executive summary"}</button>
         <button className="radmin-btn" disabled={busy || !fullAudit.available} onClick={() => generate("full_audit")} title={fullAudit.available ? "48-Hour Runtime Governance Audit (manifest assessment)" : fullAudit.reason || "Customer manifest required"}>{genType === "full_audit" ? "Generating…" : "Generate full audit"}</button>
+        <button className="radmin-btn" disabled={busy || manifestBusy} onClick={() => { setShowManifest(!showManifest); setManifestStatus(""); }}>{fullAudit.available ? "Replace manifest…" : "Upload customer manifest…"}</button>
         <button className="radmin-btn" onClick={() => setShowUpload(!showUpload)}>Publish (upload)…</button>
         <span style={{ flex: 1 }} />
         <button className="radmin-btn sm" onClick={() => setShowDev(!showDev)}>Developer</button>
@@ -1102,6 +1126,22 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
           <b>Full audit unavailable</b> — {fullAudit.reason || "customer manifest required."} Ingest the customer&rsquo;s tool manifest to enable the 48-Hour Audit.
         </div>
       )}
+      {fullAudit.available && (
+        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
+          <b>Full audit ready</b> — {fullAudit.tool_count || 0} tools · manifest version {fullAudit.manifest_version || "current"}.
+        </div>
+      )}
+      {showManifest && (
+        <div className="radmin-upload" style={{ alignItems: "stretch" }}>
+          <input type="file" accept="application/json,.json" onChange={(e) => chooseManifest(e.target.files?.[0])} />
+          <input className="radmin-select" placeholder="Domains: finance, cybersecurity" value={manifestDomains} onChange={(e) => setManifestDomains(e.target.value)} />
+          <input className="radmin-select" placeholder="Note (optional)" value={manifestNote} onChange={(e) => setManifestNote(e.target.value)} />
+          <textarea className="radmin-select" style={{ flexBasis: "100%", minHeight: 130, fontFamily: "ui-monospace, monospace" }} placeholder={'Paste JSON here, for example:\n[{"name":"read_account"},{"name":"transfer_funds"}]'} value={manifestText} onChange={(e) => setManifestText(e.target.value)} />
+          <button className="radmin-btn sm primary" disabled={manifestBusy || !manifestText.trim()} onClick={uploadManifest}>{manifestBusy ? "Uploading & assessing…" : "Save manifest & enable full audit"}</button>
+          <span className="radmin-muted" style={{ fontSize: 11, flexBasis: "100%" }}>Accepts a JSON tool array or an object with a <code>tools</code> array. The manifest is stored, versioned and assessed for this environment.</span>
+        </div>
+      )}
+      {manifestStatus && <div className={manifestStatus.startsWith("✗") ? "radmin-err" : "radmin-muted"} style={{ marginTop: 8 }}>{manifestStatus}</div>}
       {showUpload && (
         <div className="radmin-upload">
           <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
