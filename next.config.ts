@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  // The full-audit flow reuses scripts/delivery-kit.cjs for its HTML builders.
+  // That module can lazily reach Playwright (CLI rendering only — never on the
+  // web, where PDFs render on the Railway service). Keep Playwright external so
+  // the server bundle doesn't try to bundle Chromium; the require is never hit
+  // in the Vercel runtime.
+  serverExternalPackages: ["playwright", "playwright-core", "chromium-bidi"],
   images: {
     formats: ["image/avif", "image/webp"],
   },

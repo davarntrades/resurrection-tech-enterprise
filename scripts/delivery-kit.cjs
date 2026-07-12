@@ -26,7 +26,10 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { resolveChromium } = require("./lib/resolve-chromium.cjs");
+// Lazily required inside resolveChrome() only — this pulls in playwright-core,
+// which must NOT be bundled when this module is imported for its HTML builders
+// (e.g. the web full-audit flow, lib/runtime/fullaudit.js). CLI rendering paths
+// call resolveChrome(), which loads it on demand.
 
 // Auto-load .env.delivery / .env.local (KEY=VALUE) so analysts never re-export
 // GOVERNANCE_URL / GOVERNANCE_TOKEN / CHROME_BIN each session. Real env wins.
@@ -86,6 +89,11 @@ function resolveChrome() {
   // CHROME_BIN override → Playwright's managed Chromium (scripts/lib/
   // resolve-chromium.cjs). No system/snap/PATH scanning. Still usability-checked
   // so a broken binary is never returned.
+  // Indirect require so the Next/Turbopack bundler does not trace into
+  // playwright-core when this module is imported for its HTML builders on the
+  // web. resolveChrome() only runs on the CLI rendering path.
+  const dynReq = eval("require");
+  const { resolveChromium } = dynReq("./lib/resolve-chromium.cjs");
   const chrome = resolveChromium({ required: false });
   return chrome && chromeUsable(chrome) ? chrome : null;
 }
@@ -722,7 +730,7 @@ function perfSection(stats, attestation, replay) {
     ["Fastest evaluation", fmtMs(stats.min)],
     ["Slowest evaluation", fmtMs(stats.max)],
     ["Total evaluations", String(stats.n)],
-    ["Evaluations / second", stats.eps.toFixed(stats.eps < 10 ? 1 : 0)],
+    ["Evaluations / second", stats.eps != null ? stats.eps.toFixed(stats.eps < 10 ? 1 : 0) : "—"],
     ["Replay determinism", det],
     ["Runtime source", "Live Runtime Governance Engine"],
     ["Engine version", att.service_version ? esc(att.service_version) : "—"],
@@ -730,15 +738,16 @@ function perfSection(stats, attestation, replay) {
   ];
   const scale = stats.max || 1;
   const pbar = (label, v) => `<div class="row"><span class="lab">${label}</span><span class="track"><span class="fill" style="width:${Math.max(3, Math.round((v / scale) * 100))}%"></span></span><span class="val">${fmtMs(v)}</span></div>`;
-  const tputFill = Math.max(3, Math.min(100, Math.round((stats.min / stats.mean) * 100)));
+  const tputFill = (stats.min != null && stats.mean) ? Math.max(3, Math.min(100, Math.round((stats.min / stats.mean) * 100))) : 3;
+  const hasSamples = Array.isArray(stats.samples) && stats.samples.length > 0;
   const allDet = replay && replay.checked && replay.deterministic === replay.checked;
   const summary = `Runtime Governance evaluated ${stats.n} representative ${stats.n === 1 ? "trajectory" : "trajectories"} with ${fmtMs(stats.mean)} average latency${allDet ? " while maintaining deterministic governance decisions" : ""}.`;
   return `<div class="sec">${head(true)}
     <div class="kpis">${cards.map(([k, v]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span></div>`).join("")}</div>
     <div class="perf">
-      <div class="chart"><div class="ct">Latency distribution</div>${histogram(stats.samples)}</div>
+      <div class="chart"><div class="ct">Latency distribution</div>${hasSamples ? histogram(stats.samples) : `<div class="ax"><span style="color:#8a929c">Not assessed in this reporting window</span></div>`}</div>
       <div class="chart"><div class="ct">Percentiles</div><div class="pctl">${pbar("P50", stats.p50)}${pbar("P95", stats.p95)}${pbar("P99", stats.p99)}${pbar("Max", stats.max)}</div></div>
-      <div class="chart"><div class="ct">Throughput</div><div class="tput"><span class="big">${stats.eps.toFixed(stats.eps < 10 ? 1 : 0)}</span><span class="u">eval / sec</span></div><div class="track"><span class="fill" style="width:${tputFill}%"></span></div></div>
+      <div class="chart"><div class="ct">Throughput</div><div class="tput"><span class="big">${stats.eps != null ? stats.eps.toFixed(stats.eps < 10 ? 1 : 0) : "—"}</span><span class="u">eval / sec</span></div><div class="track"><span class="fill" style="width:${tputFill}%"></span></div></div>
     </div>
     <div class="perfsum">${esc(summary)}</div>
   </div>`;
@@ -900,13 +909,13 @@ function pipelineTimingHtml(stages, perf, replay, ctx, summary, attestation) {
     ["Engine compute time", fmtMs(X.engineMs)],
     ["Network latency", X.networkMs != null ? fmtMs(X.networkMs) : "—"],
     ["Total deployment latency", roundTripDisp],
-    ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
+    ["Throughput", (perf && perf.eps != null) ? `${fmtRate(perf.eps)} / sec` : "—"],
     ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
     ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
   ] : [
     [decisionLabel, decisionDisp],
     ["Total deployment latency", roundTripDisp],
-    ["Throughput", perf ? `${fmtRate(perf.eps)} / sec` : "—"],
+    ["Throughput", (perf && perf.eps != null) ? `${fmtRate(perf.eps)} / sec` : "—"],
     ["Determinism", X.detPct != null ? `${X.detPct}%` : "n/a"],
     ["Governance coverage", X.cov != null ? `${X.cov}%` : "—"],
     ["Governance evaluations", String(X.M)],
@@ -1629,6 +1638,10 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
   const mono = "font-family:ui-monospace,Menlo,monospace";
   const nowStamp = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
   const evidenceHash = (blocks.find((b) => b && b.hash) || {}).hash || (att && att.ruleset_hash) || "";
+  // When invoked for the web full-audit, missing evidence is MARKED rather than
+  // the section silently dropped (ctx.reportType === "full_audit"). CLI unaffected.
+  const markNA = ctx && ctx.reportType === "full_audit";
+  const naBlock = (eyebrow, title) => `<div class="sec"><span class="eyebrow">${esc(eyebrow)}</span><h2>${esc(title)}</h2><p style="color:#8a929c">Not assessed in this reporting window.</p></div>`;
 
   // ---- item 7 + 2 · Executive Verdict card + At a glance (shared helpers) ----
   const verdictCard = verdictCardHtml(ev, rec, blockedCount, s, sector, conf);
@@ -1674,10 +1687,10 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       <table><thead><tr><th>Trajectory</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>
       ${ctx.replayResults.map((r) => `<tr><td class="m">Trajectory ${r.index} · ${esc(r.label)}</td><td><span class="v-${(r.verdict || "").toLowerCase()}">${esc(r.verdict)}</span></td><td>${esc(r.reason || (r.verdict === "ALLOW" ? "No forbidden state reached." : "—"))}</td></tr>`).join("")}
       </tbody></table>
-    </div>` : "";
+    </div>` : (markNA ? naBlock("Trajectory replay summary", "Every replayed trajectory, resolved to a verdict.") : "");
 
   // ---- item 9 · metrics page ----
-  const detTxt = (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : "—";
+  const detTxt = (replay && replay.checked) ? `${replay.deterministic}/${replay.checked} identical` : (markNA ? "Not assessed in this reporting window" : "—");
   const metrics = [
     ["Replay determinism", detTxt],
     ["Runtime latency (avg)", perf ? fmtMs(perf.mean) : "—"],
@@ -1716,7 +1729,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
       <table><thead><tr><th>Risk class</th><th>Status</th><th>Tools</th><th>Rules</th></tr></thead><tbody>
       ${Object.entries(exposure).map(([rc, x]) => `<tr><td class="m">${esc(rc)}</td><td><span class="tag ${STATUS_CLASS[x.status] || "unc"}">${esc(x.status)}</span></td><td class="n">${x.tools ?? "—"}</td><td>${esc((x.rules || []).join(", ") || "—")}</td></tr>`).join("")}
       </tbody></table>
-    </div>` : "";
+    </div>` : (markNA ? naBlock("&#937; exposure by risk class", "Where exposure is reachable.") : "");
 
   // ---- item 4 · Evidence & Attestation panel (shared helper) ----
   const attestationSec = evidencePanelHtml(att, replay, nowStamp, evidenceHash);
@@ -2115,6 +2128,10 @@ module.exports = {
   SECTORS, SECTOR_SIGNALS, DOMAIN_TO_SECTOR, SECTOR_PRECEDENCE, NEUTRAL_DOMAINS,
   sectorScores, sectorIdFor, sectorProfile, blockSectorId, scopeBlocksToSector, SECTOR_ADJACENT,
   parseManifestTools, classifyTool, toolModel, toolName,
+  // Full 48-Hour Audit generator (reused by the web Generate-full-audit flow —
+  // lib/runtime/fullaudit.js). auditHtml is self-contained: every section helper
+  // it calls is module-scoped, so exporting it reuses the whole generator.
+  auditHtml, executiveVerdict, recommendEngagement, governanceConfidence,
 };
 
 if (require.main === module) (async () => {
