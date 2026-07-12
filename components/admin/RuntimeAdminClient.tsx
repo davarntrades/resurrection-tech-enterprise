@@ -288,7 +288,15 @@ function EvidenceHubControl({ org }: { org: any }) {
 
 // ── Engagement management (operator CRM — Control Room only) ──────────────────
 const CADENCE_OPTS = ["weekly", "biweekly", "monthly", "quarterly", "ad_hoc"];
-function EngagementControl({ org }: { org: any }) {
+const ENGAGEMENT_STAGES = [
+  ["prospect", "Prospect"],
+  ["audit", "48-Hour Audit"],
+  ["enterprise_assessment", "Enterprise Assessment"],
+  ["limited_pilot", "Limited Pilot"],
+  ["enterprise_integration", "Enterprise Integration"],
+  ["managed_service", "Managed Service"],
+] as const;
+function EngagementControl({ org, onChange }: { org: any; onChange?: () => void }) {
   const [eng, setEng] = useState<any>(null);
   const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
   const [open, setOpenState] = useState(false);
@@ -301,7 +309,7 @@ function EngagementControl({ org }: { org: any }) {
   useEffect(() => { load(); }, [load]);
   const save = async (patch: any) => {
     setBusy(true); setNote("");
-    try { const d = await api("engagement", { method: "POST", body: JSON.stringify({ org_id: org.id, ...patch }) }); setEng(d.engagement); setNote("✓ Saved"); }
+    try { const d = await api("engagement", { method: "POST", body: JSON.stringify({ org_id: org.id, ...patch }) }); setEng(d.engagement); setNote("✓ Saved"); if (patch.stage) onChange?.(); }
     catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
   };
   const addContact = async () => {
@@ -325,6 +333,14 @@ function EngagementControl({ org }: { org: any }) {
       </div>
       {open && (
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div>
+            <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 5 }}>Commercial delivery stage</div>
+            <div className="radmin-row" style={{ gap: 6, flexWrap: "wrap" }}>
+              {ENGAGEMENT_STAGES.map(([key, label]) => (
+                <button key={key} className={`radmin-btn sm${eng.stage === key ? " primary" : ""}`} disabled={busy || eng.stage === key} onClick={() => save({ stage: key })}>{label}</button>
+              ))}
+            </div>
+          </div>
           <div className="radmin-row" style={{ gap: 8, flexWrap: "wrap" }}>
             <label className="radmin-muted" style={{ fontSize: 11 }}>Next review
               <input className="radmin-select" type="date" defaultValue={eng.next_review_date || ""} disabled={busy}
@@ -600,6 +616,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
         <span className="radmin-cust-left">
           <span className={`radmin-chev${open ? " open" : ""}`}>▸</span>
           <span className="radmin-cust-name">{o.name}</span>
+          {lc?.signals?.engagement_stage_label && <span className="radmin-badge accent">{lc.signals.engagement_stage_label}</span>}
           {b.enterprise_ready && <span className="radmin-badge ok">Enterprise Ready</span>}
           {(b.modes || []).map((m: string, i: number) => <span key={i} className={`radmin-badge${m === "enforce" ? " accent" : ""}`}>{m === "enforce" ? "Enforce" : "Shadow"}</span>)}
         </span>
@@ -619,7 +636,7 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
           <EvidenceHubControl org={o} />
           <RecommendationsControl org={o} />
           <CustomerNotifyControl org={o} />
-          <EngagementControl org={o} />
+          <EngagementControl org={o} onChange={onChange} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}
