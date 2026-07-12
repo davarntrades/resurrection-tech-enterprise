@@ -7,6 +7,8 @@
  * by the Railway renderer. No external assets — everything is inline so the
  * renderer can print it with all network access disabled.
  */
+const { FONT_FACE_CSS } = require("./reportFonts.cjs");
+
 const esc = (s: any) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -24,25 +26,26 @@ export function buildExecutiveReportHtml(report: any, summary: any, orgName?: st
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>
+  ${FONT_FACE_CSS}
   @page { size: A4; margin: 20mm 18mm; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { font-family: Georgia, "Times New Roman", serif; color: #14181d; font-size: 11.5pt; line-height: 1.55; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .eyebrow { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase; color: #8a6d1f; }
+  body { font-family: "TeX Gyre Pagella", Georgia, serif; color: #14181d; font-size: 11.5pt; line-height: 1.55; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .eyebrow { font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase; color: #8a6d1f; }
   h1 { font-size: 22pt; line-height: 1.15; margin: 6px 0 4px; font-weight: 600; letter-spacing: -.01em; }
-  .sub { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 9pt; color: #6b7480; letter-spacing: .04em; }
+  .sub { font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 9pt; color: #6b7480; letter-spacing: .04em; }
   .rule { border: 0; border-top: 1px solid #14181d; margin: 14px 0 18px; }
   .hair { border: 0; border-top: 1px solid #d8dde3; margin: 18px 0; }
-  h2 { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 10pt; letter-spacing: .12em; text-transform: uppercase; color: #14181d; margin: 20px 0 8px; }
+  h2 { font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 10pt; letter-spacing: .12em; text-transform: uppercase; color: #14181d; margin: 20px 0 8px; }
   p { margin: 0 0 10px; }
   ul { margin: 0 0 10px; padding-left: 18px; }
   li { margin: 3px 0; }
-  .risk { display: inline-block; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 8.5pt; letter-spacing: .08em; text-transform: uppercase; padding: 2px 9px; border-radius: 2px; border: 1px solid currentColor; }
+  .risk { display: inline-block; font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 8.5pt; letter-spacing: .08em; text-transform: uppercase; padding: 2px 9px; border-radius: 2px; border: 1px solid currentColor; }
   .risk.High { color: #b3261e; } .risk.Medium { color: #9a6b00; } .risk.Low { color: #1e7a46; }
-  table { width: 100%; border-collapse: collapse; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 9.5pt; }
   td, th { text-align: left; padding: 7px 0; border-bottom: 1px solid #e6e9ee; }
   th { color: #6b7480; font-weight: 500; letter-spacing: .04em; width: 46%; }
-  .foot { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 8pt; color: #8a929c; letter-spacing: .08em; margin-top: 26px; }
+  .foot { font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 8pt; color: #8a929c; letter-spacing: .08em; margin-top: 26px; }
 </style></head>
 <body>
   <div class="eyebrow">Resurrection Tech&trade; &middot; Confidential</div>

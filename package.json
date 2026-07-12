@@ -23,6 +23,7 @@
     "browser:smoke": "node scripts/smoke-tests/chromium-smoke.cjs",
     "renderer": "node renderer/server.cjs",
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
+    "audit:verify-renderer": "node scripts/render-via-renderer.cjs",
     "audit:setup": "bash scripts/setup-delivery.sh",
     "smoke:enterprise": "node scripts/smoke-tests/enterprise-regression.cjs --report",
     "smoke:sectors": "node scripts/smoke-tests/sector-detection.test.cjs",
@@ -40,6 +41,7 @@
     "runtime:alerts": "node scripts/runtime/alerts.test.cjs",
     "runtime:deliverables": "node scripts/runtime/deliverables.test.cjs",
     "runtime:reports": "node scripts/runtime/reports.test.cjs",
+    "runtime:report-parity": "node scripts/runtime/report-parity.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test"
   },

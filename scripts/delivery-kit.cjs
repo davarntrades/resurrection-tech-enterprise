@@ -26,6 +26,7 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { FONT_FACE_CSS } = require("../lib/reportFonts.cjs");
 // Lazily required inside resolveChrome() only — this pulls in playwright-core,
 // which must NOT be bundled when this module is imported for its HTML builders
 // (e.g. the web full-audit flow, lib/runtime/fullaudit.js). CLI rendering paths
@@ -344,9 +345,9 @@ function checkChrome() {
 }
 
 // ---- shared brand CSS (compact subset of gen-pdfs.cjs) ----------------------
-const CSS = `
+const CSS = `${FONT_FACE_CSS}
 @page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}
-body{background:#08090b;color:#aab2bd;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px;line-height:1.55}
+body{background:#08090b;color:#aab2bd;font-family:"TeX Gyre Heros",Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px;line-height:1.55}
 .wrap{padding:40px 46px}
 /* On screen, present as a centred page with room to breathe (PDF keeps @page). */
 @media screen{body{background:#050608;padding:24px 16px}.wrap{max-width:940px;margin:0 auto;border:1px solid rgba(255,255,255,.06);border-radius:8px}}
@@ -524,7 +525,7 @@ table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}th{text-
 // #f3f3f3; booktabs-style tables; left-bordered callouts. Same HTML structure
 // as the dark theme — only the stylesheet + wordmark differ. Select with
 // RT_PDF_STYLE=editorial or --style editorial.
-const CSS_EDITORIAL = `
+const CSS_EDITORIAL = `${FONT_FACE_CSS}
 @page{size:letter;margin:0.9in 1in}*{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#212121;font-family:"TeX Gyre Pagella","Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .wrap{padding:0}
