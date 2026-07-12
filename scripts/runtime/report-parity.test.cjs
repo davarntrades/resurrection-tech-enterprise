@@ -31,10 +31,23 @@ const full = kit.auditHtml(
 );
 fontChecks(full, "full audit");
 
+const enterprise = kit.enterpriseAssessmentHtml({
+  organisation: { id: "org_test", name: "Enterprise Test" }, reference: "RG-ENTERPRISE-TEST", classification: "Confidential",
+  scope: { active_environments: 2, assessed_environments: 2, manifest_coverage_pct: 100 },
+  executive: { decision: "Proceed to controlled production planning", readiness: { score: 90, band: "Production governance ready", components: [{ label: "Estate manifest coverage", score: 100, weight: 20 }] }, totals: { tools: 40, risky: 24, covered: 24, partial: 0, uncovered: 0, blocked: 5, coverage_pct: 100 } },
+  estate: { telemetry_evaluations: 10, evidence_chains_verified: 2, evidence_chains_checked: 2, replay_status: "Ready for scoped replay protocol", exposure: {} },
+  environments: [], controlGaps: [], maturity: [], compliance: [], stakeholderEvidence: [], roadmap: [], limitations: [],
+});
+fontChecks(enterprise, "enterprise assessment");
+ok(enterprise.includes("Enterprise Runtime Governance Assessment"), "enterprise assessment: distinct report title");
+ok(enterprise.includes("Production Governance Readiness Score"), "enterprise assessment: detailed readiness section");
+ok(enterprise.includes("Stakeholder evidence programme"), "enterprise assessment: engagement evidence boundary");
+
 for (const filename of [
   "monthly-evidence.html", "monthly-evidence.md", "monthly-evidence.pdf",
   "executive-report.html", "executive-report.md", "executive-report.pdf",
   "full-audit.html", "full-audit.pdf", "full-audit-model.json",
+  "enterprise-assessment.html", "enterprise-assessment.pdf", "enterprise-assessment-model.json",
 ]) ok(deliverables.KINDS[filename] && deliverables.KINDS[filename] !== "File", `Evidence Hub kind: ${filename}`);
 
 if (failed) process.exit(1);
