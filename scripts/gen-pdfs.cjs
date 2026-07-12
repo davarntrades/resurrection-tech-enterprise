@@ -4,8 +4,11 @@
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { resolveChromium } = require("./lib/resolve-chromium.cjs");
 
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// Playwright's managed Chromium (or CHROME_BIN). Revision-proof — never a
+// hard-coded Codespace path. Run `npm run browser:install` if this throws.
+const CHROME = resolveChromium();
 const OUT = path.join(__dirname, "..", "public", "partner-resources");
 const TMP = "/tmp/rt-pdf";
 fs.mkdirSync(OUT, { recursive: true });
