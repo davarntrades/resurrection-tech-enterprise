@@ -1,0 +1,13 @@
+{
+  "name": "rg-renderer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Runtime Governance PDF renderer (Railway, Node + Playwright Chromium)",
+  "scripts": {
+    "start": "node renderer/server.cjs",
+    "preflight": "node scripts/smoke-tests/chromium-smoke.cjs"
+  },
+  "dependencies": {
+    "playwright": "1.61.1"
+  }
+}
