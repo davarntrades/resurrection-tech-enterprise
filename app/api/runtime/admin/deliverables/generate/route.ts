@@ -1,4 +1,4 @@
-/** Runtime Governance — evidence-pack generation (three distinct report types).
+/** Runtime Governance — evidence-pack generation (four distinct report types).
  *
  *   report_type: "monthly_evidence" (default) — concise recurring operational
  *       report from live rg_decisions telemetry (HTML/MD/JSON + optional PDF).
@@ -6,6 +6,9 @@
  *   report_type: "full_audit" — the full 48-Hour Runtime Governance Audit,
  *       a MANIFEST assessment (live /v1/assess on the customer's stored
  *       manifest). Requires a manifest + the Railway renderer.
+ *   report_type: "enterprise_assessment" — organisation-wide, multi-environment
+ *       technical evidence for the 2–6 week Enterprise Assessment engagement.
+ *       Requires at least one stored manifest + the Railway renderer.
  *
  * PDFs render on the dedicated Railway renderer (the only place Chromium runs in
  * production). Fails closed: no pack is created if rendering or upload fails.
@@ -27,12 +30,13 @@ function authorize(req: NextRequest) {
 }
 
 type Upload = { filename: string; bytes: Buffer; mime: string };
-const REPORT_TYPES = ["monthly_evidence", "executive_summary", "full_audit"] as const;
+const REPORT_TYPES = ["monthly_evidence", "executive_summary", "full_audit", "enterprise_assessment"] as const;
 type ReportType = (typeof REPORT_TYPES)[number];
 const PACK_NAME: Record<ReportType, string> = {
   monthly_evidence: "Monthly Governance Evidence",
   executive_summary: "Executive Summary",
   full_audit: "48-Hour Runtime Governance Audit",
+  enterprise_assessment: "Enterprise Runtime Governance Assessment",
 };
 
 export async function POST(req: NextRequest) {
@@ -60,7 +64,28 @@ export async function POST(req: NextRequest) {
     let files: Upload[] = [];
     let notifyExec = false;
 
-    if (report_type === "full_audit") {
+    if (report_type === "enterprise_assessment") {
+      const avail = await rt.enterpriseassessment.availability(org_id);
+      if (!avail.available) return NextResponse.json({ error: avail.reason, report_type, code: "no_manifest" }, { status: 409 });
+      if (!rendererConfigured()) return fail("config", "PDF renderer required for the enterprise assessment (RENDERER_URL/RENDERER_SECRET unset)", 503);
+      let built: any;
+      try { built = await rt.enterpriseassessment.build({ org_id, requested_environment_id: environment_id }); }
+      catch (e: any) {
+        const code = e?.code;
+        if (code === "no_manifest") return NextResponse.json({ error: e.message, report_type, code }, { status: 409 });
+        if (code === "cross_org") return NextResponse.json({ error: e.message }, { status: 403 });
+        return fail("assess", e?.message || "enterprise assessment failed");
+      }
+      let pdfs;
+      try { pdfs = await renderPdfs([{ name: "enterprise-assessment.pdf", html: built.html }]); }
+      catch (e: any) { return fail("render", `PDF rendering failed — no pack created: ${e?.message || e}`); }
+      files = [
+        { filename: "enterprise-assessment.pdf", bytes: pdfs[0].bytes, mime: "application/pdf" },
+        { filename: "enterprise-assessment.html", bytes: Buffer.from(built.html, "utf8"), mime: "text/html; charset=utf-8" },
+        { filename: "enterprise-assessment-model.json", bytes: Buffer.from(JSON.stringify(built.model, null, 2), "utf8"), mime: "application/json" },
+      ];
+      notifyExec = true;
+    } else if (report_type === "full_audit") {
       // Gate: a stored manifest is mandatory (no synthesis from decisions).
       const avail = await rt.fullaudit.availability(org_id, environment_id);
       if (!avail.available) return NextResponse.json({ error: avail.reason, report_type, code: "no_manifest" }, { status: 409 });

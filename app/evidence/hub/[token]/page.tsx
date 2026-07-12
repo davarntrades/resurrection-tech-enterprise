@@ -20,7 +20,7 @@ const SHAREABLE = /\.(pdf|html)$/i;
 const STATUS_LABEL: Record<string, string> = { open: "Open", acknowledged: "Acknowledged", in_progress: "In Progress", resolved: "Resolved" };
 const SEV_COLOR: Record<string, string> = { critical: "#e5484d", high: "#e5893f", medium: "#c9a227", low: "#6b7480" };
 const fmt = (iso?: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "—");
-const kindLabel = (f: string) => (/executive/i.test(f) ? "Executive report" : /\.pdf$/i.test(f) ? "Audit report" : /\.html$/i.test(f) ? "Report (HTML)" : "Evidence");
+const kindLabel = (f: string) => (/enterprise-assessment/i.test(f) ? (/\.pdf$/i.test(f) ? "Enterprise assessment" : "Enterprise assessment (HTML)") : /executive/i.test(f) ? "Executive report" : /full-audit/i.test(f) ? (/\.pdf$/i.test(f) ? "48-Hour Audit" : "48-Hour Audit (HTML)") : /monthly-evidence/i.test(f) ? (/\.pdf$/i.test(f) ? "Monthly evidence" : "Monthly evidence (HTML)") : /\.pdf$/i.test(f) ? "Audit report" : /\.html$/i.test(f) ? "Report (HTML)" : "Evidence");
 
 function Message({ title, body }: { title: string; body: string }) {
   return (

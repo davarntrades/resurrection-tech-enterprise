@@ -67,7 +67,7 @@ export async function sendSecureShareEmail(opts: {
   if (!resend) return { ok: false, error: "email is not configured (RESEND_API_KEY unset)" };
   const { to, url, filename, orgName, expiresAt, note } = opts;
   const expires = expiresAt ? new Date(expiresAt).toUTCString() : null;
-  const kind = /executive/i.test(filename) ? "Executive report" : /\.pdf$/i.test(filename) ? "Audit report" : "Evidence";
+  const kind = /enterprise-assessment/i.test(filename) ? "Enterprise assessment" : /executive/i.test(filename) ? "Executive report" : /full-audit/i.test(filename) ? "48-Hour Audit" : /monthly-evidence/i.test(filename) ? "Monthly evidence" : /\.pdf$/i.test(filename) ? "Audit report" : "Evidence";
   const inner = `
     <div style="color:#f3f5f7;font-size:16px;margin-bottom:6px">${esc(kind)} ready${orgName ? ` for ${esc(orgName)}` : ""}</div>
     <p style="color:#aab2bd;font-size:13px;line-height:1.6;margin:0 0 18px">
