@@ -21,11 +21,14 @@ export async function GET(req: NextRequest) {
   const org_id = sp.get("org_id") || undefined;
   const environment_id = sp.get("environment_id") || undefined;
   try {
-    const [packs, shares] = await Promise.all([
+    const [packs, shares, full_audit] = await Promise.all([
       rt.deliverables.listPacks({ org_id, environment_id }),
       rt.deliverables.listShares({ org_id }),
+      // Full-audit availability gates the "Generate full audit" button — it needs
+      // a stored customer manifest for the live /v1/assess.
+      org_id && environment_id ? rt.fullaudit.availability(org_id, environment_id).catch(() => ({ available: false, reason: "manifest lookup failed" })) : Promise.resolve({ available: false, reason: "environment required" }),
     ]);
-    return NextResponse.json({ packs, shares });
+    return NextResponse.json({ packs, shares, full_audit });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "failed to list deliverables" }, { status: 500 });
   }

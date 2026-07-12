@@ -1030,7 +1030,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const [shareTok, setShareTok] = useState<Record<string, string>>({}); // token per deliverable (for delivery)
   const [emailTo, setEmailTo] = useState<Record<string, string>>({}); const [emailBusyId, setEmailBusyId] = useState("");
   const [emailNote, setEmailNote] = useState<Record<string, string>>({});
-  const [gen, setGen] = useState(false); const [pub, setPub] = useState(false);
+  const [genType, setGenType] = useState(""); const [pub, setPub] = useState(false);
   const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
   const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
   const load = useCallback(async () => {
@@ -1063,10 +1063,10 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
     } catch (e: any) { setEmailNote((n) => ({ ...n, [d.id]: `✗ ${e.message}` })); }
     finally { setEmailBusyId(""); }
   };
-  const generate = async () => {
-    setGen(true); setErr("");
-    try { await api("deliverables/generate", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: "monthly" }) }); await load(); }
-    catch (e: any) { setErr(e.message); } finally { setGen(false); }
+  const generate = async (report_type: string) => {
+    setGenType(report_type); setErr("");
+    try { await api("deliverables/generate", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: "monthly", report_type }) }); await load(); }
+    catch (e: any) { setErr(e.message); } finally { setGenType(""); }
   };
   const publish = async () => {
     if (!files || !files.length) return;
@@ -1085,14 +1085,23 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
   const packs: any[] = data?.packs || [];
 
+  const fullAudit = data?.full_audit || { available: false };
+  const busy = !!genType;
   const ActionBar = (
     <div>
-      <div className="radmin-actionbar">
-        <button className="radmin-btn primary" disabled={gen} onClick={generate}>{gen ? "Generating…" : "Generate evidence pack"}</button>
+      <div className="radmin-actionbar" style={{ flexWrap: "wrap", gap: 8 }}>
+        <button className="radmin-btn primary" disabled={busy} onClick={() => generate("monthly_evidence")}>{genType === "monthly_evidence" ? "Generating…" : "Generate monthly evidence"}</button>
+        <button className="radmin-btn" disabled={busy} onClick={() => generate("executive_summary")}>{genType === "executive_summary" ? "Generating…" : "Generate executive summary"}</button>
+        <button className="radmin-btn" disabled={busy || !fullAudit.available} onClick={() => generate("full_audit")} title={fullAudit.available ? "48-Hour Runtime Governance Audit (manifest assessment)" : fullAudit.reason || "Customer manifest required"}>{genType === "full_audit" ? "Generating…" : "Generate full audit"}</button>
         <button className="radmin-btn" onClick={() => setShowUpload(!showUpload)}>Publish (upload)…</button>
         <span style={{ flex: 1 }} />
         <button className="radmin-btn sm" onClick={() => setShowDev(!showDev)}>Developer</button>
       </div>
+      {!fullAudit.available && (
+        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
+          <b>Full audit unavailable</b> — {fullAudit.reason || "customer manifest required."} Ingest the customer&rsquo;s tool manifest to enable the 48-Hour Audit.
+        </div>
+      )}
       {showUpload && (
         <div className="radmin-upload">
           <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
