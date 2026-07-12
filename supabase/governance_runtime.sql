@@ -373,6 +373,8 @@ create index if not exists rg_recommendations_status_idx on public.rg_recommenda
 create table if not exists public.rg_engagements (
   id                text primary key,
   org_id            text not null unique,
+  stage             text not null default 'prospect'
+    check (stage in ('prospect', 'audit', 'enterprise_assessment', 'limited_pilot', 'enterprise_integration', 'managed_service')),
   next_review_date  date,
   last_review_date  date,
   cadence           text default 'monthly',
@@ -382,6 +384,22 @@ create table if not exists public.rg_engagements (
   created_at        timestamptz default now(),
   updated_at        timestamptz default now()
 );
+-- Idempotent upgrade for projects where rg_engagements predates stage tracking.
+alter table public.rg_engagements
+  add column if not exists stage text not null default 'prospect';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.rg_engagements'::regclass
+      and conname = 'rg_engagements_stage_check'
+  ) then
+    alter table public.rg_engagements
+      add constraint rg_engagements_stage_check
+      check (stage in ('prospect', 'audit', 'enterprise_assessment', 'limited_pilot', 'enterprise_integration', 'managed_service'));
+  end if;
+end
+$$;
 create index if not exists rg_engagements_org_idx on public.rg_engagements(org_id);
 create index if not exists rg_engagements_review_idx on public.rg_engagements(next_review_date);
 
