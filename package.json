@@ -43,6 +43,7 @@
     "runtime:reports": "node scripts/runtime/reports.test.cjs",
     "runtime:report-parity": "node scripts/runtime/report-parity.test.cjs",
     "runtime:enterprise-assessment": "node scripts/runtime/enterprise-assessment.test.cjs",
+    "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test"
   },
