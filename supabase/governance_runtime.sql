@@ -15,9 +15,11 @@ create table if not exists public.rg_orgs (
   name        text not null,
   slug        text unique,
   plan        text default 'pilot',
-  status      text default 'active',
+  status      text default 'active',                       -- active | archived
+  archived_at timestamptz,                                 -- set when archived (operator lifecycle)
   created_at  timestamptz default now()
 );
+alter table public.rg_orgs add column if not exists archived_at timestamptz;
 
 -- Environments: production/staging separation + shadow/enforce mode -----------
 create table if not exists public.rg_environments (
@@ -42,11 +44,13 @@ create table if not exists public.rg_api_keys (
   label          text,
   prefix         text,                                    -- display only
   key_hash       text not null unique,                    -- sha256(key); secret never stored
-  status         text default 'active',
+  status         text default 'active',                   -- active | archived | revoked
+  archived_at    timestamptz,                              -- set when parked by customer archive
   last_used_at   timestamptz,
   created_at     timestamptz default now()
 );
 create index if not exists rg_keys_org_idx on public.rg_api_keys(org_id);
+alter table public.rg_api_keys add column if not exists archived_at timestamptz;
 create index if not exists rg_keys_hash_idx on public.rg_api_keys(key_hash);
 
 -- Manifest versions: immutable, hash-addressed history ------------------------

@@ -527,9 +527,10 @@ function CustomerNotifyControl({ org }: { org: any }) {
 function CustomersPanel() {
   const [orgs, setOrgs] = useState<any[] | null>(null);
   const [err, setErr] = useState("");
+  const [refresh, setRefresh] = useState(0);
   const load = useCallback(async () => {
     setErr("");
-    try { const d = await api("overview"); setOrgs(d.customers || []); }
+    try { const d = await api("overview"); setOrgs(d.customers || []); setRefresh((n) => n + 1); }
     catch (e: any) { setErr(e.message); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -544,6 +545,7 @@ function CustomersPanel() {
   return (
     <div className="radmin-orgs">
       {orgs.map((o) => <CustomerCard key={o.id} o={o} onChange={load} defaultOpen={!collapsible} />)}
+      <ArchivedSection refreshToken={refresh} onRestore={load} />
     </div>
   );
 }
@@ -621,9 +623,69 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}
+          <ArchiveControl org={o} onChange={onChange} />
         </div>
       )}
     </section>
+  );
+}
+
+// Operator-only: archive (pause) a customer. Preserves all evidence; reversible.
+function ArchiveControl({ org, onChange }: { org: any; onChange: () => void }) {
+  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const archive = async () => {
+    if (!window.confirm(`Archive ${org.name}?\n\nThe customer is removed from the active list, ingest credentials are disabled and notifications stop. All evidence, reports, packs, recommendations and engagement history are preserved. You can restore later.`)) return;
+    setBusy(true); setNote("");
+    try {
+      const d = await api("archive", { method: "POST", body: JSON.stringify({ org_id: org.id, action: "archive" }) });
+      if (d.error) setNote(`✗ ${d.error}`); else onChange();
+    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  return (
+    <div className="radmin-row" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line-2)", justifyContent: "flex-end", gap: 8 }}>
+      {note && <span className="radmin-muted" style={{ fontSize: 11 }}>{note}</span>}
+      <button className="radmin-btn sm" disabled={busy} onClick={archive} title="Pause this customer — reversible; preserves all evidence">
+        {busy ? "…" : "Archive customer"}
+      </button>
+    </div>
+  );
+}
+
+// Operator-only: archived customers, restorable. Hidden when none.
+function ArchivedSection({ refreshToken, onRestore }: { refreshToken: number; onRestore: () => void }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  const [open, setOpen] = useState(false); const [busy, setBusy] = useState("");
+  const load = useCallback(async () => {
+    try { const d = await api("archive?archived=1"); setItems(d.archived || []); } catch { setItems([]); }
+  }, []);
+  useEffect(() => { load(); }, [load, refreshToken]);
+  const restore = async (org: any) => {
+    setBusy(org.id);
+    try { await api("archive", { method: "POST", body: JSON.stringify({ org_id: org.id, action: "restore" }) }); await load(); onRestore(); }
+    catch { /* ignore */ } finally { setBusy(""); }
+  };
+  if (!items || !items.length) return null;
+  return (
+    <div style={{ marginTop: 18 }}>
+      <button className="radmin-btn sm" onClick={() => setOpen((o) => !o)}>
+        {open ? "▾" : "▸"} Archived customers ({items.length})
+      </button>
+      {open && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+          {items.map((a) => (
+            <div key={a.id} className="radmin-row" style={{ padding: "10px 12px", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--bg-1, #0b0d10)", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <span>
+                <span style={{ color: "var(--ink, #f3f5f7)", fontSize: 13 }}>{a.name}</span>
+                <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>
+                  archived {a.archived_at ? String(a.archived_at).slice(0, 10) : "—"} · preserved: {a.preserved.reports} reports · {a.preserved.audit_packs} packs · {a.preserved.recommendations} recs
+                </span>
+              </span>
+              <button className="radmin-btn sm primary" disabled={busy === a.id} onClick={() => restore(a)}>{busy === a.id ? "…" : "Restore"}</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
