@@ -6,6 +6,8 @@ const kit = require("../delivery-kit.cjs");
 let failed = 0;
 function ok(value, label) { if (!value) { failed++; console.error(`FAIL: ${label}`); } else console.log(`PASS: ${label}`); }
 function fontChecks(html, family) {
+  ok(html.includes('name="viewport"'), `${family}: mobile viewport is declared`);
+  ok(html.includes("max-width:600px") || html.includes("max-width: 600px"), `${family}: mobile screen layout is present`);
   ok(html.includes("TeX Gyre Pagella") && html.includes("TeX Gyre Heros"), `${family}: both font families selected`);
   const faces = html.match(/@font-face\s*\{[^}]+\}/g) || [];
   ok(faces.length >= 4 && faces.every((x) => /url\(data:font\//.test(x)), `${family}: font faces are embedded data URIs`);

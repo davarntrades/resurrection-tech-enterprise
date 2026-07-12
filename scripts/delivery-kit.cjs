@@ -351,6 +351,7 @@ body{background:#08090b;color:#aab2bd;font-family:"TeX Gyre Heros",Arial,sans-se
 .wrap{padding:40px 46px}
 /* On screen, present as a centred page with room to breathe (PDF keeps @page). */
 @media screen{body{background:#050608;padding:24px 16px}.wrap{max-width:940px;margin:0 auto;border:1px solid rgba(255,255,255,.06);border-radius:8px}}
+@media screen and (max-width:600px){body{padding:0}.wrap{width:100%;margin:0;padding:24px 18px 40px;border:0;border-radius:0}table{table-layout:fixed}td,th{overflow-wrap:anywhere}.evpanel{grid-template-columns:1fr}.check,.pending{columns:1}}
 .brand{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px;margin-bottom:20px}
 .brand b{color:#f3f5f7;font-size:14px}.brand .r{color:#e0a93f}.brand .t{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480}
 .band{background:linear-gradient(180deg,rgba(224,169,63,.14),rgba(224,169,63,.03));border:1px solid #6b4f1c;border-radius:14px;padding:22px 24px;margin-bottom:18px}
@@ -532,6 +533,7 @@ html,body{margin:0;padding:0;background:#fff;color:#212121;font-family:"TeX Gyre
 /* On screen the @page margins don't apply, so render a centred white page with
    generous margins on a soft grey backdrop — matching how the PDF looks. */
 @media screen{html,body{background:#e7e7ea}.wrap{max-width:850px;margin:32px auto;padding:64px 72px;background:#fff;box-shadow:0 1px 28px rgba(0,0,0,.14);border-radius:3px}}
+@media screen and (max-width:600px){html,body{background:#fff}.wrap{width:100%;margin:0;padding:24px 18px 40px;box-shadow:none;border-radius:0}table{table-layout:fixed}td,th{overflow-wrap:anywhere}.evpanel{grid-template-columns:1fr}.check,.pending{columns:1}}
 .eyebrow,.brand b,.brand .t,.meta .k,th,td.n,.tag,.kpi .k,.legend,.foot,.badge,.verified,.ct,.lbl,h1,h2{font-family:"TeX Gyre Heros","Helvetica Neue",Arial,sans-serif}
 .brand{display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.5pt solid #b8b8b8;padding-bottom:8px;margin-bottom:18px}
 .brand b{font-weight:700;color:#212121;font-size:11pt;letter-spacing:.02em}.brand .r{color:#212121}
@@ -682,7 +684,7 @@ const ACTIVE_CSS = EDITORIAL ? CSS_EDITORIAL : CSS;
 const brand = EDITORIAL
   ? `<div class="brand"><b>Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`
   : `<div class="brand"><b><span class="r">&#8475;(t)</span>&nbsp;&nbsp;Resurrection Tech&trade;</b><span class="t">Runtime Governance</span></div>`;
-const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${ACTIVE_CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
+const page = (title, inner) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${ACTIVE_CSS}</style></head><body><div class="wrap">${brand}${inner}<div class="foot"><span>Resurrection Tech&trade;</span><span>${esc(title)}</span><span>Patent GB2600765.8</span></div></div></body></html>`;
 // Optional customer co-branding: a logo (URL or data URI) and/or org name shown
 // alongside the Resurrection Tech band, so the cover reads as bespoke.
 const coBrand = (c) => {
