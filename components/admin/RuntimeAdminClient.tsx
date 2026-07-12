@@ -651,6 +651,62 @@ function ArchiveControl({ org, onChange }: { org: any; onChange: () => void }) {
   );
 }
 
+// Operator-only: PERMANENT deletion of a (test) organisation. Two gates — a
+// dependency preview and typing the exact org name/slug — then fail-closed delete.
+function DeleteControl({ org, onDeleted }: { org: any; onDeleted: () => void }) {
+  const [stage, setStage] = useState<"idle" | "preview">("idle");
+  const [preview, setPreview] = useState<any>(null);
+  const [typed, setTyped] = useState(""); const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const openPreview = async () => {
+    setBusy(true); setNote(""); setTyped("");
+    try { const d = await api(`delete-customer?org_id=${encodeURIComponent(org.id)}`); setPreview(d.preview); setStage("preview"); }
+    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  const matches = typed.trim() === org.name || (org.slug && typed.trim() === org.slug);
+  const doDelete = async () => {
+    if (!matches) return;
+    setBusy(true); setNote("");
+    try {
+      const d = await api("delete-customer", { method: "POST", body: JSON.stringify({ org_id: org.id, confirm: typed.trim() }) });
+      if (d.error) setNote(`✗ ${d.error}${d.failed_step ? ` (at ${d.failed_step})` : ""}`);
+      else onDeleted();
+    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
+  };
+  if (stage === "idle") {
+    return (
+      <div className="radmin-row" style={{ marginTop: 8, justifyContent: "flex-end", gap: 8 }}>
+        {note && <span className="radmin-muted" style={{ fontSize: 11 }}>{note}</span>}
+        <button className="radmin-btn sm" disabled={busy} onClick={openPreview} style={{ borderColor: "rgba(229,72,77,.5)", color: "#e5484d" }}>Delete permanently</button>
+      </div>
+    );
+  }
+  const c = preview?.counts || {};
+  const rows: [string, number][] = [
+    ["Environments", c.environments], ["Credentials", c.api_keys], ["Evaluations", c.decisions],
+    ["Reports", c.reports], ["Audit packs", c.audit_packs], ["Deliverables", c.deliverables],
+    ["Secure shares", c.shares], ["Evidence Hub", c.hubs], ["Recommendations", c.recommendations],
+    ["Engagements", c.engagements],
+  ];
+  return (
+    <div style={{ marginTop: 10, padding: "12px 14px", border: "1px solid rgba(229,72,77,.5)", borderRadius: 9, background: "rgba(229,72,77,.06)" }}>
+      <div style={{ color: "#e5484d", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Permanent deletion — irreversible</div>
+      <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 8 }}>
+        This deletes {preview?.total_records ?? 0} organisation-scoped records. The operator audit trail ({preview?.preserved?.operator_audit_entries ?? 0} entries) is preserved.
+      </div>
+      <ul style={{ listStyle: "none", padding: 0, margin: "0 0 10px", display: "flex", flexWrap: "wrap", gap: "2px 16px" }}>
+        {rows.map(([k, v]) => <li key={k} className="radmin-muted" style={{ fontSize: 11 }}>{k}: <span style={{ color: "var(--ink2, #aab2bd)" }}>{v ?? 0}</span></li>)}
+      </ul>
+      <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 4 }}>Type <b style={{ color: "var(--ink, #f3f5f7)" }}>{org.name}</b>{org.slug ? <> or <b style={{ color: "var(--ink, #f3f5f7)" }}>{org.slug}</b></> : null} to confirm:</div>
+      <div className="radmin-row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="exact organisation name or slug" autoFocus />
+        <button className="radmin-btn sm" disabled={!matches || busy} onClick={doDelete} style={{ borderColor: "rgba(229,72,77,.6)", color: matches ? "#e5484d" : undefined }}>{busy ? "Deleting…" : "Delete permanently"}</button>
+        <button className="radmin-btn sm" disabled={busy} onClick={() => { setStage("idle"); setNote(""); }}>Cancel</button>
+      </div>
+      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 6 }}>{note}</div>}
+    </div>
+  );
+}
+
 // Operator-only: archived customers, restorable. Hidden when none.
 function ArchivedSection({ refreshToken, onRestore }: { refreshToken: number; onRestore: () => void }) {
   const [items, setItems] = useState<any[] | null>(null);
@@ -673,14 +729,17 @@ function ArchivedSection({ refreshToken, onRestore }: { refreshToken: number; on
       {open && (
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
           {items.map((a) => (
-            <div key={a.id} className="radmin-row" style={{ padding: "10px 12px", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--bg-1, #0b0d10)", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-              <span>
-                <span style={{ color: "var(--ink, #f3f5f7)", fontSize: 13 }}>{a.name}</span>
-                <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>
-                  archived {a.archived_at ? String(a.archived_at).slice(0, 10) : "—"} · preserved: {a.preserved.reports} reports · {a.preserved.audit_packs} packs · {a.preserved.recommendations} recs
+            <div key={a.id} style={{ padding: "10px 12px", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--bg-1, #0b0d10)" }}>
+              <div className="radmin-row" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <span>
+                  <span style={{ color: "var(--ink, #f3f5f7)", fontSize: 13 }}>{a.name}</span>
+                  <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>
+                    archived {a.archived_at ? String(a.archived_at).slice(0, 10) : "—"} · preserved: {a.preserved.reports} reports · {a.preserved.audit_packs} packs · {a.preserved.recommendations} recs
+                  </span>
                 </span>
-              </span>
-              <button className="radmin-btn sm primary" disabled={busy === a.id} onClick={() => restore(a)}>{busy === a.id ? "…" : "Restore"}</button>
+                <button className="radmin-btn sm primary" disabled={busy === a.id} onClick={() => restore(a)}>{busy === a.id ? "…" : "Restore"}</button>
+              </div>
+              <DeleteControl org={a} onDeleted={() => { load(); onRestore(); }} />
             </div>
           ))}
         </div>
