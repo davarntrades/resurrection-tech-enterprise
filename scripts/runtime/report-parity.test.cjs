@@ -20,6 +20,9 @@ const monthly = reports.toHtml({
   trajectories: 1, would_block: 0, human_review: 0, latency: {}, top_rules: [], top_omega: [], recommendations: [], enforced: true,
 });
 fontChecks(monthly, "monthly evidence");
+ok(monthly.includes("Resurrection Tech&trade; &middot; Confidential"), "monthly evidence: editorial confidentiality header");
+ok(monthly.includes("Patent GB2600765.8"), "monthly evidence: branded editorial footer");
+ok(monthly.includes("Evidence at a glance"), "monthly evidence: concise evidence structure retained");
 
 const full = kit.auditHtml(
   { name: "Parity Test", environment: "production", reference: "RG-TEST" },
