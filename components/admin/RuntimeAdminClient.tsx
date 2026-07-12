@@ -331,16 +331,16 @@ function EngagementControl({ org, onChange }: { org: any; onChange?: () => void 
         </span>
         <button className="radmin-btn sm" onClick={() => setOpenState((o) => !o)}>{open ? "Close" : "Manage"}</button>
       </div>
+      <div>
+        <div className="radmin-muted" style={{ fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 5 }}>Set company stage</div>
+        <div className="radmin-row" style={{ gap: 6, flexWrap: "wrap" }}>
+          {ENGAGEMENT_STAGES.map(([key, label]) => (
+            <button key={key} className={`radmin-btn sm${eng.stage === key ? " primary" : ""}`} disabled={busy || eng.stage === key} onClick={() => save({ stage: key })}>{label}</button>
+          ))}
+        </div>
+      </div>
       {open && (
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div>
-            <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 5 }}>Commercial delivery stage</div>
-            <div className="radmin-row" style={{ gap: 6, flexWrap: "wrap" }}>
-              {ENGAGEMENT_STAGES.map(([key, label]) => (
-                <button key={key} className={`radmin-btn sm${eng.stage === key ? " primary" : ""}`} disabled={busy || eng.stage === key} onClick={() => save({ stage: key })}>{label}</button>
-              ))}
-            </div>
-          </div>
           <div className="radmin-row" style={{ gap: 8, flexWrap: "wrap" }}>
             <label className="radmin-muted" style={{ fontSize: 11 }}>Next review
               <input className="radmin-select" type="date" defaultValue={eng.next_review_date || ""} disabled={busy}
@@ -631,12 +631,12 @@ function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => vo
       {open && (
         <div className="radmin-cust-body">
           <code className="radmin-muted">{o.id}</code>
+          <EngagementControl org={o} onChange={onChange} />
           <LifecyclePanel lc={lc} />
           <CustomerBadges b={o.badges} />
           <EvidenceHubControl org={o} />
           <RecommendationsControl org={o} />
           <CustomerNotifyControl org={o} />
-          <EngagementControl org={o} onChange={onChange} />
           {(o.environments || []).map((e: any) => (
             <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
           ))}
