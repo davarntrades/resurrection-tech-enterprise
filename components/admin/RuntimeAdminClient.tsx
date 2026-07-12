@@ -1109,6 +1109,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
   const packs: any[] = data?.packs || [];
 
   const fullAudit = data?.full_audit || { available: false };
+  const enterpriseAssessment = data?.enterprise_assessment || { available: false };
   const busy = !!genType;
   const ActionBar = (
     <div>
@@ -1116,6 +1117,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
         <button className="radmin-btn primary" disabled={busy} onClick={() => generate("monthly_evidence")}>{genType === "monthly_evidence" ? "Generating…" : "Generate monthly evidence"}</button>
         <button className="radmin-btn" disabled={busy} onClick={() => generate("executive_summary")}>{genType === "executive_summary" ? "Generating…" : "Generate executive summary"}</button>
         <button className="radmin-btn" disabled={busy || !fullAudit.available} onClick={() => generate("full_audit")} title={fullAudit.available ? "48-Hour Runtime Governance Audit (manifest assessment)" : fullAudit.reason || "Customer manifest required"}>{genType === "full_audit" ? "Generating…" : "Generate full audit"}</button>
+        <button className="radmin-btn" disabled={busy || !enterpriseAssessment.available} onClick={() => generate("enterprise_assessment")} title={enterpriseAssessment.available ? "Organisation-wide, multi-environment Enterprise Runtime Governance Assessment" : enterpriseAssessment.reason || "At least one customer manifest required"}>{genType === "enterprise_assessment" ? "Generating…" : "Generate enterprise assessment"}</button>
         <button className="radmin-btn" disabled={busy || manifestBusy} onClick={() => { setShowManifest(!showManifest); setManifestStatus(""); }}>{fullAudit.available ? "Replace manifest…" : "Upload customer manifest…"}</button>
         <button className="radmin-btn" onClick={() => setShowUpload(!showUpload)}>Publish (upload)…</button>
         <span style={{ flex: 1 }} />
@@ -1129,6 +1131,11 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
       {fullAudit.available && (
         <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
           <b>Full audit ready</b> — {fullAudit.tool_count || 0} tools · manifest version {fullAudit.manifest_version || "current"}.
+        </div>
+      )}
+      {enterpriseAssessment.available && (
+        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
+          <b>Enterprise assessment ready</b> — {enterpriseAssessment.assessed_environment_count || 0}/{enterpriseAssessment.environment_count || 0} environments · {enterpriseAssessment.tool_count || 0} tools in assessed scope.
         </div>
       )}
       {showManifest && (
