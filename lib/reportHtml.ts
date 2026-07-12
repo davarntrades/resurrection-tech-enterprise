@@ -24,7 +24,7 @@ export function buildExecutiveReportHtml(report: any, summary: any, orgName?: st
   const t = report?.totals || {};
   const li = (arr: string[]) => arr.map((x) => `<li>${esc(x)}</li>`).join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>
 <style>
   ${FONT_FACE_CSS}
   @page { size: A4; margin: 20mm 18mm; }
@@ -46,6 +46,16 @@ export function buildExecutiveReportHtml(report: any, summary: any, orgName?: st
   td, th { text-align: left; padding: 7px 0; border-bottom: 1px solid #e6e9ee; }
   th { color: #6b7480; font-weight: 500; letter-spacing: .04em; width: 46%; }
   .foot { font-family: "TeX Gyre Heros", Arial, sans-serif; font-size: 8pt; color: #8a929c; letter-spacing: .08em; margin-top: 26px; }
+  @media screen {
+    body { max-width: 900px; margin: 32px auto; padding: 40px 48px; }
+  }
+  @media screen and (max-width: 600px) {
+    body { width: 100%; margin: 0; padding: 24px 18px 40px; overflow-wrap: anywhere; }
+    h1 { font-size: 20pt; }
+    table { table-layout: fixed; }
+    th { width: 58%; }
+    td, th { overflow-wrap: anywhere; }
+  }
 </style></head>
 <body>
   <div class="eyebrow">Resurrection Tech&trade; &middot; Confidential</div>
