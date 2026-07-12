@@ -21,6 +21,7 @@
     "audit:chrome:install": "bash scripts/install-chromium.sh",
     "browser:install": "playwright install chromium",
     "browser:smoke": "node scripts/smoke-tests/chromium-smoke.cjs",
+    "renderer": "node renderer/server.cjs",
     "audit:selftest": "node scripts/delivery-kit.cjs --selftest",
     "audit:setup": "bash scripts/setup-delivery.sh",
     "smoke:enterprise": "node scripts/smoke-tests/enterprise-regression.cjs --report",
