@@ -1760,6 +1760,93 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + `<div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Tool names, verdicts, Ω domains and evidence hashes are taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms are non-binding and follow deployment review.</div>`);
 }
 
+// ---- ENTERPRISE ASSESSMENT -------------------------------------------------
+// Organisation-wide companion to the single-environment 48-Hour Audit. It
+// deliberately uses the same editorial shell, embedded fonts and print rules,
+// while rendering a different evidence contract and deeper engagement scope.
+function enterpriseAssessmentHtml(model) {
+  const org = (model && model.organisation) || {};
+  const scope = model.scope || {};
+  const executive = model.executive || {};
+  const readiness = executive.readiness || { score: 0, band: "Not assessed", components: [] };
+  const totals = executive.totals || {};
+  const estate = model.estate || {};
+  const environments = model.environments || [];
+  const gaps = model.controlGaps || [];
+  const riskClass = readiness.score >= 85 ? "low" : readiness.score >= 70 ? "medium" : readiness.score >= 50 ? "high" : "critical";
+  const statusClass = (s) => /covered|available|established|operational|ready/i.test(String(s)) ? "cov" : /partial|developing|conditional/i.test(String(s)) ? "par" : "unc";
+  const fmtPct = (v) => v == null ? "Not measured" : `${v}%`;
+  const meta = [["Customer", org.name || "—"], ["Scope", `${scope.assessed_environments || 0}/${scope.active_environments || 0} active environments`], ["Reference", model.reference || "—"], ["Classification", model.classification || "Confidential"]];
+
+  const boardDecision = `<div class="sec"><span class="eyebrow">Board decision summary</span><h2>Can the organisation proceed?</h2>
+    <div class="verdict">
+      <div class="vcard lead r-${riskClass}"><span class="vk">Recommended decision</span><span class="vv vv-sm">${esc(executive.decision || "Not assessed")}</span><span class="vsub">Evidence-based technical readiness across the assessed estate.</span></div>
+      <div class="vcard"><span class="vk">Readiness score</span><span class="vv">${esc(String(readiness.score))}/100</span><span class="vsub">${esc(readiness.band)}</span></div>
+      <div class="vcard"><span class="vk">Reachable Ω coverage</span><span class="vv">${esc(fmtPct(totals.coverage_pct))}</span><span class="vsub">${totals.uncovered || 0} uncovered · ${totals.partial || 0} partial</span></div>
+      <div class="vcard"><span class="vk">Priority control gaps</span><span class="vv">${gaps.filter((g) => /Critical|High/i.test(g.severity)).length}</span><span class="vsub">Critical and high-priority actions.</span></div>
+    </div>
+    <p class="disclaimer">This decision summarises available technical evidence. Final production approval remains with the customer’s authorised executive, risk, compliance and technical stakeholders.</p></div>`;
+
+  const glance = `<div class="sec"><span class="eyebrow">Enterprise estate at a glance</span><h2>The assessed governance posture, in under a minute.</h2>
+    <div class="kpis">
+      <div class="kpi"><span class="v">${scope.active_environments ?? "—"}</span><span class="k">Active environments</span></div>
+      <div class="kpi"><span class="v">${scope.assessed_environments ?? "—"}</span><span class="k">Assessed environments</span></div>
+      <div class="kpi"><span class="v">${totals.tools ?? "—"}</span><span class="k">Tools assessed</span></div>
+      <div class="kpi"><span class="v">${totals.risky ?? "—"}</span><span class="k">Risk-bearing tools</span></div>
+      <div class="kpi"><span class="v">${totals.blocked ?? "—"}</span><span class="k">Verified blocks</span></div>
+      <div class="kpi"><span class="v">${estate.telemetry_evaluations ?? "—"}</span><span class="k">Runtime decisions</span></div>
+    </div>
+    <ul class="glance">
+      <li><b>${esc(fmtPct(scope.manifest_coverage_pct))}</b> of the active environment estate has an assessed customer manifest.</li>
+      <li><b>${esc(fmtPct(totals.coverage_pct))}</b> of identified risk-bearing tool pathways are covered.</li>
+      <li><b>${estate.evidence_chains_verified || 0}/${estate.evidence_chains_checked || 0}</b> checked evidence chains verified intact.</li>
+      <li><b>Replay:</b> ${esc(estate.replay_status || "Not assessed")}</li>
+    </ul></div>`;
+
+  const environmentTable = `<div class="sec page-break"><span class="eyebrow">Cross-environment assessment</span><h2>Governance posture across the enterprise estate.</h2>
+    <table><thead><tr><th>Environment</th><th>Mode</th><th>Manifest</th><th>Tools / risky</th><th>Ω coverage</th><th>Evidence</th></tr></thead><tbody>
+      ${environments.map((x) => { const s = x.summary || {}; return `<tr><td class="m">${esc(x.name || x.kind || x.id)}</td><td><span class="tag ${x.mode === "enforce" ? "cov" : "par"}">${esc(x.mode || "—")}</span></td><td>v${esc(String(x.manifest_version || "—"))}</td><td>${s.tools ?? (x.tools || []).length} / ${s.risky ?? "—"}</td><td>${esc(fmtPct(s.coverage_pct))}</td><td>${x.evidence_chain_intact === true ? "Chain verified" : x.evidence_chain_intact === false ? "Chain issue" : "Not checked"}</td></tr>`; }).join("") || `<tr><td colspan="6">No assessed environments.</td></tr>`}
+    </tbody></table>
+    ${scope.assessed_environments < scope.active_environments ? `<div class="warn">Estate scope is incomplete: ${scope.active_environments - scope.assessed_environments} active environment${scope.active_environments - scope.assessed_environments === 1 ? " has" : "s have"} no assessed manifest and therefore cannot be included in the technical findings.</div>` : ""}</div>`;
+
+  const exposureRows = Object.entries(estate.exposure || {});
+  const exposure = `<div class="sec"><span class="eyebrow">Enterprise Ω exposure map</span><h2>Reachable forbidden states across assessed environments.</h2>
+    <table><thead><tr><th>Risk class</th><th>Status</th><th>Tools</th><th>Environments</th><th>Controls / rules</th></tr></thead><tbody>
+      ${exposureRows.map(([name, x]) => `<tr><td class="m">${esc(name)}</td><td><span class="tag ${statusClass(x.status)}">${esc(x.status)}</span></td><td class="n">${x.tools ?? "—"}</td><td class="n">${x.environment_count ?? "—"}</td><td>${esc((x.rules || []).join(", ") || "—")}</td></tr>`).join("") || `<tr><td colspan="5">No Ω exposure evidence was returned.</td></tr>`}
+    </tbody></table></div>`;
+
+  const gapSection = `<div class="sec page-break"><span class="eyebrow">Governance architecture and control gaps</span><h2>What must change before broader rollout.</h2>
+    ${gaps.length ? gaps.map((g, i) => `<div class="tcase"><div class="th"><span class="tn">${i + 1}. ${esc(g.title)}</span><span class="rt ${g.severity === "Critical" ? "crit" : g.severity === "High" ? "high" : "med"}">${esc(g.severity)}</span></div><div class="explain"><span class="ek">Evidence</span><span class="ev">${esc(g.evidence)}</span><span class="ek">Required action</span><span class="ev">${esc(g.action)}</span></div></div>`).join("") : `<div class="status"><span class="lbl">Finding</span><p>No technical control gaps were identified in the evidence supplied. Stakeholder and documentary controls still require validation.</p></div>`}</div>`;
+
+  const maturity = `<div class="sec"><span class="eyebrow">Governance maturity</span><h2>Operational capability by governance domain.</h2>
+    <table><thead><tr><th>Domain</th><th>Status</th><th>Evidence basis</th></tr></thead><tbody>${(model.maturity || []).map((x) => `<tr><td class="m">${esc(x.domain)}</td><td><span class="tag ${statusClass(x.status)}">${esc(x.status)}</span></td><td>${esc(x.evidence)}</td></tr>`).join("")}</tbody></table></div>`;
+
+  const compliance = `<div class="sec page-break"><span class="eyebrow">Regulatory and control-framework mapping</span><h2>Where the technical evidence supports assurance.</h2>
+    <table><thead><tr><th>Framework</th><th>Control area</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${(model.compliance || []).map((x) => `<tr><td class="m">${esc(x.framework)}</td><td>${esc(x.control)}</td><td><span class="tag ${statusClass(x.status)}">${esc(x.status)}</span></td><td>${esc(x.evidence)}</td></tr>`).join("")}</tbody></table>
+    <p class="disclaimer">Framework mapping identifies technical evidence relevant to control review. It does not constitute certification, conformity assessment or legal advice.</p></div>`;
+
+  const blocks = environments.flatMap((x) => (x.blocked_trajectories || []).map((b) => ({ ...b, environment: x.name || x.kind })));
+  const blockSection = `<div class="sec"><span class="eyebrow">Representative verified blocks</span><h2>High-consequence trajectories intercepted by the engine.</h2>
+    ${blocks.length ? `<table><thead><tr><th>Environment</th><th>Trajectory / tool</th><th>Ω domain</th><th>Evidence hash</th></tr></thead><tbody>${blocks.slice(0, 20).map((b) => `<tr><td>${esc(b.environment)}</td><td class="m">${esc(b.label || b.tool || b.name || "Blocked trajectory")}</td><td>${esc(b.omega_domain || b.domain || "—")}</td><td class="m">${esc(String(b.hash || "—").slice(0, 16))}</td></tr>`).join("")}</tbody></table>${blocks.length > 20 ? `<p style="color:#737373">Showing 20 of ${blocks.length} verified blocks. Complete evidence remains in the assessment model.</p>` : ""}` : `<p style="color:#737373">No grounded blocked trajectories were returned for the assessed scope.</p>`}</div>`;
+
+  const stakeholders = `<div class="sec"><span class="eyebrow">Stakeholder evidence programme</span><h2>Evidence completed during the 2–6 week engagement.</h2><ul class="pending">${(model.stakeholderEvidence || []).map((x) => `<li>${esc(x.item)}<small>${esc(x.status)}</small></li>`).join("")}</ul><div class="warn">These organisational findings cannot be inferred from code or runtime telemetry. They remain explicitly pending until the relevant executive, risk, compliance and technical workshops are completed.</div></div>`;
+
+  const roadmap = `<div class="sec page-break"><span class="eyebrow">Prioritised remediation and implementation roadmap</span><h2>From present exposure to governed deployment.</h2>
+    ${(model.roadmap || []).map((phase) => `<div class="eng-block" style="margin-top:10px"><span class="eng-k">${esc(phase.horizon)}</span>${(phase.actions || []).length ? `<ul class="eng-list">${phase.actions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : `<p class="eng-v">No additional actions identified from the current technical evidence.</p>`}</div>`).join("")}
+    <div class="status"><span class="lbl">Recommended next engagement</span><p>${readiness.score >= 85 ? "Progress to a governed Limited Pilot™ with agreed production workflows and success criteria." : "Complete the priority remediation actions, verify closure, then scope the Limited Pilot™."}</p></div></div>`;
+
+  const method = `<div class="sec"><span class="eyebrow">Production Governance Readiness Score</span><h2>Transparent scoring—not a black box.</h2><div class="confhead"><span class="conf-pct r-${riskClass}">${readiness.score}</span><span class="conf-t"><b>${esc(readiness.band)}</b><span>Weighted technical readiness score out of 100.</span></span></div>
+    <table><thead><tr><th>Component</th><th>Measured score</th><th>Weight</th><th>Contribution</th></tr></thead><tbody>${(readiness.components || []).map((x) => `<tr><td class="m">${esc(x.label)}</td><td class="n">${esc(fmtPct(x.score))}</td><td class="n">${x.weight}%</td><td class="n">${Math.round(x.score * x.weight / 100)}</td></tr>`).join("")}</tbody></table>
+    <p class="disclaimer">The readiness score measures the technical evidence available to Runtime Governance. It does not replace the customer’s formal risk acceptance, legal review, security accreditation or production change approval.</p></div>`;
+
+  const limitations = `<div class="sec"><span class="eyebrow">Scope, limitations and evidence boundaries</span><h2>What this generated assessment does—and does not—establish.</h2><ul class="check">${(model.limitations || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  const signoff = `<div class="sec page-break signature"><div class="sig-mark">&#8475;(t)</div><h2 class="sig-h">Enterprise Runtime Governance Assessment prepared.</h2><ul class="sig-list"><li>Generated from stored customer manifests and live Runtime Governance engine evidence.</li><li>Cross-environment findings are traceable to the attached assessment model.</li><li>Unmeasured and stakeholder-dependent evidence is marked explicitly.</li><li>Ready for executive, technical, risk and compliance review.</li></ul><div class="sig-foot">Resurrection Tech&trade; · Runtime Governance · Patent GB2600765.8</div></div>`;
+
+  return page("Enterprise Runtime Governance Assessment", bandBlock("Enterprise Runtime Governance Assessment™", org.name || "Customer", "Multi-environment · cross-system governance evidence · 2–6 week engagement", meta, { name: org.name })
+    + boardDecision + glance + environmentTable + exposure + gapSection + maturity + compliance + blockSection + stakeholders + roadmap + method + limitations + signoff
+    + `<div class="disc">Generated from the live Runtime Governance engine assessment of stored customer manifests and available runtime evidence. Missing evidence is marked explicitly and is never represented as measured.</div>`);
+}
+
 // ---- governance journey stepper (shared across report modes) ----------------
 const JOURNEY = ["Assessment", "48-Hour Audit", "Deployment-Ready Report", "Limited Pilot™", "Live Runtime Report", "Monthly Evidence"];
 function journeyHtml(currentIdx) {
@@ -2134,7 +2221,7 @@ module.exports = {
   // Full 48-Hour Audit generator (reused by the web Generate-full-audit flow —
   // lib/runtime/fullaudit.js). auditHtml is self-contained: every section helper
   // it calls is module-scoped, so exporting it reuses the whole generator.
-  auditHtml, executiveVerdict, recommendEngagement, governanceConfidence,
+  auditHtml, enterpriseAssessmentHtml, executiveVerdict, recommendEngagement, governanceConfidence,
 };
 
 if (require.main === module) (async () => {
