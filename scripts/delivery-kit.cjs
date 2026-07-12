@@ -26,6 +26,7 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { resolveChromium } = require("./lib/resolve-chromium.cjs");
 
 // Auto-load .env.delivery / .env.local (KEY=VALUE) so analysts never re-export
 // GOVERNANCE_URL / GOVERNANCE_TOKEN / CHROME_BIN each session. Real env wins.
@@ -55,78 +56,11 @@ const emitCheck = (ok, label) => { if (process.env.RT_CONSOLE) process.stdout.wr
 const emitError = (msg) => { if (process.env.RT_CONSOLE) process.stdout.write(`__ERROR__:${String(msg).replace(/\n/g, " ")}\n`); };
 
 // ---- portable Chromium discovery -------------------------------------------
-// Browsers downloaded by Playwright (chromium-<rev>/chrome-linux/chrome) or
-// Puppeteer (chrome/linux-*/chrome-linux64/chrome), across the default cache
-// dirs a no-sudo Codespace install uses, plus any explicit base.
-function browserCacheCandidates() {
-  const home = os.homedir();
-  const out = [];
-  const pwBases = [process.env.PLAYWRIGHT_BROWSERS_PATH, path.join(home, ".cache", "ms-playwright"), "/opt/pw-browsers", path.join(home, "Library", "Caches", "ms-playwright")].filter(Boolean);
-  for (const base of pwBases) {
-    try {
-      for (const d of fs.readdirSync(base)) {
-        if (!/^chromium/.test(d)) continue;
-        out.push(
-          path.join(base, d, "chrome-linux", "chrome"),
-          path.join(base, d, "chrome-linux64", "chrome"),
-          path.join(base, d, "chrome-linux", "headless_shell"),
-          path.join(base, d, "chrome-headless-shell-linux", "chrome-headless-shell"),
-          path.join(base, d, "chrome-headless-shell-linux64", "chrome-headless-shell"),
-          path.join(base, d, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
-        );
-      }
-    } catch { /* base absent */ }
-  }
-  const pupBases = [process.env.PUPPETEER_CACHE_DIR && path.join(process.env.PUPPETEER_CACHE_DIR, "chrome"), path.join(home, ".cache", "puppeteer", "chrome")].filter(Boolean);
-  for (const base of pupBases) {
-    try {
-      for (const d of fs.readdirSync(base)) {
-        out.push(
-          path.join(base, d, "chrome-linux64", "chrome"),
-          path.join(base, d, "chrome-mac-x64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
-        );
-      }
-    } catch { /* base absent */ }
-  }
-  return out;
-}
-// Browsers bundled in the repo (./chrome) or via npm (node_modules/.bin).
-// @puppeteer/browsers installs to ./chrome/<platform>-<build>/chrome-<platform>/chrome
-// (e.g. ./chrome/linux-150xxxx/chrome-linux64/chrome), so scan the versioned
-// subdirectories — not just fixed paths.
-function localChromeCandidates() {
-  const root = path.join(__dirname, "..");
-  const chromeDir = path.join(root, "chrome");
-  const out = [
-    path.join(chromeDir, "chrome"),
-    path.join(chromeDir, "chrome-linux", "chrome"),
-    path.join(chromeDir, "chrome-linux64", "chrome"),
-    path.join(root, "node_modules", ".bin", "chromium"),
-  ];
-  try {
-    for (const d of fs.readdirSync(chromeDir)) {
-      out.push(
-        path.join(chromeDir, d, "chrome-linux64", "chrome"),
-        path.join(chromeDir, d, "chrome-linux", "chrome"),
-        path.join(chromeDir, d, "chrome"),
-        path.join(chromeDir, d, "chrome-headless-shell-linux64", "chrome-headless-shell"),
-        path.join(chromeDir, d, "chrome-mac-x64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
-        path.join(chromeDir, d, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
-      );
-    }
-  } catch { /* no ./chrome dir */ }
-  return out;
-}
-function fromPath() {
-  // `which` is a real binary (no shell), avoiding the DEP0190 warning that
-  // `execFileSync("command", …, {shell})` triggers on newer Node. Return ALL
-  // matches so resolveChrome can verify each (a name may point at a snap stub).
-  const out = [];
-  for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser"]) {
-    try { const p = execFileSync("which", [name], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); if (p) out.push(p); } catch { /* not on PATH */ }
-  }
-  return out;
-}
+// The Chromium binary is resolved by scripts/lib/resolve-chromium.cjs: an
+// explicit CHROME_BIN override, else Playwright's managed Chromium (the browser
+// `npm run browser:install` downloads). No apt / snap / Codespace-specific
+// paths — the same managed browser is used in every environment.
+//
 // A path "exists" is not enough: the Ubuntu chromium-browser snap stub exists but
 // only prints "requires the chromium snap to be installed" and exits non-zero.
 // A binary is USABLE only if `<bin> --version` exits 0 and looks like a browser.
@@ -149,26 +83,13 @@ function chromeUsable(bin) {
   return ok;
 }
 function resolveChrome() {
-  // Preference order: explicit override → repo-bundled → Playwright/Puppeteer
-  // downloads → real system browsers → PATH. Every candidate must pass the
-  // usability check, so a snap stub is never selected even though it exists.
-  const candidates = [
-    process.env.CHROME_BIN,
-    ...localChromeCandidates(),
-    ...browserCacheCandidates(),
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser", // snap stub on Ubuntu — rejected by chromeUsable()
-    "/snap/bin/chromium",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    ...fromPath(),
-  ].filter(Boolean);
-  for (const p of candidates) { if (chromeUsable(p)) return p; }
-  return null;
+  // CHROME_BIN override → Playwright's managed Chromium (scripts/lib/
+  // resolve-chromium.cjs). No system/snap/PATH scanning. Still usability-checked
+  // so a broken binary is never returned.
+  const chrome = resolveChromium({ required: false });
+  return chrome && chromeUsable(chrome) ? chrome : null;
 }
-const CHROME_NOT_FOUND = "No usable Chromium found (a snap stub doesn't count). Run:  npm run audit:chrome:install   (or set CHROME_BIN=/path/to/real/chrome)";
+const CHROME_NOT_FOUND = "No usable Chromium found. Run:  npm run browser:install   (or set CHROME_BIN=/path/to/real/chrome)";
 const TOKEN = process.env.GOVERNANCE_TOKEN;
 // Masked, one-way token fingerprint (length + sha256 prefix) — never logs the
 // raw token; matches the engine's fingerprint so client vs server can compare.
