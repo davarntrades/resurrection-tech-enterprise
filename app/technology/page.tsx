@@ -89,6 +89,89 @@ export default function Page() {
 
       <hr className="divider" />
 
+      {/* ===== UNIVERSAL GOVERNANCE LAYER — full stack view (relocated from the homepage) ===== */}
+      <section className="section section--tight" id="stack" aria-label="Universal governance layer — full stack view">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Universal governance layer</span>
+            <h2>The full stack view.</h2>
+            <p>
+              Runtime Governance does not depend on model weights, architectures, providers, or
+              training methods. The governance layer operates at the execution boundary, so the
+              same safety controls govern actions regardless of where they originate.
+            </p>
+          </div>
+
+          <div className="mw-agnostic reveal" aria-label="Agnostic across the stack">
+            {[
+              "Provider-agnostic",
+              "Model-agnostic",
+              "Agent-framework agnostic",
+              "Deployment-agnostic",
+              "Third-party compatible",
+              "Future-model compatible",
+            ].map((t) => (
+              <span key={t} className="mw-ag"><span className="mw-ag-dot" aria-hidden="true" />{t}</span>
+            ))}
+          </div>
+
+          <div className="mw-arch reveal">
+            <div className="mw-layer mw-models">
+              <div className="mw-layer-label">Any provider · model · agent · system</div>
+              <div className="mw-model-chips">
+                {["OpenAI", "Anthropic", "Google", "Meta", "DeepSeek", "Qwen", "Microsoft Phi", "Mistral", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
+                  <span key={m} className="mw-chip">{m}</span>
+                ))}
+              </div>
+            </div>
+            <div className="mw-arrow" aria-hidden="true">
+              <div className="mw-arrow-line" />
+              <div className="mw-arrow-cap">↓ every transition evaluated</div>
+            </div>
+            <div className="mw-layer mw-gov">
+              <div className="mw-gov-inner">
+                <span className="mw-omega">Ω</span>
+                <div>
+                  <div className="mw-gov-kicker">Runtime Governance Layer</div>
+                  <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
+                  <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
+                </div>
+              </div>
+            </div>
+            <div className="mw-arrow" aria-hidden="true">
+              <div className="mw-arrow-line" />
+              <div className="mw-arrow-cap">↓ only safe actions reach your systems</div>
+            </div>
+            <div className="mw-layer mw-system">
+              <div className="mw-layer-label">Protected enterprise systems &amp; data</div>
+              <div className="mw-model-chips">
+                {["Customer Data", "CRM Systems", "Banking APIs", "Email Systems", "Cloud Infrastructure", "Internal Tools", "Databases", "Autonomous Workflows"].map((a) => (
+                  <span key={a} className="mw-chip mw-asset">{a}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mw-note reveal">
+            <div className="mwn-row">
+              <span className="mwn-dot safe" />
+              <span>Safe actions pass through to your systems, unchanged</span>
+            </div>
+            <div className="mwn-row">
+              <span className="mwn-dot blocked" />
+              <span>Ω-bound actions are blocked pre-execution — regardless of model, agent, or where they originated</span>
+            </div>
+          </div>
+
+          <p className="mw-examples reveal">
+            Models will change. The governance layer at the execution boundary does not — these
+            providers are examples, not limits.
+          </p>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
       {/* ===== METHODOLOGY — IDENTIFY / CONSTRAIN / EMBED / MONITOR ===== */}
       <section className="section" id="what" data-screen-label="Methodology">
         <div className="wrap">

@@ -132,10 +132,12 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 3 · WHAT RUNTIME GOVERNANCE IS — the canonical stack diagram ===== */}
+        {/* ===== 3 · WHAT RUNTIME GOVERNANCE IS — calm, static, canonical diagram.
+                   Intentionally no reveal/animation classes: the section must read
+                   complete without JavaScript. ===== */}
         <section className="section section--tight" id="what" aria-label="What Runtime Governance is">
           <div className="wrap">
-            <div className="section-head reveal">
+            <div className="section-head">
               <span className="eyebrow">What Runtime Governance is</span>
               <h2>Most safety reacts. Governance prevents.</h2>
               <p>
@@ -144,71 +146,33 @@ export function HomeClient() {
                 that would enter <span className="om">Ω</span> — the forbidden region of catastrophic
                 states — are blocked pre-execution. No model retraining, no agent rebuild.
               </p>
+              <p className="govd-agnostic">Provider-, model-, agent-, and deployment-agnostic.</p>
             </div>
 
-            <div className="mw-agnostic reveal" aria-label="Agnostic across the stack">
-              {[
-                "Provider-agnostic",
-                "Model-agnostic",
-                "Agent-framework agnostic",
-                "Deployment-agnostic",
-                "Third-party compatible",
-                "Future-model compatible",
-              ].map((t) => (
-                <span key={t} className="mw-ag"><span className="mw-ag-dot" aria-hidden="true" />{t}</span>
-              ))}
-            </div>
-
-            <div className="mw-arch reveal">
-              <div className="mw-layer mw-models">
-                <div className="mw-layer-label">Any provider · model · agent · system</div>
-                <div className="mw-model-chips">
-                  {["OpenAI", "Anthropic", "Google", "Meta", "DeepSeek", "Qwen", "Microsoft Phi", "Mistral", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
-                    <span key={m} className="mw-chip">{m}</span>
-                  ))}
+            <div className="govd">
+              <div className="govd-layer">
+                <div className="govd-k">AI systems</div>
+                <div className="govd-v">Models · Agents · Planners · Third-party tools</div>
+              </div>
+              <div className="govd-conn" aria-hidden="true" />
+              <div className="govd-layer govd-gov">
+                <div className="govd-tm">Morrison Runtime Governance™</div>
+                <div className="govd-k">Runtime Governance</div>
+                <div className="govd-verbs">
+                  EVALUATE&nbsp;→&nbsp;<span className="ok">ALLOW</span> · <span className="esc">ESCALATE</span> · <span className="blk">BLOCK</span>
                 </div>
               </div>
-              <div className="mw-arrow" aria-hidden="true">
-                <div className="mw-arrow-line" />
-                <div className="mw-arrow-cap">↓ every transition evaluated</div>
+              <div className="govd-conn" aria-hidden="true" />
+              <div className="govd-layer">
+                <div className="govd-k">Protected enterprise systems</div>
+                <div className="govd-v">Data · APIs · Infrastructure · Internal workflows</div>
               </div>
-              <div className="mw-layer mw-gov">
-                <div className="mw-gov-inner">
-                  <span className="mw-omega">Ω</span>
-                  <div>
-                    <div className="mw-gov-kicker">Runtime Governance Layer</div>
-                    <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
-                    <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
-                  </div>
-                </div>
-              </div>
-              <div className="mw-arrow" aria-hidden="true">
-                <div className="mw-arrow-line" />
-                <div className="mw-arrow-cap">↓ only safe actions reach your systems</div>
-              </div>
-              <div className="mw-layer mw-system">
-                <div className="mw-layer-label">Protected enterprise systems &amp; data</div>
-                <div className="mw-model-chips">
-                  {["Customer Data", "CRM Systems", "Banking APIs", "Email Systems", "Cloud Infrastructure", "Internal Tools", "Databases", "Autonomous Workflows"].map((a) => (
-                    <span key={a} className="mw-chip mw-asset">{a}</span>
-                  ))}
-                </div>
-              </div>
+              <p className="govd-caption">
+                Safe actions continue. Catastrophic actions are blocked before execution.
+              </p>
             </div>
 
-            <div className="mw-note reveal">
-              <div className="mwn-row">
-                <span className="mwn-dot safe" />
-                <span>Safe actions pass through to your systems, unchanged</span>
-              </div>
-              <div className="mwn-row">
-                <span className="mwn-dot blocked" />
-                <span>Ω-bound actions are blocked pre-execution — regardless of model, agent, or where they originated</span>
-              </div>
-            </div>
-
-            <div className="demo-cta reveal">
-              <span>Models will change. The governance layer at the execution boundary does not.</span>
+            <div className="demo-cta">
               <Link href="/integrations" className="btn btn--ghost btn--sm">
                 How it integrates <span className="arr">→</span>
               </Link>
