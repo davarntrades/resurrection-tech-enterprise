@@ -198,3 +198,77 @@
   .rep-doc { max-width: none; border: 0; border-radius: 0; }
   .rep { padding: 0; }
 }
+
+/* ============================================================
+   Executive report — enhancement layer (.rgr-* additions)
+   Business impact · priority gaps · Ω drivers · heat map ·
+   engagement roadmap · executive verdict. Print-safe.
+   ============================================================ */
+
+/* Business impact callout */
+.rgr-impact {
+  margin-top: 14px; padding: 14px 16px; border-radius: 12px;
+  border: 1px solid rgba(111,151,255,0.28); border-left: 3px solid var(--accent-bright);
+  background: linear-gradient(180deg, rgba(76,125,255,0.06), transparent);
+}
+.rgr-impact-k { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 6px; }
+.rgr-impact-v { margin: 0; color: var(--ink); font-size: 0.95rem; line-height: 1.6; }
+
+/* Priority-ranked gaps */
+.rgr-gaps { display: grid; gap: 8px; }
+.rgr-gap { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 13px; }
+.rgr-prio { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.rgr-prio--crit { color: var(--omega); }
+.rgr-prio--high { color: #e0a93f; }
+.rgr-prio--med { color: #d8c56a; }
+.rgr-gap-t { color: var(--ink); font-size: 0.9rem; font-weight: 600; margin: 6px 0 4px; }
+.rgr-gap-d { margin: 0; color: var(--ink-2); font-size: 0.83rem; line-height: 1.5; }
+
+/* Ω exposure drivers */
+.rgr-drivers { margin-top: 18px; padding: 14px 16px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px; }
+.rgr-drivers-k { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.rgr-drivers-s { display: block; font-size: 0.8rem; color: var(--ink-3); margin: 4px 0 10px; }
+.rgr-driver-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rgr-driver { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--ink); background: rgba(76,125,255,0.06); border: 1px solid rgba(111,151,255,0.25); border-radius: 999px; padding: 5px 11px; }
+.rgr-driver-tick { color: var(--accent-bright); font-size: 0.72rem; }
+
+/* Risk heat map */
+.rgr-hm { display: flex; gap: 8px; align-items: stretch; margin-top: 12px; }
+.rgr-hm-yaxis { display: flex; align-items: center; }
+.rgr-hm-yaxis span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.rgr-hm-grid { flex: 1; display: grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: minmax(84px,1fr) minmax(84px,1fr) auto; gap: 8px; }
+.rgr-hm-ylab { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; }
+.rgr-hm-cell { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.rgr-hm-cell.is-crit   { background: rgba(229,72,77,0.08); border-color: rgba(229,72,77,0.35); }
+.rgr-hm-cell.is-orange { background: rgba(224,169,63,0.08); border-color: rgba(224,169,63,0.32); }
+.rgr-hm-cell.is-amber  { background: rgba(224,169,63,0.045); border-color: rgba(224,169,63,0.2); }
+.rgr-hm-cell.is-ok     { background: rgba(63,178,127,0.06); border-color: rgba(63,178,127,0.28); }
+.rgr-hm-tag { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.is-crit .rgr-hm-tag { color: var(--omega); }
+.is-orange .rgr-hm-tag, .is-amber .rgr-hm-tag { color: #e0a93f; }
+.is-ok .rgr-hm-tag { color: var(--ok); }
+.rgr-hm-items { display: flex; flex-direction: column; gap: 5px; }
+.rgr-hm-item { font-size: 0.8rem; color: var(--ink); line-height: 1.35; }
+.rgr-hm-empty { color: var(--ink-4); }
+.rgr-hm-xlab { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); text-align: center; padding-top: 2px; }
+@media (max-width: 560px) {
+  .rgr-hm-item { font-size: 0.74rem; }
+  .rgr-hm-grid { gap: 6px; }
+}
+
+/* Engagement roadmap */
+.rgr-road { list-style: none; margin: 16px 0 0; padding: 0; position: relative; }
+.rgr-road::before { content: ""; position: absolute; left: 17px; top: 26px; bottom: 26px; width: 1px; background: var(--line-2); }
+.rgr-road-step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 9px 0; position: relative; }
+.rgr-road-node { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-2); background: var(--bg-1); border: 1px solid var(--line-2); position: relative; z-index: 1; }
+.rgr-road-step.is-now .rgr-road-node { color: var(--accent-bright); border-color: rgba(111,151,255,0.5); background: rgba(76,125,255,0.1); }
+.rgr-road-label { color: var(--ink); font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+.rgr-road-now { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-bright); border: 1px solid rgba(111,151,255,0.4); border-radius: 999px; padding: 2px 8px; }
+
+/* Executive verdict */
+.rgr-verdict-sec { background: linear-gradient(180deg, rgba(76,125,255,0.05), transparent); }
+.rgr-verdict-body { color: var(--ink); font-size: 1rem; line-height: 1.7; margin: 0; max-width: 64ch; }
+
+@media print {
+  .rgr-impact, .rgr-gap, .rgr-drivers, .rgr-hm, .rgr-road-step, .rgr-verdict-sec { break-inside: avoid; }
+}

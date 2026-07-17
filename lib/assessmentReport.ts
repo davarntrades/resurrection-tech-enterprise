@@ -27,17 +27,38 @@ export interface StoredReport {
   submittedAt: string; // ISO timestamp
 }
 
+export type Priority = "Critical" | "High" | "Medium";
+
+export interface GapItem {
+  priority: Priority;
+  sev: "high" | "med";   // retained for existing dot colouring
+  title: string;         // short executive headline
+  detail: string;        // the "so what" explanation
+}
+
+export interface HeatMap {
+  hh: string[];  // high impact · high likelihood  (critical / red)
+  hl: string[];  // high impact · low likelihood   (elevated / orange)
+  lh: string[];  // low impact  · high likelihood  (watch / amber)
+  ll: string[];  // low impact  · low likelihood   (contained / green)
+}
+
 export interface ReportInsights {
   confidence: Confidence;
   confidenceNote: string;
-  maturityLabel: string;   // AI programme maturity (current), human label
-  stageLabel: string;      // engagement readiness, human label
-  findings: string[];      // Key Findings — most important observations
-  strengths: string[];     // Current Strengths — what is already positive
-  gaps: string[];          // Current Gaps — highest-value gaps only
-  drivers: string[];       // which answers contributed most to the recommendation
-  outcome: string;         // expected business outcome of the recommended pathway
-  timeline: string[];      // engagement stages, adapted to the pathway
+  maturityLabel: string;      // AI programme maturity (current), human label
+  stageLabel: string;         // engagement readiness, human label
+  findings: string[];         // Key Findings — most important observations
+  strengths: string[];        // Current Strengths — what is already positive
+  gaps: string[];             // Current Gaps — plain text (retained for email)
+  priorityGaps: GapItem[];    // Current Gaps — priority-ranked for the report
+  drivers: string[];          // which answers contributed most to the recommendation
+  exposureDrivers: string[];  // the factors behind the Ω exposure score
+  businessImpact: string;     // the "so what" of the recommendation
+  heatMap: HeatMap;           // capability risk matrix
+  verdict: { headline: string; body: string }; // executive verdict
+  outcome: string;            // expected business outcome of the recommended pathway
+  timeline: string[];         // engagement stages, adapted to the pathway
 }
 
 const yes = (v: YesNo | string) => v === "yes";
@@ -46,6 +67,176 @@ const one = (opts: Option[], val: string) => opts.find((o) => o.value === val)?.
 const SENSITIVE = ["customer_records", "financial_systems", "payment_systems", "healthcare_data", "security_systems", "source_code"];
 const REGULATED_INDUSTRY = ["Finance", "Insurance", "Healthcare", "Government", "Defence"];
 const HARD_COMPLIANCE = ["eu_ai_act", "hipaa", "gdpr", "soc2", "iso27001", "nist", "fca"];
+
+const PRIORITY_RANK: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2 };
+
+/** Shared, read-only view of the assessment signals the derivations rely on. */
+function signals(d: AssessmentData) {
+  const tools = d.toolAccess ?? [];
+  const perms = d.executionPermissions ?? [];
+  const controls = d.controls ?? [];
+  const govOps = (d.governanceOps ?? []).filter((g) => g !== "none");
+  return {
+    tools, perms, controls, govOps,
+    production: yes(d.inProduction),
+    regulated: REGULATED_INDUSTRY.includes(d.industry) || (d.compliance ?? []).some((c) => HARD_COMPLIANCE.includes(c)),
+    sensitive: tools.filter((t) => SENSITIVE.includes(t)),
+    autonomous: perms.includes("execute_autonomously") || yes(d.canTakeActions),
+    financial: perms.includes("financial_execution") || tools.includes("payment_systems"),
+    multiAgent: yes(d.multipleAgents) || ["6–20", "20+"].includes(d.numAgents),
+    hasRuntime: controls.includes("runtime_controls"),
+    hasApproval: controls.includes("human_approval"),
+    hasMonitoring: controls.includes("monitoring") || govOps.includes("runtime_monitoring"),
+  };
+}
+
+/**
+ * Single source of truth for gaps — consumed by both the report (priority
+ * cards) and the email (plain strings). Rule order preserved from the
+ * original derivation; only presentation metadata (priority, title) is added.
+ */
+function buildGaps(d: AssessmentData, s: Scores): GapItem[] {
+  const g = signals(d);
+  const items: GapItem[] = [];
+  if ((g.autonomous || g.financial) && !g.hasRuntime) {
+    items.push({
+      priority: "Critical", sev: "high", title: "Runtime enforcement layer missing",
+      detail: `Agents can ${g.financial ? "execute financial actions" : "act autonomously"} but no runtime enforcement layer exists — a single misaligned trajectory currently executes unchallenged.`,
+    });
+  }
+  if (g.production && !g.hasMonitoring) {
+    items.push({
+      priority: "Critical", sev: "high", title: "No runtime monitoring in production",
+      detail: "Production agents run without runtime monitoring — unsafe behaviour would be discovered from consequences, not from telemetry.",
+    });
+  }
+  if ((d.evidenceRequirements ?? []).some((e) => ["board_reporting", "regulator_submissions", "internal_audit"].includes(e)) && !g.govOps.includes("evidence_generation") && !g.govOps.includes("audit_ready_reporting")) {
+    items.push({
+      priority: "High", sev: "high", title: "Governance evidence not generated",
+      detail: "Board, regulator, or audit stakeholders expect governance evidence that is not currently being generated — the reporting obligation exists before the capability does.",
+    });
+  }
+  if (g.multiAgent && !g.hasRuntime) {
+    items.push({
+      priority: "High", sev: "med", title: "Ungoverned multi-agent interactions",
+      detail: "Multiple agents interact without trajectory-level governance — individually safe agents can combine into an unsafe system that event-level controls cannot see.",
+    });
+  }
+  if (d.execOversight === "no_clear_owner") {
+    items.push({
+      priority: "High", sev: "med", title: "No executive owner for AI risk",
+      detail: "No clear executive owner for AI risk — when an incident occurs, accountability will be assigned during the crisis instead of before it.",
+    });
+  }
+  if (g.production && !g.govOps.includes("incident_management")) {
+    items.push({
+      priority: "Medium", sev: "med", title: "Incident response incomplete",
+      detail: "No AI incident management process for a production estate — response would be improvised at the moment it most needs to be rehearsed.",
+    });
+  }
+  if (g.regulated && s.maturity < 30) {
+    items.push({
+      priority: "Medium", sev: "med", title: "Regulatory maturity gap",
+      detail: "A regulated environment with low governance maturity — the gap between obligation and capability is itself a reportable risk.",
+    });
+  }
+  // Order by urgency (stable within a priority), cap at 5.
+  return items
+    .map((it, i) => ({ it, i }))
+    .sort((a, z) => PRIORITY_RANK[a.it.priority] - PRIORITY_RANK[z.it.priority] || a.i - z.i)
+    .map(({ it }) => it)
+    .slice(0, 5);
+}
+
+/** The factors behind the Ω exposure score — described, never re-summed. */
+function exposureDrivers(d: AssessmentData): string[] {
+  const g = signals(d);
+  const out: string[] = [];
+  if (g.financial) out.push("Financial execution permissions");
+  if (g.autonomous) out.push("Autonomous execution");
+  if (g.production) out.push("Production deployment");
+  if (yes(d.criticalSystems)) out.push("Business-critical systems");
+  if (g.sensitive.some((t) => ["customer_records", "healthcare_data"].includes(t))) out.push("Customer / regulated data access");
+  if (g.multiAgent || yes(d.autonomousCoordination)) out.push("Multi-agent coordination");
+  if (yes(d.downstreamAutomation)) out.push("Downstream automation chains");
+  if (yes(d.customerFacing)) out.push("Customer-facing operation");
+  if (g.perms.includes("write_production")) out.push("Production write access");
+  if (g.perms.includes("external_comms")) out.push("External communications");
+  if (g.regulated) out.push("Regulated environment");
+  if (d.customersCurrent && d.customersCurrent !== "none") out.push("Active end-customer exposure");
+  return out.slice(0, 8);
+}
+
+/** The "so what" of the recommendation, in board language. */
+function businessImpact(d: AssessmentData, s: Scores, rec: Recommendation): string {
+  const g = signals(d);
+  if (isPartnerPathway(rec.id)) {
+    return "Governed AI is becoming a procurement requirement, not a differentiator. Bringing Runtime Governance to your customers positions your organisation ahead of that shift — and exposes it if a partner or competitor moves first.";
+  }
+  const capability = g.financial ? "execute financial actions"
+    : g.sensitive.length ? "move regulated or customer data beyond its intended boundary"
+    : g.autonomous ? "take autonomous actions across connected systems"
+    : "act on production systems";
+  const scope = g.production ? "autonomous production agents" : "the agents you are preparing to deploy";
+  const gate = g.hasRuntime ? "" : " before existing governance processes have an opportunity to intervene";
+  const lead = g.production
+    ? `Without a runtime governance layer, ${scope} may ${capability}${gate}.`
+    : `Deploying without runtime governance would let ${scope} ${capability}${gate} once live.`;
+  const stakes = g.regulated
+    ? " In a regulated environment, a single such event is simultaneously a financial loss and a reportable-compliance exposure."
+    : s.exposureBand === "Critical" || s.exposureBand === "High"
+      ? " At the current exposure level, the question is not whether such a trajectory is reachable, but when it is first attempted."
+      : "";
+  return lead + stakes;
+}
+
+/**
+ * Capability risk matrix — a visual communication aid, not a calculation.
+ * Impact reflects what a capability can reach; likelihood reflects whether a
+ * mitigating control is present. Positions are heuristic by design.
+ */
+function riskHeatMap(d: AssessmentData): HeatMap {
+  const g = signals(d);
+  const m: HeatMap = { hh: [], hl: [], lh: [], ll: [] };
+  const place = (label: string, highImpact: boolean, highLikelihood: boolean) => {
+    (highImpact ? (highLikelihood ? m.hh : m.hl) : (highLikelihood ? m.lh : m.ll)).push(label);
+  };
+  // High-impact capabilities — likelihood rises when the relevant control is absent.
+  if (g.financial) place("Payment / financial execution", true, !(g.hasApproval || g.hasRuntime));
+  if (g.autonomous) place("Autonomous tool execution", true, !(g.hasRuntime || g.hasApproval));
+  if (g.sensitive.some((t) => ["customer_records", "healthcare_data", "financial_systems", "security_systems"].includes(t)))
+    place("Regulated / customer data access", true, !g.hasMonitoring);
+  if (g.production) place("Production deployment", true, !g.hasMonitoring);
+  if (yes(d.downstreamAutomation)) place("Downstream automation", true, !g.hasRuntime);
+  if (g.multiAgent || yes(d.autonomousCoordination)) place("Multi-agent coordination", true, yes(d.autonomousCoordination) && !g.hasRuntime);
+  // Lower-impact surfaces.
+  if (yes(d.sharedMemory)) place("Shared memory / context", false, !g.hasRuntime);
+  if (yes(d.crossAgentComm)) place("Cross-agent communication", false, false);
+  if (g.controls.includes("logging")) place("Logging (control in place)", false, false);
+  if (g.hasMonitoring) place("Monitoring (control in place)", false, false);
+  return m;
+}
+
+/** Concise executive verdict — one paragraph, situationally composed. */
+function executiveVerdict(d: AssessmentData, s: Scores, rec: Recommendation): { headline: string; body: string } {
+  const g = signals(d);
+  if (isPartnerPathway(rec.id)) {
+    return {
+      headline: "The opportunity is to lead the shift to governed AI, not follow it.",
+      body: `Your organisation is positioned to bring Runtime Governance to its market. The strategic question is no longer whether agentic AI needs governance, but who supplies it to your customers first. Our recommendation is to formalise the ${rec.title} while that position is still open.`,
+    };
+  }
+  const posture = g.production
+    ? "Your organisation has progressed beyond experimentation — autonomous AI is already acting on production systems."
+    : yes(d.agentsDeployed)
+      ? "Your organisation has moved past prototyping — agents are built and deployment is the next step."
+      : "Your organisation is early in its AI journey, with the advantage of building governance in from the start.";
+  const challenge = g.production
+    ? "The remaining challenge is no longer whether AI should be deployed, but whether production autonomy can be governed safely at enterprise scale."
+    : "The decisive question is whether governance is established before autonomy expands, or retrofitted after an incident forces it.";
+  const close = `At ${s.exposureBand.toLowerCase()} Ω exposure and ${s.maturityBand.toLowerCase()} governance maturity, our recommendation is to establish Runtime Governance through the ${rec.title} before deployment expands further.`;
+  return { headline: challenge, body: `${posture} ${close}` };
+}
 
 /* ── Expected business outcome per pathway ─────────────────────────────── */
 const OUTCOMES: Record<PathwayId, string> = {
@@ -190,29 +381,8 @@ export function deriveInsights(d: AssessmentData, s: Scores, rec: Recommendation
       : "The organisation is engaging with runtime governance before production — the cheapest and safest point to build it in.");
   }
 
-  /* Current Gaps — highest-value only, tied to specific answers, capped at 5 */
-  const gaps: { text: string; sev: "high" | "med" }[] = [];
-  if ((autonomous || financial) && !hasRuntime) {
-    gaps.push({ sev: "high", text: `Agents can ${financial ? "execute financial actions" : "act autonomously"} but no runtime enforcement layer exists — a single misaligned trajectory currently executes unchallenged.` });
-  }
-  if (production && !controls.includes("monitoring") && !govOps.includes("runtime_monitoring")) {
-    gaps.push({ sev: "high", text: "Production agents run without runtime monitoring — unsafe behaviour would be discovered from consequences, not from telemetry." });
-  }
-  if ((d.evidenceRequirements ?? []).some((e) => ["board_reporting", "regulator_submissions", "internal_audit"].includes(e)) && !govOps.includes("evidence_generation") && !govOps.includes("audit_ready_reporting")) {
-    gaps.push({ sev: "high", text: "Board, regulator, or audit stakeholders expect governance evidence that is not currently being generated — the reporting obligation exists before the capability does." });
-  }
-  if (d.execOversight === "no_clear_owner") {
-    gaps.push({ sev: "med", text: "No clear executive owner for AI risk — when an incident occurs, accountability will be assigned during the crisis instead of before it." });
-  }
-  if (production && !govOps.includes("incident_management")) {
-    gaps.push({ sev: "med", text: "No AI incident management process for a production estate — response would be improvised at the moment it most needs to be rehearsed." });
-  }
-  if (multiAgent && !hasRuntime) {
-    gaps.push({ sev: "med", text: "Multiple agents interact without trajectory-level governance — individually safe agents can combine into an unsafe system that event-level controls cannot see." });
-  }
-  if (regulated && s.maturity < 30) {
-    gaps.push({ sev: "med", text: "A regulated environment with low governance maturity — the gap between obligation and capability is itself a reportable risk." });
-  }
+  /* Current Gaps — priority-ranked, tied to specific answers (shared builder) */
+  const priorityGaps = buildGaps(d, s);
 
   /* Decision drivers — which answers contributed most */
   const drivers: string[] = [];
@@ -236,34 +406,19 @@ export function deriveInsights(d: AssessmentData, s: Scores, rec: Recommendation
     stageLabel: d.stage ? one(STAGES, d.stage) : "Not stated",
     findings: findings.slice(0, 6),
     strengths: strengths.slice(0, 5),
-    gaps: gaps.slice(0, 5).map((g) => g.text),
+    gaps: priorityGaps.map((g) => g.detail),
+    priorityGaps,
     drivers: drivers.slice(0, 5),
+    exposureDrivers: exposureDrivers(d),
+    businessImpact: businessImpact(d, s, rec),
+    heatMap: riskHeatMap(d),
+    verdict: executiveVerdict(d, s, rec),
     outcome: OUTCOMES[rec.id],
     timeline: TIMELINES_BY_PATHWAY[rec.id],
   };
 }
 
-/** Severity chips for gaps (parallel to deriveInsights().gaps ordering). */
-export function gapSeverities(d: AssessmentData, s: Scores, rec: Recommendation): ("high" | "med")[] {
-  // Re-run the same rule order to expose severities for the UI chips.
-  const perms = d.executionPermissions ?? [];
-  const controls = d.controls ?? [];
-  const govOps = (d.governanceOps ?? []).filter((g) => g !== "none");
-  const production = d.inProduction === "yes";
-  const autonomous = perms.includes("execute_autonomously") || d.canTakeActions === "yes";
-  const financial = perms.includes("financial_execution");
-  const hasRuntime = controls.includes("runtime_controls");
-  const multiAgent = d.multipleAgents === "yes" || ["6–20", "20+"].includes(d.numAgents);
-  const regulated = REGULATED_INDUSTRY.includes(d.industry) ||
-    (d.compliance ?? []).some((c) => HARD_COMPLIANCE.includes(c));
-  const sev: ("high" | "med")[] = [];
-  if ((autonomous || financial) && !hasRuntime) sev.push("high");
-  if (production && !controls.includes("monitoring") && !govOps.includes("runtime_monitoring")) sev.push("high");
-  if ((d.evidenceRequirements ?? []).some((e) => ["board_reporting", "regulator_submissions", "internal_audit"].includes(e)) && !govOps.includes("evidence_generation") && !govOps.includes("audit_ready_reporting")) sev.push("high");
-  if (d.execOversight === "no_clear_owner") sev.push("med");
-  if (production && !govOps.includes("incident_management")) sev.push("med");
-  if (multiAgent && !hasRuntime) sev.push("med");
-  if (regulated && s.maturity < 30) sev.push("med");
-  void rec;
-  return sev.slice(0, 5);
+/** Severity chips for gaps — thin wrapper over the shared gap builder. */
+export function gapSeverities(d: AssessmentData, s: Scores): ("high" | "med")[] {
+  return buildGaps(d, s).map((g) => g.sev);
 }

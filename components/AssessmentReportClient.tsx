@@ -15,12 +15,16 @@ import {
   EVIDENCE_REQUIREMENTS, EXEC_OVERSIGHT, EXEC_NEED,
   type AssessmentData, type Recommendation, type Scores, type Option, type Band, type YesNo,
 } from "@/lib/assessment";
-import { deriveInsights, gapSeverities, REPORT_STORAGE_KEY, type StoredReport } from "@/lib/assessmentReport";
+import { deriveInsights, REPORT_STORAGE_KEY, type StoredReport, type HeatMap, type Priority } from "@/lib/assessmentReport";
 
 const bandChip = (b: Band): string =>
   b === "Low" ? "rgr-chip--ok" : b === "Moderate" ? "rgr-chip--info" : b === "High" ? "rgr-chip--warn" : "rgr-chip--crit";
 const fillFor = (b: Band): string =>
   b === "Low" ? "rgr-fill--ok" : b === "Moderate" ? "rgr-fill--info" : b === "High" ? "rgr-fill--warn" : "rgr-fill--crit";
+const prioClass = (p: Priority): string =>
+  p === "Critical" ? "rgr-prio--crit" : p === "High" ? "rgr-prio--high" : "rgr-prio--med";
+const prioDot = (p: Priority): string =>
+  p === "Critical" ? "🔴" : p === "High" ? "🟠" : "🟡";
 
 export function AssessmentReportClient() {
   const [report, setReport] = useState<StoredReport | null | "loading">("loading");
@@ -68,7 +72,6 @@ export function AssessmentReportClient() {
   // module the API uses — identical inputs, identical outputs, no new logic.
   const s = score(d);
   const ins = deriveInsights(d, s, rec);
-  const sev = gapSeverities(d, s, rec);
   const dateStr = new Date(submittedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return (
@@ -141,7 +144,13 @@ export function AssessmentReportClient() {
               <span className="rep-eyebrow">02 · Recommendation</span>
               <h2 className="rep-h2">{rec.title}</h2>
               <p className="rep-p">{rec.tagline}</p>
-              <p className="rep-p"><b style={{ color: "var(--ink)" }}>Expected business outcome.</b> {ins.outcome}</p>
+
+              <div className="rgr-impact">
+                <span className="rgr-impact-k">Business impact</span>
+                <p className="rgr-impact-v">{ins.businessImpact}</p>
+              </div>
+
+              <p className="rep-p" style={{ marginTop: 14 }}><b style={{ color: "var(--ink)" }}>Expected business outcome.</b> {ins.outcome}</p>
 
               <div className="rgr-cols" style={{ marginTop: 14 }}>
                 <div>
@@ -191,16 +200,17 @@ export function AssessmentReportClient() {
                   </ul>
                 </div>
                 <div>
-                  <div className="rgr-col-h"><span className="rgr-chip rgr-chip--warn">Gaps</span></div>
-                  {ins.gaps.length ? (
-                    <ul className="rgr-list">
-                      {ins.gaps.map((t, i) => (
-                        <li key={i}>
-                          <span className={`rgr-dot ${sev[i] === "high" ? "rgr-dot--crit" : "rgr-dot--warn"}`} aria-hidden="true" />
-                          {t}
-                        </li>
+                  <div className="rgr-col-h"><span className="rgr-chip rgr-chip--warn">Gaps · by priority</span></div>
+                  {ins.priorityGaps.length ? (
+                    <div className="rgr-gaps">
+                      {ins.priorityGaps.map((g, i) => (
+                        <div className="rgr-gap" key={i}>
+                          <span className={`rgr-prio ${prioClass(g.priority)}`}>{prioDot(g.priority)} {g.priority}</span>
+                          <div className="rgr-gap-t">{g.title}</div>
+                          <p className="rgr-gap-d">{g.detail}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
                     <p className="rep-p">No high-value gaps surfaced from your responses — the engagement will validate this directly against your environment.</p>
                   )}
@@ -238,28 +248,58 @@ export function AssessmentReportClient() {
                   <span className="rgr-score-why">How reachable catastrophic states are today, after credit for existing controls. This is the number governance exists to drive down.</span>
                 </div>
               </div>
+
+              {ins.exposureDrivers.length > 0 && (
+                <div className="rgr-drivers">
+                  <span className="rgr-drivers-k">Ω exposure drivers</span>
+                  <span className="rgr-drivers-s">The factors in your responses that raise reachable exposure:</span>
+                  <div className="rgr-driver-chips">
+                    {ins.exposureDrivers.map((t) => (
+                      <span className="rgr-driver" key={t}><span className="rgr-driver-tick" aria-hidden="true">✓</span>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* ── 6 · Engagement timeline ── */}
+            {/* ── 6 · Risk heat map ── */}
             <div className="rep-sec">
-              <span className="rep-eyebrow">06 · Engagement</span>
-              <h2 className="rep-h2">What the engagement typically looks like</h2>
-              <div className="rgr-flow" style={{ margin: "14px 0" }}>
-                {ins.timeline.map((t, i) => (
-                  <span key={t} style={{ display: "contents" }}>
-                    {i > 0 && <span className="rgr-flow-arr" aria-hidden="true">→</span>}
-                    <span className={`rgr-flow-step${i === 0 ? " is-now" : ""}`}>{t}</span>
-                  </span>
-                ))}
-              </div>
+              <span className="rep-eyebrow">06 · Risk profile</span>
+              <h2 className="rep-h2">Capability risk heat map</h2>
               <p className="rep-p">
-                Every stage produces evidence you keep — findings, verdicts, and executive
-                reporting — so progress is demonstrable to your board and regulators at each step,
-                not only at the end.
+                Where your highest-consequence capabilities sit today, by impact and likelihood.
+                A visual aid derived from your responses — not a precise calculation.
               </p>
+              <HeatMapGrid m={ins.heatMap} />
             </div>
 
-            {/* ── 7 · Appendix — full responses ── */}
+            {/* ── 7 · Engagement roadmap ── */}
+            <div className="rep-sec">
+              <span className="rep-eyebrow">07 · Engagement</span>
+              <h2 className="rep-h2">Your engagement roadmap</h2>
+              <p className="rep-p">
+                The typical shape of the {rec.title} engagement. Every stage produces evidence you
+                keep — findings, verdicts, and executive reporting — so progress is demonstrable to
+                your board and regulators at each step, not only at the end.
+              </p>
+              <ol className="rgr-road">
+                {ins.timeline.map((t, i) => (
+                  <li className={`rgr-road-step${i === 0 ? " is-now" : ""}`} key={t}>
+                    <span className="rgr-road-node">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="rgr-road-label">{t}{i === 0 && <span className="rgr-road-now">Starts here</span>}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* ── 8 · Executive verdict ── */}
+            <div className="rep-sec rgr-verdict-sec">
+              <span className="rep-eyebrow">08 · Executive verdict</span>
+              <h2 className="rep-h2">{ins.verdict.headline}</h2>
+              <p className="rgr-verdict-body">{ins.verdict.body}</p>
+            </div>
+
+            {/* ── 9 · Appendix — full responses ── */}
             <Appendix d={d} />
 
             {/* ── Disclaimer ── */}
@@ -285,6 +325,38 @@ export function AssessmentReportClient() {
   );
 }
 
+/* ── Risk heat map: impact × likelihood matrix ─────────────────────────── */
+function HeatMapGrid({ m }: { m: HeatMap }) {
+  const Cell = ({ items, tone, label }: { items: string[]; tone: string; label: string }) => (
+    <div className={`rgr-hm-cell ${tone}`}>
+      <span className="rgr-hm-tag">{label}</span>
+      {items.length ? (
+        <div className="rgr-hm-items">
+          {items.map((t) => <span className="rgr-hm-item" key={t}>{t}</span>)}
+        </div>
+      ) : (
+        <span className="rgr-hm-empty">—</span>
+      )}
+    </div>
+  );
+  return (
+    <div className="rgr-hm">
+      <div className="rgr-hm-yaxis" aria-hidden="true"><span>Likelihood →</span></div>
+      <div className="rgr-hm-grid">
+        <div className="rgr-hm-ylab rgr-hm-ylab--hi" aria-hidden="true">High</div>
+        <Cell items={m.lh} tone="is-amber" label="Watch" />
+        <Cell items={m.hh} tone="is-crit" label="Critical" />
+        <div className="rgr-hm-ylab rgr-hm-ylab--lo" aria-hidden="true">Low</div>
+        <Cell items={m.ll} tone="is-ok" label="Contained" />
+        <Cell items={m.hl} tone="is-orange" label="Elevated" />
+        <div className="rgr-hm-corner" aria-hidden="true" />
+        <div className="rgr-hm-xlab" aria-hidden="true">Low impact</div>
+        <div className="rgr-hm-xlab" aria-hidden="true">High impact</div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Appendix: every captured data point, grouped by assessment stage ───── */
 function Appendix({ d }: { d: AssessmentData }) {
   const yn = (v: YesNo) => (v === "yes" ? "Yes" : v === "no" ? "No" : "—");
@@ -301,7 +373,7 @@ function Appendix({ d }: { d: AssessmentData }) {
   );
   return (
     <div className="rep-sec">
-      <span className="rep-eyebrow">07 · Appendix</span>
+      <span className="rep-eyebrow">09 · Appendix</span>
       <h2 className="rep-h2">Assessment responses in full</h2>
       <p className="rep-p">The complete record of your qualification, as submitted.</p>
 
