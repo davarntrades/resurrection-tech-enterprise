@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { CanvasScript } from "@/components/CanvasScript";
+import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 
 export const metadata: Metadata = {
   title: "Technology — Runtime Governance, in depth",
@@ -301,6 +302,33 @@ export default function Page() {
                 <div className="inv-plain">{plain}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* ===== INTERACTIVE GOVERNANCE DEMO ===== */}
+      <section className="section section--tight" id="demo" aria-label="Interactive governance demonstration">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Interactive demonstration</span>
+            <h2>See governance intercept in real time.</h2>
+            <p>
+              Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed
+              trajectory before execution — safe paths flow through to execution, while
+              Ω-bound paths are intercepted at the governance layer, pre-action.
+            </p>
+          </div>
+          <RuntimeGovernanceDemo />
+          <div className="demo-cta reveal">
+            <span>Want to test your own action chain — or don&rsquo;t have an agent yet?</span>
+            <Link href="/test-trajectory" className="btn btn--ghost btn--sm">
+              Try the trajectory demo <span className="arr">→</span>
+            </Link>
+            <Link href="/test-without-agent" className="btn btn--ghost btn--sm">
+              Test without your own agent <span className="arr">→</span>
+            </Link>
           </div>
         </div>
       </section>

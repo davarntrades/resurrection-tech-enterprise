@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CanvasScript } from "@/components/CanvasScript";
-import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
@@ -295,56 +294,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 5 · INTERACTIVE DEMO ===== */}
-        <section className="section section--tight" id="demo" aria-label="Interactive governance demonstration">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Interactive demo</span>
-              <h2>See governance intercept in real time.</h2>
-              <p>
-                Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed
-                trajectory before execution — safe paths flow through to execution, while
-                Ω-bound paths are intercepted at the governance layer, pre-action.
-              </p>
-            </div>
-            <RuntimeGovernanceDemo />
-            <div className="hero-tryit reveal">
-              <span className="hero-tryit-label">Or open a live verdict in one click:</span>
-              {[
-                ["credential-exfiltration", "Credential exfiltration", "block"],
-                ["multi-agent-leak", "Multi-agent leak", "block"],
-                ["safe-workflow", "Safe workflow", "allow"],
-              ].map(([id, label, tone]) => (
-                <Link
-                  key={id}
-                  href={`/live-demo?example=${id}`}
-                  className={`hero-tryit-chip hero-tryit-chip--${tone}`}
-                  onClick={() => track(Events.CTA_CLICK, { location: "demo-tryit", cta: id })}
-                >
-                  <span className="hero-tryit-dot" aria-hidden="true" />
-                  {label}
-                </Link>
-              ))}
-            </div>
-            <div className="demo-cta reveal">
-              <span>Want to test your own action chain — or don&rsquo;t have an agent yet?</span>
-              <Link href="/test-trajectory" className="btn btn--ghost btn--sm">
-                Try the trajectory demo <span className="arr">→</span>
-              </Link>
-              <Link
-                href="/test-without-agent"
-                className="btn btn--ghost btn--sm"
-                onClick={() => track(Events.CTA_CLICK, { location: "demo-cta", cta: "test-without-agent" })}
-              >
-                Test without your own agent <span className="arr">→</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <hr className="divider" />
-
-        {/* ===== 6 · EU AI ACT — DEPLOYER POSITIONING ===== */}
+        {/* ===== 5 · EU AI ACT — DEPLOYER POSITIONING ===== */}
         <section className="eu-trust" aria-label="EU AI Act alignment">
           <div className="wrap">
             <div className="eu-trust-card reveal">
@@ -385,71 +335,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 7 · ROI — ONE CANONICAL FINANCIAL ARGUMENT ===== */}
-        <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">Return on governance</span>
-              <h2>The Cost of One Unsafe Execution</h2>
-            </div>
-            <p className="roi-lede reveal">
-              Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
-              priced against the cost of <span className="om">Ω</span> becoming reachable — not
-              the complexity of the software.
-            </p>
-
-            <div className="tbl-wrap reveal" data-rowreveal>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Sector</th><th>Incident type</th><th>Documented cost</th></tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Banking / Finance", "Unauthorised wire transfer", "$2B+ single historical losses"],
-                    ["Healthcare", "PHI exposure", "$9.77M average per breach (IBM 2024)"],
-                    ["Cybersecurity", "Credential exfiltration", "$10.22M average per breach (IBM 2024)"],
-                    ["Data Privacy", "GDPR automated processing violation", "€290M–€530M single regulatory fines"],
-                    ["Enterprise", "Unauthorised data access", "$4.88M global average (IBM 2024)"],
-                  ].map(([sector, incident, cost]) => (
-                    <tr key={sector}>
-                      <td data-l="Sector" className="t-main">{sector}</td>
-                      <td data-l="Incident type">{incident}</td>
-                      <td data-l="Documented cost" className="t-cost">{cost}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="callout roi-multi reveal">
-              <div>
-                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
-                <p>
-                  A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
-                  any human intervenes. Runtime Governance evaluates every trajectory at every execution
-                  boundary — not just the first agent, not just the final output.
-                </p>
-              </div>
-            </div>
-
-            <p className="roi-close reveal">
-              If one catastrophic execution is prevented, governance pays for itself many times
-              over — the assessment identifies which catastrophic states are currently reachable
-              in your system, before they become a business event.
-            </p>
-
-            <div className="demo-cta reveal">
-              <span>The full financial comparison and pathway pricing live on the pricing page</span>
-              <Link href="/enterprise-pathways#cost-of-failure" className="btn btn--ghost btn--sm">
-                Financial comparison &amp; pricing <span className="arr">→</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <hr className="divider" />
-
-        {/* ===== 8 · DEPLOYMENT PATHWAY — assessment to enforced governance ===== */}
+        {/* ===== 6 · DEPLOYMENT PATHWAY — assessment to enforced governance ===== */}
         <section className="section section--tight pathway" id="onboarding" data-screen-label="Deployment pathway">
           <div className="wrap">
             <div className="section-head reveal">
@@ -547,6 +433,112 @@ export function HomeClient() {
               <span>The complete seven-step onboarding pathway, engagement detail, and pricing</span>
               <Link href="/enterprise-pathways#onboarding-pathway" className="btn btn--ghost btn--sm">
                 Enterprise pathways <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== 7 · LIVE DEMO — the primary product experience ===== */}
+        <section className="section cta-final" id="demo" aria-label="Live demo" data-screen-label="Live demo">
+          <div className="wrap">
+            <div className="inner reveal">
+              <span className="eyebrow" style={{ justifyContent: "center" }}>Live demo</span>
+              <h2 style={{ marginTop: 20 }}>Experience Runtime Governance yourself.</h2>
+              <p>
+                Real scenarios, live verdicts, sub-millisecond decisions — in your browser,
+                in seconds. No signup, no setup, nothing touches your systems.
+              </p>
+              <div className="hero-tryit reveal" style={{ justifyContent: "center", marginTop: 28 }}>
+                <span className="hero-tryit-label">Open a live verdict in one click:</span>
+                {[
+                  ["credential-exfiltration", "Credential exfiltration", "block"],
+                  ["multi-agent-leak", "Multi-agent leak", "block"],
+                  ["safe-workflow", "Safe workflow", "allow"],
+                ].map(([id, label, tone]) => (
+                  <Link
+                    key={id}
+                    href={`/live-demo?example=${id}`}
+                    className={`hero-tryit-chip hero-tryit-chip--${tone}`}
+                    onClick={() => track(Events.CTA_CLICK, { location: "home-demo-band", cta: id })}
+                  >
+                    <span className="hero-tryit-dot" aria-hidden="true" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <div className="hero-actions" style={{ marginTop: 32 }}>
+                <Link
+                  href="/live-demo"
+                  className="btn btn--primary btn--live"
+                  onClick={() => track(Events.CTA_CLICK, { location: "home-demo-band", cta: "live-demo" })}
+                >
+                  <span className="live-pip" aria-hidden="true" />
+                  Open the Live Demo <span className="arr">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
+        {/* ===== 8 · ROI — ONE CANONICAL FINANCIAL ARGUMENT ===== */}
+        <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Return on governance</span>
+              <h2>The Cost of One Unsafe Execution</h2>
+            </div>
+            <p className="roi-lede reveal">
+              Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
+              priced against the cost of <span className="om">Ω</span> becoming reachable — not
+              the complexity of the software.
+            </p>
+
+            <div className="tbl-wrap reveal" data-rowreveal>
+              <table className="tbl">
+                <thead>
+                  <tr><th>Sector</th><th>Incident type</th><th>Documented cost</th></tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Banking / Finance", "Unauthorised wire transfer", "$2B+ single historical losses"],
+                    ["Healthcare", "PHI exposure", "$9.77M average per breach (IBM 2024)"],
+                    ["Cybersecurity", "Credential exfiltration", "$10.22M average per breach (IBM 2024)"],
+                    ["Data Privacy", "GDPR automated processing violation", "€290M–€530M single regulatory fines"],
+                    ["Enterprise", "Unauthorised data access", "$4.88M global average (IBM 2024)"],
+                  ].map(([sector, incident, cost]) => (
+                    <tr key={sector}>
+                      <td data-l="Sector" className="t-main">{sector}</td>
+                      <td data-l="Incident type">{incident}</td>
+                      <td data-l="Documented cost" className="t-cost">{cost}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="callout roi-multi reveal">
+              <div>
+                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
+                <p>
+                  A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
+                  any human intervenes. Runtime Governance evaluates every trajectory at every execution
+                  boundary — not just the first agent, not just the final output.
+                </p>
+              </div>
+            </div>
+
+            <p className="roi-close reveal">
+              If one catastrophic execution is prevented, governance pays for itself many times
+              over — the assessment identifies which catastrophic states are currently reachable
+              in your system, before they become a business event.
+            </p>
+
+            <div className="demo-cta reveal">
+              <span>The full financial comparison and pathway pricing live on the pricing page</span>
+              <Link href="/enterprise-pathways#cost-of-failure" className="btn btn--ghost btn--sm">
+                Financial comparison &amp; pricing <span className="arr">→</span>
               </Link>
             </div>
           </div>
