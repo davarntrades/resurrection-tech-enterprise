@@ -22,6 +22,34 @@ const Check = () => (
     <path d="M3 8.5 L6.5 12 L13 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const ArrowR = () => (
+  <svg width="28" height="14" viewBox="0 0 28 14" fill="none" aria-hidden="true">
+    <path d="M0 7 H24 M19 2 L25 7 L19 12" stroke="currentColor" strokeWidth="1.4" />
+  </svg>
+);
+
+function EngageStage({ name, dur, kind, recurring = false }: { name: string; dur: string; kind: string; recurring?: boolean }) {
+  return (
+    <div className={`engage-stage${recurring ? " recurring" : ""}`}>
+      <div className="es-top">
+        <span className="es-name">{name}</span>
+        <span className={`engage-tag${recurring ? " rec" : " one"}`}>
+          {recurring ? "Recurring" : "One-time"}
+        </span>
+      </div>
+      <h3>{name}</h3>
+      <div className="es-dur">{dur}</div>
+      <div className="es-kind">{kind}</div>
+      {recurring && (
+        <span className="es-loop" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M15 9 a6 6 0 1 1 -1.8 -4.3 M13.5 1.5 V5 H10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      )}
+    </div>
+  );
+}
 
 type Verdict = {
   id: string;
@@ -526,6 +554,18 @@ export default function Page() {
               </li>
             ))}
           </ol>
+
+          <div className="flow reveal">
+            <div className="engage-track">
+              <EngageStage name="Audit" dur="48 hours" kind="One-time engagement" />
+              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
+              <EngageStage name="Pilot" dur="4–8 weeks" kind="One-time engagement" />
+              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
+              <EngageStage name="Integration" dur="Deployment phase" kind="One-time engagement" />
+              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
+              <EngageStage name="Retainer" dur="Monthly or annual" kind="Ongoing governance assurance" recurring />
+            </div>
+          </div>
         </div>
       </section>
 

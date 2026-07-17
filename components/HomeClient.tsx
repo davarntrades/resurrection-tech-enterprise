@@ -7,12 +7,6 @@ import { CanvasScript } from "@/components/CanvasScript";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { track, Events } from "@/lib/analytics";
 
-const ArrowR = () => (
-  <svg width="28" height="14" viewBox="0 0 28 14" fill="none">
-    <path d="M0 7 H24 M19 2 L25 7 L19 12" stroke="currentColor" strokeWidth="1.4" />
-  </svg>
-);
-
 export function HomeClient() {
   useSiteMotion();
 
@@ -146,9 +140,9 @@ export function HomeClient() {
               <h2>Most safety reacts. Governance prevents.</h2>
               <p>
                 A universal governance layer at the execution boundary between your AI systems and
-                your infrastructure. It does not depend on model weights, architectures, providers,
-                or training methods — every proposed action is evaluated before it runs, and
-                Ω-bound trajectories are blocked pre-execution. You do not rebuild your AI stack.
+                your infrastructure. Every proposed action is evaluated before it runs; trajectories
+                that would enter <span className="om">Ω</span> — the forbidden region of catastrophic
+                states — are blocked pre-execution. No model retraining, no agent rebuild.
               </p>
             </div>
 
@@ -234,8 +228,8 @@ export function HomeClient() {
               <span className="eyebrow">The bottom line</span>
               <h2>What it prevents, and what you get.</h2>
               <p>
-                Runtime Governance sits between your AI agents and your live systems, blocking the
-                action chains that lead to catastrophic outcomes — before they execute.
+                The specific catastrophic outcomes Runtime Governance blocks — and what your
+                organisation gains by removing them.
               </p>
             </div>
             <div className="outcomes-grid">
@@ -417,18 +411,6 @@ export function HomeClient() {
               ))}
             </ol>
 
-            <div className="flow reveal">
-              <div className="engage-track">
-                <EngageStage name="Audit" dur="48 hours" kind="One-time engagement" />
-                <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-                <EngageStage name="Pilot" dur="4–8 weeks" kind="One-time engagement" />
-                <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-                <EngageStage name="Integration" dur="Deployment phase" kind="One-time engagement" />
-                <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-                <EngageStage name="Retainer" dur="Monthly or annual" kind="Ongoing governance assurance" recurring />
-              </div>
-            </div>
-
             <div className="demo-cta reveal">
               <span>The complete seven-step onboarding pathway, engagement detail, and pricing</span>
               <Link href="/enterprise-pathways#onboarding-pathway" className="btn btn--ghost btn--sm">
@@ -487,7 +469,7 @@ export function HomeClient() {
           <div className="wrap">
             <div className="section-head reveal">
               <span className="eyebrow">Return on governance</span>
-              <h2>The Cost of One Unsafe Execution</h2>
+              <h2>The cost of one unsafe execution.</h2>
             </div>
             <p className="roi-lede reveal">
               Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
@@ -530,9 +512,8 @@ export function HomeClient() {
             </div>
 
             <p className="roi-close reveal">
-              If one catastrophic execution is prevented, governance pays for itself many times
-              over — the assessment identifies which catastrophic states are currently reachable
-              in your system, before they become a business event.
+              One prevented execution pays for governance many times over. The assessment shows
+              which catastrophic states are reachable in your system today.
             </p>
 
             <div className="demo-cta reveal">
@@ -644,8 +625,7 @@ export function HomeClient() {
               <h2 style={{ marginTop: 20 }}>Find out which unsafe states are reachable in your systems.</h2>
               <p>
                 A 48-hour Runtime Safety Assessment identifies the catastrophic states reachable in
-                your autonomous systems — before they execute. Consultation, strategy session, and
-                pilot are the steps that follow.
+                your autonomous systems — before they execute.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
                 <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
@@ -657,28 +637,5 @@ export function HomeClient() {
       </main>
       <Footer />
     </>
-  );
-}
-
-function EngageStage({ name, dur, kind, recurring = false }: { name: string; dur: string; kind: string; recurring?: boolean }) {
-  return (
-    <div className={`engage-stage${recurring ? " recurring" : ""}`}>
-      <div className="es-top">
-        <span className="es-name">{name}</span>
-        <span className={`engage-tag${recurring ? " rec" : " one"}`}>
-          {recurring ? "Recurring" : "One-time"}
-        </span>
-      </div>
-      <h3>{name}</h3>
-      <div className="es-dur">{dur}</div>
-      <div className="es-kind">{kind}</div>
-      {recurring && (
-        <span className="es-loop" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M15 9 a6 6 0 1 1 -1.8 -4.3 M13.5 1.5 V5 H10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-      )}
-    </div>
   );
 }
