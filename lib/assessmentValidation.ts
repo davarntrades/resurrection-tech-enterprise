@@ -14,13 +14,12 @@ export const assessmentSchema = z.object({
   industry: z.string().trim().min(1, "Industry is required").max(80),
   companySize: z.string().trim().min(1, "Company size is required").max(40),
   country: z.string().trim().min(1, "Country is required").max(80),
+  operatingRegions: strArr,
+  deploymentRegions: strArr,
 
-  // Section 2 — AI deployment profile
-  intent: z.string().trim().max(40).optional().default(""),
-  partnerType: z.string().trim().max(40).optional().default(""),
-  customerReach: z.string().trim().max(40).optional().default(""),
-  customerBase: z.string().trim().max(4000).optional().default(""),
-  stage: z.string().trim().max(40).optional().default(""),
+  // Stage 2 — AI programme (current vs target)
+  aiMaturityCurrent: z.string().trim().max(40).optional().default(""),
+  aiMaturityTarget: z.string().trim().max(40).optional().default(""),
   agentsDeployed: yesNo,
   customerFacing: yesNo,
   connectedToTools: yesNo,
@@ -28,16 +27,24 @@ export const assessmentSchema = z.object({
   multipleAgents: yesNo,
   inProduction: yesNo,
 
-  // Section 3 — Tool access
+  // Stage 3 — Runtime risk
   toolAccess: strArr,
+  executionPermissions: strArr,
+  criticalSystems: yesNo,
+  downstreamAutomation: yesNo,
+  customersCurrent: z.string().trim().max(40).optional().default(""),
+  customersFuture: z.string().trim().max(40).optional().default(""),
+  revenueExposureCurrent: z.string().trim().max(40).optional().default(""),
+  revenueExposureFuture: z.string().trim().max(40).optional().default(""),
 
-  // Section 4 — Governance & controls
-  controls: strArr,
-  unsafePrevention: z.string().trim().max(4000).optional().default(""),
-  incidents: z.string().trim().max(4000).optional().default(""),
-
-  // Section 5 — Multi-agent environment
+  // Stage 4 — Technical architecture
+  deploymentModel: strArr,
+  cloudProviders: strArr,
+  modelStack: strArr,
+  agentStack: strArr,
+  protectedEnvironments: z.string().trim().max(20).optional().default(""),
   numAgents: z.string().trim().max(20).optional().default(""),
+  agentsExpected: z.string().trim().max(20).optional().default(""),
   agentCount: z.string().trim().max(12).optional().default(""),
   businessUnits: z.string().trim().max(12).optional().default(""),
   sharedMemory: yesNo,
@@ -45,10 +52,27 @@ export const assessmentSchema = z.object({
   autonomousCoordination: yesNo,
   crossAgentComm: yesNo,
 
-  // Section 6 — Compliance
-  compliance: strArr,
+  // Stage 5 — Governance (current + target)
+  controls: strArr,
+  governanceOps: strArr,
+  governanceTarget: z.string().trim().max(40).optional().default(""),
+  unsafePrevention: z.string().trim().max(4000).optional().default(""),
+  incidents: z.string().trim().max(4000).optional().default(""),
 
-  // Section 7 — Success criteria
+  // Stage 6 — Compliance & oversight
+  compliance: strArr,
+  evidenceRequirements: strArr,
+  execOversight: z.string().trim().max(40).optional().default(""),
+  execNeed: z.string().trim().max(40).optional().default(""),
+
+  // Stage 7 — Commercial qualification
+  intent: z.string().trim().max(40).optional().default(""),
+  partnerType: z.string().trim().max(40).optional().default(""),
+  customerReach: z.string().trim().max(40).optional().default(""),
+  customerReachPotential: z.string().trim().max(40).optional().default(""),
+  customerBase: z.string().trim().max(4000).optional().default(""),
+  stage: z.string().trim().max(40).optional().default(""),
+  timeline: z.string().trim().max(40).optional().default(""),
   successCriteria: strArr,
   successNotes: z.string().trim().max(4000).optional().default(""),
 
