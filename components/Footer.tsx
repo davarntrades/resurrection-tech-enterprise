@@ -36,18 +36,21 @@ export function Footer() {
         </div>
         <div>
           <h4>Platform</h4>
-          <Link href="/#what">What we do</Link>
+          <Link href="/#what">What Runtime Governance is</Link>
           <Link href="/why-runtime-governance">Why Runtime Governance</Link>
+          <Link href="/technology">Technology &amp; architecture</Link>
+          <Link href="/solutions">Industries &amp; solutions</Link>
           <Link href="/integrations">How it integrates</Link>
-          <Link href="/#onboarding">Onboarding pathway</Link>
-          <Link href="/#reachability">Ω Reachability</Link>
+          <Link href="/#onboarding">Deployment pathway</Link>
+          <Link href="/technology#reachability">Ω Reachability</Link>
           <Link href="/enterprise-pathways">Why pricing scales</Link>
         </div>
         <div>
           <h4>Engage</h4>
           <Link href="/enterprise-pathways">Enterprise pathways</Link>
-          <Link href="/#domains">Target domains</Link>
+          <Link href="/solutions">Target domains</Link>
           <Link href="/partners">Partners</Link>
+          <Link href="/referral">Partner referrals</Link>
           <Link href="/licensing">Licensing framework</Link>
           <Link href="/book#assessment">Book a Runtime Safety Assessment</Link>
           <Link href="/pay">Payments &amp; invoicing</Link>

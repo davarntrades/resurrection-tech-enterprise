@@ -24,9 +24,9 @@ export const SITE = {
 // one tap away under Menu.
 export const NAV_LINKS = [
   { href: "/live-demo", label: "Live Demo" },
-  { href: "/integrations", label: "Integrations" },
+  { href: "/solutions", label: "Solutions" },
+  { href: "/technology", label: "Technology" },
   { href: "/enterprise-pathways", label: "Pricing" },
-  { href: "/referral", label: "Partner Referrals" },
 ] as const;
 
 // Full enterprise IA — rendered in the drop-down menu (desktop + mobile).
@@ -37,6 +37,8 @@ export const NAV_MENU = [
     links: [
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
+      { href: "/technology", label: "Technology & architecture" },
+      { href: "/solutions", label: "Industries & solutions" },
       { href: "/integrations", label: "How it integrates" },
       { href: "/quickstart", label: "Developer quickstart" },
       { href: "/enterprise", label: "Enterprise readiness" },
