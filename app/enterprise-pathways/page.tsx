@@ -538,7 +538,7 @@ export default function Page() {
               {
                 title: "Partner Discovery Workshop™",
                 pos: "For prospective partners scoping a relationship before committing to a channel pathway.",
-                terms: "£5K–£15K+ · credited toward onboarding",
+                terms: "Scoped during partnership discovery · credited toward onboarding",
                 cta: "Book discovery",
                 href: "/book",
               },
@@ -552,21 +552,21 @@ export default function Page() {
               {
                 title: "Managed Governance Partner™ Onboarding",
                 pos: "Prepares an MSSP, consultancy, or assurance firm to confidently sell and deliver Runtime Governance — architecture review, deployment planning, sales enablement, and co-branded material. Strategic onboarding, not a discount.",
-                terms: "£25K–£50K · recommended £35K",
+                terms: "Commercial qualification · strategic onboarding, not a discount",
                 cta: "Explore onboarding",
                 href: "/managed-governance-partner",
               },
               {
                 title: "Managed Governance Partner™",
                 pos: "Runtime Governance packaged into MSP, MSSP, cybersecurity, compliance, or AI assurance services — ongoing.",
-                terms: "Platform £25K–£75K+/yr · per-customer banded · minimum annual commitment",
+                terms: "Pricing determined during partnership review · minimum annual commitment",
                 cta: "Explore the partnership",
                 href: "/managed-governance-partner",
               },
               {
                 title: "Embedded Runtime Governance Licensing™",
                 pos: "Runtime Governance embedded into platforms, products, or customer-facing AI infrastructure.",
-                terms: "£100K+/yr + minimum annual guarantee · by commercial review",
+                terms: "Commercial review · minimum annual guarantee",
                 cta: "Explore licensing",
                 href: "/embedded-runtime-governance-licensing",
               },
