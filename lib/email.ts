@@ -8,6 +8,7 @@ import {
 } from "./assessment";
 import { referralPath } from "./referral";
 import { PRICING_DISCLAIMER } from "./pricing";
+import { deriveInsights, timelineFor } from "./assessmentReport";
 
 /**
  * Transactional email via Resend.
@@ -327,6 +328,14 @@ export function buildAssessmentInternalHtml(
          </table>
        </div>`
     : "";
+  const ins = deriveInsights(d, s, rec);
+  const kpi = (k: string, v: string) =>
+    `<td style="width:25%;padding:10px 12px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+       <div style="color:#6b7480;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px">${k}</div>
+       <div style="color:#f3f5f7;font-size:14px;font-weight:600">${v}</div>
+     </td>`;
+  const bullets = (items: string[], color: string) =>
+    items.map((t) => `<li style="margin:0 0 6px;color:#cdd6e0;font-size:12.5px;line-height:1.55"><span style="color:${color}">●</span>&nbsp; ${esc(t)}</li>`).join("");
   return shell(`
     <div style="color:#6f97ff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px">Runtime Governance Assessment &middot; ${reference}</div>
     ${partnerBanner}
@@ -334,7 +343,28 @@ export function buildAssessmentInternalHtml(
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
       <div style="color:#f3f5f7;font-size:16px;font-weight:600">${rec.title}</div>
       <div style="color:#aab2bd;font-size:13px;margin-top:4px">${rec.tagline}</div>
+      ${rec.band ? `<div style="color:#6f97ff;font-size:12px;margin-top:8px;font-family:monospace">Indicative scale: ${esc(rec.band)}</div>` : ""}
     </div>
+    <table style="width:100%;border-collapse:separate;border-spacing:6px;margin:0 0 16px"><tr>
+      ${kpi("Ω exposure", `${s.exposure}/100 · ${s.exposureBand}`)}
+      ${kpi("Governance maturity", `${s.maturity}/100 · ${s.maturityBand}`)}
+      ${kpi("Complexity", `${s.complexity}/100`)}
+      ${kpi("Confidence", ins.confidence)}
+    </tr></table>
+    <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Key findings</div>
+      <ul style="margin:0;padding:0 0 0 4px;list-style:none">${bullets(ins.findings, "#6f97ff")}</ul>
+    </div>
+    <table style="width:100%;border-collapse:separate;border-spacing:6px;margin:0 0 16px"><tr>
+      <td style="width:50%;vertical-align:top;padding:12px 14px;background:#0b0d11;border:1px solid rgba(63,178,127,0.3);border-radius:10px">
+        <div style="color:#3fb27f;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Current strengths</div>
+        <ul style="margin:0;padding:0;list-style:none">${bullets(ins.strengths, "#3fb27f")}</ul>
+      </td>
+      <td style="width:50%;vertical-align:top;padding:12px 14px;background:#0b0d11;border:1px solid rgba(224,169,63,0.3);border-radius:10px">
+        <div style="color:#e0a93f;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Current gaps</div>
+        <ul style="margin:0;padding:0;list-style:none">${ins.gaps.length ? bullets(ins.gaps, "#e0a93f") : `<li style="color:#6b7480;font-size:12.5px">No high-value gaps surfaced.</li>`}</ul>
+      </td>
+    </tr></table>
     <div style="margin:0 0 16px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Referral attribution</div>
       <table style="width:100%;border-collapse:collapse">
@@ -388,6 +418,7 @@ export function buildAssessmentConfirmHtml(
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com";
   const btn = (href: string, label: string) =>
     `<a href="${href}" style="display:inline-block;background:#6f97ff;color:#08090b;text-decoration:none;font-weight:600;font-size:14px;padding:11px 18px;border-radius:10px">${label}</a>`;
+  const timeline = timelineFor(rec.id);
   return shell(`
     <div style="color:#f3f5f7;font-size:20px;margin-bottom:10px">Your Runtime Governance Assessment</div>
     <p style="font-size:14px;line-height:1.6;color:#aab2bd;margin:0 0 18px">
@@ -398,7 +429,17 @@ export function buildAssessmentConfirmHtml(
       <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Recommended pathway</div>
       <div style="color:#f3f5f7;font-size:17px;font-weight:600">${rec.title}</div>
       <div style="color:#aab2bd;font-size:13px;margin-top:4px">${rec.tagline}</div>
+      ${rec.band ? `<div style="color:#6f97ff;font-size:12px;margin-top:8px;font-family:monospace">Indicative engagement scale: ${esc(rec.band)}</div>` : ""}
     </div>
+    <div style="margin:0 0 18px;padding:14px 16px;background:#0b0d11;border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      <div style="color:#6b7480;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">What the engagement typically looks like</div>
+      <div style="color:#e7ecf3;font-size:13px;line-height:1.7">${timeline.map(esc).join(" &nbsp;→&nbsp; ")}</div>
+    </div>
+    <p style="font-size:13px;line-height:1.6;color:#aab2bd;margin:0 0 18px">
+      Your full executive report — key findings, strengths and gaps, governance scorecard, and
+      engagement timeline — is available on the device where you completed the assessment:
+      <a href="${site}/assessment/report" style="color:#6f97ff">${site.replace(/^https?:\/\//, "")}/assessment/report</a>.
+    </p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
       ${row("Reference", reference)}
       ${row("Submitted", stamp)}
