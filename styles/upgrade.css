@@ -1190,3 +1190,90 @@
   .pathway-n { font-size: 12px; }
   .pathway-insert { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   What Runtime Governance is — calm executive diagram (.govd)
+   Static by design: no reveal dependency, no per-node animation.
+   ============================================================ */
+.govd-agnostic {
+  margin-top: 14px;
+  font-size: 0.95rem;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+.govd {
+  max-width: 640px;
+  margin: clamp(36px, 5vw, 56px) auto 0;
+  display: flex;
+  flex-direction: column;
+}
+.govd-layer {
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  border-radius: 16px;
+  padding: clamp(20px, 3vw, 28px) clamp(18px, 3.5vw, 32px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.govd-k {
+  font-size: clamp(1.02rem, 1.6vw, 1.18rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.govd-v {
+  font-size: 0.93rem;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.govd-gov {
+  border-color: rgba(111, 151, 255, 0.38);
+  background: linear-gradient(180deg, rgba(76, 125, 255, 0.07), rgba(76, 125, 255, 0.015));
+  padding-block: clamp(26px, 3.6vw, 36px);
+}
+.govd-gov .govd-k { font-size: clamp(1.18rem, 2vw, 1.4rem); }
+.govd-tm {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.govd-verbs {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+.govd-verbs .ok  { color: rgba(63, 178, 127, 0.8); }
+.govd-verbs .esc { color: rgba(111, 151, 255, 0.8); }
+.govd-verbs .blk { color: rgba(229, 72, 77, 0.8); }
+.govd-conn {
+  width: 1px;
+  height: clamp(26px, 3.5vw, 36px);
+  margin: 0 auto;
+  background: var(--line-strong);
+  position: relative;
+}
+.govd-conn::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--line-strong);
+}
+.govd-caption {
+  margin: 20px auto 0;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+  max-width: 46ch;
+  line-height: 1.5;
+}
