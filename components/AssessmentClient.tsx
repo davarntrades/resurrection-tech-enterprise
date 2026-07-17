@@ -14,6 +14,7 @@ import {
   type AssessmentData, type Recommendation, type YesNo, type Option,
 } from "@/lib/assessment";
 import { slugifyRef, humanizeRef, DIRECT_SOURCE } from "@/lib/referral";
+import { REPORT_STORAGE_KEY, type StoredReport } from "@/lib/assessmentReport";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 const STORAGE_KEY = "rt-assessment-v2";
@@ -148,6 +149,15 @@ export function AssessmentClient() {
         setStep(0);
       } else {
         setResult({ recommendation: json.recommendation, reference: json.reference, emailed: json.delivery?.emailed });
+        // Persist the full submission on this device so /assessment/report can
+        // render the executive report (presentation only — engine untouched).
+        try {
+          const stored: StoredReport = {
+            data, recommendation: json.recommendation, reference: json.reference,
+            submittedAt: new Date().toISOString(),
+          };
+          localStorage.setItem(REPORT_STORAGE_KEY, JSON.stringify(stored));
+        } catch { /* ignore */ }
         try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
         scrollTop();
       }
@@ -275,7 +285,14 @@ function ResultView({ result, onRestart }: { result: { recommendation: Recommend
       )}
 
       <div className="rgq-result-cta">
-        <Link href={r.ctaHref} className="btn btn--primary" onClick={() => track(Events.CTA_CLICK, { location: "assessment-result", cta: r.id })}>
+        <Link
+          href="/assessment/report"
+          className="btn btn--primary"
+          onClick={() => track(Events.CTA_CLICK, { location: "assessment-result", cta: "executive-report" })}
+        >
+          View your executive report <span className="arr">→</span>
+        </Link>
+        <Link href={r.ctaHref} className="btn btn--ghost" onClick={() => track(Events.CTA_CLICK, { location: "assessment-result", cta: r.id })}>
           {r.ctaLabel} <span className="arr">→</span>
         </Link>
         <Link href="/book#assessment" className="btn btn--ghost">{r.secondaryLabel ?? "Book a call"} <span className="arr">→</span></Link>
