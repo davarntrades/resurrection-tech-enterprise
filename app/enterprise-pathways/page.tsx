@@ -8,7 +8,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Enterprise Runtime Governance Assessment, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, and Partner & Licensing pathways (Strategic Alliance, Managed Governance Partner, and Embedded Runtime Governance Licensing). Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Enterprise Runtime Governance Assessment, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, executive pathways (Executive Governance Partnership, Fractional CAIO, Frontier AI Strategic Partnership), and Partner & Licensing pathways. Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -95,15 +95,63 @@ const VERDICTS: Verdict[] = [
   },
 ];
 
-const PATHWAYS = [
-  ["Free Discovery / Questionnaire Review", "Establish fit and high-level risk context", "Discovery call", "No charge"],
-  ["Paid Discovery Workshop™", "Structured scoping before audit, pilot, or integration", "Short engagement", "£5K–£50K+"],
-  ["Runtime Governance Audit", "Identify catastrophic trajectory exposure and governance gaps", "48 hours", "£40K–£75K"],
-  ["Enterprise Runtime Governance Assessment™", "Multi-agent, cross-system governance review with board-ready executive evidence", "2–4 weeks", "£100K+"],
-  ["Limited Pilot™", "Validate governance against real workflows and operational environments", "30–60 days", "£250K–£750K+"],
-  ["Enterprise Integration™", "One-time production deployment into operational systems", "Deployment dependent", "By commercial review"],
-  ["Annual Runtime Governance™ License™", "Ongoing runtime governance, monitoring, updates, support, and revalidation", "Annual", "£75K–£500K+ / yr"],
-  ["Advisory Retainer™", "Ongoing governance evolution, validation, and oversight", "Monthly", "£35K–£100K+ / mo"],
+type LadderCard = { name: string; pos: string; time: string; price: string; priceDim?: boolean };
+type LadderTier = { label: string; core?: boolean; cards: LadderCard[] };
+
+const LADDER: LadderTier[] = [
+  {
+    label: "Establish & scope",
+    cards: [
+      { name: "Free Discovery / Questionnaire Review", pos: "Establish fit and high-level risk context.", time: "Discovery call", price: "No charge" },
+      { name: "Paid Discovery Workshop™", pos: "Structured scoping before audit, pilot, or integration.", time: "Short engagement", price: "£5K–£50K+" },
+    ],
+  },
+  {
+    label: "Assess, validate, deploy — the core ladder",
+    core: true,
+    cards: [
+      { name: "Runtime Governance Audit", pos: "Identify catastrophic trajectory exposure and governance gaps.", time: "48 hours", price: "£40K–£75K" },
+      { name: "Enterprise Runtime Governance Assessment™", pos: "Comprehensive governance assessment across enterprise workflows, environments, controls, and evidence requirements.", time: "2–6 weeks", price: "£100K–£250K+" },
+      { name: "Limited Pilot™", pos: "Validate governance against real workflows and operational environments.", time: "30–60 days", price: "£250K–£750K+" },
+      { name: "Enterprise Integration™", pos: "One-time production deployment into operational systems.", time: "Deployment dependent", price: "Commercial review following deployment assessment", priceDim: true },
+    ],
+  },
+  {
+    label: "Sustain, oversee, lead",
+    cards: [
+      { name: "Annual Runtime Governance™ License™", pos: "Ongoing runtime governance, monitoring, updates, support, and revalidation.", time: "Annual", price: "£75K–£500K+ / yr" },
+      { name: "Advisory Retainer™", pos: "Ongoing governance evolution, validation, and oversight.", time: "Monthly", price: "£35K–£100K+ / mo" },
+      { name: "Executive Governance Partnership™", pos: "Executive-level governance leadership beyond operational support.", time: "Annual", price: "£150K–£500K+ / yr" },
+      { name: "Fractional Chief AI Officer (CAIO) / Executive AI Governance Lead™", pos: "Executive AI strategy, deployment governance, operational assurance, and executive risk oversight.", time: "Annual", price: "£250K–£1M+ / yr" },
+      { name: "Frontier AI Strategic Partnership™", pos: "Strategic governance for frontier, foundation-model, infrastructure, and sovereign AI programmes.", time: "Annual / multi-year", price: "Commercial review · minimum annual commitment", priceDim: true },
+    ],
+  },
+];
+
+const CHOOSE: { sit: string; path: string; href?: string }[] = [
+  { sit: "Exploring; need to establish fit", path: "Free Discovery / Questionnaire Review", href: "/book" },
+  { sit: "Need structured scoping before committing", path: "Paid Discovery Workshop™", href: "#discovery-workshop" },
+  { sit: "Need a rapid fixed-scope risk diagnostic", path: "Runtime Governance Audit", href: "/request-audit" },
+  { sit: "Need a deeper enterprise-wide assessment before pilot", path: "Enterprise Runtime Governance Assessment™", href: "#enterprise-assessment" },
+  { sit: "Risks known, need validation", path: "Limited Pilot™", href: "/pilot" },
+  { sit: "Approved for enterprise deployment", path: "Enterprise Integration™" },
+  { sit: "In production; need ongoing governance", path: "Annual Runtime Governance™ License™" },
+  { sit: "Existing deployment, ongoing operational oversight", path: "Advisory Retainer™" },
+  { sit: "Executive governance leadership required", path: "Executive Governance Partnership™", href: "#executive-leadership" },
+  { sit: "Part-time executive AI leadership required", path: "Fractional CAIO / Executive AI Governance Lead™", href: "#executive-leadership" },
+  { sit: "Frontier, foundation-model, infrastructure, or sovereign programme", path: "Frontier AI Strategic Partnership™", href: "#executive-leadership" },
+  { sit: "Partner, MSSP, or platform vendor", path: "Partner & Channel Pathways", href: "#partner-licensing" },
+];
+
+const QUAL_FACTORS = [
+  "Number and type of protected environments",
+  "Runtime criticality and downstream operational impact",
+  "Number of autonomous agents, planners, tools, and workflows",
+  "Governance complexity and domain-specific Ω definitions",
+  "Compliance, assurance, and evidence requirements",
+  "Deployment architecture, including hosted, self-hosted, and embedded models",
+  "Geographic footprint, regulated entities, and organisational reach",
+  "Support, incident-response, and executive governance requirements",
 ];
 
 export default function Page() {
@@ -113,28 +161,54 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Enterprise pathways</span>
-            <h2>Ways to engage.</h2>
-            <p>Free discovery establishes fit. The Paid Discovery Workshop defines scope. The audit measures exposure. The pilot is validation. The integration is operational embedment. The annual License and the retainer are ongoing assurance.</p>
-          </div>
-          <div className="tbl-wrap reveal" data-rowreveal>
-            <table className="tbl">
-              <thead>
-                <tr><th>Pathway</th><th>Purpose</th><th>Timeline</th><th>Indicative scale</th></tr>
-              </thead>
-              <tbody>
-                {PATHWAYS.map(([p, pos, t, inv]) => (
-                  <tr key={p}>
-                    <td data-l="Pathway" className="t-main">{p}</td>
-                    <td data-l="Purpose">{pos}</td>
-                    <td data-l="Timeline" className="t-time">{t}</td>
-                    <td data-l="Indicative scale" className="t-price">{inv}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h2>The engagement ladder.</h2>
+            <p>
+              The engagement model takes organisations from first discovery to enforced,
+              continuously governed production — progressing only as far along the ladder as
+              each organisation needs. The governance layer is evaluated against reachable
+              operational risk, not model quality or benchmark performance.
+            </p>
           </div>
 
-          <div className="retainer-note reveal" data-d="1">
+          <div className="ladder">
+            {LADDER.map((tier) => (
+              <div key={tier.label} className="reveal">
+                <div className="ladder-tier-h">
+                  <span className={`ladder-dot${tier.core ? " core" : ""}`} aria-hidden="true" />
+                  {tier.label}
+                  <span className="ln" aria-hidden="true" />
+                </div>
+                <div className="ladder-grid">
+                  {tier.cards.map((c) => (
+                    <div className={`ladder-card${tier.core ? " is-core" : ""}`} key={c.name}>
+                      {tier.core && <span className="ladder-core-tag">Core pathway</span>}
+                      <h3 className="ladder-name">{c.name}</h3>
+                      <p className="ladder-pos">{c.pos}</p>
+                      <div className="ladder-meta">
+                        <span className="ladder-time">{c.time}</span>
+                        <span className={`ladder-price${c.priceDim ? " dim" : ""}`}>{c.price}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="dw-note reveal" data-d="1">
+            The &ldquo;+&rdquo; denotes that figures are not ceilings. Engagement scale rises with
+            deployment size, risk surface, compliance burden, number of agents and environments,
+            downstream impact, and commercial structure. Scale is qualified by the assessment
+            questionnaire — customer reach, industry, agent maturity, governance maturity,
+            compliance requirements, multi-agent complexity, and partner intent.
+          </p>
+
+          <div className="hero-actions reveal" style={{ marginTop: 36 }}>
+            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/book" className="btn btn--ghost">Schedule Discovery</Link>
+          </div>
+
+          <div className="retainer-note reveal" data-d="1" style={{ marginTop: 40 }}>
             <span className="rn-k">Why the retainer exists — Ω is not static</span>
             <p className="rn-eq"><b>ℛ(t) ∩ Ω = ∅</b></p>
             <p className="rn-t">
@@ -158,6 +232,32 @@ export default function Page() {
           </p>
 
           <PricingDisclaimer variant="full" />
+        </div>
+      </section>
+
+      {/* ===== CHOOSING A PATHWAY — situation → recommendation ===== */}
+      <section className="section section--tight" id="choosing-a-pathway">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Choosing a pathway</span>
+            <h2>Start from your situation.</h2>
+            <p>Match where you are today to the recommended entry point. Every pathway can progress to the next rung of the ladder.</p>
+          </div>
+          <div className="choose-grid reveal">
+            {CHOOSE.map((c) =>
+              c.href ? (
+                <Link href={c.href} className="choose-row" key={c.sit}>
+                  <span className="choose-sit">{c.sit}</span>
+                  <span className="choose-path">{c.path}</span>
+                </Link>
+              ) : (
+                <div className="choose-row" key={c.sit}>
+                  <span className="choose-sit">{c.sit}</span>
+                  <span className="choose-path">{c.path}</span>
+                </div>
+              ),
+            )}
+          </div>
         </div>
       </section>
 
@@ -222,16 +322,17 @@ export default function Page() {
 
           <div className="dw-range reveal" data-d="1">
             <span className="dw-range-k">Indicative scale</span>
-            <div className="tbl-wrap" data-rowreveal>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Engagement</th><th>Scope</th><th>Indicative scale</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td data-l="Engagement" className="t-main">Runtime Governance Audit</td><td data-l="Scope">Single environment, fixed 48-hour engagement</td><td data-l="Indicative scale" className="t-price">£40K–£75K</td></tr>
-                  <tr><td data-l="Engagement" className="t-main">Enterprise Runtime Governance Assessment™</td><td data-l="Scope">Multi-agent, cross-system, executive evidence + roadmap</td><td data-l="Indicative scale" className="t-price">£100K+</td></tr>
-                </tbody>
-              </table>
+            <div className="price-tiles">
+              <div className="price-tile">
+                <span className="price-tile-k">Runtime Governance Audit</span>
+                <span className="price-tile-v">£40K–£75K</span>
+                <span className="price-tile-s">Single environment · fixed 48-hour engagement</span>
+              </div>
+              <div className="price-tile is-hi">
+                <span className="price-tile-k">Enterprise Runtime Governance Assessment™</span>
+                <span className="price-tile-v">£100K–£250K+</span>
+                <span className="price-tile-s">Multi-agent, cross-system · executive evidence + roadmap · 2–6 weeks</span>
+              </div>
             </div>
             <PricingDisclaimer variant="short" />
           </div>
@@ -310,17 +411,19 @@ export default function Page() {
 
           <div className="dw-range reveal" data-d="1">
             <span className="dw-range-k">Typical range</span>
-            <div className="tbl-wrap" data-rowreveal>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Organisation</th><th>Typical range</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td data-l="Organisation" className="t-main">Small company</td><td data-l="Typical range" className="t-price">£5K–£15K</td></tr>
-                  <tr><td data-l="Organisation" className="t-main">Mid-market</td><td data-l="Typical range" className="t-price">£15K–£25K</td></tr>
-                  <tr><td data-l="Organisation" className="t-main">Enterprise</td><td data-l="Typical range" className="t-price">£25K–£50K+</td></tr>
-                </tbody>
-              </table>
+            <div className="price-tiles">
+              <div className="price-tile">
+                <span className="price-tile-k">Small company</span>
+                <span className="price-tile-v">£5K–£15K</span>
+              </div>
+              <div className="price-tile">
+                <span className="price-tile-k">Mid-market</span>
+                <span className="price-tile-v">£15K–£25K</span>
+              </div>
+              <div className="price-tile">
+                <span className="price-tile-k">Enterprise</span>
+                <span className="price-tile-v">£25K–£50K+</span>
+              </div>
             </div>
             <PricingDisclaimer variant="short" />
           </div>
@@ -353,6 +456,71 @@ export default function Page() {
         </div>
       </section>
 
+      {/* ===== EXECUTIVE & STRATEGIC PATHWAYS ===== */}
+      <section className="section section--tight" id="executive-leadership">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Executive &amp; strategic pathways</span>
+            <h2>Governance leadership beyond operational support.</h2>
+            <p>
+              For organisations that need executive-level governance leadership — from ongoing
+              partnership to part-time executive AI leadership and strategic programmes for
+              frontier and sovereign AI.
+            </p>
+          </div>
+
+          <div className="plp-grid reveal" data-d="1">
+            <div className="plp-card">
+              <h3 className="plp-title">Executive Governance Partnership™</h3>
+              <p className="plp-pos">
+                Executive-level governance leadership beyond operational support.
+              </p>
+              <div className="plp-foot">
+                <span className="plp-terms"><span className="plp-terms-k">Indicative scale</span>£150K–£500K+ / yr · Annual</span>
+              </div>
+            </div>
+            <div className="plp-card">
+              <h3 className="plp-title">Fractional Chief AI Officer (CAIO) / Executive AI Governance Lead™</h3>
+              <p className="plp-pos">
+                Part-time executive leadership for organisations requiring ongoing AI strategy,
+                deployment governance, executive decision support, and governance programme
+                leadership without appointing a full-time Chief AI Officer.
+              </p>
+              <ul className="plp-acts" aria-label="Typical activities">
+                {[
+                  "Executive AI strategy and operating-model design",
+                  "AI deployment governance and approval frameworks",
+                  "Executive and board risk reviews",
+                  "Regulatory and assurance engagement support",
+                  "Governance programme leadership",
+                  "Cross-functional decision rights and accountability",
+                ].map((t) => <li key={t}>{t}</li>)}
+              </ul>
+              <div className="plp-foot">
+                <span className="plp-terms"><span className="plp-terms-k">Indicative scale</span>£250K–£1M+ / yr · Annual</span>
+              </div>
+            </div>
+            <div className="plp-card">
+              <h3 className="plp-title">Frontier AI Strategic Partnership™</h3>
+              <p className="plp-pos">
+                Strategic governance engagement for frontier AI labs, foundation model providers,
+                AI infrastructure platforms, autonomous agent platforms, and sovereign AI
+                programmes. Scope may include model-release governance, safety-operations
+                integration, runtime deployment controls, planner validation, strategic roadmap
+                development, and executive governance.
+              </p>
+              <div className="plp-foot">
+                <span className="plp-terms"><span className="plp-terms-k">Commercial</span>Commercial review · minimum annual commitment</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-actions reveal" style={{ marginTop: 36 }}>
+            <Link href="/contact" className="btn btn--ghost">Contact us about executive pathways</Link>
+          </div>
+        </div>
+      </section>
+
       {/* ===== PARTNER & LICENSING PATHWAYS (channel / OEM motion) ===== */}
       <section className="section section--tight" id="partner-licensing">
         <div className="wrap">
@@ -368,25 +536,46 @@ export default function Page() {
           <div className="plp-grid reveal" data-d="1">
             {[
               {
+                title: "Partner Discovery Workshop™",
+                pos: "For prospective partners scoping a relationship before committing to a channel pathway.",
+                terms: "£5K–£15K+ · credited toward onboarding",
+                cta: "Book discovery",
+                href: "/book",
+              },
+              {
                 title: "Strategic Alliance Partner™",
-                pos: "Qualified enterprise introductions and strategic market access.",
-                terms: "Partnership-dependent",
+                pos: "Advisors, consultants, introducers, and strategic relationships — qualified enterprise introductions and strategic market access.",
+                terms: "Commission on realised revenue · no fee to join",
                 cta: "Explore the partnership",
                 href: "/strategic-alliance-partner",
               },
               {
+                title: "Managed Governance Partner™ Onboarding",
+                pos: "Prepares an MSSP, consultancy, or assurance firm to confidently sell and deliver Runtime Governance — architecture review, deployment planning, sales enablement, and co-branded material. Strategic onboarding, not a discount.",
+                terms: "£25K–£50K · recommended £35K",
+                cta: "Explore onboarding",
+                href: "/managed-governance-partner",
+              },
+              {
                 title: "Managed Governance Partner™",
-                pos: "Runtime Governance packaged into MSP, MSSP, cybersecurity, compliance, or AI assurance services.",
-                terms: "By assessment / commercial review",
+                pos: "Runtime Governance packaged into MSP, MSSP, cybersecurity, compliance, or AI assurance services — ongoing.",
+                terms: "Platform £25K–£75K+/yr · per-customer banded · minimum annual commitment",
                 cta: "Explore the partnership",
                 href: "/managed-governance-partner",
               },
               {
                 title: "Embedded Runtime Governance Licensing™",
                 pos: "Runtime Governance embedded into platforms, products, or customer-facing AI infrastructure.",
-                terms: "Partnership-dependent",
+                terms: "£100K+/yr + minimum annual guarantee · by commercial review",
                 cta: "Explore licensing",
                 href: "/embedded-runtime-governance-licensing",
+              },
+              {
+                title: "OEM / Enterprise Licensing™",
+                pos: "Large-scale, sovereign, or white-label embedded licensing.",
+                terms: "By commercial review · minimum annual guarantee required",
+                cta: "Explore licensing",
+                href: "/licensing",
               },
             ].map((c) => (
               <div className="plp-card" key={c.title}>
@@ -413,6 +602,16 @@ export default function Page() {
             Resurrection Tech retains ownership of the governance engine.{" "}
             <Link href="/managed-governance-partner#integration-models">See how integration works →</Link>
           </p>
+          <p className="dw-note reveal" data-d="1">
+            <b>Licensing &amp; OEM terms.</b> Embedded and OEM licensing — including white-label,
+            exclusivity, and territory rights — is determined during partnership discovery.
+            Self-hosted and embedded deployments scale above hosted equivalents. Usage reporting
+            and audit rights are retained. &ldquo;Powered by Resurrection Tech™&rdquo; attribution
+            applies unless white-label rights are separately licensed. Exclusivity is never
+            automatic and is granted only against a minimum annual guarantee, time-boxed, and
+            carved out for direct and named accounts. Deal registration and named-account
+            exclusions apply.
+          </p>
           <PricingDisclaimer variant="short" />
         </div>
       </section>
@@ -420,9 +619,13 @@ export default function Page() {
       <section className="section section--tight" id="pricing-logic">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Why pricing scales</span>
+            <span className="eyebrow">Commercial qualification principles</span>
             <h2>Priced against the cost of Ω becoming reachable.</h2>
-            <p>Not against the complexity of the software. Pricing is proportional to consequence, not to effort.</p>
+            <p>
+              Commercial terms are determined by the operational and governance burden of the
+              deployment, not by software effort alone. Pricing is proportional to consequence,
+              not to effort.
+            </p>
           </div>
           <div className="scale-grid">
             <div className="scale-col is reveal">
@@ -448,9 +651,35 @@ export default function Page() {
               ))}
             </div>
           </div>
+
+          <div className="dw-range reveal" data-d="1" style={{ marginTop: 36 }}>
+            <span className="dw-range-k">Primary qualification factors</span>
+            <div className="qual-grid">
+              {QUAL_FACTORS.map((t) => (
+                <div className="qual-li" key={t}>{t}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="retainer-note reveal" data-d="1" style={{ marginTop: 36 }}>
+            <span className="rn-k">Engagement philosophy</span>
+            <p className="rn-t">
+              The governance layer is priced against the cost of catastrophic risk becoming
+              reachable, not against the complexity of the software itself. Organisations may
+              enter through Free Discovery, a Paid Discovery Workshop, a Runtime Governance
+              Audit, an Enterprise Runtime Governance Assessment™, or a Limited Pilot™,
+              depending on maturity, validation requirements, and existing understanding of
+              their risk landscape. Production governance is sustained through Enterprise
+              Integration and the Annual Runtime Governance™ License; executive involvement is
+              available through the advisory pathways above. All figures are indicative and
+              non-binding; final commercial terms follow assessment, deployment review, and
+              commercial qualification.
+            </p>
+          </div>
+
           <div className="hero-actions reveal" style={{ marginTop: 44 }}>
-            <Link href="/assessment" className="btn btn--primary">Assess Your Agent <span className="arr">→</span></Link>
-            <Link href="/book#assessment" className="btn btn--ghost">Book a Runtime Safety Assessment</Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/assessment" className="btn btn--ghost">Assess Your Agent</Link>
           </div>
         </div>
       </section>

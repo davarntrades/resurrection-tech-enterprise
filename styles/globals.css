@@ -38,6 +38,7 @@
 @import "./mgp.css";
 @import "./portal.css";
 @import "./report.css";
+@import "./pathways.css";
 
 @tailwind components;
 @tailwind utilities;
