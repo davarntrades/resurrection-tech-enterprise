@@ -16,6 +16,8 @@ const SPEND = [
   ["Credential breaches", "~£10.22M average cost per breach (illustrative)."],
   ["Autonomous transfer errors", "£2B+ single-event precedent for unauthorised transfers (illustrative)."],
   ["Operational outages", "Downtime, remediation, and recovery costs."],
+  ["Reputational damage", "Public incidents that outlast the technical fix."],
+  ["Customer trust erosion", "Confidence lost across the customer base after an autonomous failure."],
 ];
 
 export default function Page() {
