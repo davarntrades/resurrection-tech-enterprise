@@ -1,4 +1,5 @@
 "use strict";
+const fs = require("node:fs");
 const reports = require("../../lib/runtime/reports");
 const deliverables = require("../../lib/runtime/deliverables");
 const kit = require("../delivery-kit.cjs");
@@ -23,6 +24,10 @@ fontChecks(monthly, "monthly evidence");
 ok(monthly.includes("Resurrection Tech&trade; &middot; Confidential"), "monthly evidence: editorial confidentiality header");
 ok(monthly.includes("Patent GB2600765.8"), "monthly evidence: branded editorial footer");
 ok(monthly.includes("Evidence at a glance"), "monthly evidence: concise evidence structure retained");
+ok(monthly.includes("Monthly operating summary") && monthly.includes("Trajectories governed") && monthly.includes("Mean decision time"), "monthly evidence: operational summary cards match the report purpose");
+
+const executiveSource = fs.readFileSync(require.resolve("../../lib/reportHtml.ts"), "utf8");
+ok(executiveSource.includes("Executive decision summary") && executiveSource.includes("Business impact") && executiveSource.includes("Recommended actions"), "executive summary: leadership cards match the report purpose");
 
 const full = kit.auditHtml(
   { name: "Parity Test", environment: "production", reference: "RG-TEST" },
