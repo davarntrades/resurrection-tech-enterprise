@@ -27,9 +27,14 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "briefing" | "customers" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["briefing", "customers", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+
+const scoreClass = (band: string) =>
+  ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
+  : ["watch", "emerging", "developing", "elevated"].includes(band) ? "warn"
+  : ["at_risk", "not_ready", "weak", "high"].includes(band) ? "bad" : "";
 
 export default function OperationsClient() {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -145,6 +150,7 @@ export default function OperationsClient() {
         {note && <div className="radmin-card"><p>{note}</p></div>}
 
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
+        {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
         {view === "approvals" && <ApprovalsView dash={dash} busy={busy} onDecide={decide} />}
         {view === "blocked" && <BlockedView dash={dash} />}
         {view === "systems" && <SystemsView brief={brief} dash={dash} />}
@@ -178,6 +184,22 @@ function BriefingView({ brief, dash, busy, onRefresh, onGenerate, onOpen, onDeci
             {firstRec && <button className="radmin-btn" onClick={() => onOpen(firstRec.evidence_url)}>Open: {firstRec.title}</button>}
           </div>
         </div>
+
+        {brief?.top_priority && (
+          <div className="ops-priority">
+            <div className="ops-priority-label">Recommended priority</div>
+            <div className="ops-priority-main">
+              {brief.top_priority.org && <span className="ops-priority-org">{brief.top_priority.org}</span>}
+              <span className="ops-priority-title">{brief.top_priority.title}</span>
+              <span className="ops-priority-conf">{Math.round(brief.top_priority.confidence * 100)}% confidence</span>
+            </div>
+            <div className="ops-priority-reason">{brief.top_priority.reason}</div>
+            <div className="ops-brief-actions">
+              <button className="radmin-btn" onClick={() => onOpen(brief.top_priority.evidence_url)}>Open</button>
+              <button className="radmin-btn" onClick={() => go("customers")}>Customer intelligence</button>
+            </div>
+          </div>
+        )}
 
         <ul className="ops-items">
           {items.map((it) => (
@@ -286,6 +308,106 @@ function AskBox({ onOpen }: any) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Customers (Customer Intelligence) ────────────────────────────────────────
+function ScoreChip({ label, score, band }: any) {
+  return (
+    <div className={`ops-chip ${scoreClass(band)}`} title={band}>
+      <span className="ops-chip-v">{score}</span>
+      <span className="ops-chip-l">{label}</span>
+    </div>
+  );
+}
+function CustomersView({ brief, onOpen }: any) {
+  const [rows, setRows] = useState<any[] | null>(brief?.customer_intelligence || null);
+  const [detail, setDetail] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Deep-linked org (?view=customers&org=...) opens that customer's detail.
+  useEffect(() => {
+    const org = new URLSearchParams(window.location.search).get("org");
+    (async () => {
+      try {
+        const list = await api("customers");
+        setRows(list.customers.map((c: any) => ({
+          org_id: c.org_id, name: c.name, stage: c.stage_label, stalled: c.stalled,
+          health: c.scores.health.score, health_band: c.scores.health.band,
+          pilot_readiness: c.scores.pilot_readiness.score, pilot_band: c.scores.pilot_readiness.band,
+          runtime_risk: c.scores.runtime_risk.score, risk_band: c.scores.runtime_risk.band,
+          engagement: c.scores.engagement.score,
+          integration: c.integration_status.status, business_value: c.business_value.band,
+          next_recommendation: c.next_recommendation.title,
+        })));
+        if (org) openDetail(org);
+      } catch (e: any) { setErr(e.message); }
+    })();
+  }, []);
+
+  const openDetail = async (org_id: string) => {
+    try { const d = await api(`customers?org_id=${encodeURIComponent(org_id)}`); setDetail(d.customer); }
+    catch (e: any) { setErr(e.message); }
+  };
+
+  if (detail) {
+    const s = detail.scores;
+    return (
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <div><h2>{detail.name}</h2><p className="radmin-sub">{detail.stage_label} · integration: {detail.integration_status.status} · value: {detail.business_value.band}{detail.stalled ? " · stalled" : ""}</p></div>
+          <button className="radmin-btn" onClick={() => setDetail(null)}>← All customers</button>
+        </div>
+        <div className="ops-chips">
+          <ScoreChip label="Health" score={s.health.score} band={s.health.band} />
+          <ScoreChip label="Pilot readiness" score={s.pilot_readiness.score} band={s.pilot_readiness.band} />
+          <ScoreChip label="Runtime risk" score={s.runtime_risk.score} band={s.runtime_risk.band} />
+          <ScoreChip label="Engagement" score={s.engagement.score} band={s.engagement.band} />
+        </div>
+        <p className="radmin-sub" style={{ marginTop: 12 }}>Next recommendation: <strong>{detail.next_recommendation.title}</strong></p>
+        {(["health", "pilot_readiness", "runtime_risk", "engagement"] as const).map((k) => (
+          <details key={k} className="ops-score-formula">
+            <summary>{k.replace(/_/g, " ")} — {s[k].score}/100 ({s[k].band}) · how it's computed</summary>
+            <div className="radmin-kv"><span>formula</span><code>{s[k].formula}</code></div>
+            <ul className="radmin-sub">{s[k].inputs.map((i: any, n: number) => <li key={n}>{i.label}: {i.points >= 0 ? "+" : ""}{i.points}{i.detail ? ` — ${i.detail}` : ""}</li>)}</ul>
+          </details>
+        ))}
+        <h2 style={{ marginTop: 18 }}>Evidence timeline</h2>
+        {(detail.timeline || []).length === 0 && <div className="radmin-empty">No recorded events yet.</div>}
+        {(detail.timeline || []).map((t: any, i: number) => (
+          <div key={i} className="radmin-deliv-row">
+            <div><div className="radmin-deliv-name">{t.kind.replace(/_/g, " ")} <span className="radmin-badge">{fmtWhen(t.at)}</span></div><div className="radmin-deliv-meta">{t.detail}</div></div>
+          </div>
+        ))}
+      </section>
+    );
+  }
+
+  return (
+    <section className="radmin-card">
+      <h2>Customer intelligence</h2>
+      <p className="radmin-sub">Every organisation as a living object — deterministic scores from real records (click a row for the formula + evidence timeline). Sorted most-at-risk first.</p>
+      {err && <div className="radmin-err">{err}</div>}
+      {rows === null && <div className="radmin-empty">Loading…</div>}
+      {rows && rows.length === 0 && <div className="radmin-empty">No organisations yet.</div>}
+      {(rows || []).map((c: any) => (
+        <button key={c.org_id} className="ops-cust-card" onClick={() => openDetail(c.org_id)}>
+          <div className="ops-cust-top">
+            <span className="ops-cust-name">{c.name}</span>
+            <span className="radmin-badge">{c.stage}</span>
+            {c.stalled && <span className="radmin-badge">stalled</span>}
+            <span className="radmin-badge">{c.integration}</span>
+          </div>
+          <div className="ops-chips">
+            <ScoreChip label="Health" score={c.health} band={c.health_band} />
+            <ScoreChip label="Pilot" score={c.pilot_readiness} band={c.pilot_band} />
+            <ScoreChip label="Risk" score={c.runtime_risk} band={c.risk_band} />
+            <ScoreChip label="Engage" score={c.engagement} band={""} />
+          </div>
+          <div className="radmin-deliv-meta">Next: {c.next_recommendation}</div>
+        </button>
+      ))}
+    </section>
   );
 }
 
