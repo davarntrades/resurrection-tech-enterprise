@@ -18,6 +18,7 @@
     { "source": "/pricing", "destination": "/enterprise-pathways", "permanent": false }
   ],
   "crons": [
-    { "path": "/api/runtime/cron/reports", "schedule": "0 6 * * *" }
+    { "path": "/api/runtime/cron/reports", "schedule": "0 6 * * *" },
+    { "path": "/api/ops/cron", "schedule": "0 */4 * * *" }
   ]
 }
