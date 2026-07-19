@@ -93,7 +93,7 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/health` | GET | public-safe | Agent + trust-chain status (engine reachable? store durable?) |
 | `/api/ops/status` | GET | O or C(status) | Recent runs, proposal + evidence summaries |
 | `/api/ops/run` | POST | O | Trigger one agent cycle on demand |
-| `/api/ops/cron` | GET | cron | Scheduled cycle (Vercel cron, every 4h) |
+| `/api/ops/cron` | GET | cron | Scheduled cycle (Vercel cron; daily by default — Hobby-safe) |
 | `/api/ops/actions` | GET | O | Registered action catalog (risk, Ω tool names) |
 | `/api/ops/proposals` | GET | O or C(proposals:read) | Proposal queue + summary |
 | `/api/ops/proposals` | POST | O | `{id, decision:approve\|deny}` sign-off, or `{action_id, params}` operator-initiated proposal |
@@ -140,7 +140,7 @@ cycles alongside the schedule.
 The agent runs as governed **cycles**, not a resident daemon — a deliberate fit
 for the platform's serverless deployment (Vercel) while remaining portable:
 
-1. **Scheduled**: Vercel cron → `/api/ops/cron` (every 4h; `vercel.json`).
+1. **Scheduled**: Vercel cron → `/api/ops/cron` (daily at 07:00 UTC by default in `vercel.json`; bump to a sub-daily schedule like `0 */4 * * *` on Vercel Pro).
 2. **On demand**: operator → `/api/ops/run` or the Dashboard's "Run agent cycle".
 3. **Event-driven**: `events.subscribe(...)` handlers can invoke `agent.runCycle`.
 
@@ -276,7 +276,7 @@ current records on open/refresh). Continuous mode needs no code change — the
 mode banner flips automatically when scheduled cycles appear in `rg_ops_runs`:
 
 1. **Vercel cron (simplest)** — set `CRON_SECRET` in Vercel env. The cron in
-   `vercel.json` hits `/api/ops/cron` every 4h; each hit is a full governed
+   `vercel.json` hits `/api/ops/cron` daily at 07:00 UTC (Hobby plans cap crons at once/day; Pro can go sub-daily); each hit is a full governed
    cycle. Freshness window is `2 × OPS_CYCLE_INTERVAL_HOURS` (default 4).
 2. **Railway persistent worker (optional)** — run a Node process that calls
    `require("./lib/ops").agent.runCycle({ trigger: "worker" })` on an interval
