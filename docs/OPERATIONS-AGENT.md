@@ -102,6 +102,7 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/events` | POST | O or C(events:write) | Ingest external event (namespaced `external.*`) |
 | `/api/ops/briefing` | GET | O or C(briefing) | Executive briefing — counts + human-readable lines |
 | `/api/ops/dashboard` | GET | O or C(status) | Full dashboard aggregation |
+| `/api/ops/customers` | GET | O or C(status) | Customer intelligence — scored profiles; `?org_id=` adds the evidence timeline |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -268,6 +269,38 @@ registry (briefing · attention/priorities · blocked · approvals · system
 health · pilot readiness) answered exclusively from authorised operational
 data. Unknown prompts return the supported-intent list; there is no free-form
 generation and no execution path.
+
+## 11a. Customer Intelligence + Executive OS (4.0 Pillars 1–2)
+
+`lib/ops/intelligence.js` turns every organisation into a living, **deterministic,
+explainable** operational object — no LLM, no fabrication. Each score is 0–100,
+banded, and carries its exact labelled input components + a formula string
+(surfaced in the Customers view as expandable "how it's computed" detail):
+
+| Score | Inputs (disclosed) |
+|---|---|
+| **Engagement** | stage ladder · named contacts · review cadence · note recency · configured record |
+| **Pilot readiness** | stage · governance material (pack/report) · assessment · recent runtime activity · ingest key |
+| **Runtime risk** | block rate · escalation rate · engine availability · enforced blocks (no data → `insufficient_data`, never a fake number) |
+| **Health** | `0.5·engagement + 0.3·pilotReadiness + 0.2·(100−risk) − stallPenalty` |
+
+Plus integration status, last meeting, a deterministic next recommendation (which
+**proposes through governance**, never executes), a business-value band, and a
+merged evidence timeline (governance decisions · reports · audit packs · notes ·
+runtime decisions, newest first).
+
+**Executive OS** (`lib/ops/briefing.js`): recommended actions are ranked by
+business impact — `40·severity + 30·healthUrgency + 20·businessValue +
+10·staleness` — and the briefing surfaces a single **top priority** with a
+deterministic **confidence** (the margin by which #1 leads #2, disclosed in
+`confidence_basis`). The exec-summary text carries a `Recommended priority:
+<customer> — … (confidence NN%)` line. Surfaced in the Control Room as a
+top-priority banner on the Briefing view and a **Customers** tab; queryable via
+the ask router (`customer health`, `how is <org>?`, `who is at risk?`,
+`summarise enterprise pipeline`, `explain today's recommendations`).
+
+Fully deterministic and evidence-grounded — the LLM never scores, ranks, or
+executes; it only ever narrates.
 
 ## 12. Activating continuous monitoring
 

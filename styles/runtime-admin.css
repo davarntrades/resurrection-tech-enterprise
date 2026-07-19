@@ -301,3 +301,30 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
   .ops-brief-actions .radmin-btn { flex: 1 1 auto; }
   .ops-ask-form { flex-direction: column; }
 }
+
+/* ── Executive OS: top-priority banner + Customer Intelligence ───────────── */
+.ops-priority { border: 1px solid var(--line); border-left: 3px solid var(--omega); border-radius: var(--radius); background: var(--panel-2); padding: 14px 16px; margin: 14px 0 4px; }
+.ops-priority-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.ops-priority-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin: 4px 0; }
+.ops-priority-org { font-weight: 600; font-size: 16px; }
+.ops-priority-title { font-size: 15px; }
+.ops-priority-conf { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.ops-priority-reason { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+
+.ops-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.ops-chip { border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel-2); padding: 8px 12px; min-width: 74px; text-align: center; }
+.ops-chip-v { display: block; font-size: 20px; font-weight: 560; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.ops-chip-l { display: block; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-top: 6px; }
+.ops-chip.ok .ops-chip-v { color: var(--ok); }
+.ops-chip.warn .ops-chip-v { color: #d9a441; }
+.ops-chip.bad .ops-chip-v { color: var(--omega); }
+
+.ops-cust-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); padding: 14px 16px; margin-bottom: 10px; }
+.ops-cust-card:hover { border-color: var(--ink-3); }
+.ops-cust-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
+.ops-cust-name { font-weight: 560; font-size: 15px; }
+.ops-score-formula { border-top: 1px solid var(--line-2); padding: 8px 0; }
+.ops-score-formula summary { cursor: pointer; font-size: 13px; text-transform: capitalize; }
+.ops-score-formula ul { margin: 6px 0 0 16px; }
+
+@media (max-width: 680px) { .ops-chip { flex: 1 1 auto; } }
