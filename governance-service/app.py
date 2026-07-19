@@ -39,6 +39,7 @@ from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules, live_sector_ids
 from cyber_rules import cyber_custom_rules
 from healthcare_rules import healthcare_custom_rules
+from operations_rules import operations_custom_rules
 from escalation import apply_escalation
 import assess as _assess
 
@@ -48,7 +49,7 @@ import assess as _assess
 DEPLOYMENT_RULES = (
     finance_custom_rules() + coverage_custom_rules()
     + domain_custom_rules() + sector_custom_rules() + cyber_custom_rules()
-    + healthcare_custom_rules()
+    + healthcare_custom_rules() + operations_custom_rules()
 )
 
 # Deployment-extended rule names → attributed to the V5+ layer in responses.

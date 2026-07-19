@@ -97,4 +97,13 @@ npm run build      # Production build
 npm run start      # Start production server
 npm run typecheck  # TypeScript check
 npm run lint       # ESLint
+npm run ops:test   # Operations Agent pipeline test (hermetic mock engine)
 ```
+
+## Operations Agent
+
+An internal autonomous operations layer (`lib/ops/*`, `/api/ops/*`,
+`/admin/operations`) that monitors onboarding, deployments, reports and runtime
+health — with **every** action evaluated by Runtime Governance before
+execution (fail-closed). See `docs/OPERATIONS-AGENT.md` for the full
+architecture, API specification, security model and roadmap.
