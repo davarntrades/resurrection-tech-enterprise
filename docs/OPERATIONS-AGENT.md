@@ -235,7 +235,7 @@ knows it exists:
 | `OPS_MIN_CONFIDENCE` | `0.6` | Proposal confidence gate |
 | `OPS_STALL_DAYS` | `7` | Stalled-journey threshold |
 | `OPS_GITHUB_REPOS` / `OPS_GITHUB_TOKEN` | unset | GitHub monitoring |
-| `OPS_VERCEL_TOKEN` / `OPS_VERCEL_PROJECT` | unset | Vercel deployment monitoring |
+| `OPS_VERCEL_TOKEN` / `OPS_VERCEL_PROJECT` | unset | Vercel deployment monitoring. **Not required for the Vercel card to show healthy** — when running on Vercel the agent self-reports from Vercel's injected `VERCEL` / `VERCEL_ENV` / `VERCEL_GIT_COMMIT_SHA` system vars; the token only adds cross-project deployment history. (`CRON_SECRET` is unrelated — it gates continuous mode, not this card.) |
 | `OPS_RAILWAY_HEALTH_URLS` | unset | Extra Railway probes (engine always probed) |
 | `OPS_DEPLOY_WEBHOOK` | unset | Governed deploy execution hook |
 | `CRON_SECRET` | existing | Gates `/api/ops/cron` |

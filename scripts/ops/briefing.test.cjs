@@ -30,6 +30,13 @@ delete process.env.OPS_VERCEL_TOKEN;
 delete process.env.OPS_VERCEL_PROJECT;
 delete process.env.NEXT_PUBLIC_SITE_URL;
 delete process.env.OPS_WORKER_MODE;
+// Vercel self-report vars — deleted so the off-Vercel "not_configured" assertion
+// is deterministic (a CI runner on Vercel would otherwise flip it to healthy).
+delete process.env.VERCEL;
+delete process.env.VERCEL_URL;
+delete process.env.VERCEL_ENV;
+delete process.env.VERCEL_TARGET_ENV;
+delete process.env.VERCEL_GIT_COMMIT_SHA;
 process.env.RUNTIME_OPERATOR_NAME = "Davarn";
 
 const { startMockEngine } = require("./mock-engine.cjs");
@@ -139,8 +146,20 @@ async function main() {
   const sys = (c) => board.systems.find((s) => s.component === c);
   ok(sys("runtime_governance").status === "healthy", "engine reported healthy (mock up)");
   ok(sys("github").status === "not_configured" && sys("github").required_env.length > 0, "github not_configured with required env vars", sys("github").required_env);
-  ok(sys("vercel").status === "not_configured", "vercel not_configured without credentials");
+  ok(sys("vercel").status === "not_configured", "vercel not_configured off-Vercel without credentials");
   ok(sys("supabase").status === "not_configured", "supabase not_configured on file store");
+
+  // Running ON Vercel: self-report healthy from injected system env vars (no
+  // OPS_VERCEL_TOKEN needed) — the fix for "Vercel monitoring not configured"
+  // showing even though the app is served by Vercel.
+  process.env.VERCEL = "1";
+  process.env.VERCEL_ENV = "production";
+  process.env.VERCEL_GIT_COMMIT_SHA = "e9795816d9804235e8a4bfa02739b2777b4970c3";
+  const vBoard = await ops.systems.statusBoard();
+  const vCard = vBoard.systems.find((s) => s.component === "vercel");
+  ok(vCard.status === "healthy", "vercel self-reports healthy when running on Vercel", vCard.status);
+  ok(/serving this deployment/.test(vCard.detail) && vCard.detail.includes("production") && vCard.detail.includes("e979581"), "vercel detail names env + 7-char commit", vCard.detail);
+  delete process.env.VERCEL; delete process.env.VERCEL_ENV; delete process.env.VERCEL_GIT_COMMIT_SHA;
   ok(sys("llm_reasoning").status !== "healthy", "LLM never reported healthy without verification", sys("llm_reasoning").status);
   ok(sys("openclaw").status === "not_configured", "openclaw not connected by default");
   ok(sys("email").status === "not_configured", "email integration honestly not configured");
