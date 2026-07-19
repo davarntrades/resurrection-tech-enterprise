@@ -58,6 +58,7 @@ export default function RuntimeAdminClient() {
               {t[0].toUpperCase() + t.slice(1)}
             </button>
           ))}
+          <a className="radmin-tab" href="/admin/operations">Operations</a>
           <button className="radmin-logout" onClick={async () => { await api("logout", { method: "POST" }); setAuthed(false); }}>
             Sign out
           </button>

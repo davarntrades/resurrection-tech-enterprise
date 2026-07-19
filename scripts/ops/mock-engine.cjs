@@ -1,0 +1,64 @@
+/* Shared mock governance engine for Operations Agent tests.
+ * Mirrors the SEMANTICS of governance-service/operations_rules.py
+ * (deny-by-default authorisation rules + unconditional rules) so the suites
+ * are hermetic. The real rules are validated separately by
+ * governance-service/test_operations_rules.py against the actual engine. */
+"use strict";
+const http = require("node:http");
+
+const UNCONDITIONAL = new Map([
+  ["delete_evidence", "ops_evidence_destruction"],
+  ["purge_evidence", "ops_evidence_destruction"],
+  ["share_credentials", "ops_credential_sharing"],
+  ["share_api_key", "ops_credential_sharing"],
+]);
+const AUTH_RULES = new Map([
+  ["send_confidential_report", ["ops_unauthorized_report_delivery", ["report_delivery_authorized", "delivery_authorized"]]],
+  ["deploy_runtime", ["ops_unauthorized_deployment", ["deployment_approved", "change_approved"]]],
+  ["create_organisation", ["ops_unauthorized_org_creation", ["onboarding_verified", "operator_approved"]]],
+  ["promote_to_pilot", ["ops_unauthorized_pilot_promotion", ["pilot_approved", "operator_approved"]]],
+  ["modify_customer", ["ops_unauthorized_customer_modification", ["change_authorized", "operator_approved"]]],
+  ["export_documents", ["ops_unauthorized_document_export", ["export_authorized"]]],
+]);
+
+function mockVerdict(steps) {
+  for (const s of steps || []) {
+    const tool = String(s.tool || "").toLowerCase();
+    const args = s.args || {};
+    if (UNCONDITIONAL.has(tool)) return { verdict: "BLOCK", rule: UNCONDITIONAL.get(tool) };
+    if (AUTH_RULES.has(tool)) {
+      const [rule, flags] = AUTH_RULES.get(tool);
+      if (!flags.some((f) => args[f] === true || String(args[f]).toLowerCase() === "true")) {
+        return { verdict: "BLOCK", rule };
+      }
+    }
+  }
+  return { verdict: "PERMIT", rule: null };
+}
+
+function startMockEngine() {
+  return new Promise((resolve) => {
+    const srv = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (d) => (body += d));
+      req.on("end", () => {
+        res.setHeader("content-type", "application/json");
+        if (req.url === "/health") return res.end(JSON.stringify({ status: "ok", engine_commit: "mock", live_sectors: [] }));
+        if (req.url === "/v1/evaluate") {
+          let json = {}; try { json = JSON.parse(body); } catch { /* */ }
+          const v = mockVerdict(json.trajectory);
+          return res.end(JSON.stringify({
+            verdict: v.verdict, permitted: v.verdict === "PERMIT", blocked: v.verdict === "BLOCK",
+            layer: v.rule ? "V5+" : "V1", reason: v.rule ? `violates ${v.rule}` : "no Ω intersection",
+            omega_domain: v.rule ? "enterprise" : null, trajectory_hash: "mockhash",
+            reachability_distance: null, metadata: v.rule ? { rule: v.rule } : {},
+          }));
+        }
+        res.statusCode = 404; res.end("{}");
+      });
+    });
+    srv.listen(0, "127.0.0.1", () => resolve(srv));
+  });
+}
+
+module.exports = { startMockEngine, mockVerdict };

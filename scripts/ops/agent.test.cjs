@@ -21,61 +21,8 @@ delete process.env.ANTHROPIC_API_KEY;
 delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// ── Mock engine mirroring operations_rules.py semantics ─────────────────────
-const UNCONDITIONAL = new Map([
-  ["delete_evidence", "ops_evidence_destruction"],
-  ["purge_evidence", "ops_evidence_destruction"],
-  ["share_credentials", "ops_credential_sharing"],
-  ["share_api_key", "ops_credential_sharing"],
-]);
-const AUTH_RULES = new Map([
-  ["send_confidential_report", ["ops_unauthorized_report_delivery", ["report_delivery_authorized", "delivery_authorized"]]],
-  ["deploy_runtime", ["ops_unauthorized_deployment", ["deployment_approved", "change_approved"]]],
-  ["create_organisation", ["ops_unauthorized_org_creation", ["onboarding_verified", "operator_approved"]]],
-  ["promote_to_pilot", ["ops_unauthorized_pilot_promotion", ["pilot_approved", "operator_approved"]]],
-  ["modify_customer", ["ops_unauthorized_customer_modification", ["change_authorized", "operator_approved"]]],
-  ["export_documents", ["ops_unauthorized_document_export", ["export_authorized"]]],
-]);
-
-function mockVerdict(steps) {
-  for (const s of steps || []) {
-    const tool = String(s.tool || "").toLowerCase();
-    const args = s.args || {};
-    if (UNCONDITIONAL.has(tool)) return { verdict: "BLOCK", rule: UNCONDITIONAL.get(tool) };
-    if (AUTH_RULES.has(tool)) {
-      const [rule, flags] = AUTH_RULES.get(tool);
-      if (!flags.some((f) => args[f] === true || String(args[f]).toLowerCase() === "true")) {
-        return { verdict: "BLOCK", rule };
-      }
-    }
-  }
-  return { verdict: "PERMIT", rule: null };
-}
-
-function startMockEngine() {
-  return new Promise((resolve) => {
-    const srv = http.createServer((req, res) => {
-      let body = "";
-      req.on("data", (d) => (body += d));
-      req.on("end", () => {
-        res.setHeader("content-type", "application/json");
-        if (req.url === "/health") return res.end(JSON.stringify({ status: "ok", engine_commit: "mock", live_sectors: [] }));
-        if (req.url === "/v1/evaluate") {
-          let json = {}; try { json = JSON.parse(body); } catch { /* */ }
-          const v = mockVerdict(json.trajectory);
-          return res.end(JSON.stringify({
-            verdict: v.verdict, permitted: v.verdict === "PERMIT", blocked: v.verdict === "BLOCK",
-            layer: v.rule ? "V5+" : "V1", reason: v.rule ? `violates ${v.rule}` : "no Ω intersection",
-            omega_domain: v.rule ? "enterprise" : null, trajectory_hash: "mockhash",
-            reachability_distance: null, metadata: v.rule ? { rule: v.rule } : {},
-          }));
-        }
-        res.statusCode = 404; res.end("{}");
-      });
-    });
-    srv.listen(0, "127.0.0.1", () => resolve(srv));
-  });
-}
+// ── Mock engine mirroring operations_rules.py semantics (shared helper) ─────
+const { startMockEngine } = require("./mock-engine.cjs");
 
 // ── Tiny assert harness ─────────────────────────────────────────────────────
 let pass = 0, fail = 0;
@@ -156,7 +103,7 @@ async function main() {
   // 10. Briefing aggregates without throwing.
   const brief = await ops.briefing.briefing();
   ok(Array.isArray(brief.lines) && brief.lines.length > 0, "briefing produced", brief.lines);
-  ok(brief.counts.customers === 1, "briefing counts customers", brief.counts.customers);
+  ok(brief.counts.new_organisations.value === 1, "briefing counts organisations from records", brief.counts.new_organisations);
 
   // 11. Client keys: scoped auth, revocation.
   const issued = await ops.clients.issue({ label: "openclaw", scopes: ["briefing", "status"] });

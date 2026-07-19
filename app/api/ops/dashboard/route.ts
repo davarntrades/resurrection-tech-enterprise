@@ -23,13 +23,15 @@ export async function GET(req: NextRequest) {
   }
 
   const dayAgo = new Date(Date.now() - 86400000).toISOString();
-  const [briefing, platform, integrations, proposals, evidence, escalated, runsList, metrics] = await Promise.all([
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const [briefing, platform, integrations, proposals, evidence, escalated, blocked, runsList, metrics] = await Promise.all([
     (ops.briefing as any).briefing(),
     (rt.overview as any).platform().catch(() => null),
     (ops.integrations as any).probeAll(),
     (ops.proposals as any).summary(),
     (ops.evidence as any).summary({}),
     (ops.proposals as any).list({ status: "escalated", limit: 20 }),
+    (ops.evidence as any).search({ verdict: "block", since: weekAgo, limit: 50 }),
     (ops.agent as any).runs({ limit: 5 }),
     rt.metrics.summary({ since: dayAgo }).catch(() => null),
   ]);
@@ -44,6 +46,7 @@ export async function GET(req: NextRequest) {
     blocked_actions: evidence.by_verdict?.block ?? 0,
     policy_violations_24h: evidence.blocked_24h ?? 0,
     awaiting_approval: escalated,
+    blocked_evidence_7d: blocked,
     recent_runs: runsList,
   });
 }

@@ -240,10 +240,81 @@ knows it exists:
 | `OPS_DEPLOY_WEBHOOK` | unset | Governed deploy execution hook |
 | `CRON_SECRET` | existing | Gates `/api/ops/cron` |
 
+## 11. Control Room surface (implemented)
+
+`/admin/operations` is the operator UI over the Operations API (shares the
+`/admin/runtime` session; an "Operations" link is in the Control Room nav):
+
+- **Briefing view** — contextual greeting (`RUNTIME_OPERATOR_NAME` +
+  `OPS_TIMEZONE`, default Europe/London), generation timestamp, grounded
+  briefing items (click any statement → sourceType, sourceIds, time window,
+  records, supporting view), operational counts (12 tiles, each a drill-down;
+  `n/a` = source not configured, never zero), prioritised recommended actions
+  with approve/deny/propose/evidence buttons, and the "Morning." input.
+- **Approvals view** — escalated proposals; approval re-evaluates through the
+  engine with the operator identity attached.
+- **Blocked view** — attempted action, actor/agent, org, policy, Ω rule,
+  risk, timestamp, evidence id + trajectory hash, remediation possibility.
+- **Systems view** — status cards (`healthy / degraded / unavailable /
+  not_configured / awaiting_credentials`) for engine, Control Room, Supabase,
+  Railway, Vercel, GitHub, worker/scheduling, LLM provider, OpenClaw, email —
+  each unconfigured card names its required env vars. Plus recent agent cycles.
+- **Evidence view** — searchable write-once decision evidence.
+- A mode banner shows **On-demand monitoring / Continuous monitoring active /
+  Worker offline** — derived from real run records, never asserted.
+
+The "Morning." input routes prompts through `/api/ops/ask` — a fixed intent
+registry (briefing · attention/priorities · blocked · approvals · system
+health · pilot readiness) answered exclusively from authorised operational
+data. Unknown prompts return the supported-intent list; there is no free-form
+generation and no execution path.
+
+## 12. Activating continuous monitoring
+
+The Control Room works today in **on-demand mode** (briefings generated from
+current records on open/refresh). Continuous mode needs no code change — the
+mode banner flips automatically when scheduled cycles appear in `rg_ops_runs`:
+
+1. **Vercel cron (simplest)** — set `CRON_SECRET` in Vercel env. The cron in
+   `vercel.json` hits `/api/ops/cron` every 4h; each hit is a full governed
+   cycle. Freshness window is `2 × OPS_CYCLE_INTERVAL_HOURS` (default 4).
+2. **Railway persistent worker (optional)** — run a Node process that calls
+   `require("./lib/ops").agent.runCycle({ trigger: "worker" })` on an interval
+   with the same env vars (`GOVERNANCE_URL`, Supabase keys, `ANTHROPIC_API_KEY`).
+   Any trigger starting with `cron` or `worker` counts as scheduled.
+3. Set `OPS_WORKER_MODE=continuous` once a worker is expected — the board then
+   reports **Worker offline** (instead of on-demand) if cycles stop arriving.
+
+## 13. Connecting OpenClaw later (exact steps)
+
+OpenClaw is a scoped API client; the Control Room remains the only approval
+surface. To connect it:
+
+1. In the Control Room (or via curl with the admin key):
+   `POST /api/ops/clients` with `{"label": "openclaw", "scopes": ["briefing", "status", "proposals:read"]}` —
+   the `opsk_…` key is returned **once**. (The label `openclaw` is what the
+   systems board watches to report OpenClaw connection state.)
+2. Configure the OpenClaw bridge to send `x-ops-client-key: opsk_…` and call:
+   - `GET /api/ops/briefing` — the "Morning" payload (`greeting`, `lines`,
+     `text`, grounded `items`, `recommended_actions`);
+   - `POST /api/ops/ask` with `{"prompt": "…"}` for the intent-routed answers;
+   - `GET /api/ops/status` / `GET /api/ops/dashboard` for detail;
+   - optionally `POST /api/ops/events` (requires the `events:write` scope) to
+     feed signals in.
+3. What OpenClaw can **never** do by scope design: approve/deny proposals,
+   trigger cycles, issue keys, or read raw evidence — those endpoints require
+   the operator session/admin key. A compromised bridge cannot authorise
+   actions.
+4. The systems board reports the connection honestly: `not_configured` (no
+   key) → `awaiting_credentials` (key issued, never used) → `healthy` (key in
+   use, `last_used_at` shown). Revoke anytime via `POST /api/ops/clients`
+   `{"id": "…", "revoke": true}`.
+
 ### Verification
 
 ```bash
-npm run ops:test                       # 27-case pipeline test (hermetic mock engine)
+npm run ops:test                       # pipeline (27) + grounded briefing (51) tests, hermetic mock engine
 cd governance-service && PYTHONPATH=<engine> python3 test_operations_rules.py   # 18 Ω cases
 npm run typecheck
+npm run build
 ```
