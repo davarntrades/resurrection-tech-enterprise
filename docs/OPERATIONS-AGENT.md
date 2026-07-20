@@ -102,7 +102,9 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/events` | POST | O or C(events:write) | Ingest external event (namespaced `external.*`) |
 | `/api/ops/briefing` | GET | O or C(briefing) | Executive briefing — counts + human-readable lines |
 | `/api/ops/dashboard` | GET | O or C(status) | Full dashboard aggregation |
-| `/api/ops/customers` | GET | O or C(status) | Customer intelligence — scored profiles; `?org_id=` adds the evidence timeline |
+| `/api/ops/customers` | GET | O or C(status) | Customer intelligence — scored profiles; `?org_id=` adds the lifecycle + evidence + transition + approval history |
+| `/api/ops/lifecycle` | GET | O or C(status) | Governed lifecycle — platform summary; `?org_id=` adds state + transition + approval history |
+| `/api/ops/lifecycle` | POST | O | Advance one governed step (proposes through Runtime Governance; privileged transitions escalate, never auto-execute) |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -301,6 +303,47 @@ the ask router (`customer health`, `how is <org>?`, `who is at risk?`,
 
 Fully deterministic and evidence-grounded — the LLM never scores, ranks, or
 executes; it only ever narrates.
+
+## 11b. Governed Lifecycle State Machine (4.0 Pillar 3)
+
+`lib/ops/workflow.js` is the platform backbone: every organisation moves through
+one canonical governed lifecycle, and agents (Pillar 4) operate **within** it —
+they never invent or own workflows.
+
+```
+lead → questionnaire → assessment → executive_report → pilot →
+deployment → runtime_monitoring → renewal
+```
+
+Two guarantees:
+
+1. **WHERE an org is — derived, never asserted.** `state(org)` reads real
+   records (engagement stage · reports · environments · governed runtime
+   decisions) and returns the current stage **with the exact signal that placed
+   it there**. Same records → same stage, always (replayable). `runtime_monitoring`
+   is only reached once real governed evaluations are observed — the honest
+   signal, not a flag.
+2. **HOW it advances — every forward step is a governed proposal.** Each stage
+   maps to a catalog action routed through the existing governor → proposals →
+   evidence spine. Low/medium transitions auto-execute **only after an engine
+   PERMIT**; the privileged ones (`promote_to_pilot`, `deploy_runtime`,
+   `initiate_renewal`) **escalate for operator approval and never auto-execute**.
+   `advance()` is idempotent (an in-flight transition won't re-propose) and
+   fail-closed (engine down → the transition blocks, the stage holds).
+
+Each transition appends an immutable `rg_ops_transitions` row **linked to its
+proposal**, so the transition log stays fixed while the proposal carries the
+live governance verdict + approval — giving fully auditable, replayable
+**transition history** and **approval history**.
+
+Customer pages expose current stage · completed stages · next governed action
+(with an Advance / Propose-transition button) · transition history · approval
+history · evidence timeline. The briefing surfaces lifecycle progress (orgs by
+stage + available next governed actions); the ask router answers "where is
+&lt;org&gt; in the lifecycle" and "next governed action for &lt;org&gt;".
+
+Deterministic and governed end-to-end — the state machine owns the workflow;
+agents will simply take responsibility for individual transitions on top of it.
 
 ## 12. Activating continuous monitoring
 

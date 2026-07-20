@@ -328,3 +328,19 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-score-formula ul { margin: 6px 0 0 16px; }
 
 @media (max-width: 680px) { .ops-chip { flex: 1 1 auto; } }
+
+/* ── Governed lifecycle state machine (Pillar 3) ────────────────────────── */
+.ops-lifecycle { border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); padding: 14px 16px; margin: 12px 0; }
+.ops-track { display: flex; flex-wrap: wrap; gap: 4px 2px; align-items: stretch; }
+.ops-track-node { display: flex; flex-direction: column; gap: 4px; align-items: center; flex: 1 1 auto; min-width: 84px; position: relative; padding: 4px 2px; }
+.ops-track-node:not(:last-child)::after { content: ""; position: absolute; top: 12px; right: -1px; width: 2px; height: 2px; }
+.ops-track-dot { font-family: var(--mono); font-size: 14px; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; border: 1px solid var(--line); color: var(--ink-3); }
+.ops-track-label { font-size: 10px; text-align: center; color: var(--ink-3); line-height: 1.2; }
+.ops-track-node.completed .ops-track-dot { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.ops-track-node.completed .ops-track-label { color: var(--ink-2); }
+.ops-track-node.current .ops-track-dot { color: var(--omega); border-color: var(--omega); background: color-mix(in srgb, var(--omega) 12%, transparent); }
+.ops-track-node.current .ops-track-label { color: var(--ink); font-weight: 560; }
+.ops-track-derivation { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin: 10px 0 8px; }
+.ops-next-action { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line-2); padding-top: 10px; }
+.ops-badge-lc { border-color: color-mix(in srgb, var(--omega) 40%, var(--line-2)); }
+@media (max-width: 680px) { .ops-track-node { min-width: 72px; } .ops-next-action { flex-direction: column; align-items: stretch; } }
