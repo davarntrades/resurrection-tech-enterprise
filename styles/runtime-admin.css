@@ -391,3 +391,14 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-ho-node-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
 .radmin-linkbtn.ops-inline { display: inline; padding: 0; font-size: inherit; }
 @media (max-width: 680px) { .ops-ho-status, .ops-ho-queues { gap: 5px; } }
+
+/* ── Coordination integrity banner (5.0 Phase 1 observation aid) ──────────── */
+.ops-integrity { border: 1px solid var(--line-2); border-left-width: 3px; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; background: var(--panel-2); }
+.ops-integrity.ok { border-left-color: var(--ok); }
+.ops-integrity.bad { border-left-color: var(--omega); }
+.ops-integrity-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ops-integrity-dot { font-family: var(--mono); width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; border: 1px solid var(--line); }
+.ops-integrity.ok .ops-integrity-dot { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.ops-integrity.bad .ops-integrity-dot { color: var(--omega); border-color: var(--omega); }
+.ops-integrity-list { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--ink-2); }
+.ops-integrity-list code { color: var(--omega); font-size: 11px; }

@@ -109,6 +109,7 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/agents` | POST | O | Run the governed multi-agent (council) cycle — each specialist proposes through the shared governor; high-risk transitions still escalate |
 | `/api/ops/handoffs` | GET | O or C(status) | Coordination spine — platform summary + per-agent queues + blocked-work; `?org_id=` returns the full handoff timeline (chain of responsibility) |
 | `/api/ops/handoffs` | POST | O | Operator `cancel` (supersede) or `retry` (reopen) a handoff — coordination only; the next governed cycle proposes through Runtime Governance |
+| `/api/ops/integrity` | GET | O or C(status) | Read-only coordination-integrity check — reconciles handoffs ↔ proposals ↔ evidence ↔ audit and returns a green/red report with named anomalies (`?days=` window) |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -443,6 +444,19 @@ responsibility** timeline per customer (each node: `from → to`, action, Ω
 verdict, approval, status). `/api/ops/handoffs` serves the summary + per-org
 timeline; the briefing folds blocked/escalated handoffs into work items; the ask
 router answers "show handoffs", "chain of responsibility", "handoffs for &lt;org&gt;".
+
+**Scheduled cadence + observation.** The daily cron (`/api/ops/cron`) runs the
+governed **council** cycle (`agents.dispatch`), so handoff chains accrue
+automatically; with `OPS_COORDINATION` off this is the deterministic 4.0 council
+path plus handoff records (no autonomous ingest) — safe to watch before go-live.
+`lib/ops/integrity.js` (`/api/ops/integrity`) is the **read-only observation
+aid**: it reconciles every handoff against its linked proposal, that proposal's
+evidence + governance verdict, and the admin audit trail, returning a green/red
+report with named anomalies (`orphan_proposal_link`, `status_drift`,
+`missing_evidence`/`verdict`, `attribution_mismatch`, `approval_not_audited`,
+`ghost_execution`). It inspects records only — proposes nothing, mutates nothing
+— and surfaces as a banner atop the Handoffs tab. **Go-live** is then the single
+deliberate step of setting `OPS_COORDINATION=1`.
 
 ## 12. Activating continuous monitoring
 
