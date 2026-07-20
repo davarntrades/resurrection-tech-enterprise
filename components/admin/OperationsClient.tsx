@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "customers" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "customers", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "briefing" | "customers" | "agents" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["briefing", "customers", "agents", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -151,6 +151,7 @@ export default function OperationsClient() {
 
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
+        {view === "agents" && <AgentsView onOpen={openHref} />}
         {view === "approvals" && <ApprovalsView dash={dash} busy={busy} onDecide={decide} />}
         {view === "blocked" && <BlockedView dash={dash} />}
         {view === "systems" && <SystemsView brief={brief} dash={dash} />}
@@ -634,5 +635,95 @@ function EvidenceView() {
         </div>
       ))}
     </section>
+  );
+}
+
+// ── Multi-Agent Core (Pillar 4) ──────────────────────────────────────────────
+const AGENT_ICON: Record<string, string> = { sales: "◆", deployment: "▲", customer_success: "●", compliance: "⬢", finance: "$" };
+function AgentsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
+  const [roster, setRoster] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try { setRoster(await api("agents")); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const runCouncil = async () => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await api("agents", { method: "POST" });
+      const o = r.result?.outcomes || {};
+      setNote(r.result?.error ? `Council failed: ${r.result.error}` : `Council cycle complete — ${r.result?.proposals?.length ?? 0} governed proposal(s): executed ${o.executed ?? 0}, escalated ${o.escalated ?? 0}, blocked ${o.blocked ?? 0}. Each proposal passed Runtime Governance.`);
+      await load();
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!roster) return <div className="radmin-loading">Loading agents…</div>;
+
+  return (
+    <>
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <div>
+            <h2>Multi-Agent Core</h2>
+            <p className="radmin-sub">Five governed specialists share one governance, evidence, proposal and state-machine spine. Each advances the <em>same</em> lifecycle within its charter — no agent invents a workflow, and none gets elevated trust: high-risk transitions still escalate for your approval.</p>
+          </div>
+          <button className="radmin-btn" disabled={busy} onClick={runCouncil}>{busy ? "Running…" : "Run council cycle"}</button>
+        </div>
+        {note && <div className="ops-note">{note}</div>}
+      </section>
+
+      <div className="ops-agent-grid">
+        {roster.agents.map((a: any) => (
+          <section key={a.id} className="radmin-card ops-agent">
+            <div className="ops-agent-head">
+              <span className="ops-agent-icon" aria-hidden>{AGENT_ICON[a.id] || "◈"}</span>
+              <div>
+                <h3>{a.title}</h3>
+                <div className="ops-agent-stages">{a.charter.stages.length ? a.charter.stages.map((s: string) => <span key={s} className="ops-badge-lc">{s.replace(/_/g, " ")}</span>) : <span className="radmin-sub">cross-cutting · owns no lifecycle transition</span>}</div>
+              </div>
+            </div>
+            <p className="radmin-sub ops-agent-mandate">{a.mandate}</p>
+
+            <div className="ops-agent-workload">
+              <span className="ops-wl"><b>{a.workload.total}</b> total</span>
+              <span className="ops-wl ops-wl-esc"><b>{a.workload.escalated}</b> awaiting approval</span>
+              <span className="ops-wl ops-wl-ok"><b>{a.workload.executed}</b> executed</span>
+              {a.workload.blocked > 0 && <span className="ops-wl ops-wl-bad"><b>{a.workload.blocked}</b> blocked</span>}
+            </div>
+
+            <div className="ops-agent-charter">
+              <div className="radmin-deliv-meta">Chartered actions</div>
+              <div className="ops-charter-actions">
+                {a.charter.actions.map((c: any) => (
+                  <span key={c.id} className={`ops-charter-act${c.refuse ? " is-refuse" : c.auto ? " is-auto" : " is-approval"}`} title={`${c.risk} risk · ${c.refuse ? "never executed" : c.auto ? "auto after PERMIT" : "requires approval"}`}>{c.title}</span>
+                ))}
+              </div>
+            </div>
+
+            {a.recent.length > 0 && (
+              <div className="ops-agent-recent">
+                <div className="radmin-deliv-meta">Recent governed proposals</div>
+                {a.recent.slice(0, 5).map((p: any) => (
+                  <div key={p.id} className="ops-agent-prop">
+                    <span className="ops-agent-prop-act">{p.action_id.replace(/_/g, " ")}</span>
+                    <span className={`radmin-badge ${p.status === "executed" ? "ok" : p.status === "escalated" ? "warn" : p.status === "blocked" || p.status === "denied" ? "bad" : ""}`}>{p.status}</span>
+                    {p.verdict && <span className="radmin-deliv-meta"> · Ω {p.verdict}</span>}
+                    <span className="radmin-deliv-meta"> · {fmtWhen(p.created_at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="radmin-linkbtn" onClick={() => onOpen("/admin/operations?view=approvals")}>Review approvals →</button>
+          </section>
+        ))}
+      </div>
+    </>
   );
 }

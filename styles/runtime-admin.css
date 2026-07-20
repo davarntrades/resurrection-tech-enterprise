@@ -344,3 +344,32 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-next-action { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line-2); padding-top: 10px; }
 .ops-badge-lc { border-color: color-mix(in srgb, var(--omega) 40%, var(--line-2)); }
 @media (max-width: 680px) { .ops-track-node { min-width: 72px; } .ops-next-action { flex-direction: column; align-items: stretch; } }
+
+/* ── Multi-Agent Core (Pillar 4) ─────────────────────────────────────────── */
+.radmin-badge.bad { color: var(--omega); border-color: rgba(229,72,77,0.35); background: rgba(229,72,77,0.08); }
+.ops-note { font-size: 12.5px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel-2); padding: 9px 12px; margin-top: 10px; }
+.radmin-linkbtn { font-family: var(--mono); font-size: 11.5px; color: var(--accent-bright); background: none; border: 0; padding: 8px 0 0; cursor: pointer; }
+.radmin-linkbtn:hover { text-decoration: underline; }
+.ops-agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.ops-agent { display: flex; flex-direction: column; gap: 10px; }
+.ops-agent-head { display: flex; gap: 12px; align-items: flex-start; }
+.ops-agent-head h3 { margin: 0; font-size: 15px; }
+.ops-agent-icon { font-family: var(--mono); font-size: 16px; width: 30px; height: 30px; line-height: 30px; text-align: center; border-radius: 8px; border: 1px solid var(--line-2); color: var(--accent-bright); background: var(--panel-2); flex: none; }
+.ops-agent-stages { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.ops-agent-mandate { margin: 0; }
+.ops-agent-workload { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); padding: 9px 0; }
+.ops-wl { font-family: var(--mono); font-size: 11px; color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; }
+.ops-wl b { color: var(--ink); }
+.ops-wl-esc { color: #d9a441; border-color: rgba(217,164,65,0.35); } .ops-wl-esc b { color: #d9a441; }
+.ops-wl-ok { color: var(--ok); border-color: rgba(63,178,127,0.4); } .ops-wl-ok b { color: var(--ok); }
+.ops-wl-bad { color: var(--omega); border-color: rgba(229,72,77,0.35); } .ops-wl-bad b { color: var(--omega); }
+.ops-agent-charter .radmin-deliv-meta, .ops-agent-recent .radmin-deliv-meta { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; margin-bottom: 6px; }
+.ops-charter-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.ops-charter-act { font-size: 10.5px; border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; color: var(--ink-2); }
+.ops-charter-act.is-auto { border-color: rgba(63,178,127,0.35); color: var(--ok); }
+.ops-charter-act.is-approval { border-color: rgba(217,164,65,0.35); color: #d9a441; }
+.ops-charter-act.is-refuse { border-color: rgba(229,72,77,0.35); color: var(--omega); text-decoration: line-through; }
+.ops-agent-recent { display: flex; flex-direction: column; gap: 4px; }
+.ops-agent-prop { font-size: 11.5px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.ops-agent-prop-act { color: var(--ink); }
+@media (max-width: 680px) { .ops-agent-grid { grid-template-columns: 1fr; } }
