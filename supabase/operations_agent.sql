@@ -21,6 +21,7 @@ create table if not exists public.rg_ops_proposals (
   status         text not null default 'proposed',
   risk           text,                          -- low | medium | high | critical
   source         text default 'operations_agent',
+  agent_id       text,                          -- Pillar 4: owning specialist (sales|deployment|customer_success|compliance|finance); null = generalist
   reasoning      jsonb,                         -- {decision, confidence, reason, source}
   decision       jsonb,                         -- governor decision record (engine verdict, rule, Ω domain, hash)
   execution      jsonb,                         -- {executed, result?, error?}
@@ -40,6 +41,7 @@ create table if not exists public.rg_ops_evidence (
   id              text primary key,
   actor           text not null default 'operations_agent',
   agent           text not null default 'resurrection-tech-ops-agent',
+  agent_id        text,                         -- Pillar 4: attributing specialist (sales|deployment|customer_success|compliance|finance)
   action_id       text not null,
   proposal_id     text,
   org_id          text references public.rg_orgs(id) on delete set null,
@@ -60,6 +62,12 @@ create index if not exists rg_ops_ev_org_idx     on public.rg_ops_evidence(org_i
 create index if not exists rg_ops_ev_verdict_idx on public.rg_ops_evidence(verdict);
 create index if not exists rg_ops_ev_action_idx  on public.rg_ops_evidence(action_id);
 create index if not exists rg_ops_ev_created_idx on public.rg_ops_evidence(created_at);
+
+-- Pillar 4 (Multi-Agent Core) — additive agent attribution for existing deploys.
+alter table public.rg_ops_proposals add column if not exists agent_id text;
+alter table public.rg_ops_evidence  add column if not exists agent_id text;
+create index if not exists rg_ops_prop_agent_idx on public.rg_ops_proposals(agent_id);
+create index if not exists rg_ops_ev_agent_idx   on public.rg_ops_evidence(agent_id);
 
 -- Events: durable event log (scheduled + event-driven workflows) --------------
 create table if not exists public.rg_ops_events (
@@ -85,11 +93,15 @@ create table if not exists public.rg_ops_runs (
   recommendations  integer default 0,
   proposals        integer default 0,
   outcomes         jsonb,                       -- {executed, blocked, escalated, failed, skipped}
-  reasoning_source text,                        -- llm | heuristic
+  reasoning_source text,                        -- llm | heuristic | multi_agent_council
+  mode             text,                        -- null (generalist cycle) | council (multi-agent, Pillar 4)
+  per_agent        jsonb,                        -- Pillar 4: per-specialist outcomes for a council run
   error            text,
   created_at       timestamptz default now()
 );
 create index if not exists rg_ops_runs_started_idx on public.rg_ops_runs(started_at);
+alter table public.rg_ops_runs add column if not exists mode text;         -- Pillar 4: council run marker
+alter table public.rg_ops_runs add column if not exists per_agent jsonb;    -- Pillar 4: per-specialist outcomes
 
 -- Transitions: append-only governed lifecycle state-machine log (Pillar 3) ---
 -- One row per proposed lifecycle transition; the live status + approval are

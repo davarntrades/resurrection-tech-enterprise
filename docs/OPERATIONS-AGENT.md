@@ -105,6 +105,8 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/customers` | GET | O or C(status) | Customer intelligence — scored profiles; `?org_id=` adds the lifecycle + evidence + transition + approval history |
 | `/api/ops/lifecycle` | GET | O or C(status) | Governed lifecycle — platform summary; `?org_id=` adds state + transition + approval history |
 | `/api/ops/lifecycle` | POST | O | Advance one governed step (proposes through Runtime Governance; privileged transitions escalate, never auto-execute) |
+| `/api/ops/agents` | GET | O or C(status) | Multi-agent roster — five specialists with charter, live workload, recent attributed proposals; `?view=council` returns each agent's current read-only assessment |
+| `/api/ops/agents` | POST | O | Run the governed multi-agent (council) cycle — each specialist proposes through the shared governor; high-risk transitions still escalate |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -343,7 +345,53 @@ stage + available next governed actions); the ask router answers "where is
 &lt;org&gt; in the lifecycle" and "next governed action for &lt;org&gt;".
 
 Deterministic and governed end-to-end — the state machine owns the workflow;
-agents will simply take responsibility for individual transitions on top of it.
+agents (Pillar 4, below) simply take responsibility for individual transitions
+on top of it.
+
+## 11c. Multi-Agent Core (4.0 Pillar 4)
+
+`lib/ops/agents.js` splits the single Operations Agent into a **council of five
+governed specialists** — **Sales · Deployment · Customer Success · Compliance ·
+Finance**. They add division of labour and attribution; they add **no new
+trust**. Three invariants:
+
+1. **Agents don't own workflows.** Each specialist owns a slice of the Pillar-3
+   lifecycle (a set of stages whose next governed transition it may advance) plus
+   a **charter** of catalog actions. An agent never invents a transition — it
+   advances the **same** state machine everyone shares. `workflow.nextAction(stage)`
+   is the single source of truth for "what comes next"; a specialist acts only
+   when that step is inside its charter.
+
+   | Agent | Owns lifecycle stages | Chartered actions |
+   |---|---|---|
+   | Sales | lead · questionnaire · assessment · executive_report | record_questionnaire, complete_assessment, generate_report, promote_to_pilot, create_recommendation |
+   | Deployment | pilot · deployment | deploy_runtime, activate_monitoring, raise_alert |
+   | Customer Success | runtime_monitoring · renewal | initiate_renewal, create_recommendation, notify_operator |
+   | Compliance | — (cross-cutting) | raise_alert, notify_operator, send_confidential_report |
+   | Finance | — (cross-cutting) | generate_report, notify_operator |
+
+2. **Charter = a second deny-by-default layer, before the engine.** `agentPropose`
+   refuses any action outside the agent's charter **at the agent boundary** — it
+   never reaches Runtime Governance. Every surviving proposal **still** passes the
+   shared governor, so a mis-scoped or hostile recommendation is contained twice
+   (agent charter, then Ω engine). No agent gets elevated trust: a high-risk
+   action a specialist is chartered for **still escalates for human approval**,
+   exactly as before. Refuse-class actions (`delete_evidence`, `share_credentials`)
+   are outside every charter.
+
+3. **One spine.** Every specialist proposal flows through the same
+   `proposals.propose → governor.evaluate → evidence.record` path, tagged with
+   `agent_id`, so evidence and audit show **which agent proposed what** and how
+   the engine ruled. `council()` is a read-only assessment (what each specialist
+   would do now); `dispatch()` runs the governed multi-agent cycle and records an
+   `rg_ops_runs` row (`mode: council`) with per-agent outcomes. Both are
+   **deterministic** — specialists reason from records + the lifecycle, not an LLM.
+
+The Control Room **Agents** tab shows each specialist's mandate, charter (with
+per-action risk/auto/approval markers), live workload (proposals by status), and
+recent attributed proposals with the governance verdict, plus a **Run council
+cycle** button. The briefing carries a `multi_agent` block; the ask router
+answers "which agent owns …", "what is the Sales agent doing", "show the council".
 
 ## 12. Activating continuous monitoring
 
