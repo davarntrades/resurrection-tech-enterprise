@@ -332,7 +332,7 @@ function CustomersView({ brief, onOpen }: any) {
       try {
         const list = await api("customers");
         setRows(list.customers.map((c: any) => ({
-          org_id: c.org_id, name: c.name, stage: c.stage_label, stalled: c.stalled,
+          org_id: c.org_id, name: c.name, stage: c.stage_label, lifecycle: c.lifecycle_label, stalled: c.stalled,
           health: c.scores.health.score, health_band: c.scores.health.band,
           pilot_readiness: c.scores.pilot_readiness.score, pilot_band: c.scores.pilot_readiness.band,
           runtime_risk: c.scores.runtime_risk.score, risk_band: c.scores.runtime_risk.band,
@@ -345,19 +345,61 @@ function CustomersView({ brief, onOpen }: any) {
     })();
   }, []);
 
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const openDetail = async (org_id: string) => {
     try { const d = await api(`customers?org_id=${encodeURIComponent(org_id)}`); setDetail(d.customer); }
     catch (e: any) { setErr(e.message); }
   };
+  const advance = async (org_id: string) => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await api("lifecycle", { method: "POST", body: JSON.stringify({ org_id }) });
+      const res = r.result || {};
+      setNote(res.advanced ? `Transition ${res.from} → ${res.to} executed after governance PERMIT.`
+        : res.status === "escalated" ? `Transition ${res.from} → ${res.to} proposed — awaiting your approval (see Approvals).`
+        : res.status === "blocked" ? `Transition blocked by Runtime Governance.`
+        : res.note || "No advance available.");
+      await openDetail(org_id);
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
 
   if (detail) {
     const s = detail.scores;
+    const lc = detail.lifecycle;
+    const na = lc?.next_action;
     return (
       <section className="radmin-card">
         <div className="ops-brief-head">
-          <div><h2>{detail.name}</h2><p className="radmin-sub">{detail.stage_label} · integration: {detail.integration_status.status} · value: {detail.business_value.band}{detail.stalled ? " · stalled" : ""}</p></div>
+          <div><h2>{detail.name}</h2><p className="radmin-sub">Lifecycle: <strong>{lc?.current_label}</strong> · engagement: {detail.stage_label} · integration: {detail.integration_status.status}{detail.stalled ? " · stalled" : ""}</p></div>
           <button className="radmin-btn" onClick={() => setDetail(null)}>← All customers</button>
         </div>
+
+        {lc && (
+          <div className="ops-lifecycle">
+            <div className="ops-track">
+              {lc.stages.map((st: any) => (
+                <div key={st.key} className={`ops-track-node ${st.status}`} title={st.status}>
+                  <span className="ops-track-dot">{st.status === "completed" ? "✓" : st.status === "current" ? "●" : "○"}</span>
+                  <span className="ops-track-label">{st.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="ops-track-derivation">Stage derived from: {lc.derivation}</div>
+            {na?.action_id ? (
+              <div className="ops-next-action">
+                <div>
+                  <div className="radmin-deliv-name">Next governed action: {na.title} <span className="radmin-badge">{na.risk}</span>{na.requires_approval && <span className="radmin-badge">approval required</span>}</div>
+                  <div className="radmin-deliv-meta">{na.from} → {na.to} · {na.governance}</div>
+                </div>
+                <button className="radmin-btn" disabled={busy} onClick={() => advance(detail.org_id)}>{busy ? "Working…" : na.requires_approval ? "Propose transition" : "Advance"}</button>
+              </div>
+            ) : <p className="radmin-sub">At the terminal stage — renewal / expansion.</p>}
+            {note && <p className="radmin-sub">{note}</p>}
+          </div>
+        )}
+
         <div className="ops-chips">
           <ScoreChip label="Health" score={s.health.score} band={s.health.band} />
           <ScoreChip label="Pilot readiness" score={s.pilot_readiness.score} band={s.pilot_readiness.band} />
@@ -379,6 +421,34 @@ function CustomersView({ brief, onOpen }: any) {
             <div><div className="radmin-deliv-name">{t.kind.replace(/_/g, " ")} <span className="radmin-badge">{fmtWhen(t.at)}</span></div><div className="radmin-deliv-meta">{t.detail}</div></div>
           </div>
         ))}
+
+        <h2 style={{ marginTop: 18 }}>Transition history</h2>
+        <p className="radmin-sub">Every governed lifecycle transition, linked to its proposal + governance verdict.</p>
+        {(detail.transition_history || []).length === 0 && <div className="radmin-empty">No governed transitions recorded yet.</div>}
+        {(detail.transition_history || []).map((h: any) => (
+          <div key={h.id} className="radmin-deliv-row">
+            <div>
+              <div className="radmin-deliv-name">{h.from} → {h.to} <span className="radmin-badge">{h.status}</span>{h.governance?.rule && <span className="radmin-badge">Ω {h.governance.rule}</span>}</div>
+              <div className="radmin-deliv-meta">
+                {h.action_id} · {fmtWhen(h.at)} · initiated by {h.initiated_by}
+                {h.governance && <> · verdict {h.governance.verdict} ({h.governance.policy})</>}
+                {h.approval && <> · {h.approval.action} by {h.approval.actor}</>}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {(detail.approval_history || []).length > 0 && (
+          <>
+            <h2 style={{ marginTop: 18 }}>Approval history</h2>
+            {(detail.approval_history || []).map((a: any, i: number) => (
+              <div key={i} className="radmin-deliv-row">
+                <div><div className="radmin-deliv-name">{a.transition} <span className="radmin-badge">{a.action}</span> <span className="radmin-badge">{a.outcome}</span></div>
+                <div className="radmin-deliv-meta">{a.actor} · {fmtWhen(a.at)}{a.note ? ` · ${a.note}` : ""}</div></div>
+              </div>
+            ))}
+          </>
+        )}
       </section>
     );
   }
@@ -394,7 +464,7 @@ function CustomersView({ brief, onOpen }: any) {
         <button key={c.org_id} className="ops-cust-card" onClick={() => openDetail(c.org_id)}>
           <div className="ops-cust-top">
             <span className="ops-cust-name">{c.name}</span>
-            <span className="radmin-badge">{c.stage}</span>
+            {c.lifecycle && <span className="radmin-badge ops-badge-lc">{c.lifecycle}</span>}
             {c.stalled && <span className="radmin-badge">stalled</span>}
             <span className="radmin-badge">{c.integration}</span>
           </div>

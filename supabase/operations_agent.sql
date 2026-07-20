@@ -91,6 +91,23 @@ create table if not exists public.rg_ops_runs (
 );
 create index if not exists rg_ops_runs_started_idx on public.rg_ops_runs(started_at);
 
+-- Transitions: append-only governed lifecycle state-machine log (Pillar 3) ---
+-- One row per proposed lifecycle transition; the live status + approval are
+-- resolved from the linked proposal (rg_ops_proposals), so this log stays
+-- immutable and replayable while the proposal carries the governance outcome.
+create table if not exists public.rg_ops_transitions (
+  id           text primary key,
+  org_id       text references public.rg_orgs(id) on delete set null,
+  from_stage   text,
+  to_stage     text,
+  action_id    text,                            -- catalog action driving the transition
+  proposal_id  text,                            -- rg_ops_proposals.id (governance + approval)
+  initiated_by text default 'operations_agent',
+  created_at   timestamptz default now()
+);
+create index if not exists rg_ops_trans_org_idx     on public.rg_ops_transitions(org_id);
+create index if not exists rg_ops_trans_created_idx on public.rg_ops_transitions(created_at);
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -105,8 +122,9 @@ create index if not exists rg_ops_keys_hash_idx on public.rg_ops_client_keys(key
 
 -- ── RLS: same posture as governance_runtime.sql ──────────────────────────────
 -- No permissive policies ⇒ only the service role can read/write.
-alter table public.rg_ops_proposals   enable row level security;
-alter table public.rg_ops_evidence    enable row level security;
-alter table public.rg_ops_events      enable row level security;
-alter table public.rg_ops_runs        enable row level security;
-alter table public.rg_ops_client_keys enable row level security;
+alter table public.rg_ops_proposals    enable row level security;
+alter table public.rg_ops_evidence     enable row level security;
+alter table public.rg_ops_events       enable row level security;
+alter table public.rg_ops_runs         enable row level security;
+alter table public.rg_ops_transitions  enable row level security;
+alter table public.rg_ops_client_keys  enable row level security;

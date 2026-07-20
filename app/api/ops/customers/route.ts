@@ -23,10 +23,14 @@ export async function GET(req: NextRequest) {
   }
   const org_id = new URL(req.url).searchParams.get("org_id") || "";
   const I: any = ops.intelligence;
+  const W: any = ops.workflow;
   if (org_id) {
     const detail = await I.detail(org_id);
     if (!detail) return NextResponse.json({ error: "organisation not found" }, { status: 404 });
-    return NextResponse.json({ customer: detail });
+    // Embed the governed lifecycle so the customer page has stage · completed ·
+    // next governed action · transition history · approval history in one call.
+    const [lifecycle, history, approvals] = await Promise.all([W.state(org_id), W.history(org_id), W.approvals(org_id)]);
+    return NextResponse.json({ customer: { ...detail, lifecycle, transition_history: history, approval_history: approvals } });
   }
   return NextResponse.json({ customers: await I.list() });
 }
