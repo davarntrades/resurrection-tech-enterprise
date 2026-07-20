@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "customers" | "agents" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "customers", "agents", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "briefing" | "customers" | "agents" | "handoffs" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["briefing", "customers", "agents", "handoffs", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", handoffs: "Handoffs", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -60,8 +60,17 @@ export default function OperationsClient() {
   const openHref = (href?: string | null) => {
     if (!href) return;
     if (href.startsWith("/admin/operations")) {
-      const v = new URL(href, window.location.origin).searchParams.get("view") as View | null;
-      if (v && VIEWS.includes(v)) { go(v); return; }
+      const u = new URL(href, window.location.origin);
+      const v = u.searchParams.get("view") as View | null;
+      if (v && VIEWS.includes(v)) {
+        const cur = new URL(window.location.href);
+        cur.searchParams.set("view", v);
+        const org = u.searchParams.get("org");
+        if (org) cur.searchParams.set("org", org); else cur.searchParams.delete("org");
+        window.history.replaceState(null, "", cur.toString());
+        setView(v);
+        return;
+      }
     }
     window.location.href = href;
   };
@@ -152,6 +161,7 @@ export default function OperationsClient() {
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
         {view === "agents" && <AgentsView onOpen={openHref} />}
+        {view === "handoffs" && <HandoffsView onOpen={openHref} />}
         {view === "approvals" && <ApprovalsView dash={dash} busy={busy} onDecide={decide} />}
         {view === "blocked" && <BlockedView dash={dash} />}
         {view === "systems" && <SystemsView brief={brief} dash={dash} />}
@@ -724,6 +734,93 @@ function AgentsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
           </section>
         ))}
       </div>
+    </>
+  );
+}
+
+// ── Agent Handoff Timeline (Pillar 5) ────────────────────────────────────────
+const hoStatusClass = (s: string) => s === "resolved" ? "ok" : s === "escalated" ? "warn" : (s === "blocked" ? "bad" : "");
+function HandoffsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [org, setOrg] = useState<string>("");
+  const [timeline, setTimeline] = useState<any[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const o = new URLSearchParams(window.location.search).get("org") || "";
+    if (o) setOrg(o);
+  }, []);
+  const loadSummary = useCallback(async () => {
+    try { setData(await api("handoffs")); setErr(null); } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { loadSummary(); }, [loadSummary]);
+  useEffect(() => {
+    if (!org) { setTimeline(null); return; }
+    api(`handoffs?org_id=${encodeURIComponent(org)}`).then((d) => setTimeline(d.timeline || [])).catch((e) => setErr(e.message));
+  }, [org]);
+
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-loading">Loading handoffs…</div>;
+  const s = data.summary || { by_status: {}, by_agent: {} };
+
+  return (
+    <>
+      <section className="radmin-card">
+        <h2>Agent handoffs — chain of responsibility</h2>
+        <p className="radmin-sub">Every baton pass between agents is a typed, durable, auditable record. A handoff is a <em>coordination</em> record only — work still changes state solely through the governed proposal it links to. Open inbound handoffs are an agent&rsquo;s task queue; blocked / escalated ones are your work items.</p>
+        <div className="ops-ho-status">
+          {["open", "accepted", "escalated", "blocked", "resolved"].map((k) => (
+            <span key={k} className={`ops-ho-chip ${hoStatusClass(k)}`}><b>{s.by_status?.[k] || 0}</b> {k}</span>
+          ))}
+        </div>
+        <div className="ops-ho-queues">
+          {Object.entries(s.by_agent || {}).map(([agent, q]: any) => (
+            <span key={agent} className="ops-ho-queue">{agent.replace(/_/g, " ")}: <b>{q.open}</b> open / {q.total}</span>
+          ))}
+        </div>
+      </section>
+
+      {(data.blocked_work || []).length > 0 && (
+        <section className="radmin-card">
+          <h3>Needs your attention</h3>
+          {data.blocked_work.map((h: any) => (
+            <div key={h.id} className={`ops-ho-row sev-${h.status === "blocked" ? "critical" : "warning"}`}>
+              <div className="ops-ho-flow"><b>{h.from_agent}</b> → <b>{h.to_agent}</b> <span className="radmin-badge">{h.kind}</span> <span className={`radmin-badge ${hoStatusClass(h.status)}`}>{h.status}</span></div>
+              <div className="radmin-deliv-meta">{(h.proposed_action?.action_id || "—").replace(/_/g, " ")} · {h.reason}</div>
+              <button className="radmin-linkbtn" onClick={() => setOrg(h.org_id)}>View chain →</button>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <h3>{org ? "Chain of responsibility" : "Select a customer to trace a chain"}</h3>
+          {org && <button className="radmin-btn sm" onClick={() => { setOrg(""); setTimeline(null); }}>Clear</button>}
+        </div>
+        {!org && <p className="radmin-sub">Open a handoff above, or a customer from the Customers tab, to see its full governed handoff chain.</p>}
+        {org && timeline && timeline.length === 0 && <div className="radmin-empty">No handoffs recorded for this customer yet.</div>}
+        {org && timeline && timeline.length > 0 && (
+          <ol className="ops-ho-timeline">
+            {timeline.map((h: any) => (
+              <li key={h.id} className={`ops-ho-node ${hoStatusClass(h.status)}`}>
+                <div className="ops-ho-node-head">
+                  <span className="ops-ho-flow"><b>{h.from_agent}</b> → <b>{h.to_agent}</b></span>
+                  <span className={`radmin-badge ${hoStatusClass(h.status)}`}>{h.status}</span>
+                  {h.governance && <span className="radmin-badge">Ω {h.governance.verdict}</span>}
+                </div>
+                <div className="radmin-deliv-meta">{(h.proposed_action?.action_id || "—").replace(/_/g, " ")} — {h.reason}</div>
+                <div className="radmin-deliv-meta">
+                  {fmtWhen(h.created_at)}
+                  {h.approval && <> · approved by {h.approval.actor}</>}
+                  {h.proposal_id && <> · <button className="radmin-linkbtn ops-inline" onClick={() => onOpen("/admin/operations?view=approvals")}>proposal</button></>}
+                  {h.attempts > 0 && <> · {h.attempts} attempt(s)</>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </>
   );
 }
