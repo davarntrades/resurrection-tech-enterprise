@@ -102,6 +102,7 @@ create table if not exists public.rg_ops_runs (
 create index if not exists rg_ops_runs_started_idx on public.rg_ops_runs(started_at);
 alter table public.rg_ops_runs add column if not exists mode text;         -- Pillar 4: council run marker
 alter table public.rg_ops_runs add column if not exists per_agent jsonb;    -- Pillar 4: per-specialist outcomes
+alter table public.rg_ops_runs add column if not exists handoffs jsonb;     -- Pillar 5: per-cycle handoff counters {created,resolved,escalated,blocked}
 
 -- Transitions: append-only governed lifecycle state-machine log (Pillar 3) ---
 -- One row per proposed lifecycle transition; the live status + approval are
@@ -119,6 +120,38 @@ create table if not exists public.rg_ops_transitions (
 );
 create index if not exists rg_ops_trans_org_idx     on public.rg_ops_transitions(org_id);
 create index if not exists rg_ops_trans_created_idx on public.rg_ops_transitions(created_at);
+
+-- Handoffs: typed, durable inter-agent coordination records (Pillar 5) --------
+-- A handoff is a COORDINATION record, never an authority: it routes work between
+-- agents and records the baton pass. State only ever changes through the linked
+-- governed proposal (rg_ops_proposals). This ledger also doubles as the durable
+-- task queue (open inbound handoffs per agent) and the blocked-work list
+-- (status in escalated/blocked). Governance verdict + approval are resolved from
+-- the linked proposal, so this row stays a stable coordination fact.
+create table if not exists public.rg_ops_handoffs (
+  id              text primary key,
+  org_id          text references public.rg_orgs(id) on delete set null,
+  from_agent      text,                            -- originating agent | 'lifecycle' | 'operator'
+  to_agent        text,                            -- receiving agent id | 'operator'
+  kind            text,                            -- 'transition' | 'task'
+  reason          text,
+  evidence_refs   jsonb default '[]'::jsonb,       -- [evidence_id | transition_id | report_id …]
+  proposed_action jsonb,                           -- { action_id, params } the receiver should propose
+  risk            text,                            -- denormalised for display; engine re-derives authoritatively
+  status          text not null default 'open',    -- open|accepted|escalated|blocked|resolved|superseded
+  proposal_id     text,                            -- rg_ops_proposals.id (verdict + approval)
+  transition_id   text,                            -- rg_ops_transitions.id, if it drove a transition
+  attempts        integer default 0,               -- bounded-retry counter (fail-closed re-tries)
+  created_by      text default 'operations_agent',
+  accepted_at     timestamptz,
+  resolved_at     timestamptz,
+  updated_at      timestamptz default now(),
+  created_at      timestamptz default now()
+);
+create index if not exists rg_ops_ho_org_idx     on public.rg_ops_handoffs(org_id);
+create index if not exists rg_ops_ho_to_idx      on public.rg_ops_handoffs(to_agent);
+create index if not exists rg_ops_ho_status_idx  on public.rg_ops_handoffs(status);
+create index if not exists rg_ops_ho_created_idx on public.rg_ops_handoffs(created_at);
 
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
@@ -139,4 +172,5 @@ alter table public.rg_ops_evidence     enable row level security;
 alter table public.rg_ops_events       enable row level security;
 alter table public.rg_ops_runs         enable row level security;
 alter table public.rg_ops_transitions  enable row level security;
+alter table public.rg_ops_handoffs      enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;

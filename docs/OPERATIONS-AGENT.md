@@ -107,6 +107,8 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/lifecycle` | POST | O | Advance one governed step (proposes through Runtime Governance; privileged transitions escalate, never auto-execute) |
 | `/api/ops/agents` | GET | O or C(status) | Multi-agent roster — five specialists with charter, live workload, recent attributed proposals; `?view=council` returns each agent's current read-only assessment |
 | `/api/ops/agents` | POST | O | Run the governed multi-agent (council) cycle — each specialist proposes through the shared governor; high-risk transitions still escalate |
+| `/api/ops/handoffs` | GET | O or C(status) | Coordination spine — platform summary + per-agent queues + blocked-work; `?org_id=` returns the full handoff timeline (chain of responsibility) |
+| `/api/ops/handoffs` | POST | O | Operator `cancel` (supersede) or `retry` (reopen) a handoff — coordination only; the next governed cycle proposes through Runtime Governance |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -239,6 +241,8 @@ knows it exists:
 | `OPS_REASONING_MODEL` | `claude-opus-4-8` | Reasoning model |
 | `OPS_MIN_CONFIDENCE` | `0.6` | Proposal confidence gate |
 | `OPS_STALL_DAYS` | `7` | Stalled-journey threshold |
+| `OPS_COORDINATION` | unset → off | Pillar 5: when on (`1`/`true`), the council **ingests** inbound handoffs through the shared governor. Off preserves 4.0 direct execution; handoffs are still recorded as coordination facts |
+| `OPS_HANDOFF_MAX_ATTEMPTS` | `5` | Bounded fail-closed retries before a handoff is marked blocked |
 | `OPS_GITHUB_REPOS` / `OPS_GITHUB_TOKEN` | unset | GitHub monitoring |
 | `OPS_VERCEL_TOKEN` / `OPS_VERCEL_PROJECT` | unset | Vercel deployment monitoring. **Not required for the Vercel card to show healthy** — when running on Vercel the agent self-reports from Vercel's injected `VERCEL` / `VERCEL_ENV` / `VERCEL_GIT_COMMIT_SHA` system vars; the token only adds cross-project deployment history. (`CRON_SECRET` is unrelated — it gates continuous mode, not this card.) |
 | `OPS_RAILWAY_HEALTH_URLS` | unset | Extra Railway probes (engine always probed) |
@@ -392,6 +396,53 @@ per-action risk/auto/approval markers), live workload (proposals by status), and
 recent attributed proposals with the governance verdict, plus a **Run council
 cycle** button. The briefing carries a `multi_agent` block; the ask router
 answers "which agent owns …", "what is the Sales agent doing", "show the council".
+
+## 11d. Agent Coordination Spine (5.0 Pillar 5, Phase 1)
+
+`lib/ops/handoffs.js` lets agents hand governed work to one another. A **handoff**
+is a typed, durable, auditable record of one agent passing work to another — and
+it is a **coordination record, never an authority**:
+
+- it routes work between departments and records the baton pass;
+- it **never** changes customer state — state changes only ever happen through
+  the linked governed proposal (`proposals → governor → evidence`), the same
+  trust path as before. A handoff just names the action a receiving agent should
+  **propose**, and links to that proposal once it does.
+
+The one ledger triples as the **inter-agent handoff log** (chain of
+responsibility, replayable), each agent's durable **task queue** (its open
+inbound handoffs), and the **blocked-work list** (status `escalated`/`blocked`).
+Every handoff carries: originating agent · receiving agent · organisation ·
+reason · supporting evidence · proposed action · risk. Its governance verdict and
+approval status resolve live from the linked proposal.
+
+**Status machine:** `open → accepted → resolved` (auto after PERMIT) ·
+`→ escalated → resolved` (operator approval) · `→ blocked` (engine BLOCK, or an
+action outside the receiver's charter — a misrouted work item) · engine
+unreachable keeps it `open` and retried (bounded via `OPS_HANDOFF_MAX_ATTEMPTS`),
+never lost. Re-emitting an identical in-flight handoff is idempotent.
+
+**The council cycle** (`agents.dispatch`) runs **OBSERVE → RECONCILE → ROUTE
+(emit typed handoffs) → PROPOSE → RECORD**. When `OPS_COORDINATION=1`, receiving
+agents **INGEST** their inbox — draining each handoff through the *shared*
+governor (lifecycle actions only ever via `workflow.advance`, so a handoff can
+never make the state machine skip or reorder a stage; duty actions via
+`agentPropose`, charter-checked first). With the flag off, 4.0 direct execution
+is preserved byte-for-byte and handoffs are recorded as coordination facts only.
+Each cycle writes a durable `rg_ops_runs` row with per-agent **and** handoff
+counters (`created/resolved/escalated/blocked`).
+
+Governance boundaries hold exactly as before: charter is enforced at the agent
+boundary before the engine; no agent gets elevated trust (high-risk handoffs
+escalate for approval); the Pillar-3 state machine stays the single source of
+truth; deny-by-default; fully attributable and replayable.
+
+The Control Room **Handoffs** tab shows the platform status counts, per-agent
+queues, a "needs your attention" work list, and the full **chain of
+responsibility** timeline per customer (each node: `from → to`, action, Ω
+verdict, approval, status). `/api/ops/handoffs` serves the summary + per-org
+timeline; the briefing folds blocked/escalated handoffs into work items; the ask
+router answers "show handoffs", "chain of responsibility", "handoffs for &lt;org&gt;".
 
 ## 12. Activating continuous monitoring
 
