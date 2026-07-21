@@ -742,6 +742,7 @@ function AgentsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
 const hoStatusClass = (s: string) => s === "resolved" ? "ok" : s === "escalated" ? "warn" : (s === "blocked" ? "bad" : "");
 function HandoffsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
   const [data, setData] = useState<any>(null);
+  const [integ, setInteg] = useState<any>(null);
   const [org, setOrg] = useState<string>("");
   const [timeline, setTimeline] = useState<any[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -751,7 +752,10 @@ function HandoffsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
     if (o) setOrg(o);
   }, []);
   const loadSummary = useCallback(async () => {
-    try { setData(await api("handoffs")); setErr(null); } catch (e: any) { setErr(e.message); }
+    try {
+      const [d, i] = await Promise.all([api("handoffs"), api("integrity").catch(() => null)]);
+      setData(d); setInteg(i); setErr(null);
+    } catch (e: any) { setErr(e.message); }
   }, []);
   useEffect(() => { loadSummary(); }, [loadSummary]);
   useEffect(() => {
@@ -765,6 +769,22 @@ function HandoffsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
 
   return (
     <>
+      {integ && (
+        <div className={`ops-integrity ${integ.ok ? "ok" : "bad"}`}>
+          <div className="ops-integrity-head">
+            <span className="ops-integrity-dot">{integ.ok ? "✓" : "✕"}</span>
+            <strong>Coordination integrity: {integ.ok ? "all checks passed" : `${integ.anomalies.length} anomaly(ies)`}</strong>
+            <span className="radmin-deliv-meta">· {integ.handoffs_checked} handoff(s), {integ.council_cycles?.recent || 0} council cycle(s) in {integ.window_days}d · {integ.audit?.approvals_audited || 0}/{integ.audit?.approvals_seen || 0} approvals audited · coordination {integ.council_cycles?.last_coordinating ? "on" : "off"}</span>
+          </div>
+          {!integ.ok && (
+            <ul className="ops-integrity-list">
+              {integ.anomalies.slice(0, 8).map((a: any, i: number) => (
+                <li key={i}><code>{a.type}</code> — {a.from_agent}→{a.to_agent} {a.action_id ? `(${a.action_id})` : ""}: {a.detail}{a.org_id && <> · <button className="radmin-linkbtn ops-inline" onClick={() => setOrg(a.org_id)}>chain</button></>}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <section className="radmin-card">
         <h2>Agent handoffs — chain of responsibility</h2>
         <p className="radmin-sub">Every baton pass between agents is a typed, durable, auditable record. A handoff is a <em>coordination</em> record only — work still changes state solely through the governed proposal it links to. Open inbound handoffs are an agent&rsquo;s task queue; blocked / escalated ones are your work items.</p>
