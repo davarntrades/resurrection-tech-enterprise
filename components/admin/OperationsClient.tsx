@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "customers" | "agents" | "handoffs" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "customers", "agents", "handoffs", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", handoffs: "Handoffs", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "briefing" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["briefing", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -162,6 +162,7 @@ export default function OperationsClient() {
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
         {view === "agents" && <AgentsView onOpen={openHref} />}
         {view === "handoffs" && <HandoffsView onOpen={openHref} />}
+        {view === "memory" && <MemoryView />}
         {view === "approvals" && <ApprovalsView dash={dash} busy={busy} onDecide={decide} />}
         {view === "blocked" && <BlockedView dash={dash} />}
         {view === "systems" && <SystemsView brief={brief} dash={dash} />}
@@ -868,6 +869,135 @@ function HandoffsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
           </ol>
         )}
       </section>
+    </>
+  );
+}
+
+// ── Enterprise Memory / Evidence Graph (Phase 3) ─────────────────────────────
+const PROV_LABEL: Record<string, string> = {
+  observed_fact: "Observed fact", deterministic_derivation: "Derivation",
+  model_interpretation: "Model interpretation", recommendation: "Recommendation", approved_decision: "Approved decision",
+};
+const PROV_CLASS: Record<string, string> = {
+  observed_fact: "ok", deterministic_derivation: "accent", model_interpretation: "warn", recommendation: "", approved_decision: "accent",
+};
+function MemoryView() {
+  const [orgs, setOrgs] = useState<any[] | null>(null);
+  const [org, setOrg] = useState<string>("");
+  const [graph, setGraph] = useState<any>(null);
+  const [trace, setTrace] = useState<any>(null);
+  const [replay, setReplay] = useState<any[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    api("customers").then((d) => {
+      const rows = d.customers || d.rows || d || [];
+      setOrgs(rows);
+      const pre = new URLSearchParams(window.location.search).get("org") || (rows[0] && (rows[0].org_id || rows[0].id)) || "";
+      if (pre) setOrg(pre);
+    }).catch((e) => setErr(e.message));
+  }, []);
+  useEffect(() => {
+    if (!org) return;
+    setTrace(null); setReplay(null);
+    api(`graph?org_id=${encodeURIComponent(org)}`).then((d) => setGraph(d.graph)).catch((e) => setErr(e.message));
+  }, [org]);
+  const openTrace = async (nodeId: string) => {
+    try { const d = await api(`graph?org_id=${encodeURIComponent(org)}&node=${encodeURIComponent(nodeId)}`); setTrace(d.trace); } catch (e: any) { setErr(e.message); }
+  };
+  const loadReplay = async () => {
+    try { const d = await api(`graph?org_id=${encodeURIComponent(org)}&view=replay`); setReplay(d.replay || []); } catch (e: any) { setErr(e.message); }
+  };
+
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!orgs) return <div className="radmin-loading">Loading memory…</div>;
+
+  const byProv: Record<string, any[]> = {};
+  for (const n of (graph?.nodes || [])) (byProv[n.provenance] = byProv[n.provenance] || []).push(n);
+
+  return (
+    <>
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <div>
+            <h2>Enterprise memory — evidence graph</h2>
+            <p className="radmin-sub">A read-only projection over authoritative records — every agent can query it, none can rewrite it. Each node is classified by provenance; derivations link back to the facts behind them; contradictions are surfaced, never silently resolved. Strictly tenant-scoped.</p>
+          </div>
+          <select className="radmin-select" value={org} onChange={(e) => setOrg(e.target.value)}>
+            {orgs.map((o) => <option key={o.org_id || o.id} value={o.org_id || o.id}>{o.name}</option>)}
+          </select>
+        </div>
+        {graph && (
+          <div className="ops-prov-legend">
+            {Object.entries(graph.provenance || {}).filter(([, n]: any) => n).map(([k, n]: any) => (
+              <span key={k} className={`radmin-badge ${PROV_CLASS[k] || ""}`}>{PROV_LABEL[k] || k}: {n}</span>
+            ))}
+            <button className="radmin-linkbtn" onClick={loadReplay}>Replay decision timeline →</button>
+          </div>
+        )}
+      </section>
+
+      {graph && graph.contradictions.length > 0 && (
+        <section className="radmin-card ops-contradictions">
+          <h3>⚠ Contradictions surfaced ({graph.contradictions.length})</h3>
+          <p className="radmin-sub">Flagged for you to resolve — the memory never silently reconciles conflicting records.</p>
+          {graph.contradictions.map((c: any, i: number) => (
+            <div key={i} className={`ops-ho-row sev-${c.severity === "info" ? "warning" : c.severity}`}>
+              <div className="ops-ho-flow"><code>{c.type}</code></div>
+              <div className="radmin-deliv-meta">{c.detail}</div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {replay && (
+        <section className="radmin-card">
+          <div className="ops-brief-head"><h3>Decision replay ({replay.length})</h3><button className="radmin-btn sm" onClick={() => setReplay(null)}>Close</button></div>
+          <ol className="ops-ho-timeline">
+            {replay.map((r, i) => (
+              <li key={i} className="ops-ho-node ok">
+                <div className="ops-ho-node-head"><span className="ops-ho-flow"><b>{r.kind.replace(/_/g, " ")}</b></span>{r.verdict && <span className="radmin-badge">Ω {r.verdict}</span>}</div>
+                <div className="radmin-deliv-meta">{r.action} {r.detail ? `— ${r.detail}` : ""} · {fmtWhen(r.at)}{r.actor ? ` · ${r.actor}` : ""}</div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <div className="ops-agent-grid">
+        {graph && Object.entries(byProv).map(([prov, list]) => (
+          <section key={prov} className="radmin-card ops-prov-col">
+            <h3><span className={`radmin-badge ${PROV_CLASS[prov] || ""}`}>{PROV_LABEL[prov] || prov}</span> <span className="radmin-deliv-meta">{list.length}</span></h3>
+            {list.slice(0, 25).map((n) => (
+              <button key={n.id} className="ops-node" onClick={() => openTrace(n.id)}>
+                <span className="ops-node-type">{n.type}</span> {n.label}
+              </button>
+            ))}
+          </section>
+        ))}
+      </div>
+
+      {trace && trace.node && (
+        <section className="radmin-card ops-trace">
+          <div className="ops-brief-head">
+            <h3>Trace: {trace.node.type} <span className={`radmin-badge ${PROV_CLASS[trace.provenance] || ""}`}>{PROV_LABEL[trace.provenance]}</span></h3>
+            <button className="radmin-btn sm" onClick={() => setTrace(null)}>Close</button>
+          </div>
+          <div className="radmin-deliv-meta">{trace.node.label} · source: <code>{trace.source_ref}</code></div>
+          {trace.related.length > 0 && <>
+            <div className="radmin-deliv-meta ops-trace-h">Connected</div>
+            {trace.related.map((r: any, i: number) => (
+              <button key={i} className="ops-node" onClick={() => openTrace(r.node.id)}>
+                <span className="ops-node-type">{r.direction === "in" ? "←" : "→"} {r.kind}</span> {r.node.type}: {r.node.label}
+              </button>
+            ))}
+          </>}
+          {trace.to_evidence.length > 0 && <>
+            <div className="radmin-deliv-meta ops-trace-h">Path to evidence</div>
+            <div className="ops-trace-path">{trace.to_evidence.map((n: any, i: number) => <span key={i}>{i > 0 ? " → " : ""}<code>{n.type}</code></span>)}</div>
+          </>}
+        </section>
+      )}
     </>
   );
 }
