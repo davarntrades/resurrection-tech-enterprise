@@ -566,11 +566,29 @@ const STATUS_LABEL: Record<string, string> = {
 function SystemsView({ brief, dash }: any) {
   const systems: any[] = brief?.systems || [];
   const runs: any[] = dash?.recent_runs || [];
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const g = new URLSearchParams(window.location.search).get("gmail");
+    if (g === "connected") setNote("Gmail connected — read-only inbox monitoring is active.");
+    else if (g === "error") setNote("Gmail connection failed — check OAuth configuration and try again.");
+  }, []);
+  const gmailAction = async (action: "poll" | "disconnect") => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await api("gmail", { method: "POST", body: JSON.stringify({ action }) });
+      setNote(action === "poll" ? `Inbox polled — ${r.result?.new ?? 0} new email(s), ${r.result?.matched ?? 0} matched to customers.` : "Gmail disconnected — token revoked and dropped.");
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+
   return (
     <>
       <section className="radmin-card">
         <h2>System health &amp; integration readiness</h2>
         <p className="radmin-sub">Statuses are verified, never assumed — an unverifiable component reports its state and the exact configuration it needs.</p>
+        {note && <div className="ops-note">{note}</div>}
         <div className="ops-systems">
           {systems.map((s) => (
             <div key={s.component} className={`ops-system st-${s.status}`}>
@@ -580,6 +598,15 @@ function SystemsView({ brief, dash }: any) {
               </div>
               <div className="radmin-deliv-meta">{s.detail}</div>
               {s.required_env?.length > 0 && <div className="ops-ids">requires: {s.required_env.join(", ")}</div>}
+              {s.component === "email" && s.status === "awaiting_credentials" && (
+                <a className="radmin-btn sm" href="/api/ops/gmail/auth" style={{ marginTop: 8, display: "inline-flex" }}>Connect Gmail (read-only)</a>
+              )}
+              {s.component === "email" && s.status === "healthy" && (
+                <div className="ops-brief-actions" style={{ marginTop: 8 }}>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => gmailAction("poll")}>Poll now</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => gmailAction("disconnect")}>Disconnect</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
