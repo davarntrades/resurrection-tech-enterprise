@@ -114,6 +114,8 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/gmail/callback` | GET | O | OAuth callback — verifies state, exchanges the code, stores the refresh token **encrypted** |
 | `/api/ops/gmail` | GET | O or C(status) | Gmail connection status + recent inbound email events (`?org_id=` filters to one customer) |
 | `/api/ops/gmail` | POST | O | Operator `poll` (read new mail into evidence) or `disconnect` (revoke + drop token). No send/modify path exists |
+| `/api/ops/incidents` | GET | O or C(status) | Incident ledger + summary (`?status=open&org_id=`) |
+| `/api/ops/incidents` | POST | O | Operator resolves an incident (`{id, action:"resolve", note?}`) |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -517,6 +519,39 @@ enable the Gmail API, and configure the consent screen with the `gmail.readonly`
 restricted scope. For a single internal mailbox, **Testing** publishing status
 works immediately (add the operator as a test user) but refresh tokens expire
 every 7 days; **publish + verify** once for non-expiring unattended monitoring.
+
+## 11f. Governed Action Execution (5.0 Phase 2)
+
+Phase 2 adds the **post-execution verification spine** and the first **governed
+internal executors**, under the invariant *a new capability and the governance
+rule constraining it ship together*.
+
+**Verification spine.** A catalog action may declare `verify(result, params) →
+{ok, detail}`. `proposals.execute` runs `execute → verify` and records
+`execution.verified`. A failed verification does **not** undo the action but is
+never a silent success: the platform opens an **incident** directly (a system
+safeguard — not a governed proposal, so no recursion). Actions without a
+`verify()` are unaffected (backward compatible).
+
+**First executors (low-risk, internal-only, deterministic):**
+
+| Action | Effect | Verifier | Owner |
+|---|---|---|---|
+| `open_incident` | opens a durable operator work item | incident row exists + open | Compliance |
+| `refresh_customer_intelligence` | snapshots a customer's scores (`rg_ops_intel_snapshots`) | snapshot row written | Customer Success |
+| `schedule_internal_review` | sets an org's next review date | engagement date == input | Customer Success |
+
+Each still flows through `proposal → governor → evidence`. They are **internal
+only, engine-enforced**: the new Ω rule `ops_internal_action_external_reach`
+(`operations_rules.py`, DATA_PRIVACY) **BLOCKS** any of these tools that carries
+an external destination — the "internal" classification is governed, not merely
+asserted. The `rg_ops_incidents` ledger surfaces open incidents as briefing work
+items and via `/api/ops/incidents` (operator resolves with attribution).
+
+**Held for a later batch** (explicitly *not* in this phase): `prepare_draft_reply`
+(draft-only email follow-ups — external-comms text, so it waits until the
+verify-spine is proven), and the approval-gated privileged executors, added one
+at a time each with its own Ω rule.
 
 ## 12. Activating continuous monitoring
 

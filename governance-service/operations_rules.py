@@ -84,6 +84,15 @@ OPS_CREDENTIAL_SHARE = {"share_credentials", "send_credentials", "expose_secret"
 OPS_DOCUMENT_EXPORT = {"export_documents", "export_evidence", "bulk_export",
                        "download_all_documents", "export_customer_data"}
 
+# Governed internal executors (Phase 2). Low-risk, INTERNAL-ONLY by contract:
+# they open incidents, snapshot intelligence, or set an internal review date.
+# They are permitted under normal (internal) use, but must never reach out — the
+# rule below blocks them if they carry an external destination, so the "internal"
+# classification is engine-enforced, not merely asserted.
+OPS_INTERNAL_ACTIONS = {"open_incident", "refresh_customer_intelligence",
+                        "schedule_internal_review", "create_work_item",
+                        "generate_deployment_checklist", "prepare_draft_reply"}
+
 
 def operations_custom_rules() -> list[OmegaRule]:
     """Deny-by-default Ω rules for the internal Operations Agent."""
@@ -162,6 +171,21 @@ def operations_custom_rules() -> list[OmegaRule]:
                     "export authorisation, or to an external destination",
         check=lambda s: _tool(s) in OPS_DOCUMENT_EXPORT
         and (_unauthorized(s, "export_authorized") or _external_destination(s)),
+        severity="critical",
+    ))
+
+    # ── DATA_PRIVACY: internal executors must stay internal (Phase 2) ──
+    # A low-risk internal action (open incident, snapshot intelligence, schedule
+    # a review…) is permitted for its internal effect, but is BLOCKED if it ever
+    # carries an external destination — the engine enforces the internal-only
+    # contract so a bug or hostile recommendation cannot weaponise it to reach
+    # outside the platform.
+    rules.append(OmegaRule(
+        domain=OmegaDomain.DATA_PRIVACY,
+        name="ops_internal_action_external_reach",
+        description="Operations agent invoking an internal-only action with an "
+                    "external destination — internal executors must never reach out",
+        check=lambda s: _tool(s) in OPS_INTERNAL_ACTIONS and _external_destination(s),
         severity="critical",
     ))
 
