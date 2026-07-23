@@ -204,6 +204,43 @@ create index if not exists rg_ops_email_org_idx      on public.rg_ops_email_even
 create index if not exists rg_ops_email_received_idx on public.rg_ops_email_events(received_at);
 create index if not exists rg_ops_email_from_idx     on public.rg_ops_email_events(from_email);
 
+-- Incidents: durable operator work items (Phase 2 — Governed Action Execution) -
+-- Opened by the open_incident executor OR the post-execution verification
+-- safeguard (when a governed action executes but its verifier fails). An
+-- incident is an internal record only — no external reach.
+create table if not exists public.rg_ops_incidents (
+  id          text primary key,
+  severity    text default 'warning',            -- info | warning | critical
+  kind        text,                               -- verification_failed | engine_unavailable | ops_incident | …
+  summary     text,
+  org_id      text references public.rg_orgs(id) on delete set null,
+  source_ref  text,                               -- proposal_id / evidence_id / observation ref
+  status      text not null default 'open',       -- open | resolved
+  opened_by   text default 'operations_agent',
+  resolved_by text,
+  resolved_at timestamptz,
+  note        text,
+  updated_at  timestamptz default now(),
+  created_at  timestamptz default now()
+);
+create index if not exists rg_ops_inc_org_idx     on public.rg_ops_incidents(org_id);
+create index if not exists rg_ops_inc_status_idx  on public.rg_ops_incidents(status);
+create index if not exists rg_ops_inc_created_idx on public.rg_ops_incidents(created_at);
+
+-- Intelligence snapshots: point-in-time customer scores (refresh_customer_intelligence).
+create table if not exists public.rg_ops_intel_snapshots (
+  id              text primary key,
+  org_id          text references public.rg_orgs(id) on delete set null,
+  health          integer,
+  health_band     text,
+  scores          jsonb,
+  lifecycle_stage text,
+  taken_at        timestamptz default now(),
+  created_at      timestamptz default now()
+);
+create index if not exists rg_ops_intel_org_idx    on public.rg_ops_intel_snapshots(org_id);
+create index if not exists rg_ops_intel_taken_idx  on public.rg_ops_intel_snapshots(taken_at);
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -225,6 +262,8 @@ alter table public.rg_ops_transitions  enable row level security;
 alter table public.rg_ops_handoffs      enable row level security;
 alter table public.rg_ops_gmail_tokens  enable row level security;
 alter table public.rg_ops_email_events  enable row level security;
+alter table public.rg_ops_incidents      enable row level security;
+alter table public.rg_ops_intel_snapshots enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.

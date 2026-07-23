@@ -20,6 +20,17 @@ const AUTH_RULES = new Map([
   ["modify_customer", ["ops_unauthorized_customer_modification", ["change_authorized", "operator_approved"]]],
   ["export_documents", ["ops_unauthorized_document_export", ["export_authorized"]]],
 ]);
+// Phase 2: internal-only executors — permitted for their internal effect, but
+// BLOCKED if they ever carry an external destination (mirrors operations_rules.py
+// ops_internal_action_external_reach).
+const INTERNAL_ACTIONS = new Set(["open_incident", "refresh_customer_intelligence",
+  "schedule_internal_review", "create_work_item", "generate_deployment_checklist", "prepare_draft_reply"]);
+const isExternal = (args) => {
+  if (args.destination_internal === true || args.internal === true) return false;
+  if (args.destination_external === true || args.external === true) return true;
+  const txt = ["args", "destination", "url", "to", "recipient"].map((k) => String(args[k] || "")).join(" ").toLowerCase();
+  return ["external", "attacker", "unverified", "unknown", "public_internet"].some((t) => txt.includes(t));
+};
 
 function mockVerdict(steps) {
   for (const s of steps || []) {
@@ -31,6 +42,9 @@ function mockVerdict(steps) {
       if (!flags.some((f) => args[f] === true || String(args[f]).toLowerCase() === "true")) {
         return { verdict: "BLOCK", rule };
       }
+    }
+    if (INTERNAL_ACTIONS.has(tool) && isExternal(args)) {
+      return { verdict: "BLOCK", rule: "ops_internal_action_external_reach" };
     }
   }
   return { verdict: "PERMIT", rule: null };
