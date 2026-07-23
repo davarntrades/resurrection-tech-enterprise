@@ -116,6 +116,7 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/gmail` | POST | O | Operator `poll` (read new mail into evidence) or `disconnect` (revoke + drop token). No send/modify path exists |
 | `/api/ops/incidents` | GET | O or C(status) | Incident ledger + summary (`?status=open&org_id=`) |
 | `/api/ops/incidents` | POST | O | Operator resolves an incident (`{id, action:"resolve", note?}`) |
+| `/api/ops/graph` | GET | O or C(status) | Enterprise memory — an org's derived evidence graph (`?org_id=`, required); `&node=` traces one node to evidence; `&view=replay` returns the decision timeline |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -552,6 +553,36 @@ items and via `/api/ops/incidents` (operator resolves with attribution).
 (draft-only email follow-ups — external-comms text, so it waits until the
 verify-spine is proven), and the approval-gated privileged executors, added one
 at a time each with its own Ω rule.
+
+## 11g. Enterprise Memory / Evidence Graph (5.0 Phase 3)
+
+`lib/ops/graph.js` is a shared organisational memory every agent can **query but
+none can silently rewrite** — because it is a **derived, read-only projection**
+over the existing authoritative records, not a new mutable store. `build(org)`
+reassembles the graph on demand from orgs · contacts · reports · proposals ·
+verdicts · approvals · executions · evidence · transitions · handoffs ·
+incidents · intelligence snapshots · inbound emails · runtime decisions. Nothing
+to drift, nothing to tamper with.
+
+**Provenance taxonomy** — every node is one of five classes, so nothing enters a
+briefing "as fact" without support: `observed_fact` (links to its evidence) ·
+`deterministic_derivation` (links to the facts it was computed from) ·
+`model_interpretation` (an LLM reasoning output) · `recommendation` (proposed,
+not decided) · `approved_decision` (an operator sign-off). The briefing now
+tags every statement with its class and reports `provenance.unsupported_facts`.
+
+**Guarantees:** source records stay authoritative; every derived node links back
+to evidence; **contradictions are surfaced, never silently resolved**
+(`executed_but_unverified`, `resolved_handoff_without_execution`,
+`stale_intelligence_snapshot`); decisions are **replayable** (`replay(org)`
+reconstructs the immutable, ordered decision timeline); and the graph is
+**strictly tenant-scoped** — an `org_id` is required and only that org's
+subgraph is ever returned, so confidential data never crosses a boundary.
+
+The Control Room **Memory** tab picks a customer, groups its nodes by provenance,
+flags contradictions, and lets the operator click any node to **trace it back**
+to its records, agent, governance verdict and outcome, or replay the decision
+timeline. Served by `/api/ops/graph`.
 
 ## 12. Activating continuous monitoring
 
