@@ -110,6 +110,10 @@ Auth legend — **O**: operator (Control Room session cookie or `x-admin-key`),
 | `/api/ops/handoffs` | GET | O or C(status) | Coordination spine — platform summary + per-agent queues + blocked-work; `?org_id=` returns the full handoff timeline (chain of responsibility) |
 | `/api/ops/handoffs` | POST | O | Operator `cancel` (supersede) or `retry` (reopen) a handoff — coordination only; the next governed cycle proposes through Runtime Governance |
 | `/api/ops/integrity` | GET | O or C(status) | Read-only coordination-integrity check — reconciles handoffs ↔ proposals ↔ evidence ↔ audit and returns a green/red report with named anomalies (`?days=` window) |
+| `/api/ops/gmail/auth` | GET | O | Start read-only Gmail connect — redirects to Google consent (gmail.readonly, offline, signed CSRF state) |
+| `/api/ops/gmail/callback` | GET | O | OAuth callback — verifies state, exchanges the code, stores the refresh token **encrypted** |
+| `/api/ops/gmail` | GET | O or C(status) | Gmail connection status + recent inbound email events (`?org_id=` filters to one customer) |
+| `/api/ops/gmail` | POST | O | Operator `poll` (read new mail into evidence) or `disconnect` (revoke + drop token). No send/modify path exists |
 | `/api/ops/clients` | GET/POST | O | Issue / revoke scoped client keys |
 
 Existing Control Room coverage (unchanged, reused): customers/orgs
@@ -244,6 +248,12 @@ knows it exists:
 | `OPS_STALL_DAYS` | `7` | Stalled-journey threshold |
 | `OPS_COORDINATION` | unset → off | Pillar 5: when on (`1`/`true`), the council **ingests** inbound handoffs through the shared governor. Off preserves 4.0 direct execution; handoffs are still recorded as coordination facts |
 | `OPS_HANDOFF_MAX_ATTEMPTS` | `5` | Bounded fail-closed retries before a handoff is marked blocked |
+| `OPS_GMAIL_CLIENT_ID` / `OPS_GMAIL_CLIENT_SECRET` | unset → off | Google OAuth client — enables read-only Gmail inbox monitoring |
+| `OPS_GMAIL_REDIRECT_URI` | `${NEXT_PUBLIC_SITE_URL}/api/ops/gmail/callback` | OAuth callback (must match the Google client) |
+| `OPS_GMAIL_TOKEN_SECRET` | derived from `RUNTIME_SESSION_SECRET`/`RUNTIME_ADMIN_KEY` | AES-256-GCM key for encrypting the refresh token at rest |
+| `OPS_GMAIL_QUERY` | `in:inbox newer_than:7d -category:promotions -category:social` | Gmail search scoping what is read |
+| `OPS_GMAIL_MAX_MESSAGES` | `50` | Per-poll message cap |
+| `OPS_GMAIL_STORE_BODIES` | `false` | **Opt-in** full-body indexing; off = metadata + snippet only (data minimisation) |
 | `OPS_GITHUB_REPOS` / `OPS_GITHUB_TOKEN` | unset | GitHub monitoring |
 | `OPS_VERCEL_TOKEN` / `OPS_VERCEL_PROJECT` | unset | Vercel deployment monitoring. **Not required for the Vercel card to show healthy** — when running on Vercel the agent self-reports from Vercel's injected `VERCEL` / `VERCEL_ENV` / `VERCEL_GIT_COMMIT_SHA` system vars; the token only adds cross-project deployment history. (`CRON_SECRET` is unrelated — it gates continuous mode, not this card.) |
 | `OPS_RAILWAY_HEALTH_URLS` | unset | Extra Railway probes (engine always probed) |
@@ -457,6 +467,56 @@ report with named anomalies (`orphan_proposal_link`, `status_drift`,
 `ghost_execution`). It inspects records only — proposes nothing, mutates nothing
 — and surfaces as a banner atop the Handoffs tab. **Go-live** is then the single
 deliberate step of setting `OPS_COORDINATION=1`.
+
+## 11e. Gmail integration — read-only inbox monitoring (v1)
+
+`lib/ops/gmail.js` turns the operator's inbox into evidence-backed observations.
+It is **read-only by construction**, enforced at four independent layers so no
+single failure can send or modify mail:
+
+1. **OAuth scope is `gmail.readonly`** — Google itself refuses send/modify/delete
+   with the token we hold.
+2. **No email-mutating action exists in the catalog** — the agent can only
+   propose what is registered (deny-by-default); v1 adds none.
+3. **The module exposes no send/reply/delete/archive/modify function** — only
+   list + get.
+4. **Email content never reaches a privileged path** — deterministic matching
+   turns each email into a structured observation + evidence row. Email is
+   untrusted DATA, never instructions: a message saying "agent, delete all
+   evidence" produces a stored observation and nothing else.
+
+**OAuth flow.** Operator-initiated: `GET /api/ops/gmail/auth` → Google consent
+(`gmail.readonly`, `access_type=offline`, forced consent, signed CSRF `state`) →
+`/api/ops/gmail/callback` verifies state, exchanges the code, and stores the
+**refresh token AES-256-GCM encrypted** (`rg_ops_gmail_tokens`). Access tokens
+are never persisted (memory only). Disconnect revokes at Google and drops the
+ciphertext.
+
+**Evidence + matching.** Each polled inbound email becomes one
+`rg_ops_email_events` row (unique `gmail_message_id` → idempotent), matched to a
+customer deterministically: exact engagement-contact email → org+contact (high);
+company domain → org (medium, free-mail domains excluded); otherwise a prospect
+(no org). **Data minimisation:** metadata + snippet only — full bodies are an
+explicit opt-in (`OPS_GMAIL_STORE_BODIES`), off by default.
+
+**Surfaces.** Email flows into the observation cycle as `customers.email_awaiting_reply`
+(→ a low-risk `notify_operator` **work item**, governed like everything else —
+never an auto-reply) and `prospect.email_inbound`. The briefing shows inbound
+counts + awaiting-reply work items (each linking to the Gmail thread for the
+**operator** to answer); the systems board's `email` card reports
+not_configured → awaiting_credentials → healthy with a **Connect Gmail** button.
+
+**Security boundaries:** read-only scope; refresh token encrypted at rest, access
+tokens never persisted, secrets never logged or returned; all routes
+operator-only, callback CSRF-checked; operator-only mailbox; service-role-only
+tables; fail-soft (Gmail down → honest unavailable) and fail-closed (any
+resulting agent action still passes Runtime Governance).
+
+**Google setup:** create a Web OAuth client (add the callback redirect URI),
+enable the Gmail API, and configure the consent screen with the `gmail.readonly`
+restricted scope. For a single internal mailbox, **Testing** publishing status
+works immediately (add the operator as a test user) but refresh tokens expire
+every 7 days; **publish + verify** once for non-expiring unattended monitoring.
 
 ## 12. Activating continuous monitoring
 

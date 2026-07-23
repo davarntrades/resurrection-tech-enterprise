@@ -158,7 +158,53 @@ create index if not exists rg_ops_ho_to_idx      on public.rg_ops_handoffs(to_ag
 create index if not exists rg_ops_ho_status_idx  on public.rg_ops_handoffs(status);
 create index if not exists rg_ops_ho_created_idx on public.rg_ops_handoffs(created_at);
 
--- Client keys: hashed, scoped keys for external clients ----------------------
+-- Gmail: encrypted OAuth token + read-only inbox evidence (Gmail integration) -
+-- The refresh token is stored ENCRYPTED (AES-256-GCM) — plaintext never lands
+-- in the row. Access tokens are never persisted. Read-only scope only; there is
+-- no send/modify/delete path anywhere in the application.
+create table if not exists public.rg_ops_gmail_tokens (
+  id                text primary key,
+  mailbox_email     text,
+  refresh_token_enc jsonb,                          -- { iv, tag, ct } base64 (AES-256-GCM)
+  scope             text,                            -- gmail.readonly
+  status            text not null default 'active',  -- active | revoked
+  connected_by      text,
+  last_history_id   text,                            -- Gmail historyId for incremental sync
+  last_poll_at      timestamptz,
+  updated_at        timestamptz default now(),
+  created_at        timestamptz default now()
+);
+
+-- One row per observed inbound email = the evidence behind an email observation.
+-- Bodies are NOT stored by default (OPS_GMAIL_STORE_BODIES off) — metadata +
+-- snippet only, for data minimisation. Unique gmail_message_id makes polling
+-- idempotent.
+create table if not exists public.rg_ops_email_events (
+  id               text primary key,
+  gmail_message_id text unique,
+  gmail_thread_id  text,
+  mailbox_email    text,
+  direction        text default 'inbound',
+  from_email       text,
+  from_name        text,
+  to_emails        jsonb default '[]'::jsonb,
+  subject          text,
+  snippet          text,
+  received_at      timestamptz,
+  labels           jsonb default '[]'::jsonb,
+  org_id           text references public.rg_orgs(id) on delete set null,
+  contact_id       text,
+  match_method     text,                             -- contact_email | domain | unmatched
+  match_confidence text,                             -- high | medium | none
+  has_body         boolean default false,
+  observation_kind text,                             -- email.customer_inbound | email.prospect_inbound
+  created_at       timestamptz default now()
+);
+create index if not exists rg_ops_email_org_idx      on public.rg_ops_email_events(org_id);
+create index if not exists rg_ops_email_received_idx on public.rg_ops_email_events(received_at);
+create index if not exists rg_ops_email_from_idx     on public.rg_ops_email_events(from_email);
+
+-- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
   key_hash     text not null unique,
@@ -176,7 +222,9 @@ alter table public.rg_ops_evidence     enable row level security;
 alter table public.rg_ops_events       enable row level security;
 alter table public.rg_ops_runs         enable row level security;
 alter table public.rg_ops_transitions  enable row level security;
-alter table public.rg_ops_handoffs     enable row level security;
+alter table public.rg_ops_handoffs      enable row level security;
+alter table public.rg_ops_gmail_tokens  enable row level security;
+alter table public.rg_ops_email_events  enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.
