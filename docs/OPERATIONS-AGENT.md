@@ -628,6 +628,36 @@ per-agent performance. Served by `/api/ops/autonomy` (GET state; POST
 `/api/ops/performance`. The briefing carries an `executive` block with the live
 autonomy posture.
 
+## 11i. Expanded Agent Council — Security & Threat (5.0 Phase 5)
+
+The council gains its first new specialist beyond the founding five: a
+cross-cutting **Security & Threat Agent** that adds **no new privileged
+capability and no new Ω rule** — it is a watchdog built entirely on signals
+Runtime Governance already produces.
+
+**Governed refusals become threat evidence.** Every security-sensitive action
+the platform BLOCKs is already written as evidence (`ops_evidence_destruction`,
+`ops_credential_sharing`, `ops_unauthorized_autonomy_change`,
+`ops_internal_action_external_reach`). A new deterministic observer scans that
+evidence and emits `security.governed_refusal` signals (one per attempt) plus a
+`security.governed_refusals` rollup with the rule mix — turning "the attempt was
+governed" into an actionable posture. Read-only: it only surfaces what
+governance already refused.
+
+**No elevated trust.** The Security agent is chartered **only** for internal,
+low-risk actions (`raise_alert`, `open_incident`, `notify_operator`) — a
+privileged action is refused at the agent boundary (charter deny-by-default),
+exactly like every other specialist. It reacts (opens an incident per refusal,
+raises a posture alert, flags elevated BLOCK volume as possible probing) through
+the **shared** proposal → governor → evidence spine, attributed to
+`agent_id=security`. It never mutates customer state and can never itself execute
+a privileged action — the council's own watchdog, governed like the rest.
+
+The agent appears automatically in the **Agents** roster and the **Command** tab
+(pauses + per-agent performance); the briefing carries a `security` block with
+the governed-refusal count, rule mix and recent attempts. New env:
+`OPS_SECURITY_WINDOW_DAYS` (default 7).
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
