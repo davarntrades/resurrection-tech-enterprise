@@ -1242,6 +1242,8 @@ function GuardianView({ onOpen, go }: { onOpen: (h?: string | null) => void; go:
           </ul>}
       </section>
 
+      {home.executive_questions && <GuardianDeptIntel eq={home.executive_questions} onOpen={onOpen} />}
+
       <section className="radmin-card">
         <div className="ops-brief-head"><h3>Departments</h3><button className="radmin-linkbtn" onClick={() => go("agents")}>Council →</button></div>
         <div className="ops-guard-depts">
@@ -1254,5 +1256,53 @@ function GuardianView({ onOpen, go }: { onOpen: (h?: string | null) => void; go:
         </div>
       </section>
     </>
+  );
+}
+
+// Department intelligence — the additional executive questions Guardian OS answers.
+function GuardianDeptIntel({ eq, onOpen }: { eq: any; onOpen: (h?: string | null) => void }) {
+  return (
+    <section className="radmin-card">
+      <h3>Department intelligence</h3>
+      <p className="radmin-sub">What the Guardian OS departments see right now — each grounded in real records.</p>
+      <div className="ops-guard-intel">
+        <div className="ops-guard-iq">
+          <h4>What changed overnight</h4>
+          {eq.what_changed_overnight.length === 0 ? <p className="radmin-deliv-meta">No adverse trend vs the prior period.</p> :
+            <ul>{eq.what_changed_overnight.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>}
+        </div>
+        <div className="ops-guard-iq">
+          <h4>Incidents needing attention</h4>
+          {eq.incidents_need_attention.length === 0 ? <p className="radmin-deliv-meta">No open incidents.</p> :
+            <ul>{eq.incidents_need_attention.map((i: any) => <li key={i.id}><button className="radmin-linkbtn" onClick={() => onOpen(i.ref)}>[{i.severity}] {i.summary} · {i.age_days}d</button></li>)}</ul>}
+        </div>
+        <div className="ops-guard-iq">
+          <h4>Customers drifting to risk</h4>
+          {eq.customers_drifting_to_risk.length === 0 ? <p className="radmin-deliv-meta">No customers drifting.</p> :
+            <ul>{eq.customers_drifting_to_risk.map((c: any) => <li key={c.org_id}><button className="radmin-linkbtn" onClick={() => onOpen(c.ref)}>{c.name} · health {c.health}{c.delta ? ` (${c.delta})` : ""}</button></li>)}</ul>}
+        </div>
+        <div className="ops-guard-iq">
+          <h4>Where governance slows execution</h4>
+          <p className="radmin-deliv-meta">{eq.governance_friction.note}</p>
+        </div>
+        <div className="ops-guard-iq">
+          <h4>Which partner needs attention</h4>
+          {eq.partner_needs_attention.length === 0 ? <p className="radmin-deliv-meta">No partner needs attention.</p> :
+            <ul>{eq.partner_needs_attention.map((p: any, i: number) => <li key={i}>{p.name} ({p.kind}) — {p.reason}</li>)}</ul>}
+        </div>
+        <div className="ops-guard-iq">
+          <h4>What policy to create next</h4>
+          {eq.policy_to_create_next.length === 0 && eq.policy_drafts_pending.length === 0 ? <p className="radmin-deliv-meta">No policy gaps detected.</p> : <>
+            {eq.policy_to_create_next.map((g: any, i: number) => <p key={i} className="radmin-deliv-meta">{g.rule} refused {g.count}× — {g.suggestion}</p>)}
+            {eq.policy_drafts_pending.length > 0 && <p className="radmin-deliv-meta">{eq.policy_drafts_pending.length} draft(s) awaiting your activation.</p>}
+          </>}
+        </div>
+        <div className="ops-guard-iq">
+          <h4>Architecture gaps</h4>
+          <p className="radmin-deliv-meta">{eq.architecture_gaps.coverage_pct}% assessed · {eq.architecture_gaps.gaps} customer(s) need an assessment</p>
+          {eq.architecture_gaps.customers.length > 0 && <ul>{eq.architecture_gaps.customers.slice(0, 4).map((c: any) => <li key={c.org_id}><button className="radmin-linkbtn" onClick={() => onOpen(c.ref)}>{c.name} ({c.lifecycle_stage})</button></li>)}</ul>}
+        </div>
+      </div>
+    </section>
   );
 }

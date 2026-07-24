@@ -46,7 +46,7 @@
     "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
-    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs"
+    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

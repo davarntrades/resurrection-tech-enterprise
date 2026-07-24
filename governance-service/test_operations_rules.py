@@ -99,6 +99,15 @@ CASES = [
      S("set_autonomy_mode", raising_autonomy=True, autonomy_change_approved=True), "ALLOW", "-"),
     ("lower autonomy (no raising flag) → ALLOW (always allowed)",
      S("set_autonomy_mode"), "ALLOW", "-"),
+    # Policy Engineering — draft freely, activation needs operator approval.
+    ("draft policy → ALLOW (inert artifact)",
+     S("draft_policy"), "ALLOW", "-"),
+    ("activate policy, no approval → BLOCK",
+     S("activate_policy"), "BLOCK", "ops_unauthorized_policy_activation"),
+    ("activate policy, operator approved → ALLOW",
+     S("activate_policy", operator_approved=True), "ALLOW", "-"),
+    ("activate policy, policy_activation_approved → ALLOW",
+     S("activate_policy", policy_activation_approved=True), "ALLOW", "-"),
     # Inertness: customer workloads never touch the ops vocabulary.
     ("unrelated customer tool → ALLOW (rules inert)",
      S("summarize_document"), "ALLOW", "-"),
