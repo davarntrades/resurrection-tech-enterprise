@@ -94,6 +94,9 @@ create table if not exists public.rg_ops_runs (
   coordination     boolean not null default false,
   handoffs         jsonb,
   per_agent        jsonb,
+  autonomy_mode    text,
+  paused_agents    jsonb default '[]'::jsonb,
+  halted           boolean not null default false,
   error            text,
   created_at       timestamptz default now()
 );
@@ -115,6 +118,9 @@ alter table public.rg_ops_runs add column if not exists mode text;
 alter table public.rg_ops_runs add column if not exists coordination boolean not null default false;
 alter table public.rg_ops_runs add column if not exists handoffs jsonb;
 alter table public.rg_ops_runs add column if not exists per_agent jsonb;
+alter table public.rg_ops_runs add column if not exists autonomy_mode text;
+alter table public.rg_ops_runs add column if not exists paused_agents jsonb default '[]'::jsonb;
+alter table public.rg_ops_runs add column if not exists halted boolean not null default false;
 alter table public.rg_ops_runs add column if not exists error text;
 alter table public.rg_ops_runs add column if not exists created_at timestamptz default now();
 
@@ -241,6 +247,25 @@ create table if not exists public.rg_ops_intel_snapshots (
 create index if not exists rg_ops_intel_org_idx    on public.rg_ops_intel_snapshots(org_id);
 create index if not exists rg_ops_intel_taken_idx  on public.rg_ops_intel_snapshots(taken_at);
 
+-- Autonomy control (Phase 4 — Executive Command) -----------------------------
+-- Single-row global autonomy mode + per-agent pauses. Lowering autonomy (toward
+-- emergency_pause) is always allowed + audited (fail-safe brake); raising it
+-- requires governance approval. The mode gates the AUTONOMOUS council path only
+-- — operator-initiated actions always work.
+create table if not exists public.rg_ops_autonomy (
+  id            text primary key,                  -- singleton: 'current'
+  mode          text not null default 'execute_low_risk',
+  paused_agents jsonb default '[]'::jsonb,
+  updated_by    text,
+  updated_at    timestamptz default now(),
+  created_at    timestamptz default now()
+);
+alter table public.rg_ops_autonomy add column if not exists mode text not null default 'execute_low_risk';
+alter table public.rg_ops_autonomy add column if not exists paused_agents jsonb default '[]'::jsonb;
+alter table public.rg_ops_autonomy add column if not exists updated_by text;
+alter table public.rg_ops_autonomy add column if not exists updated_at timestamptz default now();
+alter table public.rg_ops_autonomy add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -264,6 +289,7 @@ alter table public.rg_ops_gmail_tokens  enable row level security;
 alter table public.rg_ops_email_events  enable row level security;
 alter table public.rg_ops_incidents      enable row level security;
 alter table public.rg_ops_intel_snapshots enable row level security;
+alter table public.rg_ops_autonomy       enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.
