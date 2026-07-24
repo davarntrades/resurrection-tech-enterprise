@@ -266,6 +266,63 @@ alter table public.rg_ops_autonomy add column if not exists updated_by text;
 alter table public.rg_ops_autonomy add column if not exists updated_at timestamptz default now();
 alter table public.rg_ops_autonomy add column if not exists created_at timestamptz default now();
 
+-- Policy Engineering drafts (Guardian OS departments) ------------------------
+-- Governance policy produced by the Policy Engineering department. A draft is
+-- inert; activation is operator-only (activate_policy → Ω rule). The kernel is
+-- never edited by the agent — deployment stays a deliberate human step.
+create table if not exists public.rg_ops_policies (
+  id            text primary key,
+  kind          text default 'omega_rule',      -- omega_rule | approval_chain | playbook | sector_template | deployment_policy
+  title         text,
+  spec          jsonb,
+  rationale     text,
+  target_domain text default 'enterprise',
+  status        text default 'draft',            -- draft | activation_authorized
+  created_by    text,
+  activated_by  text,
+  updated_at    timestamptz default now(),
+  created_at    timestamptz default now()
+);
+create index if not exists rg_ops_policies_status_idx on public.rg_ops_policies(status);
+alter table public.rg_ops_policies add column if not exists kind text default 'omega_rule';
+alter table public.rg_ops_policies add column if not exists title text;
+alter table public.rg_ops_policies add column if not exists spec jsonb;
+alter table public.rg_ops_policies add column if not exists rationale text;
+alter table public.rg_ops_policies add column if not exists target_domain text default 'enterprise';
+alter table public.rg_ops_policies add column if not exists status text default 'draft';
+alter table public.rg_ops_policies add column if not exists created_by text;
+alter table public.rg_ops_policies add column if not exists activated_by text;
+alter table public.rg_ops_policies add column if not exists updated_at timestamptz default now();
+alter table public.rg_ops_policies add column if not exists created_at timestamptz default now();
+
+-- Partner / MSSP registry (Guardian OS departments) --------------------------
+-- Security partners + managed-service providers, their linked customer orgs and
+-- deployment/renewal signals. An authoritative record where none existed; the
+-- Enterprise Twin PROJECTS it read-only (never a second source of truth).
+create table if not exists public.rg_ops_partners (
+  id            text primary key,
+  name          text,
+  kind          text default 'mssp',             -- mssp | reseller | alliance | white_label
+  status        text default 'active',
+  org_ids       jsonb default '[]'::jsonb,        -- linked customer orgs
+  deployments   integer default 0,
+  renewals_due  integer default 0,
+  health        text default 'ok',               -- ok | watch | at_risk
+  notes         text,
+  updated_at    timestamptz default now(),
+  created_at    timestamptz default now()
+);
+alter table public.rg_ops_partners add column if not exists name text;
+alter table public.rg_ops_partners add column if not exists kind text default 'mssp';
+alter table public.rg_ops_partners add column if not exists status text default 'active';
+alter table public.rg_ops_partners add column if not exists org_ids jsonb default '[]'::jsonb;
+alter table public.rg_ops_partners add column if not exists deployments integer default 0;
+alter table public.rg_ops_partners add column if not exists renewals_due integer default 0;
+alter table public.rg_ops_partners add column if not exists health text default 'ok';
+alter table public.rg_ops_partners add column if not exists notes text;
+alter table public.rg_ops_partners add column if not exists updated_at timestamptz default now();
+alter table public.rg_ops_partners add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -290,6 +347,8 @@ alter table public.rg_ops_email_events  enable row level security;
 alter table public.rg_ops_incidents      enable row level security;
 alter table public.rg_ops_intel_snapshots enable row level security;
 alter table public.rg_ops_autonomy       enable row level security;
+alter table public.rg_ops_policies        enable row level security;
+alter table public.rg_ops_partners        enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.

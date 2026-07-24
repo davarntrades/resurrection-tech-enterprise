@@ -699,6 +699,45 @@ Served by `/api/ops/guardian` (GET homepage; `?view=twin` for the full model;
 `?view=entity&org_id=` for one customer's twin slice). The **Guardian** tab is
 the Control Room's default executive landing surface.
 
+## 13. Guardian OS departments — five new governed departments
+
+Five new first-class departments join the council. Because the Twin, Command,
+Agents, Guardian, performance, autonomy pauses, council cycles and evidence
+attribution all iterate the shared `AGENTS` roster, a department auto-integrates
+into every one of those the moment it is added — no isolated dashboards, no
+duplicated logic. Each owns work, creates governed proposals, produces evidence
+and exposes executive intelligence, through the **same** proposal → Ω governor →
+approval → execution → evidence spine. None gets elevated trust.
+
+- **Incident Response** — coordinates the response to an open incident:
+  reconstruct trajectory (via the Evidence Graph), assess impact, recommend
+  containment, escalate. Chartered for internal actions only (`raise_alert` /
+  `notify_operator` / `create_recommendation`) — containment stays a proposal.
+- **Runtime Risk Intelligence** — `lib/ops/risk.js` compares the current window
+  against the prior one (approval backlog, refusals, policy violations, incident
+  rate, approval latency, customer-health drift) and answers "what changed since
+  yesterday," raising a governed alert on adverse trends.
+- **Enterprise Architecture** — `lib/ops/architecture.js` surfaces which
+  customers lack a runtime/architecture assessment and recommends running one
+  (the deep tool/trust-boundary discovery is operator-triggered — it needs the
+  customer's manifest — so the department never fabricates a discovery).
+- **Policy Engineering** — turns recurring governed refusals into policy. It
+  **drafts** governance policy (`draft_policy`, an inert internal artifact) but
+  **never activates** it: `activate_policy` is critical, operator-only, and
+  guarded by the new Ω rule **`ops_unauthorized_policy_activation`** (deny-by-
+  default). The agent is not chartered to activate; even an approved activation
+  only records authorisation — the live kernel edit stays a deliberate human
+  step. Drafts live in `rg_ops_policies`.
+- **Partner / MSSP** — `lib/ops/partners.js` (registry `rg_ops_partners`) tracks
+  partners, deployments and renewals and surfaces which partner needs attention.
+
+The Executive Homepage gains a **Department intelligence** block answering the
+new questions: *what incidents need attention* · *which customers are drifting
+to risk* · *where governance slows execution* · *which partner needs attention* ·
+*what policy to create next* · *what architecture gaps exist* · *what changed
+overnight*. The Enterprise Twin includes all eleven departments automatically.
+New env: `OPS_POLICY_GAP_THRESHOLD` (default 2).
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from

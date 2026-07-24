@@ -19,12 +19,14 @@ const AUTH_RULES = new Map([
   ["promote_to_pilot", ["ops_unauthorized_pilot_promotion", ["pilot_approved", "operator_approved"]]],
   ["modify_customer", ["ops_unauthorized_customer_modification", ["change_authorized", "operator_approved"]]],
   ["export_documents", ["ops_unauthorized_document_export", ["export_authorized"]]],
+  ["activate_policy", ["ops_unauthorized_policy_activation", ["policy_activation_approved", "operator_approved"]]],
 ]);
 // Phase 2: internal-only executors — permitted for their internal effect, but
 // BLOCKED if they ever carry an external destination (mirrors operations_rules.py
 // ops_internal_action_external_reach).
 const INTERNAL_ACTIONS = new Set(["open_incident", "refresh_customer_intelligence",
-  "schedule_internal_review", "create_work_item", "generate_deployment_checklist", "prepare_draft_reply"]);
+  "schedule_internal_review", "create_work_item", "generate_deployment_checklist", "prepare_draft_reply",
+  "draft_policy"]);
 // Phase 4: autonomy-change tools — raising requires approval, lowering always OK.
 const AUTONOMY_CHANGE = new Set(["set_autonomy_mode", "raise_autonomy", "change_autonomy_mode",
   "set_autonomy", "escalate_autonomy"]);

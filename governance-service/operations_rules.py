@@ -91,7 +91,8 @@ OPS_DOCUMENT_EXPORT = {"export_documents", "export_evidence", "bulk_export",
 # classification is engine-enforced, not merely asserted.
 OPS_INTERNAL_ACTIONS = {"open_incident", "refresh_customer_intelligence",
                         "schedule_internal_review", "create_work_item",
-                        "generate_deployment_checklist", "prepare_draft_reply"}
+                        "generate_deployment_checklist", "prepare_draft_reply",
+                        "draft_policy"}
 
 # Executive Command (Phase 4). Changing the enterprise autonomy mode. The safety
 # asymmetry is engine-enforced: LOWERING autonomy (toward pause) is always
@@ -100,6 +101,16 @@ OPS_INTERNAL_ACTIONS = {"open_incident", "refresh_customer_intelligence",
 # approval. A raise without the flag can never be auto-executed.
 OPS_AUTONOMY_CHANGE = {"set_autonomy_mode", "raise_autonomy", "change_autonomy_mode",
                        "set_autonomy", "escalate_autonomy"}
+
+# Policy Engineering (Guardian OS departments). GuardianOS may DRAFT governance
+# policy autonomously (an inert artifact), but ACTIVATING a policy — making an Ω
+# rule / approval chain / deployment constraint live — is a privileged action
+# that reshapes the kernel's own behaviour. It is denied-by-default and requires
+# explicit operator approval. draft_policy is intentionally NOT here: a draft
+# changes nothing and is permitted (internal-only, covered by the internal-reach
+# rule). "No policy becomes active without approval."
+OPS_POLICY_ACTIVATION = {"activate_policy", "deploy_policy", "publish_policy",
+                         "enact_policy", "apply_policy", "promote_policy"}
 
 
 def operations_custom_rules() -> list[OmegaRule]:
@@ -211,6 +222,21 @@ def operations_custom_rules() -> list[OmegaRule]:
         check=lambda s: _tool(s) in OPS_AUTONOMY_CHANGE
         and _flag_true(s, "raising_autonomy", "raising")
         and _unauthorized(s, "autonomy_change_approved", "operator_approved"),
+        severity="critical",
+    ))
+
+    # ── ENTERPRISE: activating governance policy needs operator approval ──────
+    # GuardianOS's Policy Engineering department may draft policy freely, but a
+    # policy going LIVE reshapes the kernel — deny-by-default, operator sign-off
+    # required. The agent never activates policy; this makes the boundary
+    # engine-enforced even for an operator-initiated request.
+    rules.append(OmegaRule(
+        domain=OmegaDomain.ENTERPRISE,
+        name="ops_unauthorized_policy_activation",
+        description="Activating / deploying a governance policy without explicit "
+                    "operator approval (drafting a policy is always allowed)",
+        check=lambda s: _tool(s) in OPS_POLICY_ACTIVATION
+        and _unauthorized(s, "policy_activation_approved", "operator_approved"),
         severity="critical",
     ))
 
