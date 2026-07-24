@@ -778,6 +778,58 @@ Env (all optional; absent = feature off): `SUPABASE_URL`/`GOVERNANCE_POLICY_READ
 (or the existing service-role key), `GOVERNANCE_POLICY_TABLE`,
 `GOVERNANCE_POLICY_REFRESH_S`, `GOVERNANCE_POLICY_TIMEOUT_S`.
 
+## 15. Enterprise Provisioning — the OS installation
+
+Guardian OS installs an enterprise the way you install an operating system, not
+the way you complete an onboarding form. One `provision()` call stands up a
+**complete governed runtime** — enough information for Guardian OS to run the
+enterprise autonomously from the first second. `lib/ops/provisioning.js`, served
+by `/api/ops/provisioning`, surfaced in the Control Room **Provision** tab.
+
+Given an enterprise spec, provisioning runs **seven phases** and never throws — a
+failed phase records the run as `failed` with the reason, leaving everything it
+already created intact for inspection:
+
+1. **Enterprise Identity** — org (`rt.admin.createOrg`) plus identity entities:
+   business units, environments (Dev/Test/Production), regions, compliance
+   requirements.
+2. **AI Estate** — systems, models, agents, tools (privileged flagged), MCP
+   servers, APIs, external integrations. Relationships are **auto-mapped** as
+   entity `refs` (agent → model/tools/MCP; system → agents/APIs/integrations/
+   environment), so the dependency graph is real, not declared.
+3. **Trust Architecture** — trust boundaries, identity providers, human approvers,
+   privileged operators, risk zones, critical systems, protected assets — linked
+   (critical systems → protected assets, boundaries → environments).
+4. **Runtime Governance** — every policy is generated through the **dynamic policy
+   engine** (§14): fail-closed defaults (`gos_block_unapproved_deploy`,
+   `gos_block_external_export`), one `gos_privileged_<tool>` per privileged tool
+   discovered in the estate, and a `gos_wire_limit` funds-movement threshold when
+   payments are present. Each policy is drafted → validated → activated, **scoped
+   to the org** (`scope=org_id`) and **deny-only**, so the kernel is only ever
+   *more* constrained after an install. The kernel then enforces them at runtime.
+5. **Department Deployment** — the chosen Guardian OS departments (Executive
+   Command, Operations, Finance, Security, Compliance, Customer Success, Incident
+   Response, Architecture, Risk, Policy Engineering) are enabled as governed
+   agents (`rg_enterprise_departments`).
+6. **Digital Twin** — the six enterprise graphs (`lib/ops/entgraph.js`:
+   enterprise, asset, dependency, runtime, trust, risk) are generated immediately,
+   as a pure read-only projection over the estate + live governance records.
+7. **Executive Command** — `command(org_id)` assembles a populated payload: health,
+   active AI systems, runtime governance status, open approvals, current risks +
+   risk zones, departments, twin facet counts, and recommended actions. **There is
+   never an empty dashboard** — provisioning seeds realistic example activity (an
+   escalated approval, an intelligence snapshot, a warning incident, all clearly
+   marked) until live enterprise events replace it.
+
+**Guarantees preserved.** Provisioning is an operator-authorised install: policy
+activation flows through the same governed lifecycle (§14), generated policies are
+deny-only additions, and the sealed kernel and static `DEPLOYMENT_RULES` are never
+touched. New tables (`rg_provisioning`, `rg_enterprise_entities`,
+`rg_enterprise_departments`) are additive with RLS enabled. Proven hermetically by
+`scripts/ops/provisioning.test.cjs` (mock engine with dynamic-policy enforcement):
+all seven phases plus the deny-only invariant — the kernel **BLOCKS** an unapproved
+privileged wire transfer after install while leaving unrelated tools **PERMIT**.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from

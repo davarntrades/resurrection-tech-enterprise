@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "provision" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "provision", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", provision: "Provision", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -159,6 +159,7 @@ export default function OperationsClient() {
         {note && <div className="radmin-card"><p>{note}</p></div>}
 
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
+        {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "command" && <CommandView onOpen={openHref} />}
         {view === "policies" && <PoliciesView onOpen={openHref} go={go} />}
@@ -1440,5 +1441,155 @@ function PoliciesView({ onOpen, go }: { onOpen: (h?: string | null) => void; go:
         </section>
       )}
     </>
+  );
+}
+
+// ── Guardian OS — Enterprise Provisioning ("the OS installation") ─────────────
+const PHASE_META: [string, string, string][] = [
+  ["identity", "1 · Enterprise Identity", "Org, business units, environments, regions, compliance"],
+  ["estate", "2 · AI Estate", "Systems, models, agents, tools, MCP, APIs — relationships auto-mapped"],
+  ["trust", "3 · Trust Architecture", "Boundaries, IdPs, approvers, operators, risk zones, protected assets"],
+  ["governance", "4 · Runtime Governance", "Ω policies via the dynamic engine — validated, fail-closed, deny-only"],
+  ["departments", "5 · Department Deployment", "Guardian OS departments enabled as governed agents"],
+  ["twin", "6 · Digital Twin", "Six enterprise graphs generated immediately"],
+];
+function ProvisionView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [runs, setRuns] = useState<any[] | null>(null);
+  const [spec, setSpec] = useState<any>(null);
+  const [result, setResult] = useState<any>(null);
+  const [command, setCommand] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [r, ex] = await Promise.all([api("provisioning"), api("provisioning?view=example")]);
+      setRuns(r.runs || []); setSpec(ex.spec); setErr(null);
+    } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const openCommand = useCallback(async (org_id: string) => {
+    setBusy(true); setErr(null);
+    try { const c = await api(`provisioning?view=command&org_id=${encodeURIComponent(org_id)}`); setCommand(c.command); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, []);
+
+  const install = async () => {
+    setBusy(true); setNote(null); setErr(null); setResult(null); setCommand(null);
+    try {
+      const r = await api("provisioning", { method: "POST", body: JSON.stringify({ action: "provision" }) });
+      setResult(r.result);
+      setNote(r.ok ? `Guardian OS installed for ${r.result?.name || "the enterprise"} — the runtime is governed and Executive Command is live.` : `Provisioning failed: ${r.result?.result?.error || r.error || "unknown"}`);
+      await load();
+      if (r.result?.org_id) await openCommand(r.result.org_id);
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+
+  if (err && !runs) return <div className="radmin-err">{err}</div>;
+  if (!runs) return <div className="radmin-loading">Loading installer…</div>;
+
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+      {err && <div className="radmin-err">{err}</div>}
+
+      <section className="radmin-card ops-prov-hero">
+        <div className="ops-brief-head">
+          <div>
+            <h2>Guardian OS · Enterprise Provisioning</h2>
+            <p className="radmin-sub">Not an onboarding form — the operating-system installation for an autonomous enterprise. One install stands up a complete governed runtime: identity, the AI estate with relationships mapped, trust architecture, fail-closed Ω policies through the dynamic policy engine, Guardian OS departments, the six digital-twin graphs, and a populated Executive Command. There is never an empty dashboard.</p>
+          </div>
+          <button className="radmin-btn primary" disabled={busy} onClick={install}>{busy ? "Installing…" : "Install Guardian OS"}</button>
+        </div>
+        {spec && (
+          <div className="ops-prov-spec">
+            <span className="radmin-badge">{spec.name}</span>
+            <span className="radmin-deliv-meta">{spec.industry} · {(spec.regions || []).join("/")} · {(spec.ai_systems || []).length} AI systems · {(spec.compliance || []).join(", ")}</span>
+          </div>
+        )}
+      </section>
+
+      {result && (
+        <section className="radmin-card">
+          <h3>Installation — {result.name}{" "}<span className={`radmin-badge ${result.status === "complete" ? "ok" : "bad"}`}>{result.status}</span></h3>
+          <div className="ops-prov-phases">
+            {PHASE_META.map(([key, title, desc]) => {
+              const p = result.result?.[key] || result.phases?.[key];
+              const done = p && (p.status === "complete" || p.count != null || p.active != null || p.enabled != null || p.facets != null);
+              const detail = !p ? "—"
+                : key === "governance" ? `${p.active ?? 0} policies active · fail-closed`
+                : key === "departments" ? `${p.enabled ?? 0} departments enabled`
+                : key === "twin" ? `${p.facets ? Object.keys(p.facets).length : 6} graphs`
+                : `${p.count ?? 0} entities`;
+              return (
+                <div key={key} className={`ops-prov-phase${done ? " is-done" : ""}`}>
+                  <span className="ops-prov-phase-mark">{done ? "✓" : "·"}</span>
+                  <div><b>{title}</b><span className="radmin-deliv-meta">{desc}</span></div>
+                  <span className="ops-prov-phase-detail">{detail}</span>
+                </div>
+              );
+            })}
+          </div>
+          {result.org_id && <button className="radmin-linkbtn" onClick={() => openCommand(result.org_id)}>Open Executive Command →</button>}
+        </section>
+      )}
+
+      {command && <CommandPreview command={command} onOpen={onOpen} />}
+
+      <section className="radmin-card">
+        <h3>Provisioned enterprises</h3>
+        {runs.length === 0 ? (
+          <p className="radmin-sub">No enterprises provisioned yet. Install Guardian OS above to stand up a complete governed runtime.</p>
+        ) : (
+          <div className="ops-prov-runs">
+            {runs.map((r) => (
+              <div key={r.id} className="ops-prov-run">
+                <div>
+                  <b>{r.name}</b>{" "}
+                  <span className={`radmin-badge ${r.status === "complete" ? "ok" : r.status === "failed" ? "bad" : "warn"}`}>{r.status}</span>
+                  <span className="radmin-deliv-meta"> · {r.result?.governance?.active ?? 0} policies · {r.result?.departments?.enabled ?? 0} departments · {fmtWhen(r.created_at)}</span>
+                </div>
+                {r.org_id && r.status === "complete" && <button className="radmin-btn sm" disabled={busy} onClick={() => openCommand(r.org_id)}>Executive Command →</button>}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+// The populated Executive Command payload for a freshly provisioned enterprise.
+function CommandPreview({ command, onOpen }: { command: any; onOpen: (h?: string | null) => void }) {
+  const c = command;
+  return (
+    <section className="radmin-card ops-prov-cmd">
+      <div className="ops-brief-head">
+        <h3>Executive Command — {c.name}</h3>
+        {c.health && <span className={`radmin-badge ${scoreClass(c.health.band)}`}>Health: {c.health.score} · {c.health.band}</span>}
+      </div>
+      <div className="ops-cmd-stats">
+        <div className="ops-cmd-stat"><b>{c.ai_systems?.systems ?? 0}</b><span>AI systems</span></div>
+        <div className="ops-cmd-stat"><b>{c.ai_systems?.agents ?? 0}</b><span>agents</span></div>
+        <div className="ops-cmd-stat"><b>{c.governance?.active_policies ?? 0}</b><span>Ω policies ({c.governance?.status})</span></div>
+        <div className="ops-cmd-stat"><b>{c.open_approvals?.length ?? 0}</b><span>open approvals</span></div>
+        <div className="ops-cmd-stat"><b>{c.risks?.open_incidents ?? 0}</b><span>open risks</span></div>
+        <div className="ops-cmd-stat"><b>{c.departments?.length ?? 0}</b><span>departments</span></div>
+      </div>
+      {c.risks?.risk_zones?.length > 0 && <p className="radmin-deliv-meta">Risk zones: {c.risks.risk_zones.join(" · ")}</p>}
+      {c.recommended_actions?.length > 0 && (
+        <div className="ops-prov-actions">
+          <b>Recommended actions</b>
+          {c.recommended_actions.map((a: any, i: number) => (
+            <button key={i} className="radmin-linkbtn" onClick={() => onOpen(a.ref)}>{a.title} →</button>
+          ))}
+        </div>
+      )}
+      <p className="radmin-deliv-meta">Governance: {c.governance?.fail_closed ? "fail-closed" : "open"} · Twin: {c.twin ? Object.keys(c.twin).length : 0} graphs · seeded with realistic example activity until live enterprise events replace it.</p>
+    </section>
   );
 }

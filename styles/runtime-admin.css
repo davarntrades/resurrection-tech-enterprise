@@ -451,6 +451,24 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-cmd-perf-row span:first-child { color: var(--ink); }
 @media (max-width: 680px) { .ops-cmd-modes, .ops-cmd-agents { grid-template-columns: 1fr; } }
 
+/* ── Guardian OS — Enterprise Provisioning (the OS installation) ───────────── */
+.ops-prov-hero { border-left: 3px solid var(--accent-bright); }
+.ops-prov-spec { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px solid var(--line-2); padding-top: 12px; margin-top: 12px; }
+.ops-prov-phases { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.ops-prov-phase { display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-prov-phase.is-done { border-left: 3px solid var(--ok); }
+.ops-prov-phase-mark { font-size: 14px; color: var(--ink-3); text-align: center; }
+.ops-prov-phase.is-done .ops-prov-phase-mark { color: var(--ok); }
+.ops-prov-phase b { display: block; font-size: 13px; font-weight: 580; color: var(--ink); }
+.ops-prov-phase .radmin-deliv-meta { display: block; }
+.ops-prov-phase-detail { font-family: var(--mono); font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.ops-prov-runs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.ops-prov-run { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-prov-cmd { border-left: 3px solid var(--ok); }
+.ops-prov-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 10px; }
+.ops-prov-actions b { font-size: 12px; color: var(--ink); }
+@media (max-width: 680px) { .ops-prov-phase { grid-template-columns: 20px 1fr; } .ops-prov-phase-detail { grid-column: 2; } .ops-prov-run { flex-direction: column; align-items: flex-start; } }
+
 /* ── Guardian OS — unified executive homepage (v0) ────────────────────────── */
 .ops-guard-hero { border-left: 3px solid var(--accent-bright); }
 .ops-guard-happening { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin: 12px 0; font-size: 13px; color: var(--ink-2); }
