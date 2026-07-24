@@ -658,6 +658,47 @@ The agent appears automatically in the **Agents** roster and the **Command** tab
 the governed-refusal count, rule mix and recent attempts. New env:
 `OPS_SECURITY_WINDOW_DAYS` (default 7).
 
+## 12. Guardian OS (v0) — the enterprise operating system
+
+Runtime Governance is the **kernel**; Guardian OS is the **operating system**
+running on top of it. Guardian OS does not replace anything and adds no new
+trust — it is the unified executive surface that coordinates the enterprise as
+one governed runtime. Every privileged action still flows **proposal → Ω
+governor → approval → execution → evidence**; nothing here executes.
+
+**Digital Enterprise Twin** (`lib/ops/twin.js`) — a **derived, read-only
+projection** of the whole organisation, assembled on demand from the same
+authoritative records the platform already owns (orgs · engagements/lifecycle ·
+intelligence · proposals · evidence · incidents · handoffs · agents ·
+autonomy). It holds no mutable state, so there is nothing to drift and nothing
+to tamper with. **It is never a second source of truth:** per-customer
+provenance and replay live in the Evidence Graph, and the Twin links *into* it
+(`entity()` / `replay()`) rather than duplicating it —
+
+  Twin = **breadth** (every entity + relationship across the org, live)
+  Graph = **depth** (one customer's provenance + replayable decision timeline)
+
+Departments **are** the existing governed specialists — a department is a
+charter + lifecycle ownership, with no new authority. The Twin exposes customer
+and department entities, the chain-of-responsibility relationships (`owns_stage`,
+`responsible_for`, `governed_by`), and a five-dimension **enterprise health**
+rollup (customer · commercial · security · operational · governance) whose bands
+are deterministic from real counts.
+
+**Executive Homepage** (`lib/ops/guardian.js`) — "sitting beside the CEO." It
+answers seven grounded questions, each action deep-linked into the existing
+governed flow: *what is happening* · *what needs attention* (escalations,
+incidents, security refusals, failed verifications) · *what to approve today*
+(the real escalated queue) · *biggest opportunity* · *biggest risk* · **what
+happens if we do nothing** (a deterministic consequence projection over the
+twin — every item traces back to a record) · *enterprise health*. Read-only and
+fail-closed inherited: if the engine is down nothing executes, and the homepage
+still renders live state so the operator never goes blind.
+
+Served by `/api/ops/guardian` (GET homepage; `?view=twin` for the full model;
+`?view=entity&org_id=` for one customer's twin slice). The **Guardian** tab is
+the Control Room's default executive landing surface.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
