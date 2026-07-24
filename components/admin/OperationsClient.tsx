@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "briefing" | "command" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "briefing", "command", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", briefing: "Briefing", command: "Command", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -161,6 +161,7 @@ export default function OperationsClient() {
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "command" && <CommandView onOpen={openHref} />}
+        {view === "policies" && <PoliciesView onOpen={openHref} go={go} />}
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
         {view === "agents" && <AgentsView onOpen={openHref} />}
         {view === "handoffs" && <HandoffsView onOpen={openHref} />}
@@ -1304,5 +1305,140 @@ function GuardianDeptIntel({ eq, onOpen }: { eq: any; onOpen: (h?: string | null
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Policy Authoring — dynamic runtime Ω policies ─────────────────────────────
+const POLICY_DOMAINS = ["enterprise", "compliance", "data_privacy", "finance", "banking", "fintech", "fraud", "cybersecurity", "healthcare"];
+const POLICY_STATUS_CLASS: Record<string, string> = { draft: "", validated: "accent", active: "ok", superseded: "ghost", rolled_back: "warn" };
+const listInput = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+function summarizeSpec(spec: any): string {
+  if (!spec) return "";
+  const tools = ((spec.match && spec.match.tools) || []).join(", ");
+  const c = spec.conditions || {};
+  const parts: string[] = [];
+  if ((c.unauthorized_unless || []).length) parts.push(`unless ${c.unauthorized_unless.join("/")}`);
+  if ((c.flag_true_blocks || []).length) parts.push(`block if ${c.flag_true_blocks.join("/")}`);
+  if (c.threshold) parts.push(`${c.threshold.field} ${c.threshold.op} ${c.threshold.value}`);
+  return `${tools}${parts.length ? " — " + parts.join(" · ") : " (denylist)"}`;
+}
+
+function PoliciesView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [active, setActive] = useState<any[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<any>(null);
+  const [f, setF] = useState({ name: "", domain: "enterprise", tools: "", unauthorized_unless: "", flag_true_blocks: "", th_field: "", th_op: ">", th_value: "", severity: "high", notes: "" });
+
+  const load = useCallback(async () => {
+    try {
+      const [d, a] = await Promise.all([api("governance-policies"), api("governance-policies?view=active")]);
+      setData(d); setActive(a.active || []); setErr(null);
+    } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const buildSpec = () => {
+    const conditions: any = {};
+    if (listInput(f.unauthorized_unless).length) conditions.unauthorized_unless = listInput(f.unauthorized_unless);
+    if (listInput(f.flag_true_blocks).length) conditions.flag_true_blocks = listInput(f.flag_true_blocks);
+    if (f.th_field.trim() && f.th_value !== "") conditions.threshold = { field: f.th_field.trim(), op: f.th_op, value: Number(f.th_value) };
+    return { match: { tools: listInput(f.tools) }, conditions, severity: f.severity };
+  };
+
+  const post = async (body: any, describe: (r: any) => string) => {
+    setBusy(true); setNote(null);
+    try { const r = await api("governance-policies", { method: "POST", body: JSON.stringify(body) }); setNote(describe(r)); await load(); return r; }
+    catch (e: any) { setNote(e.message); }
+    finally { setBusy(false); }
+  };
+  const draft = () => post({ action: "draft", name: f.name.trim(), domain: f.domain, spec: buildSpec(), notes: f.notes || null }, (r) => r.policy ? `Drafted ${r.policy.name} v${r.policy.version} — nothing is live yet.` : "Drafted.");
+  const validate = (id: string) => post({ action: "validate", id }, () => "Policy validated — ready to activate.");
+  const activate = (id: string) => post({ action: "activate", id }, (r) => r.ok ? "Activated through Runtime Governance — the kernel is now loading this policy." : `Activation ${r.blocked ? "blocked by governance" : "not applied"}${r.error ? `: ${r.error}` : "."}`);
+  const rollback = (name: string, to_version: number | null) => post({ action: "rollback", name, to_version }, () => to_version ? `Rolled back to v${to_version}.` : `Deactivated ${name} — the kernel returns to baseline.`);
+  const openHistory = async (name: string, scope: string) => { try { setHistory(await api(`governance-policies?view=history&name=${encodeURIComponent(name)}&scope=${encodeURIComponent(scope)}`)); } catch (e: any) { setErr(e.message); } };
+
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!data) return <div className="radmin-loading">Loading policies…</div>;
+
+  const groups: Record<string, any[]> = {};
+  for (const p of data.policies || []) (groups[`${p.scope}:${p.name}`] = groups[`${p.scope}:${p.name}`] || []).push(p);
+  const groupList = Object.values(groups).map((v) => ({ name: v[0].name, scope: v[0].scope, domain: v[0].domain, versions: v.slice().sort((a: any, b: any) => b.version - a.version) }));
+
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+
+      <section className="radmin-card">
+        <h2>Governance policies</h2>
+        <p className="radmin-sub">Author customer-specific Ω policies the Runtime Governance kernel loads <em>at runtime</em> — no code change, no redeploy. Draft → validate → activate (governed by operator approval) → rollback. Policies are deny-only: they can only add constraints, never weaken the baseline.</p>
+        <div className="ops-cmd-stats">
+          <div className="ops-cmd-stat"><b>{data.summary.policies}</b><span>policies</span></div>
+          <div className="ops-cmd-stat"><b>{active.length}</b><span>active in kernel</span></div>
+          <div className="ops-cmd-stat"><b>{data.summary.by_status.draft}</b><span>drafts</span></div>
+          <div className="ops-cmd-stat"><b>{data.summary.by_status.validated}</b><span>validated</span></div>
+        </div>
+      </section>
+
+      <section className="radmin-card">
+        <h3>Author a policy</h3>
+        <div className="ops-pol-form">
+          <label>Name<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="wire_transfer_limit" /></label>
+          <label>Domain<select value={f.domain} onChange={(e) => setF({ ...f, domain: e.target.value })}>{POLICY_DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
+          <label>Severity<select value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value })}>{["low", "medium", "high", "critical"].map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+          <label className="ops-pol-wide">Match tools (comma-separated)<input value={f.tools} onChange={(e) => setF({ ...f, tools: e.target.value })} placeholder="wire_transfer, send_payment" /></label>
+          <label className="ops-pol-wide">Block unless approved — flags (optional)<input value={f.unauthorized_unless} onChange={(e) => setF({ ...f, unauthorized_unless: e.target.value })} placeholder="operator_approved, payment_approved" /></label>
+          <label className="ops-pol-wide">Block if flag true (optional)<input value={f.flag_true_blocks} onChange={(e) => setF({ ...f, flag_true_blocks: e.target.value })} placeholder="destination_external" /></label>
+          <label>Threshold field<input value={f.th_field} onChange={(e) => setF({ ...f, th_field: e.target.value })} placeholder="amount" /></label>
+          <label>Op<select value={f.th_op} onChange={(e) => setF({ ...f, th_op: e.target.value })}>{[">", ">=", "<", "<=", "==", "!="].map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
+          <label>Value<input value={f.th_value} onChange={(e) => setF({ ...f, th_value: e.target.value })} placeholder="10000" inputMode="numeric" /></label>
+        </div>
+        <div className="ops-pol-preview"><span className="radmin-deliv-meta">Compiled Ω spec</span><pre>{JSON.stringify(buildSpec(), null, 2)}</pre></div>
+        <button className="radmin-btn primary" disabled={busy || !f.name.trim() || !listInput(f.tools).length} onClick={draft}>Draft policy</button>
+        <p className="radmin-sub">A draft changes nothing. Validate it, then activation flows through Runtime Governance (proposal → Ω governor → your approval → evidence) before the kernel loads it.</p>
+      </section>
+
+      {groupList.map((g) => (
+        <section key={`${g.scope}:${g.name}`} className="radmin-card">
+          <div className="ops-brief-head">
+            <h3>{g.name} <span className="radmin-badge ghost">{g.domain}</span>{g.scope !== "global" && <span className="radmin-badge"> {g.scope}</span>}</h3>
+            <button className="radmin-linkbtn" onClick={() => openHistory(g.name, g.scope)}>Version history →</button>
+          </div>
+          <div className="ops-pol-versions">
+            {g.versions.map((p: any) => (
+              <div key={p.id} className={`ops-pol-ver${p.status === "active" ? " is-active" : ""}`}>
+                <div className="ops-pol-ver-head">
+                  <span className="ops-pol-ver-n">v{p.version}</span>
+                  <span className={`radmin-badge ${POLICY_STATUS_CLASS[p.status] || ""}`}>{p.status.replace("_", " ")}</span>
+                  <span className="radmin-deliv-meta">{summarizeSpec(p.spec)}</span>
+                </div>
+                <div className="ops-pol-ver-actions">
+                  {p.status === "draft" && <button className="radmin-btn sm" disabled={busy} onClick={() => validate(p.id)}>Validate</button>}
+                  {["validated", "superseded", "rolled_back"].includes(p.status) && <button className="radmin-btn sm primary" disabled={busy} onClick={() => activate(p.id)}>Activate</button>}
+                  {p.status === "active" && <button className="radmin-btn sm" disabled={busy} onClick={() => rollback(g.name, null)}>Deactivate</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {history && (
+        <section className="radmin-card">
+          <div className="ops-brief-head"><h3>History — {history.name}</h3><button className="radmin-btn sm" onClick={() => setHistory(null)}>Close</button></div>
+          <ol className="ops-ho-timeline">
+            {(history.history || []).map((p: any) => (
+              <li key={p.id} className="ops-ho-node ok">
+                <div className="ops-ho-node-head"><span className="ops-pol-ver-n">v{p.version}</span><span className={`radmin-badge ${POLICY_STATUS_CLASS[p.status] || ""}`}>{p.status.replace("_", " ")}</span></div>
+                <div className="radmin-deliv-meta">{summarizeSpec(p.spec)} · {p.activated_at ? `activated ${fmtWhen(p.activated_at)} by ${p.activated_by}` : p.validated_at ? `validated ${fmtWhen(p.validated_at)}` : `drafted ${fmtWhen(p.created_at)}`}</div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+    </>
   );
 }
