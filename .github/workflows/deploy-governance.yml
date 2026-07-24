@@ -41,6 +41,11 @@ jobs:
           git clone --filter=blob:none --no-checkout \
             https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine
           git -C /tmp/engine checkout "${ENGINE_REF:-main}"
+      - name: Production image startup import (Railway /app)
+        run: |
+          docker build --tag governance-service:ci governance-service
+          docker run --rm --entrypoint python governance-service:ci -c \
+            "import pathlib; import app, dynamic_rules; root = pathlib.Path('/app'); assert pathlib.Path.cwd() == root; assert pathlib.Path(app.__file__).parent == root; assert pathlib.Path(dynamic_rules.__file__).parent == root"
       - name: Labelled corpus (precision/recall must be 1.0; any mismatch fails)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_corpus.py
