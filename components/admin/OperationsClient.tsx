@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "workspaces" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "workspaces", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "workspaces" | "industry" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "workspaces", "industry", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", industry: "Industry", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -160,6 +160,7 @@ export default function OperationsClient() {
 
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "workspaces" && <WorkspacesView onOpen={openHref} go={go} />}
+        {view === "industry" && <IndustryView onOpen={openHref} go={go} />}
         {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
         {view === "governance" && <GovernanceView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
@@ -1901,6 +1902,132 @@ function WorkspacesView({ onOpen, go }: { onOpen: (h?: string | null) => void; g
             </div>
           </section>
           {ws.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
+        </>
+      )}
+    </>
+  );
+}
+
+// ── Guardian OS — Industry Intelligence Packs (Phase 5) ──────────────────────
+// Packs extend Guardian OS; they never fork it. A pack's dashboard is rendered
+// by the SAME <WorkspaceSection> renderer every executive workspace uses.
+function IndustryView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [catalog, setCatalog] = useState<any[] | null>(null);
+  const [installed, setInstalled] = useState<any[]>([]);
+  const [overview, setOverview] = useState<any>(null);
+  const [org, setOrg] = useState<string>("");
+  const [active, setActive] = useState<string>("");
+  const [dash, setDash] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async (o?: string) => {
+    try {
+      const d = await api(`industry${o ? `?org_id=${encodeURIComponent(o)}` : ""}`);
+      setCatalog(d.catalog || []); setInstalled(d.installed || []); setOverview(d.overview); setErr(null);
+      if (!o && d.overview && d.overview.list[0]) setOrg(d.overview.list[0].org_id);
+    } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (org) load(org); }, [org, load]);
+
+  const openDash = useCallback(async (pack: string) => {
+    if (!org) return;
+    setBusy(true); setActive(pack);
+    try { const d = await api(`industry?view=dashboard&pack=${encodeURIComponent(pack)}&org_id=${encodeURIComponent(org)}`); setDash(d.dashboard); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, [org]);
+
+  const act = async (action: string, pack: string) => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await api("industry", { method: "POST", body: JSON.stringify({ action, org_id: org, pack }) });
+      setNote(action === "install"
+        ? `${pack} pack installed — ${r.result.activated} Ω policies activated through the governed lifecycle.`
+        : `${pack} pack removed — ${r.result.policies_rolled_back.length} policies rolled back.`);
+      await load(org);
+      if (action === "install") await openDash(pack); else { setDash(null); setActive(""); }
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+
+  const isOn = (id: string) => installed.some((i) => i.pack_id === id);
+  if (err && !catalog) return <div className="radmin-err">{err}</div>;
+  if (!catalog) return <div className="radmin-loading">Loading industry packs…</div>;
+
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+      <section className="radmin-card ops-ind-hero">
+        <h2>Industry Intelligence Packs</h2>
+        <p className="radmin-sub">One Runtime Governance kernel. One Guardian OS. One digital twin. Industry Packs add domain intelligence — policies, dashboards, executive metrics, recommendations, templates and evidence mappings — without forking the platform. Installing a pack activates its deny-only Ω policies through the same governed lifecycle; removing it rolls them back.</p>
+        {overview && overview.list.length > 1 && (
+          <div className="ops-ws-orgpick">
+            <span className="radmin-deliv-meta">Enterprise:</span>
+            {overview.list.map((e: any) => (
+              <button key={e.org_id} className={`radmin-btn sm${e.org_id === org ? " primary" : ""}`} onClick={() => { setOrg(e.org_id); setDash(null); setActive(""); }}>{e.name}</button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {err && <div className="radmin-err">{err}</div>}
+      {!org && <section className="radmin-card"><p className="radmin-sub">No enterprise provisioned yet. <button className="radmin-linkbtn" onClick={() => go("provision")}>Install Guardian OS →</button></p></section>}
+
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>Pack catalog</h3><span className="radmin-badge">{catalog.length} available · {installed.length} installed</span></div>
+        <div className="ops-ind-grid">
+          {catalog.map((p) => (
+            <div key={p.id} className={`ops-ind-card${isOn(p.id) ? " is-on" : ""}`}>
+              <div className="ops-ind-head">
+                <div>
+                  <b>{p.title}</b>
+                  <span className="radmin-deliv-meta">{p.industry} · v{p.version}</span>
+                </div>
+                {isOn(p.id) && <span className="radmin-badge ok">installed</span>}
+              </div>
+              <p className="ops-ind-purpose">{p.purpose}</p>
+              <div className="ops-ind-counts">
+                <span>{p.counts.policies} Ω policies</span><span>{p.counts.templates} templates</span>
+                <span>{p.counts.mappings} evidence maps</span><span>{p.counts.workflows} workflows</span>
+              </div>
+              <div className="ops-ind-regs">{p.regulations.slice(0, 4).map((r: string) => <span key={r} className="ops-ind-reg">{r}</span>)}</div>
+              <div className="ops-ind-actions">
+                {isOn(p.id) ? (
+                  <>
+                    <button className="radmin-btn sm primary" disabled={busy} onClick={() => openDash(p.id)}>Open dashboard</button>
+                    <button className="radmin-btn sm" disabled={busy} onClick={() => act("uninstall", p.id)}>Remove</button>
+                  </>
+                ) : (
+                  <button className="radmin-btn sm" disabled={busy || !org} onClick={() => act("install", p.id)}>Install pack</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {dash && (
+        <>
+          <section className="radmin-card ops-ind-dashhead">
+            <div className="ops-brief-head">
+              <div><h3>{dash.title} · {dash.name}</h3><p className="radmin-sub">{dash.purpose}</p></div>
+              <span className="radmin-badge">v{dash.version}</span>
+            </div>
+            {dash.metrics && dash.metrics.length > 0 && (
+              <div className="ops-cmd-stats">
+                {dash.metrics.map((m: any) => (
+                  <div key={m.key} className={`ops-cmd-stat${m.band ? ` ops-ind-m-${scoreClass(m.band)}` : ""}`}>
+                    <b>{String(m.value)}</b><span>{m.label}</span>{m.hint && <span className="ops-ws-hint">{m.hint}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="ops-ind-regs">{(dash.regulations || []).map((r: string) => <span key={r} className="ops-ind-reg">{r}</span>)}</div>
+          </section>
+          {dash.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
         </>
       )}
     </>
