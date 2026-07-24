@@ -436,6 +436,85 @@ alter table public.rg_enterprise_departments add column if not exists config jso
 alter table public.rg_enterprise_departments add column if not exists updated_at timestamptz default now();
 alter table public.rg_enterprise_departments add column if not exists created_at timestamptz default now();
 
+-- ── Managed Governance (Phase 3) — continuous governance of a provisioned org ──
+-- The governed baseline captured at provisioning (and re-captured on demand):
+-- the fingerprint the live enterprise is continuously compared against.
+create table if not exists public.rg_governance_baselines (
+  id         text primary key,
+  org_id     text not null,
+  version    integer not null default 1,
+  snapshot   jsonb default '{}'::jsonb,          -- entities/policies/departments fingerprint
+  captured_by text,
+  created_at timestamptz default now()
+);
+create index if not exists rg_gov_baseline_org_idx on public.rg_governance_baselines(org_id);
+alter table public.rg_governance_baselines add column if not exists org_id text;
+alter table public.rg_governance_baselines add column if not exists version integer not null default 1;
+alter table public.rg_governance_baselines add column if not exists snapshot jsonb default '{}'::jsonb;
+alter table public.rg_governance_baselines add column if not exists captured_by text;
+alter table public.rg_governance_baselines add column if not exists created_at timestamptz default now();
+
+-- Governance drift events: today's enterprise vs its governed baseline.
+create table if not exists public.rg_governance_drift (
+  id          text primary key,
+  org_id      text not null,
+  kind        text not null,                     -- new_ai_system | new_mcp_server | new_tool | removed_control | disabled_policy | permission_change | unexpected_autonomy | trust_boundary_violation
+  subject     text,
+  detail      text,
+  severity    text default 'info',               -- info | warning | critical
+  status      text default 'open',               -- open | acknowledged | resolved
+  fingerprint text,                              -- dedupe key (kind+subject)
+  evidence_id text,
+  detected_at timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+create index if not exists rg_gov_drift_org_idx on public.rg_governance_drift(org_id);
+create index if not exists rg_gov_drift_fp_idx on public.rg_governance_drift(org_id, fingerprint);
+alter table public.rg_governance_drift add column if not exists org_id text;
+alter table public.rg_governance_drift add column if not exists kind text;
+alter table public.rg_governance_drift add column if not exists subject text;
+alter table public.rg_governance_drift add column if not exists detail text;
+alter table public.rg_governance_drift add column if not exists severity text default 'info';
+alter table public.rg_governance_drift add column if not exists status text default 'open';
+alter table public.rg_governance_drift add column if not exists fingerprint text;
+alter table public.rg_governance_drift add column if not exists evidence_id text;
+alter table public.rg_governance_drift add column if not exists detected_at timestamptz default now();
+alter table public.rg_governance_drift add column if not exists updated_at timestamptz default now();
+
+-- Governance health snapshots: the live score + sub-scores over time (trend).
+create table if not exists public.rg_governance_health (
+  id         text primary key,
+  org_id     text not null,
+  overall    integer,
+  band       text,
+  scores     jsonb default '{}'::jsonb,
+  captured_at timestamptz default now()
+);
+create index if not exists rg_gov_health_org_idx on public.rg_governance_health(org_id);
+alter table public.rg_governance_health add column if not exists org_id text;
+alter table public.rg_governance_health add column if not exists overall integer;
+alter table public.rg_governance_health add column if not exists band text;
+alter table public.rg_governance_health add column if not exists scores jsonb default '{}'::jsonb;
+alter table public.rg_governance_health add column if not exists captured_at timestamptz default now();
+
+-- Customer-ready monthly evidence packs (governance posture + audit trail).
+create table if not exists public.rg_evidence_packs (
+  id         text primary key,
+  org_id     text not null,
+  period     text,                               -- e.g. 2026-07 | week | day
+  payload    jsonb default '{}'::jsonb,
+  hash       text,                               -- content hash = the pack's signature
+  created_by text,
+  created_at timestamptz default now()
+);
+create index if not exists rg_evidence_pack_org_idx on public.rg_evidence_packs(org_id);
+alter table public.rg_evidence_packs add column if not exists org_id text;
+alter table public.rg_evidence_packs add column if not exists period text;
+alter table public.rg_evidence_packs add column if not exists payload jsonb default '{}'::jsonb;
+alter table public.rg_evidence_packs add column if not exists hash text;
+alter table public.rg_evidence_packs add column if not exists created_by text;
+alter table public.rg_evidence_packs add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -466,6 +545,10 @@ alter table public.rg_governance_policies enable row level security;
 alter table public.rg_provisioning         enable row level security;
 alter table public.rg_enterprise_entities  enable row level security;
 alter table public.rg_enterprise_departments enable row level security;
+alter table public.rg_governance_baselines enable row level security;
+alter table public.rg_governance_drift     enable row level security;
+alter table public.rg_governance_health    enable row level security;
+alter table public.rg_evidence_packs       enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.

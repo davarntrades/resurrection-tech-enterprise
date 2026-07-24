@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "provision" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "provision", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", provision: "Provision", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -160,6 +160,7 @@ export default function OperationsClient() {
 
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
+        {view === "governance" && <GovernanceView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "command" && <CommandView onOpen={openHref} />}
         {view === "policies" && <PoliciesView onOpen={openHref} go={go} />}
@@ -1591,5 +1592,182 @@ function CommandPreview({ command, onOpen }: { command: any; onOpen: (h?: string
       )}
       <p className="radmin-deliv-meta">Governance: {c.governance?.fail_closed ? "fail-closed" : "open"} · Twin: {c.twin ? Object.keys(c.twin).length : 0} graphs · seeded with realistic example activity until live enterprise events replace it.</p>
     </section>
+  );
+}
+
+// ── Guardian OS — Managed Governance (Phase 3): continuous governance ─────────
+const GOV_SUBSCORES: [string, string][] = [
+  ["governance_maturity", "Maturity"],
+  ["policy_coverage", "Policy coverage"],
+  ["runtime_health", "Runtime health"],
+  ["approval_responsiveness", "Approval responsiveness"],
+  ["evidence_completeness", "Evidence completeness"],
+  ["drift_score", "Drift"],
+];
+const QUEUE_ICON: Record<string, string> = { approval: "✋", drift: "◈", incident: "⚠", recommendation: "✦" };
+function GovernanceView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [ov, setOv] = useState<any>(null);
+  const [org, setOrg] = useState<string>("");
+  const [health, setHealth] = useState<any>(null);
+  const [drift, setDrift] = useState<any>(null);
+  const [queue, setQueue] = useState<any>(null);
+  const [packs, setPacks] = useState<any[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const loadOverview = useCallback(async () => {
+    try { const d = await api("managed"); setOv(d.overview); setErr(null); if (!org && d.overview.list[0]) setOrg(d.overview.list[0].org_id); }
+    catch (e: any) { setErr(e.message); }
+  }, [org]);
+  useEffect(() => { loadOverview(); }, [loadOverview]);
+
+  const loadDetail = useCallback(async (id: string) => {
+    if (!id) return;
+    setBusy(true);
+    try {
+      const [h, dr, q, pk] = await Promise.all([
+        api(`managed?view=health&org_id=${encodeURIComponent(id)}`),
+        api(`managed?view=drift&org_id=${encodeURIComponent(id)}`),
+        api(`managed?view=queue&org_id=${encodeURIComponent(id)}`),
+        api(`managed?view=packs&org_id=${encodeURIComponent(id)}`),
+      ]);
+      setHealth(h.health); setDrift(dr.drift); setQueue(q.queue); setPacks(pk.packs || []); setErr(null);
+    } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, []);
+  useEffect(() => { if (org) loadDetail(org); }, [org, loadDetail]);
+
+  const post = async (body: any, describe: (r: any) => string) => {
+    setBusy(true); setNote(null);
+    try { const r = await api("managed", { method: "POST", body: JSON.stringify(body) }); setNote(describe(r)); await Promise.all([loadOverview(), loadDetail(org)]); }
+    catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+  const monitor = () => post({ action: "monitor", org_id: org }, (r) => `Monitoring pass complete — ${r.result.drift.detected} new drift, health ${r.result.health?.overall ?? "—"}, ${r.result.recommended} recommendation(s) proposed.`);
+  const makePack = () => post({ action: "evidence_pack", org_id: org }, (r) => `Evidence pack generated — signed ${r.pack.hash.slice(0, 16)}… for ${r.pack.period}.`);
+  const ack = (id: string) => post({ action: "ack_drift", drift_id: id }, () => "Drift acknowledged.");
+
+  if (err && !ov) return <div className="radmin-err">{err}</div>;
+  if (!ov) return <div className="radmin-loading">Loading governance…</div>;
+
+  const sel = ov.list.find((e: any) => e.org_id === org);
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+
+      <section className="radmin-card ops-gov-hero">
+        <div className="ops-brief-head">
+          <div>
+            <h2>Managed Governance</h2>
+            <p className="radmin-sub">Guardian OS continuously watches every provisioned enterprise — drift, health, evidence and recommendations — and surfaces only what needs a human. You should never have to ask "is my customer's AI safe today?" — it already knows.</p>
+          </div>
+          <div className="ops-gov-hero-stats">
+            <div className="ops-cmd-stat"><b>{ov.watching}</b><span>enterprises watched</span></div>
+            <div className="ops-cmd-stat"><b>{ov.queue_total}</b><span>need a human</span></div>
+            <div className="ops-cmd-stat"><b>{ov.drift_open_total}</b><span>open drift</span></div>
+          </div>
+        </div>
+        {ov.list.length > 1 && (
+          <div className="ops-gov-picker">
+            {ov.list.map((e: any) => (
+              <button key={e.org_id} className={`radmin-btn sm${e.org_id === org ? " primary" : ""}`} onClick={() => setOrg(e.org_id)}>
+                {e.name}{e.health ? ` · ${e.health.overall}` : ""}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {err && <div className="radmin-err">{err}</div>}
+
+      {sel && (
+        <section className="radmin-card">
+          <div className="ops-brief-head">
+            <div>
+              <h3>{sel.name}</h3>
+              {health && <span className="radmin-deliv-meta">Baseline v{sel.baseline_version ?? "—"} · trend {health.trend.direction} {health.trend.delta ? `(${health.trend.delta > 0 ? "+" : ""}${health.trend.delta})` : ""}{health.risk_trends ? ` · ${health.risk_trends}` : ""}</span>}
+            </div>
+            <div className="ops-gov-actions">
+              <button className="radmin-btn sm" disabled={busy} onClick={monitor}>Run monitoring pass</button>
+              <button className="radmin-btn sm" disabled={busy} onClick={makePack}>Generate evidence pack</button>
+            </div>
+          </div>
+          {health && (
+            <div className="ops-gov-health">
+              <div className={`ops-gov-overall ${scoreClass(health.band)}`}>
+                <b>{health.overall}</b><span>Governance confidence</span><em>{health.band}</em>
+              </div>
+              <div className="ops-gov-subs">
+                {GOV_SUBSCORES.map(([k, label]) => {
+                  const s = health.scores[k];
+                  return (
+                    <div key={k} className={`ops-gov-sub ${scoreClass(s.band)}`}>
+                      <span className="ops-gov-sub-n">{s.score}</span>
+                      <span className="ops-gov-sub-l">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {queue && (
+        <section className="radmin-card">
+          <h3>Operator queue <span className="radmin-badge">{queue.count}</span></h3>
+          <p className="radmin-sub">Only what genuinely needs a human. Everything else Guardian OS handles automatically.</p>
+          {queue.items.length === 0 ? <p className="radmin-sub">Nothing needs attention — the enterprise is governed and quiet.</p> : (
+            <div className="ops-gov-queue">
+              {queue.items.map((i: any) => (
+                <div key={`${i.type}-${i.id}`} className={`ops-gov-qitem ${scoreClass(i.severity === "critical" ? "high" : i.severity === "warning" ? "watch" : "low")}`}>
+                  <span className="ops-gov-qicon">{QUEUE_ICON[i.type] || "·"}</span>
+                  <div className="ops-gov-qbody">
+                    <b>{i.title}</b>
+                    {i.detail && <span className="radmin-deliv-meta">{i.detail}</span>}
+                  </div>
+                  <div className="ops-gov-qactions">
+                    {i.type === "drift" && <button className="radmin-btn sm" disabled={busy} onClick={() => ack(i.id)}>Acknowledge</button>}
+                    <button className="radmin-linkbtn" onClick={() => onOpen(i.ref)}>Open →</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {drift && drift.available && drift.open.length > 0 && (
+        <section className="radmin-card">
+          <h3>Governance drift <span className="radmin-badge">{drift.open.length}</span></h3>
+          <p className="radmin-sub">Today's enterprise vs its governed baseline. Every event is evidence-backed.</p>
+          <div className="ops-gov-drift">
+            {drift.open.map((d: any) => (
+              <div key={d.id} className={`ops-gov-drow ${scoreClass(d.severity === "critical" ? "high" : d.severity === "warning" ? "watch" : "low")}`}>
+                <span className="radmin-badge">{d.kind.replace(/_/g, " ")}</span>
+                <div className="ops-gov-dbody"><b>{d.subject}</b><span className="radmin-deliv-meta">{d.detail}</span></div>
+                <span className={`radmin-badge ${d.status === "open" ? "warn" : ""}`}>{d.status}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {packs.length > 0 && (
+        <section className="radmin-card">
+          <h3>Evidence packs</h3>
+          <p className="radmin-sub">Customer-ready, content-signed governance evidence — one export per period.</p>
+          <div className="ops-gov-packs">
+            {packs.map((p) => (
+              <div key={p.id} className="ops-gov-pack">
+                <div><b>{p.period}</b> <span className="radmin-deliv-meta">signed {String(p.hash).slice(0, 16)}… · {fmtWhen(p.created_at)}</span></div>
+                <a className="radmin-linkbtn" href={`/api/ops/managed?view=pack&pack_id=${encodeURIComponent(p.id)}&org_id=${encodeURIComponent(org)}`} target="_blank" rel="noreferrer">View →</a>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
   );
 }

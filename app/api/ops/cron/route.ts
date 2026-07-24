@@ -19,5 +19,10 @@ export async function GET(req: NextRequest) {
   if (!secret || auth !== secret) return NextResponse.json({ error: "cron secret required" }, { status: 401 });
   const result = await (ops.agents as any).dispatch({ trigger: "cron" });
   rt.log.info("cron_ops_council", { run_id: result.run_id, coordinating: result.coordinating, outcomes: result.outcomes || null, handoffs: result.handoffs || null });
-  return NextResponse.json({ ok: !result.error, ...result });
+  // Managed Governance: continuously watch every provisioned enterprise (drift +
+  // health + governed recommendations). Best-effort — never fails the council run.
+  let managed: any = null;
+  try { managed = await (ops.managed as any).monitorAll({ actor: "guardian_os_cron" }); rt.log.info("cron_ops_managed", { orgs: managed.orgs }); }
+  catch (e: any) { rt.log.error("cron_ops_managed_failed", { error: e?.message }); }
+  return NextResponse.json({ ok: !result.error, ...result, managed });
 }

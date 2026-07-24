@@ -469,6 +469,41 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-prov-actions b { font-size: 12px; color: var(--ink); }
 @media (max-width: 680px) { .ops-prov-phase { grid-template-columns: 20px 1fr; } .ops-prov-phase-detail { grid-column: 2; } .ops-prov-run { flex-direction: column; align-items: flex-start; } }
 
+/* ── Guardian OS — Managed Governance (Phase 3) ───────────────────────────── */
+.ops-gov-hero { border-left: 3px solid var(--accent-bright); }
+.ops-gov-hero-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.ops-gov-picker { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line-2); padding-top: 12px; margin-top: 12px; }
+.ops-gov-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ops-gov-health { display: grid; grid-template-columns: minmax(160px, 200px) 1fr; gap: 14px; margin-top: 12px; }
+.ops-gov-overall { display: flex; flex-direction: column; gap: 2px; justify-content: center; padding: 14px 16px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); }
+.ops-gov-overall b { font-size: 40px; font-weight: 600; line-height: 1; color: var(--ink); }
+.ops-gov-overall span { font-size: 11px; color: var(--ink-3); }
+.ops-gov-overall em { font-style: normal; font-family: var(--mono); font-size: 11px; text-transform: capitalize; color: var(--ink-2); margin-top: 4px; }
+.ops-gov-overall.ok { border-left: 3px solid var(--ok); }
+.ops-gov-overall.warn { border-left: 3px solid #d9a441; }
+.ops-gov-overall.bad { border-left: 3px solid var(--omega); }
+.ops-gov-subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.ops-gov-sub { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-gov-sub-n { font-size: 20px; font-weight: 600; color: var(--ink); }
+.ops-gov-sub-l { font-size: 11px; color: var(--ink-3); }
+.ops-gov-sub.ok { border-left: 3px solid var(--ok); }
+.ops-gov-sub.warn { border-left: 3px solid #d9a441; }
+.ops-gov-sub.bad { border-left: 3px solid var(--omega); }
+.ops-gov-queue, .ops-gov-drift, .ops-gov-packs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.ops-gov-qitem { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-gov-qitem.ok { border-left: 3px solid var(--ok); }
+.ops-gov-qitem.warn { border-left: 3px solid #d9a441; }
+.ops-gov-qitem.bad { border-left: 3px solid var(--omega); }
+.ops-gov-qicon { text-align: center; color: var(--ink-3); }
+.ops-gov-qbody b, .ops-gov-dbody b { display: block; font-size: 13px; font-weight: 560; color: var(--ink); }
+.ops-gov-qbody .radmin-deliv-meta, .ops-gov-dbody .radmin-deliv-meta { display: block; }
+.ops-gov-qactions { display: flex; gap: 8px; align-items: center; }
+.ops-gov-drow { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-gov-drow.bad { border-left: 3px solid var(--omega); }
+.ops-gov-drow.warn { border-left: 3px solid #d9a441; }
+.ops-gov-pack { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+@media (max-width: 680px) { .ops-gov-health { grid-template-columns: 1fr; } .ops-gov-qitem { grid-template-columns: 22px 1fr; } .ops-gov-qactions { grid-column: 2; justify-content: flex-start; } }
+
 /* ── Guardian OS — unified executive homepage (v0) ────────────────────────── */
 .ops-guard-hero { border-left: 3px solid var(--accent-bright); }
 .ops-guard-happening { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin: 12px 0; font-size: 13px; color: var(--ink-2); }
