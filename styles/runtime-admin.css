@@ -526,6 +526,24 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-ws-rbody .radmin-deliv-meta { display: block; }
 @media (max-width: 680px) { .ops-ws-tab { flex: 1 1 40%; } }
 
+/* ── Guardian OS — Industry Intelligence Packs (Phase 5) ──────────────────── */
+.ops-ind-hero { border-left: 3px solid var(--accent-bright); }
+.ops-ind-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 12px; }
+.ops-ind-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); }
+.ops-ind-card.is-on { border-color: var(--ok); box-shadow: inset 2px 0 0 var(--ok); }
+.ops-ind-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.ops-ind-head b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.ops-ind-head .radmin-deliv-meta { display: block; }
+.ops-ind-purpose { font-size: 12px; line-height: 1.5; color: var(--ink-2); margin: 0; }
+.ops-ind-counts { display: flex; flex-wrap: wrap; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.ops-ind-regs { display: flex; flex-wrap: wrap; gap: 5px; }
+.ops-ind-reg { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.02em; padding: 2px 7px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink-3); }
+.ops-ind-actions { display: flex; gap: 8px; margin-top: 2px; }
+.ops-ind-dashhead { border-left: 3px solid var(--ok); }
+.ops-cmd-stat.ops-ind-m-ok { border-left: 3px solid var(--ok); }
+.ops-cmd-stat.ops-ind-m-warn { border-left: 3px solid #d9a441; }
+.ops-cmd-stat.ops-ind-m-bad { border-left: 3px solid var(--omega); }
+
 /* ── Guardian OS — unified executive homepage (v0) ────────────────────────── */
 .ops-guard-hero { border-left: 3px solid var(--accent-bright); }
 .ops-guard-happening { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin: 12px 0; font-size: 13px; color: var(--ink-2); }

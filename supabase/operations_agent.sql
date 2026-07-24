@@ -515,6 +515,36 @@ alter table public.rg_evidence_packs add column if not exists hash text;
 alter table public.rg_evidence_packs add column if not exists created_by text;
 alter table public.rg_evidence_packs add column if not exists created_at timestamptz default now();
 
+-- ── Industry Intelligence Packs (Phase 5) — modular, independently versioned ──
+-- Which packs an enterprise has installed. The pack CONTENT lives in code
+-- (lib/ops/packs/*) — this table records the installation, its version and the
+-- Ω policies the install activated, so it can be rolled back cleanly.
+create table if not exists public.rg_industry_packs (
+  id           text primary key,
+  org_id       text not null,
+  pack_id      text not null,
+  version      text,
+  status       text default 'installed',        -- installed | removed | failed
+  policies     jsonb default '[]'::jsonb,        -- governance policy names/ids activated by this install
+  config       jsonb default '{}'::jsonb,
+  installed_by text,
+  removed_at   timestamptz,
+  updated_at   timestamptz default now(),
+  created_at   timestamptz default now()
+);
+create index if not exists rg_ind_pack_org_idx on public.rg_industry_packs(org_id);
+create index if not exists rg_ind_pack_id_idx on public.rg_industry_packs(org_id, pack_id);
+alter table public.rg_industry_packs add column if not exists org_id text;
+alter table public.rg_industry_packs add column if not exists pack_id text;
+alter table public.rg_industry_packs add column if not exists version text;
+alter table public.rg_industry_packs add column if not exists status text default 'installed';
+alter table public.rg_industry_packs add column if not exists policies jsonb default '[]'::jsonb;
+alter table public.rg_industry_packs add column if not exists config jsonb default '{}'::jsonb;
+alter table public.rg_industry_packs add column if not exists installed_by text;
+alter table public.rg_industry_packs add column if not exists removed_at timestamptz;
+alter table public.rg_industry_packs add column if not exists updated_at timestamptz default now();
+alter table public.rg_industry_packs add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -549,6 +579,7 @@ alter table public.rg_governance_baselines enable row level security;
 alter table public.rg_governance_drift     enable row level security;
 alter table public.rg_governance_health    enable row level security;
 alter table public.rg_evidence_packs       enable row level security;
+alter table public.rg_industry_packs       enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.

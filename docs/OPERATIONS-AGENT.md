@@ -953,6 +953,67 @@ the one evidence pack reused across CISO/Compliance/Legal, rendering creates **n
 new tables** (pure projection), un-instrumented metrics are honest notes, and an
 unknown role is rejected.
 
+## 18. Industry Intelligence Packs — one OS, many sectors
+
+Guardian OS is **one** enterprise operating system on **one** Runtime Governance
+kernel. An Industry Intelligence Pack does not fork it, duplicate it, or ship
+beside it — a pack only **contributes domain intelligence** that plugs into
+services that already exist. `lib/ops/packs/*` + `lib/ops/industry.js`, served by
+`/api/ops/industry`, surfaced in the Control Room **Industry** tab.
+
+**What a pack contributes — and where it plugs in:**
+
+| Contribution | Plugs into |
+|---|---|
+| Ω policies (deny-only) | the dynamic policy engine (§14) — draft → validate → activate, org-scoped |
+| Specialised dashboard | a projection over `workspaces.context()` — the **same** shared context (§17) |
+| Executive metrics | derived from that one context, never re-queried |
+| Recommendations | Managed Governance (§16) — so they flow proposal → Ω → approval → evidence |
+| Policy templates | the policy authoring surface |
+| Evidence mappings | regulation → control → the evidence that proves it |
+| Incident workflows | the incident ledger's domain response |
+
+**Eight packs ship**, each independently versioned: **Healthcare** (clinical AI
+governance, patient safety, HIPAA/EU AI Act), **Finance** (payments, trading,
+fraud, model risk; SR 11-7/PSD2/DORA), **Cybersecurity** (threat intelligence,
+runtime-attack monitoring, privileged-action governance; ISO 27001/SOC 2/NIS2),
+**Government** (citizen-service AI, procurement oversight; GDPR Art.22),
+**Manufacturing** (robotics governance, operational safety; ISO 10218/IEC 61508),
+**Insurance** (claims + underwriting governance; Solvency II), **Retail**
+(pricing + customer AI governance), **Education** (student-data governance,
+academic AI; FERPA/COPPA).
+
+**Installation is governed and reversible.** `install(org, pack)` runs the pack's
+policies through the existing privileged, evidence-backed lifecycle and records
+the install (`rg_industry_packs`, versioned). Because pack policies are
+**deny-only**, a pack can only ever make the kernel enforce **more** — never less.
+`uninstall` rolls those policies back (always allowed, the safety brake), and the
+enterprise returns to exactly its pre-pack governed baseline.
+
+**Dynamic loading.** Provisioning suggests the pack matching the enterprise's
+industry; installing it immediately gains that domain's intelligence while the
+same kernel keeps governing. An installed pack also appears as an additional
+**executive perspective** in the Workspaces switcher — still the same twin, just
+framed with domain knowledge.
+
+**Never duplicated.** Packs build their dashboards with the shared presentation
+vocabulary (`lib/ops/sections.js`) that Executive Workspaces uses, so **one**
+Control Room renderer draws every surface and a pack cannot invent its own UI or
+data layer. Un-instrumented industry metrics stay honest `note` sections.
+
+**Extensibility.** A new industry — Defence, Energy, Telecommunications,
+Logistics, Aviation, Life Sciences, Legal Services — is a **new file in
+`lib/ops/packs/`** registered in the pack index. No Guardian OS service changes
+and the Runtime Governance kernel is never touched. The registry validates the
+pack contract on load, so a malformed pack fails fast rather than half-installing.
+
+Proven hermetically by `scripts/ops/industry.test.cjs` (30 checks): the eight-pack
+catalog + contract, the kernel **unchanged** before install and enforcing the
+pack's rule after (while unrelated tools still PERMIT), the governed lifecycle +
+audit trail, the pack lens showing the **same governance score** as the executive
+workspaces (one twin), pack recommendations becoming governed proposals, a clean
+rollback to the pre-pack baseline, and rejection of unknown/duplicate installs.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
