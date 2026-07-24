@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "briefing" | "command" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["briefing", "command", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", command: "Command", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -159,6 +159,7 @@ export default function OperationsClient() {
         {note && <div className="radmin-card"><p>{note}</p></div>}
 
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
+        {view === "command" && <CommandView onOpen={openHref} />}
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
         {view === "agents" && <AgentsView onOpen={openHref} />}
         {view === "handoffs" && <HandoffsView onOpen={openHref} />}
@@ -997,6 +998,142 @@ function MemoryView() {
             <div className="ops-trace-path">{trace.to_evidence.map((n: any, i: number) => <span key={i}>{i > 0 ? " → " : ""}<code>{n.type}</code></span>)}</div>
           </>}
         </section>
+      )}
+    </>
+  );
+}
+
+// ── Executive Command (Phase 4 — autonomy, emergency pause, oversight) ────────
+const MODE_CLASS: Record<string, string> = {
+  emergency_pause: "omega", observe: "warn", recommend: "warn",
+  execute_low_risk: "ok", governed_autonomy: "accent",
+};
+function CommandView({ onOpen }: { onOpen: (h?: string | null) => void }) {
+  const [auto, setAuto] = useState<any>(null);
+  const [perf, setPerf] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [a, p] = await Promise.all([api("autonomy"), api("performance")]);
+      setAuto(a); setPerf(p); setErr(null);
+    } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const post = async (body: any, describe: (r: any) => string) => {
+    setBusy(true); setNote(null);
+    try { const r = await api("autonomy", { method: "POST", body: JSON.stringify(body) }); setNote(describe(r)); await load(); }
+    catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+  const setMode = (mode: string) => post({ action: "set_mode", mode }, (r) =>
+    r.direction === "raised"
+      ? (r.ok ? `Autonomy raised to ${mode} — approved through Runtime Governance and recorded in evidence.`
+              : `Raise to ${mode} was ${r.blocked ? "blocked by Runtime Governance" : "not applied"}${r.error ? `: ${r.error}` : "."}`)
+      : r.direction === "unchanged" ? `Already in ${mode}.`
+      : `Autonomy lowered to ${mode} — applied directly and audited (fail-safe brake).`);
+  const emergencyPause = () => post({ action: "emergency_pause" }, () => "Emergency pause engaged — the council is halted. Nothing is proposed or executed until you raise autonomy again.");
+  const toggleAgent = (id: string, paused: boolean) => post({ action: paused ? "resume_agent" : "pause_agent", agent_id: id }, () => `${id} ${paused ? "resumed" : "paused"}.`);
+
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!auto) return <div className="radmin-loading">Loading command…</div>;
+
+  const st = auto.state;
+  const modes = auto.modes || [];
+  const curLevel = modes.find((m: any) => m.id === st.mode)?.level ?? 0;
+
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+
+      <section className={`radmin-card ops-cmd-banner ${MODE_CLASS[st.mode] || ""}`}>
+        <div className="ops-brief-head">
+          <div>
+            <h2>Executive Command</h2>
+            <p className="radmin-sub">One control over how autonomously the council may act. Lowering autonomy is always allowed and audited — the fail-safe brake, which works even with the engine down. Raising autonomy is governed: it routes through Runtime Governance and requires operator approval. Operator-initiated actions are never gated here.</p>
+          </div>
+          <button className="ops-cmd-estop" disabled={busy || st.policy.halted} onClick={emergencyPause}>⏻ Emergency pause</button>
+        </div>
+        <div className="ops-cmd-current">
+          <span className={`radmin-badge ${MODE_CLASS[st.mode] || ""}`}>Mode: {st.label}</span>
+          {st.default && <span className="radmin-badge">default</span>}
+          <span className="radmin-deliv-meta">{st.policy.halted ? "Council halted." : st.policy.holds ? "Proposals held for operator approval." : st.policy.autoExecutes ? "Low/medium auto-execute after PERMIT; high escalate." : st.policy.proposes ? "Proposing only." : "Observing only."}{st.updated_by ? ` · last changed by ${st.updated_by} · ${fmtWhen(st.updated_at)}` : ""}</span>
+        </div>
+      </section>
+
+      <section className="radmin-card">
+        <h3>Autonomy mode</h3>
+        <p className="radmin-sub">Ordered least → most autonomous. Selecting a higher mode is a governed raise (approval recorded); a lower mode applies immediately.</p>
+        <div className="ops-cmd-modes">
+          {modes.map((m: any) => {
+            const isRaise = m.level > curLevel;
+            const active = m.id === st.mode;
+            return (
+              <button key={m.id} disabled={busy || active} onClick={() => setMode(m.id)}
+                className={`ops-cmd-mode ${MODE_CLASS[m.id] || ""}${active ? " is-active" : ""}`}>
+                <span className="ops-cmd-mode-name">{m.label}{active ? " ✓" : ""}</span>
+                <span className="ops-cmd-mode-dir">{active ? "current" : isRaise ? "↑ governed raise" : "↓ direct brake"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="radmin-card">
+        <h3>Specialist pauses</h3>
+        <p className="radmin-sub">Pause one specialist without changing the global mode. A paused specialist still plans (its work is recorded as handoffs), but proposes and executes nothing until resumed.</p>
+        <div className="ops-cmd-agents">
+          {(auto.agents || []).map((a: any) => (
+            <div key={a.id} className={`ops-cmd-agent${a.paused ? " is-paused" : ""}`}>
+              <div><b>{a.title}</b> <span className="radmin-deliv-meta">{a.paused ? "paused" : "active"}</span></div>
+              <button className="radmin-btn sm" disabled={busy} onClick={() => toggleAgent(a.id, a.paused)}>{a.paused ? "Resume" : "Pause"}</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {perf && (
+        <>
+          <section className="radmin-card">
+            <div className="ops-brief-head">
+              <h3>Council throughput</h3>
+              <button className="radmin-linkbtn" onClick={() => onOpen("/admin/operations?view=handoffs")}>Handoff timeline →</button>
+            </div>
+            <div className="ops-cmd-stats">
+              <div className="ops-cmd-stat"><b>{perf.council.total_runs}</b><span>council runs</span></div>
+              <div className="ops-cmd-stat"><b>{perf.council.recent_outcomes.executed}</b><span>executed (recent)</span></div>
+              <div className="ops-cmd-stat"><b>{perf.council.recent_outcomes.escalated}</b><span>escalated</span></div>
+              <div className="ops-cmd-stat"><b>{perf.council.recent_outcomes.blocked}</b><span>blocked</span></div>
+              <div className="ops-cmd-stat"><b>{perf.proposals.awaiting_operator ?? 0}</b><span>awaiting operator</span></div>
+            </div>
+            {perf.council.last_run && (
+              <div className="radmin-deliv-meta">Last run: {perf.council.last_run.trigger} · {perf.council.last_run.status}{perf.council.last_run.halted ? " · halted" : ""} · mode {perf.council.last_run.autonomy_mode || "—"} · {perf.council.last_run.proposals} proposal(s) · {fmtWhen(perf.council.last_run.started_at)}</div>
+            )}
+          </section>
+
+          <section className="radmin-card">
+            <h3>Per-agent performance</h3>
+            <div className="ops-cmd-perf">
+              <div className="ops-cmd-perf-row ops-cmd-perf-head">
+                <span>Specialist</span><span>Proposed</span><span>Executed</span><span>Escalated</span><span>Blocked</span><span>Verified</span><span>Handoffs</span>
+              </div>
+              {perf.agents.map((a: any) => (
+                <div key={a.id} className="ops-cmd-perf-row">
+                  <span>{a.title}</span>
+                  <span>{a.proposals}</span>
+                  <span>{a.executed}{a.execution_rate != null ? ` (${Math.round(a.execution_rate * 100)}%)` : ""}</span>
+                  <span>{a.escalated}</span>
+                  <span>{a.blocked + a.denied}</span>
+                  <span>{a.verification_rate != null ? `${Math.round(a.verification_rate * 100)}%` : "—"}</span>
+                  <span>{a.handoffs_resolved}/{a.handoffs_received}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
       )}
     </>
   );

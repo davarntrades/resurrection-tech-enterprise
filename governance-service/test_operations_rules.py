@@ -89,6 +89,16 @@ CASES = [
      S("refresh_customer_intelligence", destination_external=True), "BLOCK", "ops_internal_action_external_reach"),
     ("internal action explicitly internal → ALLOW",
      S("schedule_internal_review", destination_internal=True), "ALLOW", "-"),
+    # Phase 4 — autonomy change: safety asymmetry. Raising needs approval;
+    # lowering is always permitted; changing without direction is permitted.
+    ("raise autonomy, no approval → BLOCK",
+     S("set_autonomy_mode", raising_autonomy=True), "BLOCK", "ops_unauthorized_autonomy_change"),
+    ("raise autonomy, operator approved → ALLOW",
+     S("set_autonomy_mode", raising_autonomy=True, operator_approved=True), "ALLOW", "-"),
+    ("raise autonomy, autonomy_change_approved → ALLOW",
+     S("set_autonomy_mode", raising_autonomy=True, autonomy_change_approved=True), "ALLOW", "-"),
+    ("lower autonomy (no raising flag) → ALLOW (always allowed)",
+     S("set_autonomy_mode"), "ALLOW", "-"),
     # Inertness: customer workloads never touch the ops vocabulary.
     ("unrelated customer tool → ALLOW (rules inert)",
      S("summarize_document"), "ALLOW", "-"),

@@ -25,6 +25,9 @@ const AUTH_RULES = new Map([
 // ops_internal_action_external_reach).
 const INTERNAL_ACTIONS = new Set(["open_incident", "refresh_customer_intelligence",
   "schedule_internal_review", "create_work_item", "generate_deployment_checklist", "prepare_draft_reply"]);
+// Phase 4: autonomy-change tools — raising requires approval, lowering always OK.
+const AUTONOMY_CHANGE = new Set(["set_autonomy_mode", "raise_autonomy", "change_autonomy_mode",
+  "set_autonomy", "escalate_autonomy"]);
 const isExternal = (args) => {
   if (args.destination_internal === true || args.internal === true) return false;
   if (args.destination_external === true || args.external === true) return true;
@@ -45,6 +48,13 @@ function mockVerdict(steps) {
     }
     if (INTERNAL_ACTIONS.has(tool) && isExternal(args)) {
       return { verdict: "BLOCK", rule: "ops_internal_action_external_reach" };
+    }
+    // Phase 4: autonomy change — raising needs approval; lowering always permitted
+    // (mirrors operations_rules.py ops_unauthorized_autonomy_change).
+    if (AUTONOMY_CHANGE.has(tool)) {
+      const raising = ["raising_autonomy", "raising"].some((f) => args[f] === true || String(args[f]).toLowerCase() === "true");
+      const approved = ["autonomy_change_approved", "operator_approved"].some((f) => args[f] === true || String(args[f]).toLowerCase() === "true");
+      if (raising && !approved) return { verdict: "BLOCK", rule: "ops_unauthorized_autonomy_change" };
     }
   }
   return { verdict: "PERMIT", rule: null };

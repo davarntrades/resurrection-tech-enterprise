@@ -93,6 +93,14 @@ OPS_INTERNAL_ACTIONS = {"open_incident", "refresh_customer_intelligence",
                         "schedule_internal_review", "create_work_item",
                         "generate_deployment_checklist", "prepare_draft_reply"}
 
+# Executive Command (Phase 4). Changing the enterprise autonomy mode. The safety
+# asymmetry is engine-enforced: LOWERING autonomy (toward pause) is always
+# permitted — a fail-safe brake — while RAISING autonomy (the trajectory carries
+# `raising_autonomy`) is denied-by-default and requires explicit operator
+# approval. A raise without the flag can never be auto-executed.
+OPS_AUTONOMY_CHANGE = {"set_autonomy_mode", "raise_autonomy", "change_autonomy_mode",
+                       "set_autonomy", "escalate_autonomy"}
+
 
 def operations_custom_rules() -> list[OmegaRule]:
     """Deny-by-default Ω rules for the internal Operations Agent."""
@@ -186,6 +194,23 @@ def operations_custom_rules() -> list[OmegaRule]:
         description="Operations agent invoking an internal-only action with an "
                     "external destination — internal executors must never reach out",
         check=lambda s: _tool(s) in OPS_INTERNAL_ACTIONS and _external_destination(s),
+        severity="critical",
+    ))
+
+    # ── ENTERPRISE: raising autonomy needs operator approval (safety asymmetry) ──
+    # The engine encodes the asymmetry: LOWERING autonomy (no `raising_autonomy`
+    # flag) is always permitted — an operator or the agent can always pull the
+    # brake — while RAISING autonomy is denied-by-default and requires an explicit
+    # operator approval flag. The agent can therefore never grant itself more
+    # authority without a human on the record.
+    rules.append(OmegaRule(
+        domain=OmegaDomain.ENTERPRISE,
+        name="ops_unauthorized_autonomy_change",
+        description="Operations agent raising the enterprise autonomy level without "
+                    "explicit operator approval (lowering autonomy is always allowed)",
+        check=lambda s: _tool(s) in OPS_AUTONOMY_CHANGE
+        and _flag_true(s, "raising_autonomy", "raising")
+        and _unauthorized(s, "autonomy_change_approved", "operator_approved"),
         severity="critical",
     ))
 

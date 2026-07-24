@@ -584,6 +584,50 @@ flags contradictions, and lets the operator click any node to **trace it back**
 to its records, agent, governance verdict and outcome, or replay the decision
 timeline. Served by `/api/ops/graph`.
 
+## 11h. Executive Command (5.0 Phase 4 — Pillars 9 + 10)
+
+`lib/ops/autonomy.js` adds one control over **how autonomously the council may
+act**, plus per-agent pauses. It gates the **autonomous council path only** —
+operator-initiated proposals always run, in every mode. A single stored row
+(`rg_ops_autonomy`, singleton `current`) holds the mode; **default = unset =
+`execute_low_risk`, so today's behaviour is preserved byte-for-byte.**
+
+**Modes, least → most autonomous:** `emergency_pause` (the council halts —
+nothing proposed or executed) · `observe` (assess + route handoffs, but propose
+nothing) · `recommend` (propose, but **hold** every proposal for operator
+sign-off) · `execute_low_risk` (low/medium auto-execute after PERMIT; high
+escalate — the default) · `governed_autonomy` (adds coordination ingest).
+`agents.dispatch()` reads the mode first: `emergency_pause` returns a halted run
+immediately (works even with the engine down); `recommend` threads an additive
+`hold` flag through `proposals.propose` so a governed PERMIT is **downgraded** to
+a held escalation (never upgraded); paused specialists are skipped while the rest
+of the council runs.
+
+**Safety asymmetry (the core invariant):** **lowering** autonomy toward the pause
+is **always allowed and audited** — a fail-safe brake that never depends on the
+engine — while **raising** autonomy is **governed**. A raise routes through the
+`set_autonomy_mode` catalog action carrying `raising_autonomy: true`; the Ω rule
+`ops_unauthorized_autonomy_change` (ENTERPRISE) **BLOCKs it without an operator
+approval flag**, so a bare raise escalates, and only an operator's approval
+re-evaluates it with the authorisation flags and lets the engine issue the
+permit that executes the raise. The agent can therefore never grant itself more
+authority — `set_autonomy_mode` is in **no agent's charter**, and the API accepts
+mode changes from an authenticated operator only. Every mode change is recorded
+in the admin audit trail (`ops_autonomy_mode_changed`, with `raised`).
+
+`lib/ops/performance.js` is a **read-only, deterministic** oversight report
+(per-agent proposal outcomes + verification pass rate + handoff throughput,
+council run throughput, current autonomy state) derived entirely from existing
+records — oversight, not authority: nothing here can change a verdict or action.
+
+The Control Room **Command** tab is the executive dashboard: current mode banner,
+an **Emergency pause** button, the mode selector (each option labelled ↑ governed
+raise / ↓ direct brake), per-specialist pause toggles, council throughput and
+per-agent performance. Served by `/api/ops/autonomy` (GET state; POST
+`set_mode` / `emergency_pause` / `pause_agent` / `resume_agent`) and
+`/api/ops/performance`. The briefing carries an `executive` block with the live
+autonomy posture.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
