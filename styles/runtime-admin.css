@@ -493,3 +493,19 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-guard-iq li { font-size: 12px; color: var(--ink-2); }
 .ops-guard-iq .radmin-linkbtn { text-align: left; font-size: 12px; }
 @media (max-width: 760px) { .ops-guard-grid, .ops-guard-intel { grid-template-columns: 1fr; } }
+
+/* ── Policy authoring (dynamic runtime Ω policies) ─────────────────────────── */
+.ops-pol-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; margin-top: 12px; }
+.ops-pol-form label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-3); }
+.ops-pol-form label.ops-pol-wide { grid-column: 1 / -1; }
+.ops-pol-form input, .ops-pol-form select { font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 11px; }
+.ops-pol-form input:focus, .ops-pol-form select:focus { outline: none; border-color: var(--line-strong); }
+.ops-pol-preview { margin: 14px 0; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); padding: 10px 14px; }
+.ops-pol-preview pre { margin: 6px 0 0; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); white-space: pre-wrap; overflow-x: auto; }
+.ops-pol-versions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.ops-pol-ver { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
+.ops-pol-ver.is-active { border-left: 3px solid var(--ok); }
+.ops-pol-ver-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.ops-pol-ver-n { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
+.ops-pol-ver-actions { display: flex; gap: 8px; }
+@media (max-width: 680px) { .ops-pol-form { grid-template-columns: 1fr; } }
