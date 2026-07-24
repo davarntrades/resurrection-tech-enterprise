@@ -185,6 +185,91 @@ export function HomeClient() {
 
         <hr className="divider" />
 
+        {/* ===== 3b · GUARDIAN OS — the governed operating system on the kernel ===== */}
+        <section className="section section--tight" id="guardian" aria-label="Guardian OS — the governed enterprise operating system" data-screen-label="Guardian OS">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Guardian OS · governed autonomy</span>
+              <h2>Not just a control point. A governed operating system.</h2>
+              <p>
+                Runtime Governance is the kernel. <strong>Guardian OS</strong> is the operating system
+                built on top of it — where a council of specialised AI departments coordinates an entire
+                enterprise as one governed, evidence-backed runtime. Every action any department takes is
+                proposed, governed, approved, executed and recorded. No trusted agents. No bypasses.
+              </p>
+            </div>
+
+            <div className="guardian-stack reveal" aria-hidden="true">
+              <div className="guardian-layer">
+                <div className="gl-k">AI departments — a governed council</div>
+                <div className="gl-v">Sales · Deployment · Customer Success · Compliance · Finance · Security · Incident Response · Risk · Architecture · Policy · Partners</div>
+              </div>
+              <div className="guardian-conn" />
+              <div className="guardian-layer is-os">
+                <div className="gl-tm">Guardian OS</div>
+                <div className="gl-k">Multi-agent orchestration · Digital enterprise twin · Executive command</div>
+              </div>
+              <div className="guardian-conn" />
+              <div className="guardian-layer is-kernel">
+                <div className="gl-tm">Morrison Runtime Governance™</div>
+                <div className="gl-k">The kernel — deny-by-default <span className="om">Ω</span> · fail-closed</div>
+              </div>
+              <div className="guardian-conn" />
+              <div className="guardian-layer">
+                <div className="gl-k">Protected enterprise systems</div>
+                <div className="gl-v">Data · APIs · Infrastructure · Internal workflows</div>
+              </div>
+              <p className="guardian-stack-caption">
+                Every privileged action flows through the kernel before it runs — no department can reach the systems below except through governance.
+              </p>
+            </div>
+
+            <div className="guardian-pillars">
+              <div className="guardian-pillar reveal">
+                <span className="guardian-pillar-n">01</span>
+                <h3>Multi-agent orchestration</h3>
+                <p>A council of specialised departments, each owning its slice of the enterprise and coordinating through governed handoffs. No department acts on another&rsquo;s authority, and none is trusted more than the engine allows.</p>
+              </div>
+              <div className="guardian-pillar reveal">
+                <span className="guardian-pillar-n">02</span>
+                <h3>Digital enterprise twin</h3>
+                <p>A live, read-only model of the whole organisation — every customer, deployment, incident, dependency and risk — derived from authoritative records and replayable through time. One executive view of what&rsquo;s happening, what needs attention, and what happens if you do nothing.</p>
+              </div>
+              <div className="guardian-pillar reveal">
+                <span className="guardian-pillar-n">03</span>
+                <h3>One governed lifecycle</h3>
+                <p>Every privileged action, from any department, follows the same path — deterministic, fail-closed and auditable — so autonomy never outruns oversight and nothing happens without evidence.</p>
+              </div>
+            </div>
+
+            <div className="guardian-flow" role="img" aria-label="Proposal to Ω Governor to Approval to Execution to Evidence">
+              <span className="guardian-flow-chip">Proposal</span>
+              <span className="guardian-flow-arr">→</span>
+              <span className="guardian-flow-chip is-omega">Ω Governor</span>
+              <span className="guardian-flow-arr">→</span>
+              <span className="guardian-flow-chip">Approval</span>
+              <span className="guardian-flow-arr">→</span>
+              <span className="guardian-flow-chip">Execution</span>
+              <span className="guardian-flow-arr">→</span>
+              <span className="guardian-flow-chip is-evidence">Evidence</span>
+            </div>
+            <p className="guardian-flow-note">The same governed path for every department — the agent proposes, the engine rules, a human approves what matters, and every decision is recorded.</p>
+
+            <div className="demo-cta reveal">
+              <Link href="/technology" className="btn btn--ghost btn--sm"
+                    onClick={() => track(Events.CTA_CLICK, { location: "guardian", cta: "technology" })}>
+                Explore the technology <span className="arr">→</span>
+              </Link>
+              <Link href="/pilot" className="btn btn--ghost btn--sm"
+                    onClick={() => track(Events.CTA_CLICK, { location: "guardian", cta: "pilot" })}>
+                Book a governed pilot <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
         {/* ===== 4 · BUSINESS OUTCOMES — what it prevents, what you get ===== */}
         <section className="section section--tight outcomes" id="outcomes" aria-label="What it prevents and what you get">
           <div className="wrap">
