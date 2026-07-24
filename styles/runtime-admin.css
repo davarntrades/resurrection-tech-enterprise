@@ -504,6 +504,28 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-gov-pack { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); }
 @media (max-width: 680px) { .ops-gov-health { grid-template-columns: 1fr; } .ops-gov-qitem { grid-template-columns: 22px 1fr; } .ops-gov-qactions { grid-column: 2; justify-content: flex-start; } }
 
+/* ── Guardian OS — Executive Workspaces (Phase 4) ─────────────────────────── */
+.ops-ws-hero { border-left: 3px solid var(--accent-bright); }
+.ops-ws-orgpick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.ops-ws-nav { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line-2); padding-top: 14px; margin-top: 14px; }
+.ops-ws-tab { display: flex; flex-direction: column; gap: 1px; text-align: left; padding: 9px 14px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); cursor: pointer; transition: border-color .2s var(--ease), background .2s var(--ease); }
+.ops-ws-tab:hover { border-color: var(--line-strong); background: var(--panel-3); }
+.ops-ws-tab.is-active { border-color: var(--accent-bright); background: var(--panel-3); box-shadow: inset 2px 0 0 var(--accent-bright); }
+.ops-ws-tab-t { font-size: 13px; font-weight: 600; color: var(--ink); }
+.ops-ws-tab-l { font-size: 10px; color: var(--ink-3); }
+.ops-ws-head { border-left: 3px solid var(--accent-bright); }
+.ops-ws-headstats { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ops-ws-note { border-left: 3px solid var(--line-strong); opacity: 0.9; }
+.ops-ws-hint { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+.ops-ws-list, .ops-ws-timeline { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ops-ws-timeline { position: relative; }
+.ops-ws-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel-2); }
+.ops-ws-row.bad { border-left: 3px solid var(--omega); }
+.ops-ws-row.warn { border-left: 3px solid #d9a441; }
+.ops-ws-rbody b { display: block; font-size: 13px; font-weight: 540; color: var(--ink); }
+.ops-ws-rbody .radmin-deliv-meta { display: block; }
+@media (max-width: 680px) { .ops-ws-tab { flex: 1 1 40%; } }
+
 /* ── Guardian OS — unified executive homepage (v0) ────────────────────────── */
 .ops-guard-hero { border-left: 3px solid var(--accent-bright); }
 .ops-guard-happening { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin: 12px 0; font-size: 13px; color: var(--ink-2); }

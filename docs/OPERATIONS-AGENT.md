@@ -893,6 +893,66 @@ drift, governed evidence-backed recommendations, the operator queue, a signed
 evidence pack, and the invariants — monitoring never mutates the estate and the
 kernel stays deny-only (a privileged wire transfer is still blocked afterwards).
 
+## 17. Executive Workspaces — one twin, many perspectives
+
+Guardian OS becomes the operating system for **every executive** inside an
+enterprise. Each executive sees the same governed digital twin through the lens
+of their responsibilities. `lib/ops/workspaces.js`, served by
+`/api/ops/workspaces`, surfaced in the Control Room **Workspaces** tab.
+
+**One enterprise. One digital twin. One runtime governance engine. Many
+perspectives.** The design principle is *no duplicated data*: a workspace is not
+a parallel system and not a copy — it is a role-specific **projection** over the
+exact same command payload, health score, evidence, drift, policies,
+recommendations, performance and estate that every other surface already reads.
+
+**How it works.** `context(org_id)` fetches the shared primitives **once** — the
+single source of truth. Each role's `project(ctx)` slices and frames that one
+context into sections. `workspace(role, org_id)` builds the context and calls the
+projector. Because every lens reads the *same* context, the CEO and the CISO see
+the *same* governance score off the *same* twin — they can never disagree.
+
+Seven perspectives ship (each `{ id, title, purpose, project }`):
+
+- **CEO** — strategic: governance confidence, enterprise health, high-priority
+  risks, critical approvals, governance trend, cross-department intelligence, the
+  executive briefing. Understood in under two minutes.
+- **CTO** — technical: runtime health, the AI estate (systems, models, agents,
+  APIs, MCP, tools), infrastructure, technical alerts, runtime policies, system
+  topology (from the twin's runtime/dependency facets), performance metrics.
+- **CISO** — security: threat intelligence, privilege escalations, blocked
+  actions, policy violations, trust-boundary changes, runtime attacks (governed
+  refusals), the incident timeline, security recommendations, evidence exports.
+- **Compliance** — regulatory: compliance posture, evidence packs, audit
+  readiness, policy coverage, governance maturity, regulatory mappings, the
+  monthly compliance report.
+- **COO** — operational: department health, workflow bottlenecks, pending
+  approvals, automation effectiveness, operational drift, process efficiency,
+  department recommendations.
+- **CFO** — financial: AI estate footprint, vendor utilisation, governance ROI
+  (derived from real governed-block counts), cost-optimisation opportunities.
+- **Legal** — evidence: decision history, policy versions, the approval chain,
+  the evidence timeline, signed reports, litigation-ready exports, governance
+  attestations (content-hash signed).
+
+**Shared components, shared backend.** Executive briefings, the evidence hub,
+runtime governance, recommendations, the digital twin, governance health,
+policies, reports and alerts are all reused — only the presentation changes.
+
+**Honesty.** A metric with no real data source (AI spend, revenue-at-risk in
+currency, budget forecasts) is surfaced as an explicit `available:false` note
+with the reason to connect a source — Guardian OS never fabricates a number it
+cannot ground. What *is* grounded (governed blocks → incidents prevented, unused
+tools → optimisation) is computed from real records and labelled as derived.
+
+**Extensibility.** Adding an executive workspace is **data-only** — a new `ROLES`
+entry — and the Runtime Governance kernel is never touched. Proven hermetically by
+`scripts/ops/workspaces.test.cjs` (16 checks): seven role-appropriate lenses, the
+*same* governance score + estate count across every lens (one twin, not copies),
+the one evidence pack reused across CISO/Compliance/Legal, rendering creates **no
+new tables** (pure projection), un-instrumented metrics are honest notes, and an
+unknown role is rejected.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
