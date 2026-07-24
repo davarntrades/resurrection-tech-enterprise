@@ -110,7 +110,8 @@ OPS_AUTONOMY_CHANGE = {"set_autonomy_mode", "raise_autonomy", "change_autonomy_m
 # changes nothing and is permitted (internal-only, covered by the internal-reach
 # rule). "No policy becomes active without approval."
 OPS_POLICY_ACTIVATION = {"activate_policy", "deploy_policy", "publish_policy",
-                         "enact_policy", "apply_policy", "promote_policy"}
+                         "enact_policy", "apply_policy", "promote_policy",
+                         "activate_governance_policy"}
 
 
 def operations_custom_rules() -> list[OmegaRule]:

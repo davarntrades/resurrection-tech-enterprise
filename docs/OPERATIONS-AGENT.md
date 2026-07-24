@@ -738,6 +738,46 @@ to risk* · *where governance slows execution* · *which partner needs attention
 overnight*. The Enterprise Twin includes all eleven departments automatically.
 New env: `OPS_POLICY_GAP_THRESHOLD` (default 2).
 
+## 14. Dynamic runtime policy loading (self-service governance foundation)
+
+The Runtime Governance kernel loads customer-specific Ω policies from the database
+**at runtime** — no code change, no redeploy. Policies are versioned, validated
+before activation, evidence-backed and rollback-capable, and **every existing
+guarantee is preserved.**
+
+**Declarative, not code.** A policy is structured data — a tool match plus
+`unauthorized_unless` / `flag_true_blocks` / numeric `threshold` conditions —
+compiled by a trusted module (`governance-service/dynamic_rules.py`, mirrored in
+`lib/ops/govpolicy.js`) into an `OmegaRule`. No arbitrary code from the database
+is ever executed.
+
+**Deny-only → baseline never weakened.** A compiled policy's `check()` returns
+block-or-not, never "allow." Loading policies can only **add** constraints, so
+deny-by-default and the static `DEPLOYMENT_RULES` are never weakened.
+
+**Fail-closed & optional.** The engine reads active policies over stdlib HTTP
+(no new deps), refreshed every `GOVERNANCE_POLICY_REFRESH_S` (default 30s). On any
+DB/parse error it keeps the last-good validated set; with no DB configured it uses
+static rules only. A DB outage never opens the gate. With no active policies the
+engine is byte-for-byte identical to before — the layer-cache key carries a policy
+`generation` token so a `GovernanceLayer` rebuilds only when the active set changes,
+and the verdict `attestation` already fingerprints the full (static + dynamic)
+ruleset, so every decision stays reproducible.
+
+**Governed lifecycle** (`lib/ops/govpolicy.js`, table `rg_governance_policies`):
+`draft → validate → activate → (rollback)`, each a new version under a stable
+name. Drafting and validating are operator-direct; **activating** a policy into
+the kernel is a privileged action (`activate_governance_policy`, critical,
+guarded by `ops_unauthorized_policy_activation`) — proposed, then applied by the
+operator's own approval, so it flows **proposal → Ω governor → approval →
+execution → evidence.** **Rollback is always allowed** (the safety brake), applied
+directly and audited — the same asymmetry as autonomy. The agent never activates
+policy. Served by `/api/ops/governance-policies`.
+
+Env (all optional; absent = feature off): `SUPABASE_URL`/`GOVERNANCE_POLICY_READ_KEY`
+(or the existing service-role key), `GOVERNANCE_POLICY_TABLE`,
+`GOVERNANCE_POLICY_REFRESH_S`, `GOVERNANCE_POLICY_TIMEOUT_S`.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from

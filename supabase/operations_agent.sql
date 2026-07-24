@@ -323,6 +323,51 @@ alter table public.rg_ops_partners add column if not exists notes text;
 alter table public.rg_ops_partners add column if not exists updated_at timestamptz default now();
 alter table public.rg_ops_partners add column if not exists created_at timestamptz default now();
 
+-- Dynamic runtime Ω policies (Guardian OS — self-service governance foundation) -
+-- Customer-specific Ω policies the Runtime Governance KERNEL loads at runtime
+-- (no code change, no redeploy). Versioned, validated-before-activation,
+-- evidence-backed, rollback-capable. Only status='active' rows are loaded by the
+-- engine (dynamic_rules.py); they are DENY-ONLY (can never weaken the baseline).
+create table if not exists public.rg_governance_policies (
+  id             text primary key,
+  name           text not null,                   -- logical policy identity (versions share a name)
+  scope          text default 'global',           -- 'global' or a tenant/deployment id (future self-service)
+  domain         text not null,                   -- OmegaDomain value (enterprise, finance, …)
+  spec           jsonb not null,                  -- declarative rule: {match, conditions, severity, …}
+  version        integer not null default 1,
+  status         text not null default 'draft',   -- draft | validated | active | superseded | rolled_back
+  hash           text,                            -- spec fingerprint (attestation)
+  parent_version integer,
+  superseded_by  text,                            -- id of the version that replaced this one
+  notes          text,
+  created_by     text,
+  validated_by   text,
+  validated_at   timestamptz,
+  activated_by   text,
+  activated_at   timestamptz,
+  updated_at     timestamptz default now(),
+  created_at     timestamptz default now()
+);
+create index if not exists rg_gov_policies_active_idx on public.rg_governance_policies(status);
+create index if not exists rg_gov_policies_name_idx on public.rg_governance_policies(name, scope, version);
+alter table public.rg_governance_policies add column if not exists name text;
+alter table public.rg_governance_policies add column if not exists scope text default 'global';
+alter table public.rg_governance_policies add column if not exists domain text;
+alter table public.rg_governance_policies add column if not exists spec jsonb;
+alter table public.rg_governance_policies add column if not exists version integer default 1;
+alter table public.rg_governance_policies add column if not exists status text default 'draft';
+alter table public.rg_governance_policies add column if not exists hash text;
+alter table public.rg_governance_policies add column if not exists parent_version integer;
+alter table public.rg_governance_policies add column if not exists superseded_by text;
+alter table public.rg_governance_policies add column if not exists notes text;
+alter table public.rg_governance_policies add column if not exists created_by text;
+alter table public.rg_governance_policies add column if not exists validated_by text;
+alter table public.rg_governance_policies add column if not exists validated_at timestamptz;
+alter table public.rg_governance_policies add column if not exists activated_by text;
+alter table public.rg_governance_policies add column if not exists activated_at timestamptz;
+alter table public.rg_governance_policies add column if not exists updated_at timestamptz default now();
+alter table public.rg_governance_policies add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -349,6 +394,7 @@ alter table public.rg_ops_intel_snapshots enable row level security;
 alter table public.rg_ops_autonomy       enable row level security;
 alter table public.rg_ops_policies        enable row level security;
 alter table public.rg_ops_partners        enable row level security;
+alter table public.rg_governance_policies enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.

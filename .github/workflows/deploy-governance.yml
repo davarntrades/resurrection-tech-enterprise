@@ -44,6 +44,9 @@ jobs:
       - name: Labelled corpus (precision/recall must be 1.0; any mismatch fails)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_corpus.py
+      - name: Dynamic Ω policy compiler + safety (deny-only, fail-closed)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python test_dynamic_rules.py
       - name: Finance hardening (verdict + V5+ attribution)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_finance_hardening.py
