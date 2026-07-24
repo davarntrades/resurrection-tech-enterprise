@@ -29,7 +29,12 @@ RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py escalation.py ./
+COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py escalation.py ./
+
+# Fail the image build if app.py or any of its runtime imports is absent from
+# Railway's production import root. This runs from WORKDIR=/app, the same
+# directory used by the uvicorn start command below.
+RUN python -c "import pathlib; import app; assert pathlib.Path(app.__file__).parent == pathlib.Path('/app')"
 
 ENV PORT=8000 \
     GOVERNANCE_EVAL_TIMEOUT_S=4.0 \
