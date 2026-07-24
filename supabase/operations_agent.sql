@@ -368,6 +368,74 @@ alter table public.rg_governance_policies add column if not exists activated_at 
 alter table public.rg_governance_policies add column if not exists updated_at timestamptz default now();
 alter table public.rg_governance_policies add column if not exists created_at timestamptz default now();
 
+-- Enterprise provisioning (Guardian OS — the OS installation) ----------------
+-- One row per provisioning run: the enterprise spec in, the governed runtime out.
+create table if not exists public.rg_provisioning (
+  id          text primary key,
+  org_id      text,
+  name        text,
+  status      text default 'provisioning',   -- provisioning | complete | failed
+  spec        jsonb,                          -- the enterprise install spec
+  result      jsonb,                          -- per-phase summary of what was created
+  phases      jsonb,                          -- phase → {status, counts}
+  created_by  text,
+  finished_at timestamptz,
+  updated_at  timestamptz default now(),
+  created_at  timestamptz default now()
+);
+create index if not exists rg_provisioning_org_idx on public.rg_provisioning(org_id);
+alter table public.rg_provisioning add column if not exists org_id text;
+alter table public.rg_provisioning add column if not exists name text;
+alter table public.rg_provisioning add column if not exists status text default 'provisioning';
+alter table public.rg_provisioning add column if not exists spec jsonb;
+alter table public.rg_provisioning add column if not exists result jsonb;
+alter table public.rg_provisioning add column if not exists phases jsonb;
+alter table public.rg_provisioning add column if not exists created_by text;
+alter table public.rg_provisioning add column if not exists finished_at timestamptz;
+alter table public.rg_provisioning add column if not exists updated_at timestamptz default now();
+alter table public.rg_provisioning add column if not exists created_at timestamptz default now();
+
+-- The enterprise estate: identity, AI estate + trust architecture as entities.
+create table if not exists public.rg_enterprise_entities (
+  id        text primary key,
+  org_id    text not null,
+  layer     text not null,                    -- identity | estate | trust
+  kind      text not null,                    -- business_unit | environment | ai_system | agent | tool | trust_boundary | risk_zone | protected_asset | …
+  name      text,
+  attrs     jsonb default '{}'::jsonb,
+  refs      jsonb default '[]'::jsonb,         -- related entity ids (auto-mapped relationships)
+  seeded    boolean not null default false,    -- example data until live events replace it
+  created_at timestamptz default now()
+);
+create index if not exists rg_ent_org_idx on public.rg_enterprise_entities(org_id);
+create index if not exists rg_ent_kind_idx on public.rg_enterprise_entities(org_id, layer, kind);
+alter table public.rg_enterprise_entities add column if not exists org_id text;
+alter table public.rg_enterprise_entities add column if not exists layer text;
+alter table public.rg_enterprise_entities add column if not exists kind text;
+alter table public.rg_enterprise_entities add column if not exists name text;
+alter table public.rg_enterprise_entities add column if not exists attrs jsonb default '{}'::jsonb;
+alter table public.rg_enterprise_entities add column if not exists refs jsonb default '[]'::jsonb;
+alter table public.rg_enterprise_entities add column if not exists seeded boolean not null default false;
+alter table public.rg_enterprise_entities add column if not exists created_at timestamptz default now();
+
+-- Per-enterprise department enablement (Guardian OS departments).
+create table if not exists public.rg_enterprise_departments (
+  id         text primary key,
+  org_id     text not null,
+  department text not null,
+  enabled    boolean not null default true,
+  config     jsonb default '{}'::jsonb,
+  updated_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+create index if not exists rg_ent_dept_org_idx on public.rg_enterprise_departments(org_id);
+alter table public.rg_enterprise_departments add column if not exists org_id text;
+alter table public.rg_enterprise_departments add column if not exists department text;
+alter table public.rg_enterprise_departments add column if not exists enabled boolean not null default true;
+alter table public.rg_enterprise_departments add column if not exists config jsonb default '{}'::jsonb;
+alter table public.rg_enterprise_departments add column if not exists updated_at timestamptz default now();
+alter table public.rg_enterprise_departments add column if not exists created_at timestamptz default now();
+
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
   id           text primary key,
@@ -395,6 +463,9 @@ alter table public.rg_ops_autonomy       enable row level security;
 alter table public.rg_ops_policies        enable row level security;
 alter table public.rg_ops_partners        enable row level security;
 alter table public.rg_governance_policies enable row level security;
+alter table public.rg_provisioning         enable row level security;
+alter table public.rg_enterprise_entities  enable row level security;
+alter table public.rg_enterprise_departments enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.
