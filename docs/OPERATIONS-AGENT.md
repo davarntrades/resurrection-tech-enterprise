@@ -830,6 +830,69 @@ touched. New tables (`rg_provisioning`, `rg_enterprise_entities`,
 all seven phases plus the deny-only invariant — the kernel **BLOCKS** an unapproved
 privileged wire transfer after install while leaving unrelated tools **PERMIT**.
 
+## 16. Managed Governance — continuous governance of a provisioned enterprise
+
+Provisioning (§15) stands an enterprise up. **Managed Governance keeps it
+governed**: an autonomous governance department that continuously watches every
+provisioned enterprise and recommends action *before* risk becomes an incident.
+The operator should never have to ask "is my customer's AI safe today?" — Guardian
+OS already knows. `lib/ops/managed.js`, served by `/api/ops/managed`, surfaced in
+the Control Room **Governance** tab, and run on the daily cron across every
+provisioned org (`monitorAll`).
+
+**The governed baseline.** Provisioning captures a baseline automatically
+(`captureBaseline`) — a fingerprint of the estate, active policies, departments,
+trust boundaries and autonomy level. It is the reference every later observation is
+measured against (`rg_governance_baselines`, versioned; re-capturable on demand).
+
+**Continuous monitoring → one pass.** `monitor(org)` runs the full loop and is
+idempotent to re-run: **detect drift → score health → generate recommendations →
+refresh the operator queue**, recording an audit entry and events each time.
+
+1. **Governance drift** (`detectDrift`) — today's enterprise vs its baseline.
+   Detects new AI systems, new MCP servers, new tools, removed controls, disabled
+   policies, permission changes (a tool elevated to privileged), unexpected
+   autonomy (a raise above baseline) and trust-boundary violations. Each new drift
+   becomes an **evidence-backed** `rg_governance_drift` event (deduped by
+   fingerprint, so a daily pass never double-reports). A new *privileged* tool or a
+   disabled policy is `critical`.
+2. **Governance health score** (`health`) — a live 0–100 score with **seven
+   sub-scores**: governance maturity, policy coverage, runtime health, approval
+   responsiveness, evidence completeness, drift score, and the weighted overall
+   *governance confidence*. Open drift measurably lowers it; each snapshot is
+   persisted (`rg_governance_health`) so the score **trends over time**.
+3. **Recommendations engine** (`recommend`) — drift and coverage gaps become
+   improvement recommendations (create a runtime policy, require human approval,
+   archive an unused tool, isolate a risky system, increase monitoring). Each is a
+   **governed proposal** (`create_recommendation`) carrying its triggering evidence
+   — *inert until an operator approves*. Deduped against open recommendations.
+4. **Operator queue** (`queue`) — surfaces **only what needs a human**: approvals
+   awaiting sign-off, drift to review, incidents to investigate, recommendations to
+   accept. Everything else happens automatically. Acknowledging a drift clears the
+   queue item but the risk keeps counting until it is resolved.
+5. **Executive briefings** (`briefingFor`, daily/weekly/monthly) — what changed,
+   what risks increased, what policies triggered, what was blocked, what to approve
+   next, and the emerging trends (composed with Runtime Risk Intelligence, §risk).
+6. **Monthly evidence packs** (`evidencePack`) — a customer-ready package:
+   governance posture, runtime activity, policies enforced, blocked actions,
+   executive summary, audit trail, compliance evidence, risk trend and open
+   recommendations. The pack is **content-signed** (a SHA-256 of the payload is its
+   signature) and persisted (`rg_evidence_packs`) — one click exports it.
+7. **Posture across the fleet** (`overview`) — every provisioned enterprise with
+   its health, trend, open drift and queue depth, worst-first.
+
+**Principles (never violated).** Monitoring, drift, health and packs are **read-only
+projections** over records the platform already owns — nothing here mutates the
+estate. **The agent proposes; the operator disposes** — Guardian OS never executes
+a privileged action to "fix" drift itself; every recommendation is an inert
+governed proposal. Deny-by-default and fail-closed are untouched (no kernel change,
+additive tables only); a missing baseline or a read error degrades to *unknown*,
+never to *safe*. Proven hermetically by `scripts/ops/managed.test.cjs` (24 checks):
+baseline capture, drift detection + idempotency, the seven sub-scores dropping under
+drift, governed evidence-backed recommendations, the operator queue, a signed
+evidence pack, and the invariants — monitoring never mutates the estate and the
+kernel stays deny-only (a privileged wire transfer is still blocked afterwards).
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from
