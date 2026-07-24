@@ -45,7 +45,14 @@ export async function GET(req: NextRequest) {
     const org_id = url.searchParams.get("org_id") || "";
     return NextResponse.json({ twin: await (ops.entgraph as any).build(org_id) });
   }
-  return NextResponse.json({ runs: await P.list({ limit: 50 }), departments: P.DEPARTMENTS });
+  const runs = await P.list({ limit: 50 });
+  // If an additive migration has not been applied, say so explicitly rather
+  // than returning a silently-empty list (or a 500).
+  const pending = rt.store.pendingMigrations();
+  return NextResponse.json({
+    runs, departments: P.DEPARTMENTS,
+    ...(pending.length ? { schema: { pending_migrations: pending, note: "Apply supabase/operations_agent.sql — these additive tables are missing, so provisioning history cannot be read." } } : {}),
+  });
 }
 
 export async function POST(req: NextRequest) {
