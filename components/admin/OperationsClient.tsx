@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "briefing" | "command" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["briefing", "command", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { briefing: "Briefing", command: "Command", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "briefing" | "command" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "briefing", "command", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", briefing: "Briefing", command: "Command", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -38,7 +38,7 @@ const scoreClass = (band: string) =>
 
 export default function OperationsClient() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [view, setView] = useState<View>("briefing");
+  const [view, setView] = useState<View>("guardian");
   const [brief, setBrief] = useState<any>(null);
   const [dash, setDash] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -158,6 +158,7 @@ export default function OperationsClient() {
         {err && <div className="radmin-err">{err}</div>}
         {note && <div className="radmin-card"><p>{note}</p></div>}
 
+        {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
         {view === "command" && <CommandView onOpen={openHref} />}
         {view === "customers" && <CustomersView brief={brief} onOpen={openHref} />}
@@ -1135,6 +1136,123 @@ function CommandView({ onOpen }: { onOpen: (h?: string | null) => void }) {
           </section>
         </>
       )}
+    </>
+  );
+}
+
+// ── Guardian OS — the unified executive homepage (v0) ─────────────────────────
+const HEALTH_CLASS: Record<string, string> = { ok: "ok", watch: "warn", at_risk: "bad" };
+function GuardianView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [home, setHome] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { api("guardian").then(setHome).catch((e) => setErr(e.message)); }, []);
+  if (err) return <div className="radmin-err">{err}</div>;
+  if (!home) return <div className="radmin-loading">Loading Guardian OS…</div>;
+
+  const h = home.what_is_happening;
+  const sevClass = (s: string) => (s === "critical" ? "bad" : s === "warning" ? "warn" : "ok");
+
+  return (
+    <>
+      <section className="radmin-card ops-guard-hero">
+        <div className="ops-brief-head">
+          <div>
+            <h2>Guardian OS</h2>
+            <p className="radmin-sub">The enterprise operating system over Runtime Governance. Runtime Governance is the kernel; Guardian OS coordinates the enterprise as one governed, evidence-backed runtime. Everything here is a read-only projection — every action flows proposal → Ω governor → approval → execution → evidence.</p>
+          </div>
+          {h.autonomy && <span className={`radmin-badge ${h.autonomy.halted ? "omega" : "ok"}`}>Autonomy: {h.autonomy.label}</span>}
+        </div>
+        <div className="ops-guard-happening">
+          <span><b>{h.customers}</b> customers</span>
+          <span><b>{h.live_customers}</b> live</span>
+          <span><b>{h.departments}</b> departments</span>
+          <span><b>{h.proposals_in_flight}</b> proposals in flight</span>
+          {h.last_cycle && <span className="radmin-deliv-meta">last council cycle {fmtWhen(h.last_cycle.at)} · {h.last_cycle.status}{h.last_cycle.halted ? " · halted" : ""} · {h.last_cycle.proposals} proposal(s)</span>}
+        </div>
+        <div className="ops-guard-health">
+          {home.enterprise_health.map((d: any) => (
+            <span key={d.dimension} className={`ops-guard-hchip ${HEALTH_CLASS[d.band]}`} title={d.detail}>
+              <span className="ops-guard-hdim">{d.dimension}</span>
+              <span className="ops-guard-hband">{d.band.replace("_", " ")}</span>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <div className="ops-guard-grid">
+        <section className="radmin-card">
+          <div className="ops-brief-head"><h3>What needs attention</h3><button className="radmin-linkbtn" onClick={() => go("approvals")}>Approvals →</button></div>
+          {home.needs_attention.length === 0 ? <p className="radmin-sub">All quiet. Nothing needs your attention.</p> :
+            home.needs_attention.map((n: any, i: number) => (
+              <button key={i} className={`ops-guard-att sev-${sevClass(n.severity)}`} onClick={() => onOpen(n.ref)}>
+                <span className="ops-guard-att-kind">{n.kind}</span>
+                <span className="ops-guard-att-sum">{n.summary}</span>
+                {n.why && <span className="radmin-deliv-meta">{n.why}</span>}
+              </button>
+            ))}
+        </section>
+
+        <section className="radmin-card">
+          <h3>What to approve today</h3>
+          {home.what_to_approve.length === 0 ? <p className="radmin-sub">No governed actions are awaiting your sign-off.</p> :
+            home.what_to_approve.map((p: any) => (
+              <button key={p.id} className="ops-guard-att sev-warn" onClick={() => go("approvals")}>
+                <span className="ops-guard-att-kind">{p.risk}</span>
+                <span className="ops-guard-att-sum">{p.action_id}{p.org_id ? "" : " · enterprise"}</span>
+                {p.reason && <span className="radmin-deliv-meta">{p.reason}</span>}
+              </button>
+            ))}
+        </section>
+      </div>
+
+      <div className="ops-guard-grid">
+        {home.biggest_opportunity && (
+          <section className="radmin-card ops-guard-opp">
+            <h3>Biggest opportunity</h3>
+            <button className="ops-guard-oppbtn" onClick={() => onOpen(home.biggest_opportunity.ref)}>
+              <b>{home.biggest_opportunity.name}</b>
+              <span className="radmin-deliv-meta">{home.biggest_opportunity.basis}</span>
+            </button>
+          </section>
+        )}
+        {home.biggest_risk && (
+          <section className="radmin-card ops-guard-risk">
+            <h3>Biggest risk</h3>
+            <button className="ops-guard-oppbtn" onClick={() => onOpen(home.biggest_risk.ref)}>
+              <b>{home.biggest_risk.subject}</b>
+              <span className="radmin-deliv-meta">{home.biggest_risk.summary}</span>
+            </button>
+          </section>
+        )}
+      </div>
+
+      <section className="radmin-card">
+        <h3>What happens if we do nothing</h3>
+        <p className="radmin-sub">A deterministic projection from the enterprise twin — every item traces back to a real record.</p>
+        {home.if_we_do_nothing.length === 0 ? <p className="radmin-sub">Nothing is decaying right now.</p> :
+          <ul className="ops-guard-conseq">
+            {home.if_we_do_nothing.map((c: any, i: number) => (
+              <li key={i} className={`area-${c.area}`}>
+                <button className="radmin-linkbtn" onClick={() => onOpen(c.ref)}>
+                  <span className="ops-guard-conseq-area">{c.area}</span> {c.if_ignored}
+                  <span className="ops-guard-conseq-h"> · {c.horizon}</span>
+                </button>
+              </li>
+            ))}
+          </ul>}
+      </section>
+
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>Departments</h3><button className="radmin-linkbtn" onClick={() => go("agents")}>Council →</button></div>
+        <div className="ops-guard-depts">
+          {home.departments.map((d: any) => (
+            <div key={d.id} className={`ops-guard-dept${d.paused ? " is-paused" : ""}`}>
+              <div><b>{d.title}</b>{d.cross_cutting && <span className="radmin-badge ghost"> cross-cutting</span>}{d.paused && <span className="radmin-badge warn"> paused</span>}</div>
+              <span className="radmin-deliv-meta">{d.customers_owned} owned · {d.executed} executed · {d.awaiting_approval} awaiting</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   );
 }
