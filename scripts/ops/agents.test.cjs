@@ -62,9 +62,9 @@ async function main() {
 
   // ── 1. Roster ──────────────────────────────────────────────────────────────
   const roster = await A.roster();
-  ok(roster.agents.length === 5, "five specialists in the roster", roster.agents.length);
+  ok(roster.agents.length === 6, "six specialists in the roster", roster.agents.length);
   const ids = roster.agents.map((a) => a.id).sort();
-  ok(JSON.stringify(ids) === JSON.stringify(["compliance", "customer_success", "deployment", "finance", "sales"]), "roster is Sales/Deployment/CS/Compliance/Finance", ids);
+  ok(JSON.stringify(ids) === JSON.stringify(["compliance", "customer_success", "deployment", "finance", "sales", "security"]), "roster is Sales/Deployment/CS/Compliance/Finance/Security", ids);
   ok(roster.agents.every((a) => a.charter && Array.isArray(a.charter.actions) && a.charter.actions.length > 0), "every agent has a non-empty action charter");
   ok(A.STAGE_OWNER.lead === "sales" && A.STAGE_OWNER.runtime_monitoring === "customer_success" && A.STAGE_OWNER.deployment === "deployment", "lifecycle stage ownership is partitioned across agents", A.STAGE_OWNER);
 
@@ -124,7 +124,7 @@ async function main() {
   const wl = await A.workload();
   ok(wl.sales.total >= 1 && wl.customer_success.total >= 1, "workload attributes proposals per agent", { sales: wl.sales.total, cs: wl.customer_success.total });
   const sum = await A.summary();
-  ok(sum.total_agents === 5 && Array.isArray(sum.agents), "summary lists all agents for the briefing");
+  ok(sum.total_agents === 6 && Array.isArray(sum.agents), "summary lists all agents for the briefing");
 
   // ── 8. Fail-closed: engine down → specialist proposals block ──────────────
   const fresh = await rt.admin.createOrg({ name: "Blocked Co", slug: "blocked-co" });

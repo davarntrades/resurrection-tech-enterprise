@@ -711,7 +711,7 @@ function AgentsView({ onOpen }: { onOpen: (href?: string | null) => void }) {
         <div className="ops-brief-head">
           <div>
             <h2>Multi-Agent Core</h2>
-            <p className="radmin-sub">Five governed specialists share one governance, evidence, proposal and state-machine spine. Each advances the <em>same</em> lifecycle within its charter — no agent invents a workflow, and none gets elevated trust: high-risk transitions still escalate for your approval.</p>
+            <p className="radmin-sub">Six governed specialists — Sales, Deployment, Customer Success, Compliance, Finance and a cross-cutting Security &amp; Threat watchdog — share one governance, evidence, proposal and state-machine spine. Each advances the <em>same</em> lifecycle within its charter — no agent invents a workflow, and none gets elevated trust: high-risk transitions still escalate for your approval.</p>
           </div>
           <button className="radmin-btn" disabled={busy} onClick={runCouncil}>{busy ? "Running…" : "Run council cycle"}</button>
         </div>
