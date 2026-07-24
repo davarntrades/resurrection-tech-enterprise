@@ -40,6 +40,7 @@ from sector_rules import sector_custom_rules, live_sector_ids
 from cyber_rules import cyber_custom_rules
 from healthcare_rules import healthcare_custom_rules
 from operations_rules import operations_custom_rules
+import dynamic_rules  # runtime-loaded customer Ω policies (fail-closed, optional)
 from escalation import apply_escalation
 import assess as _assess
 
@@ -167,7 +168,14 @@ def _domains_from(names: Optional[list[str]]) -> list[OmegaDomain]:
 
 def _layer_for(names: Optional[list[str]], horizon: int) -> GovernanceLayer:
     domains = _domains_from(names)
-    key = (tuple(d.value for d in domains), horizon)
+    # Runtime-loaded customer Ω policies merge with the static deployment rules.
+    # They are DENY-ONLY (can only add constraints) and fail-closed; with none
+    # configured `dyn` is empty and `gen` is 0, so behaviour is identical. The
+    # generation token is part of the cache key so a layer rebuilds only when the
+    # active policy set actually changes.
+    dyn = dynamic_rules.active_rules()
+    gen = dynamic_rules.generation()
+    key = (tuple(d.value for d in domains), horizon, gen)
     layer = _LAYERS.get(key)
     if layer is None:
         # Deployment-level Ω hardening. Finance funds-movement rules are
@@ -175,10 +183,13 @@ def _layer_for(names: Optional[list[str]], horizon: int) -> GovernanceLayer:
         # close the reported gaps when it is.
         layer = GovernanceLayer(
             domains=domains, horizon=horizon, log_all=False,
-            custom_rules=DEPLOYMENT_RULES,
+            custom_rules=DEPLOYMENT_RULES + dyn,
         )
         _LAYERS[key] = layer
-        log.info(f"built GovernanceLayer domains={key[0]} horizon={horizon} rules={len(layer.rules)}")
+        # Bound the cache: drop entries built against a superseded policy set.
+        for k in [k for k in _LAYERS if k[2] != gen]:
+            _LAYERS.pop(k, None)
+        log.info(f"built GovernanceLayer domains={key[0]} horizon={horizon} rules={len(layer.rules)} dynamic={len(dyn)} gen={gen}")
     return layer
 
 

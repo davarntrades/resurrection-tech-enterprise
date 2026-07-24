@@ -20,6 +20,7 @@ const AUTH_RULES = new Map([
   ["modify_customer", ["ops_unauthorized_customer_modification", ["change_authorized", "operator_approved"]]],
   ["export_documents", ["ops_unauthorized_document_export", ["export_authorized"]]],
   ["activate_policy", ["ops_unauthorized_policy_activation", ["policy_activation_approved", "operator_approved"]]],
+  ["activate_governance_policy", ["ops_unauthorized_policy_activation", ["policy_activation_approved", "operator_approved"]]],
 ]);
 // Phase 2: internal-only executors — permitted for their internal effect, but
 // BLOCKED if they ever carry an external destination (mirrors operations_rules.py
@@ -62,21 +63,55 @@ function mockVerdict(steps) {
   return { verdict: "PERMIT", rule: null };
 }
 
-function startMockEngine() {
+// Dynamic runtime-loaded governance policies (opt-in): mirrors dynamic_rules.py
+// — the mock engine loads ACTIVE governance policies from the store and applies
+// them as DENY-ONLY rules, so a hermetic test can prove end-to-end that
+// activating a policy actually blocks a matching action. Off by default, so all
+// other suites see byte-identical behaviour.
+function startMockEngine(opts = {}) {
+  const dynamic = !!opts.governancePolicies;
+  // Lazy deps: require lib/runtime/govpolicy only on the first evaluate, so the
+  // engine module isn't loaded (and its ENGINE_URL frozen) before the caller has
+  // set GOVERNANCE_URL. Off by default → other suites never touch these.
+  let _deps = null;
+  function deps() {
+    if (!_deps) _deps = { store: require("../../lib/runtime").store, evaluateSpec: require("../../lib/ops/govpolicy").evaluateSpec };
+    return _deps;
+  }
+
+  async function dynamicBlock(trajectory) {
+    if (!dynamic) return null;
+    const { store, evaluateSpec } = deps();
+    let active = [];
+    try { active = (await store.find("governance_policies", { status: "active" })) || []; } catch { return null; }
+    for (const step of trajectory || []) {
+      const state = { tool: step.tool, ...(step.args || {}) };
+      for (const pol of active) {
+        try { if (evaluateSpec(pol.spec, state)) return { rule: `dyn:${pol.name}`, domain: pol.domain }; } catch { /* skip bad policy */ }
+      }
+    }
+    return null;
+  }
+
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
       let body = "";
       req.on("data", (d) => (body += d));
-      req.on("end", () => {
+      req.on("end", async () => {
         res.setHeader("content-type", "application/json");
         if (req.url === "/health") return res.end(JSON.stringify({ status: "ok", engine_commit: "mock", live_sectors: [] }));
         if (req.url === "/v1/evaluate") {
           let json = {}; try { json = JSON.parse(body); } catch { /* */ }
-          const v = mockVerdict(json.trajectory);
+          let v = mockVerdict(json.trajectory);
+          // Dynamic policies can only turn a PERMIT into a BLOCK (deny-only).
+          if (v.verdict === "PERMIT") {
+            const dyn = await dynamicBlock(json.trajectory);
+            if (dyn) v = { verdict: "BLOCK", rule: dyn.rule, domain: dyn.domain };
+          }
           return res.end(JSON.stringify({
             verdict: v.verdict, permitted: v.verdict === "PERMIT", blocked: v.verdict === "BLOCK",
             layer: v.rule ? "V5+" : "V1", reason: v.rule ? `violates ${v.rule}` : "no Ω intersection",
-            omega_domain: v.rule ? "enterprise" : null, trajectory_hash: "mockhash",
+            omega_domain: v.rule ? (v.domain || "enterprise") : null, trajectory_hash: "mockhash",
             reachability_distance: null, metadata: v.rule ? { rule: v.rule } : {},
           }));
         }

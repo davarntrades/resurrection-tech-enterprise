@@ -108,6 +108,10 @@ CASES = [
      S("activate_policy", operator_approved=True), "ALLOW", "-"),
     ("activate policy, policy_activation_approved → ALLOW",
      S("activate_policy", policy_activation_approved=True), "ALLOW", "-"),
+    ("activate governance policy, no approval → BLOCK",
+     S("activate_governance_policy"), "BLOCK", "ops_unauthorized_policy_activation"),
+    ("activate governance policy, operator approved → ALLOW",
+     S("activate_governance_policy", operator_approved=True), "ALLOW", "-"),
     # Inertness: customer workloads never touch the ops vocabulary.
     ("unrelated customer tool → ALLOW (rules inert)",
      S("summarize_document"), "ALLOW", "-"),
