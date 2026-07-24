@@ -1014,6 +1014,38 @@ audit trail, the pack lens showing the **same governance score** as the executiv
 workspaces (one twin), pack recommendations becoming governed proposals, a clean
 rollback to the pre-pack baseline, and rejection of unknown/duplicate installs.
 
+## 19. Applying migrations (and the schema-resilience contract)
+
+Every Guardian OS phase adds **additive** tables to `supabase/operations_agent.sql`.
+The file is idempotent — every statement is `create table if not exists` /
+`add column if not exists` — so applying it repeatedly is safe, and it must be
+applied to each environment whose Supabase project backs a deployment.
+
+**Check before you wonder.** `npm run ops:schema-check` (with
+`NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) reports exactly which
+tables are missing and exits non-zero, so a pending migration is caught from the
+terminal rather than from a browser screenshot.
+
+**The contract when a migration is outstanding** (regression-tested in
+`scripts/ops/schema-resilience.test.cjs`):
+
+- **Reads degrade, they do not crash.** `store.findOptional` returns empty for a
+  missing table, so a pending migration can never take a read-only Control Room
+  tab down with an opaque 500. This was a real production incident: the Provision
+  tab returned HTTP 500 because `rg_provisioning` had not been migrated and
+  `provisioning.list()` let the PostgREST error escape an un-caught route.
+- **It is reported, never silently empty.** The table is registered
+  (`store.pendingMigrations()`), logged once as `store_table_missing`, surfaced in
+  `ops.health().schema`, returned on the provisioning API as `schema`, and shown
+  in the Provision tab as a "Database migration pending" banner naming the tables.
+- **Writes still throw.** `store.insert/update` are unchanged: provisioning or
+  installing an industry pack against a missing table fails loudly (the API
+  returns 400 with the reason) rather than silently half-succeeding. Degrading
+  reads must never become silent data loss.
+- **Only migration errors degrade.** `isMissingTable` matches PostgREST's
+  schema-cache wording and Postgres 42P01 only — a permissions or connectivity
+  error still propagates.
+
 ## 12. Activating continuous monitoring
 
 The Control Room works today in **on-demand mode** (briefings generated from

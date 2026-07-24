@@ -1458,6 +1458,7 @@ const PHASE_META: [string, string, string][] = [
 ];
 function ProvisionView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
   const [runs, setRuns] = useState<any[] | null>(null);
+  const [schema, setSchema] = useState<any>(null);
   const [spec, setSpec] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
   const [command, setCommand] = useState<any>(null);
@@ -1468,7 +1469,7 @@ function ProvisionView({ onOpen, go }: { onOpen: (h?: string | null) => void; go
   const load = useCallback(async () => {
     try {
       const [r, ex] = await Promise.all([api("provisioning"), api("provisioning?view=example")]);
-      setRuns(r.runs || []); setSpec(ex.spec); setErr(null);
+      setRuns(r.runs || []); setSchema(r.schema || null); setSpec(ex.spec); setErr(null);
     } catch (e: any) { setErr(e.message); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -1499,6 +1500,14 @@ function ProvisionView({ onOpen, go }: { onOpen: (h?: string | null) => void; go
     <>
       {note && <div className="radmin-card"><p>{note}</p></div>}
       {err && <div className="radmin-err">{err}</div>}
+      {schema && schema.pending_migrations?.length > 0 && (
+        <section className="radmin-card ops-prov-schema">
+          <h3>Database migration pending</h3>
+          <p className="radmin-sub">{schema.note}</p>
+          <div className="ops-ind-regs">{schema.pending_migrations.map((t: string) => <span key={t} className="ops-ind-reg">{t}</span>)}</div>
+          <p className="radmin-deliv-meta">Run <code>supabase/operations_agent.sql</code> against the production project (it is additive and idempotent — every statement is <code>create table if not exists</code> / <code>add column if not exists</code>). Installing is unaffected until then; history simply cannot be read.</p>
+        </section>
+      )}
 
       <section className="radmin-card ops-prov-hero">
         <div className="ops-brief-head">
