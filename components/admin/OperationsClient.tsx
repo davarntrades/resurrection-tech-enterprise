@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "workspaces" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "workspaces", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -159,6 +159,7 @@ export default function OperationsClient() {
         {note && <div className="radmin-card"><p>{note}</p></div>}
 
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
+        {view === "workspaces" && <WorkspacesView onOpen={openHref} go={go} />}
         {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
         {view === "governance" && <GovernanceView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
@@ -1767,6 +1768,140 @@ function GovernanceView({ onOpen, go }: { onOpen: (h?: string | null) => void; g
             ))}
           </div>
         </section>
+      )}
+    </>
+  );
+}
+
+// ── Guardian OS — Executive Workspaces (Phase 4): one twin, many perspectives ─
+const WS_SECTION_SEV = (s: string) => (s === "critical" ? "bad" : s === "warning" ? "warn" : "");
+function WorkspaceSection({ s }: { s: any }) {
+  if (s.kind === "note") {
+    return (
+      <section className="radmin-card ops-ws-note">
+        <h3>{s.title}</h3>
+        <p className="radmin-sub">{s.reason}</p>
+        <span className="radmin-badge">not yet instrumented</span>
+      </section>
+    );
+  }
+  if (s.kind === "score") {
+    return (
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>{s.title}</h3>{s.overall && <span className={`radmin-badge ${scoreClass(s.overall.band)}`}>{s.overall.score} · {s.overall.band}</span>}</div>
+        <div className="ops-gov-subs">
+          {s.subs.map((sub: any) => (
+            <div key={sub.key} className={`ops-gov-sub ${scoreClass(sub.band)}`}>
+              <span className="ops-gov-sub-n">{sub.score}</span>
+              <span className="ops-gov-sub-l">{sub.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (s.kind === "stat") {
+    return (
+      <section className="radmin-card">
+        <h3>{s.title}</h3>
+        {s.items.length === 0 ? <p className="radmin-sub">—</p> : (
+          <div className="ops-cmd-stats">
+            {s.items.map((it: any, i: number) => (
+              <div key={i} className="ops-cmd-stat"><b>{String(it.value)}</b><span>{it.label}</span>{it.hint && <span className="ops-ws-hint">{it.hint}</span>}</div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+  // list | timeline
+  return (
+    <section className="radmin-card">
+      <div className="ops-brief-head"><h3>{s.title}</h3><span className="radmin-badge">{s.items.length}</span></div>
+      {s.items.length === 0 ? <p className="radmin-sub">{s.empty}</p> : (
+        <div className={s.kind === "timeline" ? "ops-ws-timeline" : "ops-ws-list"}>
+          {s.items.map((it: any, i: number) => (
+            <div key={i} className={`ops-ws-row ${WS_SECTION_SEV(it.severity)}`}>
+              <div className="ops-ws-rbody"><b>{it.title}</b>{it.meta && <span className="radmin-deliv-meta">{it.meta}</span>}</div>
+              {it.severity && <span className={`radmin-badge ${scoreClass(it.severity === "critical" ? "high" : it.severity === "warning" ? "watch" : "low")}`}>{it.severity}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WorkspacesView({ onOpen, go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [roles, setRoles] = useState<any[] | null>(null);
+  const [overview, setOverview] = useState<any>(null);
+  const [org, setOrg] = useState<string>("");
+  const [role, setRole] = useState<string>("ceo");
+  const [ws, setWs] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api("workspaces").then((d) => {
+      setRoles(d.roles || []); setOverview(d.overview);
+      if (d.overview && d.overview.list[0]) setOrg(d.overview.list[0].org_id);
+    }).catch((e) => setErr(e.message));
+  }, []);
+
+  const load = useCallback(async (r: string, o: string) => {
+    if (!o) return;
+    setBusy(true);
+    try { const d = await api(`workspaces?role=${encodeURIComponent(r)}&org_id=${encodeURIComponent(o)}`); setWs(d.workspace); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, []);
+  useEffect(() => { if (org) load(role, org); }, [role, org, load]);
+
+  if (err && !roles) return <div className="radmin-err">{err}</div>;
+  if (!roles) return <div className="radmin-loading">Loading workspaces…</div>;
+
+  return (
+    <>
+      <section className="radmin-card ops-ws-hero">
+        <h2>Executive Workspaces</h2>
+        <p className="radmin-sub">One enterprise. One digital twin. One runtime governance engine. Many executive perspectives — each a lens over the same governed source of truth, never a separate dashboard.</p>
+        {overview && overview.list.length > 1 && (
+          <div className="ops-ws-orgpick">
+            <span className="radmin-deliv-meta">Enterprise:</span>
+            {overview.list.map((e: any) => (
+              <button key={e.org_id} className={`radmin-btn sm${e.org_id === org ? " primary" : ""}`} onClick={() => setOrg(e.org_id)}>{e.name}</button>
+            ))}
+          </div>
+        )}
+        <nav className="ops-ws-nav">
+          {roles.map((r) => (
+            <button key={r.id} className={`ops-ws-tab${r.id === role ? " is-active" : ""}`} onClick={() => setRole(r.id)}>
+              <span className="ops-ws-tab-t">{r.title}</span>
+              <span className="ops-ws-tab-l">{r.label}</span>
+            </button>
+          ))}
+        </nav>
+      </section>
+
+      {err && <div className="radmin-err">{err}</div>}
+      {!org ? (
+        <section className="radmin-card"><p className="radmin-sub">No enterprise provisioned yet. <button className="radmin-linkbtn" onClick={() => go("provision")}>Install Guardian OS →</button></p></section>
+      ) : busy && !ws ? <div className="radmin-loading">Loading workspace…</div> : ws && (
+        <>
+          <section className="radmin-card ops-ws-head">
+            <div className="ops-brief-head">
+              <div><h3>{ws.title} · {ws.name}</h3><p className="radmin-sub">{ws.purpose}</p></div>
+              {ws.header && ws.header.governance && (
+                <div className="ops-ws-headstats">
+                  <span className={`radmin-badge ${scoreClass(ws.header.governance.band)}`}>Governance {ws.header.governance.score}</span>
+                  <span className="radmin-badge">{ws.header.queue} in queue</span>
+                  <span className="radmin-badge">{ws.header.drift_open} drift</span>
+                </div>
+              )}
+            </div>
+          </section>
+          {ws.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
+        </>
       )}
     </>
   );
