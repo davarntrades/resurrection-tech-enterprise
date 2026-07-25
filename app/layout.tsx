@@ -4,6 +4,7 @@ import { Analytics } from "@/components/Analytics";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { StickyBookBar } from "@/components/StickyBookBar";
+import { isSovereignBuild, SYSTEM_FONT_CSS } from "@/lib/sovereign/build";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -68,18 +69,34 @@ const orgSchema = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // A sovereign build makes NO external request — the requests are removed from
+  // the output at build time rather than blocked at runtime, because a browser
+  // on a disconnected network does not fail usefully on a font or telemetry
+  // fetch: it stalls, falls back, and the operator sees a slow, subtly wrong
+  // interface with no explanation. scripts/sovereign/offline-audit.cjs scans the
+  // build output and fails if any of these hosts reappears.
+  const sovereign = isSovereignBuild();
   return (
     <html lang="en">
       <head>
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap"
-          rel="stylesheet"
-        />
+        {sovereign ? (
+          <style
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: SYSTEM_FONT_CSS }}
+          />
+        ) : (
+          <>
+            <link
+              rel="preconnect"
+              href="https://fonts.googleapis.com"
+            />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link
+              href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap"
+              rel="stylesheet"
+            />
+          </>
+        )}
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
@@ -89,9 +106,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <StickyBookBar />
-        <Analytics />
-        <VercelAnalytics />
-        <SpeedInsights />
+        {sovereign ? null : (
+          <>
+            <Analytics />
+            <VercelAnalytics />
+            <SpeedInsights />
+          </>
+        )}
       </body>
     </html>
   );

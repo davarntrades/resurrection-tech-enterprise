@@ -1,0 +1,91 @@
+# Guardian OS Sovereign — reference deployment.
+#
+# Two containers, one internal bridge, NO EXTERNAL NETWORK. This is the topology
+# a customer runs on their own hardware: the Ω engine enforcing from a signed
+# policy bundle baked into its image, and the platform serving an offline-clean
+# interface from a local data volume.
+#
+# Bring it up with no internet at all:
+#
+#   docker compose -f deploy/sovereign/docker-compose.yml up -d
+#   docker compose -f deploy/sovereign/docker-compose.yml exec app \
+#     node bin/guardian.cjs acceptance --site "Site B rack 4" \
+#       --operator "$USER" --witness "..." --pdf /data/acceptance.pdf
+#
+# The images must already be loaded (`docker load -i guardian-*.tar` from the
+# offline media set — see deploy/sovereign/README.md). Nothing here pulls.
+
+name: guardian-os-sovereign
+
+services:
+  engine:
+    # Built by: guardian media build → docker build -f governance-service/Dockerfile
+    #   --build-arg POLICY_BUNDLE=dist/policy-bundle --build-arg TRUST_BUNDLE=dist/trust
+    image: guardian-engine:${GUARDIAN_VERSION:-sovereign}
+    container_name: guardian-engine
+    restart: unless-stopped
+    # No published ports: the engine is reachable only from `app` on the
+    # internal bridge. Nothing outside the compose project can call it.
+    expose: ["8000"]
+    networks: [governance]
+    environment:
+      GUARDIAN_PROFILE: ${GUARDIAN_PROFILE:-air_gapped}
+      # The signed bundle + trust store are baked into the image at
+      # /app/policy-bundle and /app/trust; both are re-verified on every load.
+      GUARDIAN_REQUIRE_SIGNED: "1"
+      GOVERNANCE_TOKEN: ${GOVERNANCE_TOKEN:?set GOVERNANCE_TOKEN in .env before deploying}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  app:
+    # Built by: guardian media build → docker build -f deploy/sovereign/Dockerfile.app .
+    # (an offline-clean Next.js build: SOVEREIGN_BUILD=1, no fonts, no telemetry)
+    image: guardian-app:${GUARDIAN_VERSION:-sovereign}
+    container_name: guardian-app
+    restart: unless-stopped
+    depends_on:
+      engine: { condition: service_healthy }
+    ports: ["${BIND_ADDR:-127.0.0.1}:${PORT:-3000}:3000"]
+    networks: [governance]
+    environment:
+      GUARDIAN_PROFILE: ${GUARDIAN_PROFILE:-air_gapped}
+      SOVEREIGN_BUILD: "1"
+      GOVERNANCE_URL: http://engine:8000
+      GOVERNANCE_TOKEN: ${GOVERNANCE_TOKEN:?set GOVERNANCE_TOKEN in .env before deploying}
+      RUNTIME_DATA_DIR: /data
+      GUARDIAN_TRUST_DIR: /trust
+      ADMIN_KEY: ${ADMIN_KEY:?set ADMIN_KEY in .env before deploying}
+      # Deliberately absent: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+      # RESEND_API_KEY, ANTHROPIC_API_KEY. Under an air-gapped profile the store
+      # would refuse a cloud client anyway — but a deployment should not carry
+      # secrets it has no use for.
+    volumes:
+      - guardian-data:/data              # ← the entire backup set (see README §Backup)
+      - ./trust:/trust:ro                # ← public signing keys, read-only
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/ops/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  governance:
+    driver: bridge
+    internal: false      # `app` publishes a port to the host; see BIND_ADDR.
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"   # no NAT out
+
+volumes:
+  guardian-data:
+    driver: local

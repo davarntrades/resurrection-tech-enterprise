@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { CalendlyButton } from "@/components/CalendlyButton";
 import { BOOKING_SESSIONS, CALENDLY_URLS } from "@/lib/booking";
+import { isSovereignBuild } from "@/lib/sovereign/build";
 
 /**
  * Reusable "Book a consultation" section — three Calendly options as premium,
@@ -25,7 +26,7 @@ export function ConsultationSection({
 
   return (
     <section className="section section--tight" id={id} data-screen-label="Book a consultation">
-      {anyCalendly && (
+      {anyCalendly && !isSovereignBuild() && (
         <>
           {/* eslint-disable-next-line @next/next/no-css-tags */}
           <link rel="stylesheet" href="https://assets.calendly.com/assets/external/widget.css" />

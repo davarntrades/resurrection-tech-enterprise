@@ -74,6 +74,12 @@ jobs:
         if: matrix.profile == 'cloud'
         run: npm run sovereign:test
 
+      - name: Offline document rendering (no Chromium installed in this job)
+        run: npm run sovereign:pdf
+
+      - name: Site acceptance suite + assurance artefacts
+        run: npm run sovereign:acceptance
+
   # ── Air-gapped, for real: no network interface at all ─────────────────────
   airgap-platform:
     name: air-gapped platform (no network namespace)
@@ -106,6 +112,8 @@ jobs:
             export SUPABASE_SERVICE_ROLE_KEY=must-never-be-used
             node scripts/sovereign/sovereign.test.cjs
             GUARDIAN_PROFILE=air_gapped node scripts/sovereign/boot.test.cjs
+            node scripts/sovereign/pdf.test.cjs
+            node scripts/sovereign/acceptance.test.cjs
           '
 
       - name: guardian verify under a real air gap
@@ -228,3 +236,46 @@ assert not st['bundle']['ok'], 'a tampered bundle was accepted'
 assert dr.active_rules() == [], 'a tampered bundle still yielded rules — NOT fail-closed'
 print('tampered bundle rejected, zero rules loaded:', st['bundle']['errors'][0])
 "
+
+  # ── The interface makes no external request ───────────────────────────────
+  offline-interface:
+    name: offline-clean interface
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: npm ci
+
+      # The BASELINE run exists so a sovereign pass cannot be vacuous: a cloud
+      # build must show external hosts, or the scanner is broken rather than the
+      # build clean.
+      - name: Cloud baseline — the audit must DETECT external hosts
+        run: |
+          npm run build
+          npm run sovereign:offline-audit:baseline
+
+      - name: Sovereign build — zero external resource loads
+        run: |
+          rm -rf .next
+          npm run build:sovereign
+          npm run sovereign:offline-audit
+
+      # Serve the sovereign build with no network at all and confirm it renders.
+      - name: Serve the sovereign build inside a network namespace
+        run: |
+          sudo unshare -n sh -c '
+            ip link set lo up
+            SOVEREIGN_BUILD=1 GUARDIAN_PROFILE=air_gapped PORT=3000 npm run start &
+            SRV=$!
+            for i in $(seq 1 40); do
+              if curl -sSf -o /tmp/page.html http://127.0.0.1:3000/guardian-os; then break; fi
+              sleep 1
+            done
+            kill $SRV 2>/dev/null || true
+            test -s /tmp/page.html || { echo "::error::the sovereign build did not serve a page offline"; exit 1; }
+            if grep -qiE "fonts\.(googleapis|gstatic)\.com|vercel-insights|vitals\.vercel|assets\.calendly\.com|googletagmanager|plausible\.io" /tmp/page.html; then
+              echo "::error::the served page still references an external host"; exit 1
+            fi
+            echo "served offline, no external host in the delivered HTML"
+          '

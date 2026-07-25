@@ -422,24 +422,48 @@ Stated plainly, because a procurement team will ask.
 
 ## 11. What is still not proven
 
-Honesty about the edges of this phase:
+Honesty about the edges. Two items from the previous release have since been
+closed; the rest have not, and are stated as they are.
 
-- **The Next.js web tier has not been made offline-clean.** The Control Room
-  still preconnects to Google Fonts and loads Vercel Analytics / Speed Insights,
-  and mail goes through Resend. A sovereign deployment should serve the UI from
-  a stripped build; **that build does not exist yet**. What IS proven offline is
-  the platform library, the CLI, and the engine.
-- **PDF evidence rendering needs Chromium.** Renderable offline in principle;
-  the toolchain has not been assembled and tested without a network.
-- **No sovereign reference deployment exists on customer-representative
-  hardware.** CI proves isolation in a network namespace and a `--network none`
-  container. That is a real proof of the software's behaviour, not of an
-  installation on a classified network.
-- **No formal accreditation has been sought or obtained** (no ITSEC/Common
-  Criteria evaluation, no ATO, no NCSC assurance). Nothing here should be
-  described as accredited.
+**Closed since Phase 6.0:**
 
----
+- ~~The web tier is not offline-clean.~~ **Done.** `npm run build:sovereign`
+  emits an interface with no Google Fonts, no Vercel Analytics, no Speed
+  Insights and no Calendly. `npm run sovereign:offline-audit` scans the emitted
+  HTML, JS and CSS: the cloud build shows 170+ external resource loads, the
+  sovereign build shows **zero**. The audit has a baseline mode that asserts it
+  can still detect, so a pass cannot be vacuous, and CI additionally serves the
+  build inside a network namespace and greps the delivered HTML.
+- ~~PDF rendering needs Chromium.~~ **Done.** `lib/sovereign/pdf.js` writes
+  PDF 1.4 bytes from Node's standard library alone — real core-font metrics,
+  measured line breaking, a verified xref table. Evidence packs, deployment
+  attestations and the control mapping all render offline. The sovereign app
+  image installs no browser.
+
+**Still open — and these are the honest limits:**
+
+- **No reference deployment has run on customer hardware.** The artefacts exist
+  (`deploy/sovereign/`: compose topology, hardened images, media builder,
+  offline installer, systemd unit) and the media builder proves the engine image
+  governs with `--network none` before it ships. But CI is not a datacentre.
+  Until [`docs/FIELD-TRIAL.md`](./FIELD-TRIAL.md) has been executed and a record
+  countersigned, the correct description is **acceptance-testable, not
+  field-tested**. `guardian acceptance` marks any run without a site and a
+  witness as a self-test on the face of the document, so this cannot be blurred
+  by accident.
+- **No accreditation has been sought or obtained.** No Common Criteria
+  evaluation, no NCSC assurance, no FedRAMP authorisation, no ATO, no CE
+  marking. `guardian controls` publishes the control mapping **and the gap
+  register**; see [`docs/ACCREDITATION.md`](./ACCREDITATION.md) for the ten open
+  gaps and what a real accreditation route would require. The largest are: no
+  identity provider of our own (IA-2 is inherited), tamper-evidence rather than
+  cryptographic non-repudiation (AU-10), and a non-FIPS-validated verifier
+  (SC-13).
+- **No independent security assessment.** No penetration test of this codebase
+  has been commissioned (NCSC P7).
+- **No tested RTO/RPO.** The backup set and restore procedure are documented and
+  end in `guardian verify`, but continuity targets have not been measured on
+  representative hardware.
 
 ## 12. CI
 
@@ -450,6 +474,7 @@ Honesty about the edges of this phase:
 | `platform (cloud / on_prem / air_gapped)` | Guardian OS boots and governs under each profile; storage, immutability and verification match what the profile promises |
 | `air-gapped platform` | the full suite + boot proof inside `unshare -n` — **a network namespace with no interface but loopback**. The job first asserts the namespace really has no egress, so it cannot silently pass |
 | `air-gapped engine` | a signed bundle is published, baked into an image, and the container is run with `--network none`: the engine loads the bundle, verifies the Ed25519 signature, and enforces. A second image with a **tampered** bundle must load **zero** rules |
+| `offline-clean interface` | a cloud build must show external hosts (proving the scanner works), the sovereign build must show none, and the built app is then served inside a network namespace and its delivered HTML grepped for font/telemetry hosts |
 
 Cloud credentials are deliberately left in the environment in the air-gapped
 jobs: the platform must **refuse** them, not merely fail to reach them.
@@ -459,8 +484,22 @@ Local commands:
 ```bash
 npm run sovereign:test        # the full sovereign suite
 npm run sovereign:profiles    # boot proof, all six profiles
+npm run sovereign:pdf         # offline PDF rendering, no Chromium
+npm run sovereign:acceptance  # the site acceptance instrument + assurance artefacts
 npm run sovereign:crosslang   # Node signs → Python verifies (needs ENGINE_PATH)
 npm run sovereign:ci          # all of the above
+
+npm run build:sovereign             # offline-clean interface build
+npm run sovereign:offline-audit     # prove it makes no external request
+```
+
+Operator commands added in this phase:
+
+```bash
+guardian export pack [FILE.pdf]     # evidence pack → auditor-ready PDF, offline
+guardian acceptance --pdf F         # site acceptance suite, on THIS hardware
+guardian controls [gaps] --pdf F    # control mapping + gap register
+guardian verify --pdf F             # deployment attestation
 ```
 
 ---
@@ -508,6 +547,14 @@ backup so a historical decision can be re-derived, not just read.
 | `lib/sovereign/updates.js` | signed update packages, rollback plans, history |
 | `lib/sovereign/immutable.js` | the locked-runtime guard |
 | `lib/sovereign/verify.js` | the eight deployment checks |
+| `lib/sovereign/pdf.js` | PDF 1.4 bytes from Node stdlib alone — no Chromium |
+| `lib/sovereign/report.js` | the shared section vocabulary, laid out on paper |
+| `lib/sovereign/controls.js` | control mapping + gap register (a self-assessment) |
+| `lib/sovereign/acceptance.js` | the site acceptance suite that runs on the target |
+| `lib/sovereign/build.ts` | build-time switches for the offline-clean interface |
+| `deploy/sovereign/` | reference deployment: compose, images, media builder, installer |
+| `docs/ACCREDITATION.md` | accreditation posture and the open gaps |
+| `docs/FIELD-TRIAL.md` | the protocol that turns acceptance-testable into field-tested |
 | `bin/guardian.cjs` | the operator CLI |
 | `governance-service/policy_bundle.py` | the engine's filesystem policy provider |
 | `governance-service/ed25519_verify.py` | pure-stdlib RFC 8032 verification |

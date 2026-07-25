@@ -34,6 +34,15 @@ const ROOT = path.join(__dirname, "..");
 const sovereign = require(path.join(ROOT, "lib", "sovereign"));
 const { profiles, bundle: fmt, packs: sovPacks, updates } = sovereign;
 
+/** Write a rendered document to disk, or print where it would have gone. */
+function writePdf(doc, file, label) {
+  const rendered = sovereign.report.render(doc);
+  fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
+  fs.writeFileSync(file, rendered.bytes);
+  out(`  ${green("PDF")} ${label}: ${bold(file)} ${dim(`(${rendered.pages} pages, ${(rendered.bytes.length / 1024).toFixed(0)}KB, rendered offline)`)}`);
+  return rendered;
+}
+
 // ── Output ──────────────────────────────────────────────────────────────────
 const isTTY = process.stdout.isTTY;
 const c = (code, s) => (isTTY ? `\x1b[${code}m${s}\x1b[0m` : s);
@@ -350,6 +359,10 @@ async function cmdVerify(pos, flags) {
 
   const res = await sovereign.verify.run({ org_id: flags.org || (await defaultOrg()) });
   emit(res);
+  if (flags.pdf) {
+    writePdf(sovereign.report.verificationDocument(res, { site: flags.site || null, operator: flags.operator || null, classification: flags.classification || null }),
+      String(flags.pdf), "attestation");
+  }
   out(bold(`\nGuardian OS — deployment verification (${res.profile})\n`));
   for (const ch of res.checks) {
     out(`  ${MARK[ch.status]} ${bold(ch.title.padEnd(26))} ${ch.detail}`);
@@ -361,7 +374,23 @@ async function cmdVerify(pos, flags) {
 }
 
 async function cmdExport(pos, flags) {
-  if (pos[0] !== "evidence") return die("usage: guardian export evidence <OUT_DIR>", 2);
+  // Evidence pack → auditor-ready PDF, rendered on this box with no browser.
+  if (pos[0] === "pack") {
+    const ops = require(path.join(ROOT, "lib", "ops"));
+    const org = flags.org || (await defaultOrg());
+    if (!org) return die("no enterprise found — pass --org ORG_ID", 2);
+    const pack = await ops.managed.evidencePack(org, { period: flags.period || null, actor: flags.actor || "guardian-cli", persist: flags["no-persist"] ? false : true });
+    if (!pack) return die("no evidence pack could be generated for this enterprise");
+    const file = pos[1] || flags.out || `evidence-pack-${pack.period}.pdf`;
+    out(`\n${bold(`Evidence pack — ${pack.enterprise} · ${pack.period}`)}`);
+    out(`  integrity ${dim(pack.hash)}`);
+    const r = writePdf(sovereign.report.evidencePackDocument(pack, { classification: flags.classification || null }), file, "evidence pack");
+    if (flags.json) fs.writeFileSync(String(flags.json), JSON.stringify(pack, null, 2));
+    emit({ ok: true, period: pack.period, hash: pack.hash, pdf: file, pages: r.pages });
+    out("");
+    return 0;
+  }
+  if (pos[0] !== "evidence") return die("usage: guardian export evidence <OUT_DIR> | guardian export pack [FILE.pdf]", 2);
   const dest = pos[1] || flags.out;
   if (!dest) return die("an output directory is required", 2);
   const rt = require(path.join(ROOT, "lib", "runtime"));
@@ -375,6 +404,44 @@ async function cmdExport(pos, flags) {
   out(`\n${green("✓")} exported ${n} file(s) from ${src} → ${bold(dest)}`);
   out(dim("  this is the full local evidence store: decisions, evidence ledger, reports and deliverables\n"));
   return 0;
+}
+
+async function cmdControls(pos, flags) {
+  const controls = sovereign.controls;
+  if (pos[0] === "gaps") {
+    const rows = controls.gapRegister();
+    emit({ ok: true, gaps: rows });
+    out(bold("\nGap register — controls Guardian OS does NOT fully implement\n"));
+    for (const g of rows) out(`  ${yellow(g.status.padEnd(16))} ${bold(g.id.padEnd(10))} ${g.title}\n    ${dim(g.limitation)}`);
+    out(`\n  ${rows.length} open gap(s). Guardian OS holds no third-party accreditation.\n`);
+    return 0;
+  }
+  const all = controls.assessAll();
+  emit({ ok: true, ...all });
+  out(bold("\nControl mapping — self-assessment, NOT an accreditation\n"));
+  for (const f of all.frameworks) {
+    const s2 = Object.entries(f.by_status).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`).join(" · ");
+    out(`  ${bold(f.title.padEnd(38))} ${f.total} mapped — ${s2}`);
+  }
+  out(`\n  ${yellow(String(controls.gapRegister().length))} open gap(s) — see ${bold("guardian controls gaps")}`);
+  out(dim(`\n  ${all.disclaimer}\n`));
+  if (flags.pdf) writePdf(controls.document({ classification: flags.classification || null }), String(flags.pdf), "control mapping");
+  return 0;
+}
+
+async function cmdAcceptance(pos, flags) {
+  const res = await sovereign.acceptance.run({
+    site: flags.site || null, operator: flags.operator || null, witness: flags.witness || null, keep: !!flags.keep,
+  });
+  emit(res);
+  out(bold(`\nSite acceptance — ${res.profile} on ${res.host.platform}/${res.host.arch}\n`));
+  for (const s2 of res.steps) out(`  ${MARK[s2.status]} ${bold(String(s2.title).padEnd(38))} ${s2.detail}${s2.ms != null ? dim(`  ${s2.ms}ms`) : ""}`);
+  out(`\n  ${res.summary.pass} passed · ${res.summary.warn} warning(s) · ${res.summary.fail} failure(s)`);
+  if (res.performance.governance_decision_ms != null) out(`  governance decision on this hardware: ${bold(res.performance.governance_decision_ms + "ms")}`);
+  if (!res.field_trial) out(yellow("\n  No site and no witness recorded — this is a software self-test, NOT a field trial."));
+  out(res.ok ? green("\n  ACCEPTED.\n") : red("\n  NOT ACCEPTED — resolve the failures above.\n"));
+  if (flags.pdf) writePdf(sovereign.acceptance.document(res, { classification: flags.classification || null }), String(flags.pdf), "acceptance record");
+  return res.ok ? 0 : 1;
 }
 
 /** The single provisioned enterprise, when there is exactly one. */
@@ -415,8 +482,11 @@ ${bold("Updates")}
   guardian update history                 applied updates, newest first
   guardian update rollback ID             reverse an applied update
 
-${bold("Evidence")}
+${bold("Evidence + assurance")}
   guardian export evidence OUT_DIR        copy the local evidence store off the box
+  guardian export pack [FILE.pdf]         render an evidence pack to PDF (no browser)
+  guardian acceptance [--pdf F]           site acceptance suite, on THIS hardware
+  guardian controls [gaps] [--pdf F]      control mapping + gap register
 
 ${bold("Common flags")}
   --sign-key KEY.pem  --key-id ID  --hmac-key SECRET   signing
@@ -424,6 +494,9 @@ ${bold("Common flags")}
   --org ORG_ID        target enterprise
   --json              machine-readable output
   --unsigned          allow building an unsigned bundle (refused by default)
+  --pdf FILE          also render the result to an auditor-ready PDF
+  --site S --operator N --witness W       recorded on an acceptance record
+  --classification C  marking printed on the PDF cover (e.g. OFFICIAL-SENSITIVE)
 
 Environment: GUARDIAN_PROFILE · GUARDIAN_POLICY_BUNDLE · GUARDIAN_TRUST_DIR ·
 GUARDIAN_BUNDLE_HMAC_KEY · GUARDIAN_IMMUTABLE · RUNTIME_DATA_DIR
@@ -447,6 +520,8 @@ async function main() {
     case "update": return cmdUpdate(positional, flags);
     case "verify": return cmdVerify(positional, flags);
     case "export": return cmdExport(positional, flags);
+    case "controls": return cmdControls(positional, flags);
+    case "acceptance": return cmdAcceptance(positional, flags);
     default: usage(); return die(`unknown command "${cmd}"`, 2);
   }
 }

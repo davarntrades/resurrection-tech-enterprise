@@ -50,10 +50,15 @@
     "guardian": "node bin/guardian.cjs",
     "sovereign:test": "node scripts/sovereign/sovereign.test.cjs",
     "sovereign:crosslang": "node scripts/sovereign/crosslang.test.cjs",
-    "sovereign:ci": "node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/boot.test.cjs --all && node scripts/sovereign/crosslang.test.cjs",
-    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/govpolicy.test.cjs && node scripts/ops/provisioning.test.cjs && node scripts/ops/managed.test.cjs && node scripts/ops/workspaces.test.cjs && node scripts/ops/industry.test.cjs && node scripts/ops/schema-resilience.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs && node scripts/sovereign/sovereign.test.cjs",
+    "sovereign:ci": "node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/boot.test.cjs --all && node scripts/sovereign/pdf.test.cjs && node scripts/sovereign/acceptance.test.cjs && node scripts/sovereign/crosslang.test.cjs",
+    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/govpolicy.test.cjs && node scripts/ops/provisioning.test.cjs && node scripts/ops/managed.test.cjs && node scripts/ops/workspaces.test.cjs && node scripts/ops/industry.test.cjs && node scripts/ops/schema-resilience.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs && node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/pdf.test.cjs && node scripts/sovereign/acceptance.test.cjs",
     "sovereign:boot": "node scripts/sovereign/boot.test.cjs",
-    "sovereign:profiles": "node scripts/sovereign/boot.test.cjs --all"
+    "sovereign:profiles": "node scripts/sovereign/boot.test.cjs --all",
+    "build:sovereign": "SOVEREIGN_BUILD=1 NEXT_PUBLIC_SOVEREIGN_BUILD=1 next build",
+    "sovereign:offline-audit": "node scripts/sovereign/offline-audit.cjs",
+    "sovereign:offline-audit:baseline": "node scripts/sovereign/offline-audit.cjs --baseline",
+    "sovereign:pdf": "node scripts/sovereign/pdf.test.cjs",
+    "sovereign:acceptance": "node scripts/sovereign/acceptance.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
