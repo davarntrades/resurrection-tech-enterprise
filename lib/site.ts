@@ -35,6 +35,7 @@ export const NAV_MENU = [
   {
     group: "Product",
     links: [
+      { href: "/guardian-os", label: "Guardian OS™" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/technology", label: "Technology & architecture" },

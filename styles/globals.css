@@ -8,6 +8,7 @@
 
 @import "./design-system.css";
 @import "./guardian-home.css";
+@import "./guardian-os.css";
 @import "./upgrade.css";
 @import "./audit.css";
 @import "./audit-upgrade.css";
