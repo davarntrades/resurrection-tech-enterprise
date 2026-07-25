@@ -91,6 +91,16 @@ const BENEFITS = [
   { title: "Industry-ready from day one", body: `${PACKS.length} Industry Intelligence Packs ship with the policies, evidence mappings and workflows for your sector.` },
 ];
 
+/* Enterprise integrations.
+ * Two lists, deliberately separated. Guardian OS genuinely sits in front of the
+ * agent runtimes in RUNTIMES — that is where it integrates. The systems in
+ * REACHES are where governed actions LAND; Guardian OS governs the agent's call
+ * to them at the tool-call boundary, which is why no per-vendor connector is
+ * required. Naming them without that distinction would imply native connectors
+ * and vendor endorsement, neither of which exists. */
+const RUNTIMES = ["OpenAI Agents", "LangGraph", "LangChain", "AutoGen", "Amazon Bedrock", "MCP servers", "Custom orchestrators"];
+const REACHES = ["Microsoft 365", "Azure", "AWS", "Google Cloud", "Salesforce", "ServiceNow", "SAP", "Snowflake", "Databricks", "Palantir"];
+
 const STACK = [
   { k: "Guardian OS", d: "The enterprise operating system" },
   { k: "Runtime Governance Kernel", d: "Deny-by-default · fail-closed · Ω policies" },
@@ -414,6 +424,44 @@ export default function GuardianOSPage() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ─────────────────── ENTERPRISE INTEGRATIONS ─────────────────── */}
+      <section className="gos-section" id="integrations">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">Enterprise integrations</span>
+            <h2 className="gos-h2">Governed wherever your agents already reach.</h2>
+            <p className="gos-sec-lede">
+              Guardian OS governs at the <strong>tool-call boundary</strong> — the moment an agent tries to act.
+              That is why it does not need a bespoke connector for every system in your estate: it governs the
+              call, whatever sits on the other end.
+            </p>
+          </header>
+
+          <div className="gos-int">
+            <div className="gos-int-col reveal">
+              <span className="gos-int-h">Guardian OS sits in front of</span>
+              <p className="gos-int-p">Your agent runtime — where governance is enforced before an action leaves.</p>
+              <div className="gos-int-tags">
+                {RUNTIMES.map((r) => <span className="gos-int-tag is-native" key={r}>{r}</span>)}
+              </div>
+            </div>
+            <div className="gos-int-col reveal" data-d="1">
+              <span className="gos-int-h">Your agents reach</span>
+              <p className="gos-int-p">Where governed actions land. Each call is evaluated against policy before it executes.</p>
+              <div className="gos-int-tags">
+                {REACHES.map((r) => <span className="gos-int-tag" key={r}>{r}</span>)}
+              </div>
+            </div>
+          </div>
+
+          <p className="gos-int-note reveal">
+            Systems are named to show where governed actions typically land. Guardian OS governs an agent&apos;s
+            call to a system — it is not a native connector to, nor endorsed by, any vendor listed.{" "}
+            <Link href="/integrations" className="twin-inline-link">See how it integrates →</Link>
+          </p>
         </div>
       </section>
 

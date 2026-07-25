@@ -297,3 +297,19 @@
 .gos-also-i { position: relative; padding-right: 14px; }
 .gos-also-i::after { content: "·"; position: absolute; right: 3px; color: var(--ink-4); }
 .gos-also-i:last-of-type::after { content: ""; }
+
+/* ── Enterprise integrations ─────────────────────────────────────────────── */
+.gos-int { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.gos-int-col { padding: clamp(24px, 2.8vw, 32px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+.gos-int-h {
+  display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.gos-int-p { margin: 10px 0 18px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+.gos-int-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.gos-int-tag {
+  font-size: 13px; padding: 7px 13px; border: 1px solid var(--line-2); border-radius: 8px;
+  background: var(--panel-2); color: var(--ink-2);
+}
+.gos-int-tag.is-native { border-color: var(--accent-dim); color: var(--ink); }
+.gos-int-note { max-width: 76ch; margin: clamp(26px, 3vw, 36px) 0 0; font-size: 12.5px; line-height: 1.66; color: var(--ink-4); }
