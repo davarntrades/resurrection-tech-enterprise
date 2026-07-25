@@ -54,15 +54,26 @@ def main() -> int:
         print(f"  {label:34} verdict={v:7} thash={t['expected']['trajectory_hash'][:12]} "
               f"rhash={t['expected']['ruleset_hash'][:12]} ✓")
 
-    # 4. ruleset_hash agrees with the service's app._ruleset_hash (no drift).
+    # 4. Deployment-rule parity with app.py — the composition, not just the
+    # hash formula. If app.py folds in a rule module that replay.py doesn't
+    # (or vice versa), replayed ruleset_hashes diverge from production
+    # attestations, which is exactly the drift this must catch.
+    from replay import DEPLOYMENT_RULES as replay_rules
     try:
         import app  # noqa: F401  (only if FastAPI is available)
+        app_names = sorted(f"{r.domain.value}:{r.name}" for r in app.DEPLOYMENT_RULES)
+        rep_names = sorted(f"{r.domain.value}:{r.name}" for r in replay_rules)
+        if app_names != rep_names:
+            drift = set(app_names) ^ set(rep_names)
+            failures.append(f"DEPLOYMENT_RULES drift between replay.py and app.py: {sorted(drift)}")
+        else:
+            print("  app.DEPLOYMENT_RULES == replay.DEPLOYMENT_RULES ✓")
         layer = _layer(["finance"], 3)
         if app._ruleset_hash(layer.rules) != _ruleset_hash(layer.rules):
             failures.append("ruleset_hash drift between replay.py and app.py")
         else:
             print("  app._ruleset_hash == replay._ruleset_hash ✓")
-    except Exception:  # noqa: BLE001  FastAPI not installed in the gate — skip.
+    except ImportError:  # FastAPI not installed in the gate — skip.
         print("  (app import skipped — FastAPI not present; hash-parity check deferred)")
 
     print(f"\n{len(TRACES)} traces · determinism + tamper-detection: "
