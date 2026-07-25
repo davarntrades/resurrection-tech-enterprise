@@ -39,6 +39,7 @@ export const NAV_MENU = [
       { href: "/guardian-os/sovereign", label: "Guardian OS Sovereign" },
       { href: "/ai-twin", label: "Your AI Twin™" },
       { href: "/intelligence-packs", label: "Industry Intelligence Packs" },
+      { href: "/sovereign-intelligence-packs", label: "Sovereign Intelligence Packs" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/technology", label: "Technology & architecture" },

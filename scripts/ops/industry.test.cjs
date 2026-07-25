@@ -51,7 +51,12 @@ async function main() {
   // ── 1. Catalog + contract ─────────────────────────────────────────────────
   const catalog = ops.industry.catalog();
   const expected = ["healthcare", "finance", "cybersecurity", "government", "manufacturing", "insurance", "retail", "education"];
-  ok(catalog.length === 8 && expected.every((id) => catalog.some((p) => p.id === id)), "eight Industry Intelligence Packs are registered", catalog.map((p) => p.id));
+  // The registry also carries the Sovereign Intelligence Packs (Phase 7), which
+  // satisfy this same contract — so assert the industry family precisely rather
+  // than asserting the registry's total size.
+  const industryCatalog = catalog.filter((p) => !p.sovereign);
+  ok(industryCatalog.length === 8 && expected.every((id) => industryCatalog.some((p) => p.id === id)), "eight Industry Intelligence Packs are registered", industryCatalog.map((p) => p.id));
+  ok(catalog.filter((p) => p.sovereign).length === 7, "the sovereign family shares the same registry and the same contract", catalog.filter((p) => p.sovereign).map((p) => p.id));
   ok(catalog.every((p) => p.version && p.industry && p.purpose && p.counts.policies > 0 && p.counts.mappings > 0), "every pack is independently versioned and carries policies + evidence mappings");
   ok(catalog.every((p) => p.regulations.length > 0 && p.counts.templates > 0 && p.counts.workflows > 0), "every pack carries regulations, policy templates and incident workflows");
 

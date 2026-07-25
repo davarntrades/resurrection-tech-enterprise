@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "workspaces" | "industry" | "sovereign" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "workspaces", "industry", "sovereign", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", industry: "Industry", sovereign: "Sovereign", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "workspaces" | "industry" | "sovpacks" | "sovereign" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "workspaces", "industry", "sovpacks", "sovereign", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", industry: "Industry", sovpacks: "Sovereign packs", sovereign: "Sovereign", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -161,6 +161,7 @@ export default function OperationsClient() {
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "workspaces" && <WorkspacesView onOpen={openHref} go={go} />}
         {view === "industry" && <IndustryView onOpen={openHref} go={go} />}
+        {view === "sovpacks" && <SovereignPacksView onOpen={openHref} go={go} />}
         {view === "sovereign" && <SovereignView onOpen={openHref} go={go} />}
         {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
         {view === "governance" && <GovernanceView onOpen={openHref} go={go} />}
@@ -2039,6 +2040,354 @@ function IndustryView({ onOpen, go }: { onOpen: (h?: string | null) => void; go:
           </section>
           {dash.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
         </>
+      )}
+    </>
+  );
+}
+
+/* ============================================================================
+ * Guardian OS — Sovereign Intelligence Packs (Phase 7).
+ *
+ * Specialised intelligence for organisations whose mission, regulation or
+ * operating environment requires sovereign AI. Not sovereign editions of the
+ * Industry Packs — different domains, on the same platform.
+ *
+ * This tab answers two questions at once, deliberately in one place:
+ *
+ *   what does this pack KNOW?      authority chains, mission workflows,
+ *                                  governed capabilities, readiness, twin
+ *                                  projections, evidence, reporting
+ *   may we RUN it here?            live admissibility against this deployment,
+ *                                  with the specific missing guarantee named
+ *
+ * Separating those two questions is how organisations end up believing they are
+ * governed by something their deployment cannot actually host.
+ *
+ * The dashboard is drawn by the SAME <WorkspaceSection> renderer as every
+ * executive workspace and every Industry Pack. There is no sovereign renderer.
+ * ========================================================================== */
+function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [catalog, setCatalog] = useState<any[] | null>(null);
+  const [posture, setPosture] = useState<any>(null);
+  const [classifications, setClassifications] = useState<any[]>([]);
+  const [invariants, setInvariants] = useState<any>(null);
+  const [installed, setInstalled] = useState<any[]>([]);
+  const [overview, setOverview] = useState<any>(null);
+  const [org, setOrg] = useState<string>("");
+  const [detail, setDetail] = useState<any>(null);
+  const [dash, setDash] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async (o?: string) => {
+    try {
+      const [d, ov] = await Promise.all([
+        api(`sovereign-packs${o ? `?org_id=${encodeURIComponent(o)}` : ""}`),
+        api("managed?view=overview").catch(() => null),
+      ]);
+      setCatalog(d.catalog || []); setPosture(d.posture); setClassifications(d.classifications || []);
+      setInstalled(d.installed || []); setInvariants(d.invariants || null); setErr(null);
+      const list = ov && ov.overview ? ov.overview : null;
+      if (list) { setOverview(list); if (!o && list.list && list.list[0]) setOrg(list.list[0].org_id); }
+    } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (org) load(org); }, [org, load]);
+
+  const openDetail = useCallback(async (pack: string) => {
+    setBusy(true);
+    try { const d = await api(`sovereign-packs?view=pack&pack=${encodeURIComponent(pack)}`); setDetail(d); setDash(null); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, []);
+
+  const openDash = useCallback(async (pack: string) => {
+    if (!org) return;
+    setBusy(true);
+    try { const d = await api(`sovereign-packs?view=dashboard&pack=${encodeURIComponent(pack)}&org_id=${encodeURIComponent(org)}`); setDash(d.dashboard); setDetail(null); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, [org]);
+
+  // Install goes through the SAME operator route as any other pack — there is
+  // no sovereign-specific install path, because there is no sovereign-specific
+  // platform. Where the runtime is immutable this call is refused by design and
+  // the console command is shown instead.
+  const act = async (action: string, pack: string) => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await api("industry", { method: "POST", body: JSON.stringify({ action, org_id: org, pack }) });
+      setNote(action === "install"
+        ? `${pack} installed — ${r.result.activated} Ω policies activated through the governed lifecycle.`
+        : `${pack} removed — ${r.result.policies_rolled_back.length} policies rolled back.`);
+      await load(org);
+      if (action === "install") await openDash(pack); else { setDash(null); }
+    } catch (e: any) { setNote(e.message); }
+    setBusy(false);
+  };
+
+  const isOn = (id: string) => installed.some((i) => i.pack_id === id);
+  if (err && !catalog) return <div className="radmin-err">{err}</div>;
+  if (!catalog || !posture) return <div className="radmin-loading">Loading sovereign packs…</div>;
+
+  const admissibleCount = catalog.filter((p) => p.admissibility.ok).length;
+
+  return (
+    <>
+      {note && <div className="radmin-card"><p>{note}</p></div>}
+
+      <section className="radmin-card ops-ind-hero">
+        <h2>Sovereign Intelligence Packs</h2>
+        <p className="radmin-sub">
+          Specialised intelligence for organisations whose mission, regulation or operating environment requires
+          sovereign AI. These are <b>not</b> sovereign editions of the Industry Packs — they are different domains on
+          the same platform. One Runtime Governance kernel. One governed Digital Twin. One Guardian OS. The
+          deployment profile determines <i>where</i> it runs; Intelligence Packs determine <i>what domain knowledge
+          it contains</i>.
+        </p>
+        {overview && overview.list && overview.list.length > 1 && (
+          <div className="ops-ws-orgpick">
+            <span className="radmin-deliv-meta">Enterprise:</span>
+            {overview.list.map((e: any) => (
+              <button key={e.org_id} className={`radmin-btn sm${e.org_id === org ? " primary" : ""}`} onClick={() => { setOrg(e.org_id); setDash(null); setDetail(null); }}>{e.name}</button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {err && <div className="radmin-err">{err}</div>}
+
+      {/* Posture first: what this deployment can host, read from the running
+          process rather than from configuration someone described. */}
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <h3>What this deployment can host</h3>
+          <span className={`radmin-badge${posture.sovereign_capable ? " ok" : " warn"}`}>{posture.profile_title}</span>
+        </div>
+        <p className="radmin-sub">
+          A classification does not name the deployments it trusts — it declares the <b>guarantees</b> it requires,
+          and the eligible profiles are derived from them. Below is what this deployment actually provides.
+        </p>
+        <div className="ops-sov-grid">
+          {posture.guarantees.map((g: any) => (
+            <div className="ops-sov-cell" key={g.guarantee}>
+              <span className="ops-sov-k">{g.label}</span>
+              <b className="ops-sov-v">{g.holds ? "provided" : "not provided"}</b>
+              <span className="ops-sov-hint">{g.detail}</span>
+            </div>
+          ))}
+        </div>
+        <div className="ops-sov-trust">
+          <span className="radmin-deliv-meta">Admissible classifications</span>
+          <b>{posture.admissible_classifications.join(", ") || "none"}</b>
+          <span className="radmin-deliv-meta">{admissibleCount} of {catalog.length} sovereign packs installable here</span>
+        </div>
+        {!posture.sovereign_capable && (
+          <p className="ops-sov-refused">
+            <b>This deployment cannot host Secret-tier packs.</b> That is a statement about the deployment, not the
+            platform — the same kernel and the same packs run on a sovereign or air-gapped profile.
+            <button className="radmin-linkbtn" onClick={() => go("sovereign")}> Deployment profile →</button>
+          </p>
+        )}
+      </section>
+
+      {/* The catalog. A pack the deployment cannot host says so here, in the
+          same words the CLI and the public catalog use. */}
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>Sovereign pack catalog</h3><span className="radmin-badge">{catalog.length} available · {installed.length} installed</span></div>
+        <div className="ops-ind-grid">
+          {catalog.map((p) => {
+            const a = p.admissibility;
+            return (
+              <div key={p.id} className={`ops-ind-card${isOn(p.id) ? " is-on" : ""}${a.ok ? "" : " is-blocked"}`}>
+                <div className="ops-ind-head">
+                  <div>
+                    <b>{p.title}</b>
+                    <span className="radmin-deliv-meta">{p.mission_domain} · v{p.version}</span>
+                  </div>
+                  {isOn(p.id) ? <span className="radmin-badge ok">installed</span> : <span className={`radmin-badge${a.ok ? "" : " warn"}`}>{p.classification_title}</span>}
+                </div>
+                <p className="ops-ind-purpose">{p.purpose}</p>
+                <div className="ops-ind-counts">
+                  <span>{p.counts.policies} Ω policies</span><span>{p.counts.authority_chains} authority chains</span>
+                  <span>{p.counts.mission_workflows} workflows</span><span>{p.counts.capabilities} capabilities</span>
+                  <span>{p.counts.readiness} readiness measures</span><span>{p.counts.twin_projections} twin projections</span>
+                </div>
+                <div className="ops-ind-regs">{p.regulations.slice(0, 4).map((r: string) => <span key={r} className="ops-ind-reg">{r}</span>)}</div>
+                {!a.ok && (
+                  <p className="ops-sov-refused">
+                    <b>Not installable on this deployment.</b> {a.reasons[0]} Eligible profiles: {a.eligible_profiles.join(", ")}.
+                  </p>
+                )}
+                <div className="ops-ind-actions">
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => openDetail(p.id)}>Inspect intelligence</button>
+                  {isOn(p.id) ? (
+                    <>
+                      <button className="radmin-btn sm primary" disabled={busy} onClick={() => openDash(p.id)}>Open dashboard</button>
+                      <button className="radmin-btn sm" disabled={busy} onClick={() => act("uninstall", p.id)}>Remove</button>
+                    </>
+                  ) : (
+                    <button className="radmin-btn sm" disabled={busy || !org || !a.ok} onClick={() => act("install", p.id)}>Install pack</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="radmin-deliv-meta ops-sov-foot">
+          Where the runtime is immutable — every sovereign and air-gapped deployment — packs are installed at the
+          console from signed media, never over the network: <code className="ops-sov-cmd">guardian pack install ./national-security.pack --org ORG</code>
+          {" "}A sovereign pack carries data and no code, so the offline copy renders at full fidelity.
+        </p>
+      </section>
+
+      {/* Classification tiers — the derivation, shown rather than asserted. */}
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>Classification tiers</h3></div>
+        <table className="radmin-table">
+          <thead><tr><th>Tier</th><th>Requires</th><th>Eligible deployment profiles</th></tr></thead>
+          <tbody>
+            {classifications.map((c: any) => (
+              <tr key={c.id}>
+                <td><b>{c.title}</b><br /><span className="radmin-deliv-meta">{c.summary}</span></td>
+                <td>{c.requires.map((r: any) => r.label).join(" · ")}</td>
+                <td>{c.eligible_profiles.join(", ") || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* The pack's declarative intelligence, inspectable before install. A
+          domain authority should be able to review a pack without reading code
+          — and without installing it first. */}
+      {detail && (
+        <section className="radmin-card">
+          <div className="ops-brief-head">
+            <div><h3>{detail.meta.title}</h3><p className="radmin-sub">{detail.pack.sovereign.mission}</p></div>
+            <span className={`radmin-badge${detail.admissibility.ok ? " ok" : " warn"}`}>{detail.meta.classification_title}</span>
+          </div>
+
+          <h4 className="ops-sov-h4">Authority chains</h4>
+          <ul className="ops-sov-checks">
+            {detail.pack.sovereign.authority_chains.map((a: any) => (
+              <li key={a.id} className="ops-sov-check">
+                <div><b>{a.title}</b><p>{a.authority}{a.delegates_to.length ? ` → ${a.delegates_to.join(" → ")}` : ""} · authorises: {a.authorises.join(", ")}</p></div>
+              </li>
+            ))}
+          </ul>
+
+          <h4 className="ops-sov-h4">Mission workflows</h4>
+          <ul className="ops-sov-checks">
+            {detail.pack.sovereign.workflows.map((w: any) => (
+              <li key={w.id} className="ops-sov-check">
+                <div><b>{w.title}</b><p>{w.stages.map((s: any) => s.name).join(" → ")}</p><p className="radmin-deliv-meta">{w.purpose}</p></div>
+              </li>
+            ))}
+          </ul>
+
+          <h4 className="ops-sov-h4">Governed capabilities</h4>
+          <ul className="ops-sov-checks">
+            {detail.pack.sovereign.capabilities.map((c: any) => (
+              <li key={c.id} className="ops-sov-check">
+                <div><b>{c.title}</b><p>{c.detail} · governed by {c.governed_by.join(", ")}</p></div>
+              </li>
+            ))}
+          </ul>
+
+          <h4 className="ops-sov-h4">Ω policies contributed</h4>
+          <table className="radmin-table">
+            <thead><tr><th>Policy</th><th>Ω domain</th><th>Constrains</th><th>Unless</th></tr></thead>
+            <tbody>
+              {detail.pack.policies.map((p: any) => (
+                <tr key={p.name}>
+                  <td><code>{p.name}</code></td>
+                  <td>{p.domain}</td>
+                  <td>{(p.spec.match.tools || []).join(", ")}</td>
+                  <td>{[...(p.spec.conditions?.unauthorized_unless || []), ...(p.spec.conditions?.flag_true_blocks || []).map((f: string) => `blocked if ${f}`)].join(", ") || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="radmin-deliv-meta">
+            Every Ω domain above is one the Runtime Governance kernel already defines. A pack may add policies; it
+            may never add a domain, a condition kind or an evaluation path.
+          </p>
+
+          <h4 className="ops-sov-h4">Digital Twin projections</h4>
+          <ul className="ops-sov-checks">
+            {detail.pack.sovereign.twin_projections.map((t: any) => (
+              <li key={t.id} className="ops-sov-check"><div><b>{t.title}</b><p>{t.reads}</p></div></li>
+            ))}
+          </ul>
+
+          <h4 className="ops-sov-h4">Operational readiness measures</h4>
+          <table className="radmin-table">
+            <thead><tr><th>Measure</th><th>Grounded in</th></tr></thead>
+            <tbody>
+              {detail.pack.sovereign.readiness.map((r: any) => (
+                <tr key={r.key}><td><b>{r.label}</b>{r.detail && <><br /><span className="radmin-deliv-meta">{r.detail}</span></>}</td><td><code>{r.source}</code></td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="radmin-deliv-meta">
+            A measure whose source is not instrumented in this estate renders as an explicit note carrying the
+            reason — never as a substituted figure.
+          </p>
+
+          <h4 className="ops-sov-h4">Executive briefings and reports</h4>
+          <ul className="ops-sov-checks">
+            {detail.pack.sovereign.briefings.map((b: any) => (
+              <li key={b.id} className="ops-sov-check"><div><b>{b.title}</b><p>{b.audience} · {b.sections.join(" · ")}</p></div></li>
+            ))}
+            {detail.pack.sovereign.reports.map((r: any) => (
+              <li key={r.id} className="ops-sov-check"><div><b>{r.title}</b><p>{r.audience} · {r.cadence} · {r.contents.join(", ")}</p></div></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* The live dashboard, drawn by the shared renderer. */}
+      {dash && (
+        <>
+          <section className="radmin-card ops-ind-dashhead">
+            <div className="ops-brief-head">
+              <div><h3>{dash.title} · {dash.name}</h3><p className="radmin-sub">{dash.purpose}</p></div>
+              <span className="radmin-badge">v{dash.version}</span>
+            </div>
+            {dash.sovereign && !dash.sovereign.ok && (
+              <p className="ops-sov-refused">
+                <b>This pack is installed on a deployment below its classification.</b> {dash.sovereign.reasons.join(" ")}
+              </p>
+            )}
+            {dash.metrics && dash.metrics.length > 0 && (
+              <div className="ops-cmd-stats">
+                {dash.metrics.map((m: any) => (
+                  <div key={m.key} className={`ops-cmd-stat${m.band ? ` ops-ind-m-${scoreClass(m.band)}` : ""}`}>
+                    <b>{String(m.value)}</b><span>{m.label}</span>{m.hint && <span className="ops-ws-hint">{m.hint}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="ops-ind-regs">{(dash.regulations || []).map((r: string) => <span key={r} className="ops-ind-reg">{r}</span>)}</div>
+          </section>
+          {dash.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
+        </>
+      )}
+
+      {invariants && (
+        <section className="radmin-card">
+          <div className="ops-brief-head"><h3>What does not change</h3></div>
+          <div className="ops-sov-grid">
+            {Object.entries(invariants).map(([k, v]) => (
+              <div className="ops-sov-cell" key={k}>
+                <span className="ops-sov-k">{k}</span>
+                <span className="ops-sov-hint">{String(v)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

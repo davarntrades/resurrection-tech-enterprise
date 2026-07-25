@@ -533,6 +533,11 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 .ops-ind-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 12px; }
 .ops-ind-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); }
 .ops-ind-card.is-on { border-color: var(--ok); box-shadow: inset 2px 0 0 var(--ok); }
+/* Phase 7 — a sovereign pack this deployment cannot host reads as unavailable,
+   not as broken: the pack is fine, the deployment does not meet its bar. */
+.ops-ind-card.is-blocked { border-style: dashed; opacity: 0.82; }
+.ops-ind-card.is-blocked .ops-ind-purpose { color: var(--ink-3); }
+.ops-sov-h4 { margin: 20px 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .ops-ind-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .ops-ind-head b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
 .ops-ind-head .radmin-deliv-meta { display: block; }
