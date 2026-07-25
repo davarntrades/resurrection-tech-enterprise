@@ -123,6 +123,45 @@
 .gos-launch-label { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .gos-launch-title { display: block; margin-top: 5px; font-size: clamp(20px, 2.4vw, 27px); font-weight: 600; letter-spacing: -0.022em; color: var(--ink); }
 
+/* ── The problem ─────────────────────────────────────────────────────────── */
+.gos-gap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(264px, 1fr)); gap: 14px; }
+.gos-gap { padding: clamp(22px, 2.6vw, 30px); border: 1px solid var(--line); border-left: 2px solid var(--omega-dim); border-radius: 12px; background: var(--panel); }
+.gos-gap h3 { margin: 0; font-size: clamp(16px, 1.7vw, 19px); font-weight: 600; letter-spacing: -0.018em; color: var(--ink); }
+.gos-gap p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+.gos-problem-turn { margin-top: clamp(38px, 4.4vw, 58px); padding-top: clamp(32px, 4vw, 48px); border-top: 1px solid var(--line-2); }
+.gos-problem-q { max-width: 46ch; margin: 0; font-size: clamp(20px, 2.5vw, 30px); line-height: 1.32; letter-spacing: -0.024em; font-weight: 500; color: var(--ink); }
+.gos-problem-q em { font-style: normal; color: var(--ink-2); }
+.gos-problem-a { max-width: 62ch; margin: 20px 0 0; font-size: clamp(14.5px, 1.5vw, 16.5px); line-height: 1.66; color: var(--ink-2); }
+.gos-problem-a strong { color: var(--ink); font-weight: 600; }
+
+/* ── Why packs matter ────────────────────────────────────────────────────── */
+.gos-why { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 56px); align-items: start; margin-bottom: clamp(40px, 5vw, 64px); }
+.gos-why-h { margin: 0; font-size: clamp(21px, 2.4vw, 29px); font-weight: 600; letter-spacing: -0.024em; color: var(--ink); }
+.gos-why-lede p { margin: 14px 0 0; font-size: clamp(14.5px, 1.5vw, 16.5px); line-height: 1.66; color: var(--ink-2); }
+.gos-why-lede em { font-style: italic; color: var(--ink); }
+.gos-why-claim { color: var(--ink) !important; font-weight: 500; }
+.gos-why-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.gos-why-list li { display: block; padding: 15px 18px; background: var(--panel); }
+.gos-why-list b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.gos-why-list span { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
+
+/* ── Kernel → packs tree ─────────────────────────────────────────────────── */
+.gos-tree { margin: 0 0 clamp(40px, 5vw, 64px); padding: clamp(24px, 3vw, 34px); border: 1px solid var(--line-2); border-radius: 14px; background: var(--panel); }
+.gos-tree-pre { margin: 0; overflow-x: auto; font-family: var(--mono); font-size: clamp(12px, 1.3vw, 14.5px); line-height: 1.85; color: var(--ink-2); }
+.gos-tree-root { color: var(--ink); font-weight: 500; }
+.gos-tree-branch { color: var(--ink-4); }
+.gos-tree-leaf { color: var(--accent-bright); }
+.gos-tree-note { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+
+/* ── Pull quote ──────────────────────────────────────────────────────────── */
+.gos-quote {
+  max-width: 30ch; margin: clamp(44px, 5.5vw, 72px) auto 0; padding: 0 0 0 clamp(18px, 2vw, 26px);
+  border-left: 2px solid var(--accent-bright); font-size: clamp(20px, 2.6vw, 30px); line-height: 1.34;
+  letter-spacing: -0.024em; font-weight: 500; color: var(--ink);
+}
+
+@media (max-width: 860px) { .gos-why { grid-template-columns: 1fr; } }
+
 /* ── Executive workspaces ────────────────────────────────────────────────── */
 .gos-ws-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 14px; }
 .gos-ws {
