@@ -9,6 +9,11 @@ name: sovereign
 #   on-prem    local store, filesystem policy bundle, egress permitted
 #   air-gapped the same platform with NETWORK ACCESS PHYSICALLY REMOVED
 #
+# Node 22 is REQUIRED, not incidental: @supabase/supabase-js throws at
+# createClient on Node < 22 ("no native WebSocket support"), which would make a
+# cloud-store deployment fall back to local disk. CI caught that only once the
+# store stopped swallowing the error — see lib/runtime/store.js.
+#
 # The air-gapped jobs are the ones that matter. They do not simulate isolation
 # with an environment variable — the Node job runs inside a network namespace
 # with no interface but loopback (`unshare -n`), and the engine job runs in a
@@ -60,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with: { node-version: "22", cache: npm }
       - run: npm ci
 
       # Everything the sovereign suite needs must already be on disk before the
@@ -87,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with: { node-version: "22", cache: npm }
       - run: npm ci
 
       - name: Prove the isolation is real
@@ -138,7 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with: { node-version: "22", cache: npm }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: npm ci
@@ -201,6 +206,7 @@ jobs:
             -e GUARDIAN_PROFILE=air_gapped \
             -e SUPABASE_URL=https://must-never-be-used.supabase.co \
             -e SUPABASE_SERVICE_ROLE_KEY=must-never-be-used \
+            -e PYTHONPATH=/app \
             -v "$PWD/scripts/sovereign:/checks:ro" \
             guardian-engine:sovereign-ci \
             python /checks/airgap_engine_check.py
@@ -216,6 +222,7 @@ jobs:
             --build-arg TRUST_BUNDLE=ci-sovereign/trust \
             -t guardian-engine:sovereign-tampered governance-service
           docker run --rm --network none -e GUARDIAN_PROFILE=air_gapped \
+            -e PYTHONPATH=/app \
             -v "$PWD/scripts/sovereign:/checks:ro" \
             guardian-engine:sovereign-tampered \
             python /checks/airgap_engine_check.py --expect-tampered
@@ -227,7 +234,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with: { node-version: "22", cache: npm }
       - run: npm ci
 
       # The BASELINE run exists so a sovereign pass cannot be vacuous: a cloud

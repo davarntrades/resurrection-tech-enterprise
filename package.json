@@ -1,6 +1,9 @@
 {
   "name": "resurrection-tech-platform",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "private": true,
   "description": "Resurrection Tech\u2122 \u2014 Runtime Governance for Autonomous Systems. Production enterprise platform.",
   "scripts": {
@@ -82,9 +85,6 @@
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
-  },
-  "engines": {
-    "node": ">=18.18.0"
   },
   "bin": {
     "guardian": "./bin/guardian.cjs"
