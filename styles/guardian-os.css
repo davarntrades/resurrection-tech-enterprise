@@ -283,3 +283,17 @@
   .gos-ladder-step { grid-template-columns: auto 1fr; }
   .gos-ladder-t { grid-column: 2; }
 }
+
+/* ── "Also shipping" — named packs, no boxes ─────────────────────────────── */
+.gos-also {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
+  margin: clamp(26px, 3vw, 36px) 0 0; padding-top: clamp(22px, 2.6vw, 30px);
+  border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-2);
+}
+.gos-also-k {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.gos-also-i { position: relative; padding-right: 14px; }
+.gos-also-i::after { content: "·"; position: absolute; right: 3px; color: var(--ink-4); }
+.gos-also-i:last-of-type::after { content: ""; }

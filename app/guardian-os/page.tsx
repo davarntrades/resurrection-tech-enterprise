@@ -34,6 +34,12 @@ const PACKS: PackMeta[] = packRegistry.all().map((p: any) => ({
   ...packRegistry.meta(p),
   metrics: (() => { try { return p.metrics(NEUTRAL_CTX).length; } catch { return 0; } })(),
 }));
+/* The page shows three domains in full — the most regulated, and the packs with
+ * the deepest content. The rest are named rather than boxed, so the section
+ * stays readable on a phone without hiding that eight packs ship. */
+const FEATURED_IDS = ["healthcare", "finance", "cybersecurity"];
+const FEATURED = FEATURED_IDS.map((id) => PACKS.find((p) => p.id === id)).filter(Boolean) as PackMeta[];
+const ALSO = PACKS.filter((p) => !FEATURED_IDS.includes(p.id));
 
 export const metadata: Metadata = {
   title: "Guardian OS™ — The Operating System for Autonomous Enterprises",
@@ -316,7 +322,7 @@ export default function GuardianOSPage() {
           </div>
 
           <div className="gos-pack-grid">
-            {PACKS.map((p, i) => (
+            {FEATURED.map((p, i) => (
               <article className="gos-pack reveal" data-d={String((i % 3) + 1)} key={p.id}>
                 <header className="gos-pack-head">
                   <h3 className="gos-pack-t">{p.industry}</h3>
@@ -341,6 +347,13 @@ export default function GuardianOSPage() {
               </article>
             ))}
           </div>
+
+          {/* The remaining packs are named, not boxed — same fact, far less scroll. */}
+          <p className="gos-also reveal">
+            <span className="gos-also-k">Also shipping</span>
+            {ALSO.map((p) => <span className="gos-also-i" key={p.id}>{p.industry}</span>)}
+            <Link href="/contact" className="twin-inline-link">Ask about your sector →</Link>
+          </p>
 
           <blockquote className="gos-quote reveal">
             Industry Intelligence Packs buy time and reduce risk by delivering production-ready governance
