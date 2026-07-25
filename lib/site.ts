@@ -37,6 +37,7 @@ export const NAV_MENU = [
     links: [
       { href: "/guardian-os", label: "Guardian OS™" },
       { href: "/ai-twin", label: "Your AI Twin™" },
+      { href: "/intelligence-packs", label: "Industry Intelligence Packs" },
       { href: "/#what", label: "Runtime Governance™" },
       { href: "/why-runtime-governance", label: "Why Runtime Governance" },
       { href: "/technology", label: "Technology & architecture" },

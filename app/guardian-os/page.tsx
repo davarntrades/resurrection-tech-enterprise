@@ -51,11 +51,14 @@ const PLATFORM = [
     role: "Maintains current operational visibility",
     detail: "Continuously derives the estate, its dependencies, trust relationships, risk and runtime state.",
     href: "/ai-twin",
+    hrefLabel: "Explore the AI Twin",
   },
   {
     name: "Industry Intelligence Packs",
     role: "Applies sector intelligence",
     detail: "Adds domain policies, regulatory mappings, evidence requirements and incident workflows to the same kernel.",
+    href: "/intelligence-packs",
+    hrefLabel: "Explore Intelligence Packs",
   },
   {
     name: "Executive Workspaces",
@@ -135,7 +138,7 @@ function PlatformMap() {
               <h3>{item.name}</h3>
               <strong>{item.role}</strong>
               <p>{item.detail}</p>
-              {item.href && <Link href={item.href}>Explore the AI Twin →</Link>}
+              {item.href && <Link href={item.href}>{item.hrefLabel} →</Link>}
             </div>
           </div>
           {index < PLATFORM.length - 1 && <span className="gos-platform-arrow" aria-hidden="true">↓</span>}
@@ -340,6 +343,9 @@ export default function GuardianOSPage() {
             Pack counts are read directly from the shipping registry. Availability and regulatory scope are
             confirmed during assessment.
           </p>
+          <div className="gos-cta-row reveal">
+            <Link href="/intelligence-packs" className="gos-btn gos-btn-ghost">Explore Industry Intelligence Packs</Link>
+          </div>
         </div>
       </section>
 
