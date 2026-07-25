@@ -143,6 +143,46 @@ export default function GuardianOSPage() {
         </div>
       </section>
 
+      {/* ───────────────────────── THE PROBLEM ───────────────────────── */}
+      <section className="gos-section gos-section-alt" id="problem">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">The problem</span>
+            <h2 className="gos-h2">Enterprises are deploying AI that acts — with nothing standing between the decision and the consequence.</h2>
+            <p className="gos-sec-lede">
+              An agent that can only talk is a demo. An agent that can move money, change infrastructure, email a
+              customer or touch a patient record is an operational system — and most enterprises have no layer that
+              decides, before the fact, whether that action is allowed.
+            </p>
+          </header>
+          <div className="gos-gap-grid">
+            {[
+              ["Observability tells you afterwards", "Traces and logs explain what already happened. By then the wire has been sent, the record exported, the environment changed."],
+              ["Guardrails filter words, not actions", "Prompt and content filters shape what a model says. They do not authorise what a tool is about to do."],
+              ["Policy lives in documents", "Your AI policy is a PDF, a committee and a spreadsheet. None of it is enforced at the moment of execution."],
+              ["Evidence is assembled after the fact", "When a regulator, auditor or board asks what your AI did and why, someone reconstructs it from logs — if it can be reconstructed at all."],
+            ].map(([t, d], i) => (
+              <article className="gos-gap reveal" data-d={String((i % 3) + 1)} key={t}>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </article>
+            ))}
+          </div>
+          <div className="gos-problem-turn reveal">
+            <p className="gos-problem-q">
+              So the questions that matter go unanswered: <em>What is our AI allowed to do? What did it actually do?
+              And can we prove it?</em>
+            </p>
+            <p className="gos-problem-a">
+              The usual answer is a governance <strong>project</strong> — months of integration, bespoke policy
+              engineering, a dashboard, and an evidence trail nobody trusts. Guardian OS replaces the project with
+              an <strong>installation</strong>: a governed operating environment that already knows how to decide,
+              record and prove.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ─────────────────── HOW INSTALLATION WORKS ─────────────────── */}
       <section className="gos-section" id="install">
         <div className="gos-wrap">
@@ -211,6 +251,51 @@ export default function GuardianOSPage() {
               to the same kernel.
             </p>
           </header>
+
+          {/* Why they matter, before what they contain. */}
+          <div className="gos-why reveal">
+            <div className="gos-why-lede">
+              <h3 className="gos-why-h">Production-ready industry intelligence.</h3>
+              <p>
+                The hard part of governing an enterprise is rarely the engine — it is knowing what
+                <em> your sector</em> must forbid, evidence and escalate. An Intelligence Pack is that knowledge,
+                already written, already validated, installed in one governed step.
+              </p>
+              <p className="gos-why-claim">
+                Packs buy implementation time, reduce deployment risk, and shorten the path to a governed
+                enterprise.
+              </p>
+            </div>
+            <ul className="gos-why-list">
+              {[
+                ["Less implementation effort", "The policies, mappings and workflows already exist — nobody starts from an empty policy file."],
+                ["Faster deployment", "Install a pack and the sector's controls are live in the kernel the same day."],
+                ["Lower project risk", "Removable and versioned: a pack installs through the governed lifecycle and rolls back cleanly."],
+                ["Fewer governance mistakes", "Deny-only by construction — a pack can only add constraints, never weaken the baseline."],
+                ["Sector best practice, encoded", "Regulatory mappings state which control each obligation satisfies and what evidences it."],
+              ].map(([t, d]) => (
+                <li key={t}><b>{t}</b><span>{d}</span></li>
+              ))}
+            </ul>
+          </div>
+
+          {/* One kernel, many packs — rendered from the shipping registry. */}
+          <div className="gos-tree reveal" role="img" aria-label={`Guardian OS Kernel with ${PACKS.length} industry packs: ${PACKS.map((p) => p.industry).join(", ")}`}>
+            <pre className="gos-tree-pre">
+              <span className="gos-tree-root">Guardian OS Kernel</span>{"\n"}
+              {PACKS.map((p, i) => (
+                <span key={p.id}>
+                  {"            "}
+                  <span className="gos-tree-branch">{i === PACKS.length - 1 ? "└── " : "├── "}</span>
+                  <span className="gos-tree-leaf">{p.industry} Pack</span>{"\n"}
+                </span>
+              ))}
+            </pre>
+            <p className="gos-tree-note">
+              One kernel. {PACKS.length} packs shipping. A new industry is a new pack — the kernel never changes.
+            </p>
+          </div>
+
           <div className="gos-pack-grid">
             {PACKS.map((p, i) => (
               <article className="gos-pack reveal" data-d={String((i % 3) + 1)} key={p.id}>
@@ -237,6 +322,11 @@ export default function GuardianOSPage() {
               </article>
             ))}
           </div>
+
+          <blockquote className="gos-quote reveal">
+            Industry Intelligence Packs buy time and reduce risk by delivering production-ready governance
+            from day one.
+          </blockquote>
         </div>
       </section>
 
