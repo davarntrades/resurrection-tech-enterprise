@@ -31,6 +31,7 @@ const TABLES = [
   "rg_governance_baselines", "rg_governance_drift", "rg_governance_health", "rg_evidence_packs",
   // industry intelligence packs
   "rg_industry_packs",
+  "rg_sovereign_updates",
 ];
 
 async function main() {

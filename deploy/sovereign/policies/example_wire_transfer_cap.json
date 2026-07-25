@@ -1,0 +1,12 @@
+{
+  "name": "example_wire_transfer_cap",
+  "domain": "finance",
+  "status": "active",
+  "version": 1,
+  "spec": {
+    "match": { "tools": ["wire_transfer", "initiate_payment"] },
+    "conditions": { "threshold": { "field": "amount", "op": ">", "value": 50000 } },
+    "severity": "critical",
+    "description": "Example: transfers above 50,000 require an approved exception. Replace this file with the estate's own policies before building media."
+  }
+}

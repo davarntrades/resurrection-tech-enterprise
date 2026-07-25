@@ -29,7 +29,30 @@ RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py escalation.py ./
+COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py ./
+
+# ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
+# A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,
+# nothing is copied, and the engine reads policies from the control plane.
+#
+# A SOVEREIGN image bakes the signed policy bundle and the trust store into the
+# layer, so the running container needs no network, no database and no mounted
+# volume to enforce customer policy:
+#
+#   docker build -f governance-service/Dockerfile \
+#     --build-arg POLICY_BUNDLE=dist/acme-policies \
+#     --build-arg TRUST_BUNDLE=dist/trust \
+#     -t guardian-engine:acme-1.0.0 .
+#   docker run --network none -e GUARDIAN_PROFILE=air_gapped guardian-engine:acme-1.0.0
+#
+# The bundle is verified at RUN TIME as well as build time — baking it in is a
+# delivery convenience, never a reason to skip a signature check.
+ARG POLICY_BUNDLE=""
+ARG TRUST_BUNDLE=""
+COPY ${POLICY_BUNDLE:-requirements.txt} /app/policy-bundle-src
+COPY ${TRUST_BUNDLE:-requirements.txt} /app/trust-src
+RUN if [ -n "${POLICY_BUNDLE}" ]; then mv /app/policy-bundle-src /app/policy-bundle; else rm -rf /app/policy-bundle-src; fi \
+ && if [ -n "${TRUST_BUNDLE}" ]; then mv /app/trust-src /app/trust; else rm -rf /app/trust-src; fi
 
 # Fail the image build if app.py or any of its runtime imports is absent from
 # Railway's production import root. This runs from WORKDIR=/app, the same

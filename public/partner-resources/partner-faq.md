@@ -50,7 +50,7 @@ ESCALATE** before it executes.
 33. **What evidence is collected?** A tamper-evident audit trail of every decision plus the metrics that power executive reports.
 34. **Is the audit trail verifiable?** Yes — decisions are recorded with replay/attestation so a run can be reproduced and tamper-checked.
 35. **Do you support streaming agents?** Yes; streaming vs request/response affects the adapter, which we account for in scoping.
-36. **Can we run it air-gapped?** Private/on-prem deployment supports restricted and disconnected environments, subject to update handling.
+36. **Can we run it air-gapped?** Yes, architecturally. There are six deployment profiles from managed cloud to fully air-gapped; the governance kernel is identical in all of them. A disconnected estate loads Ω policy from a signed bundle on disk, keeps state and evidence locally, renders evidence packs to PDF with no browser, and receives signed offline update bundles with rollback. Air-gapped operation is proven in continuous integration with network access removed. It has **not yet been run on a customer site**, so the accurate description today is *acceptance-testable, not field-tested* — an acceptance suite ships for the customer to run on their own hardware.
 37. **How are governance rules (Ω) defined?** Engine defaults plus deployment-specific rules; Resurrection Tech owns and updates the governance logic.
 38. **Can customers customise Ω?** Deployment rules are configured with the customer during onboarding; the core engine and logic remain RT-owned.
 39. **How are updates delivered?** Hosted updates are continuous; customer-hosted/embedded receive versioned governance updates under the licence.

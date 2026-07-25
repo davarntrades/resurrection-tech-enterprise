@@ -11,6 +11,7 @@ import {
   CALENDLY_URLS,
   type BookingType,
 } from "@/lib/booking";
+import { isSovereignBuild } from "@/lib/sovereign/build";
 
 const CalCheck = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -50,7 +51,7 @@ export function BookClient() {
   return (
     <>
       {/* Calendly assets — only loaded when at least one URL is configured. */}
-      {anyCalendly && (
+      {anyCalendly && !isSovereignBuild() && (
         <>
           {/* eslint-disable-next-line @next/next/no-css-tags */}
           <link rel="stylesheet" href="https://assets.calendly.com/assets/external/widget.css" />

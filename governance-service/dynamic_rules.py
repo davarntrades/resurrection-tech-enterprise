@@ -19,6 +19,22 @@ redeploy. Every existing guarantee is preserved:
     the engine's verdict attestation already fingerprints the exact ruleset
     (static + dynamic), so every decision is reproducible.
 
+  • PROVIDER-AGNOSTIC (Sovereign, Phase 6) — WHERE policies come from is a
+    deployment concern, not a governance one. Two providers implement the same
+    contract "return active policy rows":
+
+      remote  PostgREST over HTTPS (cloud / hybrid / private-cloud).
+      bundle  A signed filesystem bundle — baked into the image or mounted
+              read-only (on-prem / sovereign / air-gapped). No network at all.
+
+    Both hand `_refresh()` identical rows, so compilation, validation, caching,
+    fail-closed behaviour and the ruleset fingerprint are byte-for-byte the same
+    in every deployment profile. The kernel does not know which one fed it.
+
+    Under an offline profile the remote provider is not merely unused — it is
+    REFUSED. An air-gapped engine that happens to inherit SUPABASE_URL from a
+    stale environment must never open a socket.
+
 Pure standard library only (urllib) — the engine takes no new dependencies.
 """
 
@@ -33,17 +49,58 @@ import urllib.request
 import urllib.parse
 from typing import Any, Optional
 
+import policy_bundle
 from morrison_governance import OmegaDomain, OmegaRule
 
 log = logging.getLogger("governance.dynamic")
 
 # ── Config (all optional — absent config = feature simply OFF) ──────────────
-_URL = (os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL") or "").rstrip("/")
-_KEY = os.getenv("GOVERNANCE_POLICY_READ_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or ""
+# Read through helpers rather than frozen at import: a deployment profile can be
+# set by the process supervisor, and the test suites switch profiles in-process.
 _TABLE = os.getenv("GOVERNANCE_POLICY_TABLE", "rg_governance_policies")
 _REFRESH_S = float(os.getenv("GOVERNANCE_POLICY_REFRESH_S", "30"))
 _TIMEOUT_S = float(os.getenv("GOVERNANCE_POLICY_TIMEOUT_S", "3.0"))
-_ENABLED = bool(_URL and _KEY)
+
+
+def _profile() -> str:
+    return (os.getenv("GUARDIAN_PROFILE") or "cloud").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _remote_url() -> str:
+    return (os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL") or "").rstrip("/")
+
+
+def _remote_key() -> str:
+    return os.getenv("GOVERNANCE_POLICY_READ_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or ""
+
+
+def provider() -> str:
+    """Which provider is active: "bundle", "remote", or "off".
+
+    Explicit GOVERNANCE_POLICY_PROVIDER wins, then the deployment profile, then
+    whatever is configured. An offline profile can NEVER resolve to "remote" —
+    the refusal is here, at the single point where the choice is made, so no
+    call site can reintroduce egress by accident.
+    """
+    offline = _profile() in policy_bundle.OFFLINE_PROFILES
+    explicit = (os.getenv("GOVERNANCE_POLICY_PROVIDER") or "").strip().lower()
+    if explicit == "remote":
+        if offline:
+            log.error("GOVERNANCE_POLICY_PROVIDER=remote refused under the %s profile — using the policy bundle", _profile())
+        else:
+            return "remote" if (_remote_url() and _remote_key()) else "off"
+    elif explicit == "bundle":
+        return "bundle" if policy_bundle.bundle_path() else "off"
+    elif explicit in ("off", "none"):
+        return "off"
+
+    if _profile() in policy_bundle.BUNDLE_PROFILES or policy_bundle.bundle_path():
+        return "bundle" if policy_bundle.bundle_path() else "off"
+    return "remote" if (_remote_url() and _remote_key()) else "off"
+
+
+def enabled() -> bool:
+    return provider() != "off"
 
 _ALLOWED_OPS = {">", ">=", "<", "<=", "==", "!="}
 
@@ -171,12 +228,30 @@ def validate_spec(spec: dict) -> None:
             raise PolicySpecError("rule.check did not return a boolean")
 
 
-def _fetch_active() -> list[dict]:
+def _remote_rows() -> list[dict]:
+    """Cloud provider: active policies over PostgREST. The ONLY network call in
+    this module — and it is unreachable under an offline profile (see provider())."""
+    url_base, key = _remote_url(), _remote_key()
     q = urllib.parse.urlencode({"status": "eq.active", "select": "name,domain,spec,version,hash"})
-    url = f"{_URL}/rest/v1/{_TABLE}?{q}"
-    req = urllib.request.Request(url, headers={"apikey": _KEY, "authorization": f"Bearer {_KEY}", "accept": "application/json"})
+    url = f"{url_base}/rest/v1/{_TABLE}?{q}"
+    req = urllib.request.Request(url, headers={"apikey": key, "authorization": f"Bearer {key}", "accept": "application/json"})
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:  # noqa: S310 (trusted internal URL)
         return json.loads(resp.read().decode("utf-8")) or []
+
+
+def _bundle_rows() -> list[dict]:
+    """Sovereign provider: active policies from a signed filesystem bundle. No
+    socket is opened; a bundle that fails verification yields zero rows."""
+    return policy_bundle.load()
+
+
+def _fetch_active() -> list[dict]:
+    p = provider()
+    if p == "remote":
+        return _remote_rows()
+    if p == "bundle":
+        return _bundle_rows()
+    return []
 
 
 def _refresh() -> None:
@@ -207,8 +282,8 @@ def _refresh() -> None:
 def active_rules() -> list[OmegaRule]:
     """The currently-active dynamic Ω rules (cached; refreshed every
     GOVERNANCE_POLICY_REFRESH_S). Fail-closed: on any error the last-good set is
-    kept; with no DB configured this is always empty (static rules only)."""
-    if not _ENABLED:
+    kept; with no provider configured this is always empty (static rules only)."""
+    if not enabled():
         return []
     now = time.time()
     if now - _cache["fetched_at"] >= _REFRESH_S:
@@ -227,5 +302,19 @@ def generation() -> int:
 
 
 def status() -> dict:
-    return {"enabled": _ENABLED, "active": _cache["count"], "generation": _cache["generation"],
-            "refresh_s": _REFRESH_S, "table": _TABLE if _ENABLED else None}
+    p = provider()
+    out = {
+        "enabled": p != "off",
+        "provider": p,
+        "profile": _profile(),
+        "active": _cache["count"],
+        "generation": _cache["generation"],
+        "refresh_s": _REFRESH_S,
+        "table": _TABLE if p == "remote" else None,
+    }
+    # A sovereign operator must be able to see, from the engine itself, whether
+    # the bundle it is running actually verified — not merely that it is
+    # configured. An unverified bundle shows enforcing=0 with the reason.
+    if p == "bundle":
+        out["bundle"] = policy_bundle.status()
+    return out

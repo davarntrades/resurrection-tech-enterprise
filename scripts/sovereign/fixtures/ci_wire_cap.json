@@ -1,0 +1,12 @@
+{
+  "name": "ci_wire_cap",
+  "domain": "finance",
+  "status": "active",
+  "version": 1,
+  "spec": {
+    "match": { "tools": ["wire_transfer"] },
+    "conditions": { "threshold": { "field": "amount", "op": ">", "value": 10000 } },
+    "severity": "critical",
+    "description": "CI fixture: the policy the air-gapped engine must load from signed media and enforce."
+  }
+}

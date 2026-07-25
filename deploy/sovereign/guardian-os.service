@@ -1,0 +1,24 @@
+# Guardian OS Sovereign — systemd unit for the reference deployment.
+# Install to /etc/systemd/system/guardian-os.service (deploy/install.sh does).
+[Unit]
+Description=Guardian OS Sovereign (runtime governance, air-gapped)
+Documentation=file:/opt/guardian/docs/SOVEREIGN.md
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/guardian
+EnvironmentFile=/opt/guardian/.env
+ExecStart=/usr/bin/docker compose up -d --wait
+ExecStop=/usr/bin/docker compose down
+# Prove the deployment on every start. The unit does NOT fail on a verify
+# failure — a governance service that refuses to start leaves an estate
+# ungoverned, which is worse. The failure is journalled loudly instead, and
+# `guardian verify` remains the authority an operator reads.
+ExecStartPost=-/usr/bin/docker compose exec -T app node bin/guardian.cjs verify
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

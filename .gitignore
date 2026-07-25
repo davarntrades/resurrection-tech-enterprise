@@ -78,3 +78,6 @@ __pycache__/
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# CI-only staging for the sovereign engine image build (see .github/workflows/sovereign.yml)
+governance-service/ci-sovereign/

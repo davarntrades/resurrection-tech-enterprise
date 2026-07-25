@@ -1,0 +1,281 @@
+name: sovereign
+
+# Guardian OS Sovereign — deployment-profile CI.
+#
+# Every build proves Guardian OS starts and GOVERNS under each deployment
+# profile, on the same Runtime Governance kernel:
+#
+#   cloud      the existing model: control-plane policies, cloud store
+#   on-prem    local store, filesystem policy bundle, egress permitted
+#   air-gapped the same platform with NETWORK ACCESS PHYSICALLY REMOVED
+#
+# Node 22 is REQUIRED, not incidental: @supabase/supabase-js throws at
+# createClient on Node < 22 ("no native WebSocket support"), which would make a
+# cloud-store deployment fall back to local disk. CI caught that only once the
+# store stopped swallowing the error — see lib/runtime/store.js.
+#
+# The air-gapped jobs are the ones that matter. They do not simulate isolation
+# with an environment variable — the Node job runs inside a network namespace
+# with no interface but loopback (`unshare -n`), and the engine job runs in a
+# container started with `--network none`. If anything in the sovereign path
+# still reaches for Supabase, Vercel, a font CDN or a package registry, these
+# jobs fail. That is the point: "air-gapped" stops being a claim and becomes a
+# test result.
+
+on:
+  push:
+    paths:
+      - "lib/sovereign/**"
+      - "lib/ops/industry.js"
+      - "lib/ops/govpolicy.js"
+      - "lib/ops/packs/**"
+      - "lib/runtime/store.js"
+      - "bin/guardian.cjs"
+      - "governance-service/**"
+      - "scripts/sovereign/**"
+      - "package.json"
+      - ".github/workflows/sovereign.yml"
+  pull_request:
+    paths:
+      - "lib/sovereign/**"
+      - "lib/ops/industry.js"
+      - "lib/ops/govpolicy.js"
+      - "lib/ops/packs/**"
+      - "lib/runtime/store.js"
+      - "bin/guardian.cjs"
+      - "governance-service/**"
+      - "scripts/sovereign/**"
+      - "package.json"
+      - ".github/workflows/sovereign.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: sovereign-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── The platform, under each profile ──────────────────────────────────────
+  profiles:
+    name: platform (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [cloud, on_prem, air_gapped]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+
+      # Everything the sovereign suite needs must already be on disk before the
+      # network goes away. Nothing is fetched after this point.
+      # Contract tests run FIRST and everywhere: they are static, take a second,
+      # and catch the class of defect that made this workflow itself dead.
+      - name: Engineering contracts
+        run: npm run contracts
+
+      - name: Startup validation (${{ matrix.profile }})
+        env:
+          GUARDIAN_PROFILE: ${{ matrix.profile }}
+        run: npm run runtime:startup
+
+      - name: Boot proof (${{ matrix.profile }})
+        env:
+          GUARDIAN_PROFILE: ${{ matrix.profile }}
+        run: npm run sovereign:boot
+
+      - name: Full sovereign suite
+        if: matrix.profile == 'cloud'
+        run: npm run sovereign:test
+
+      - name: Offline document rendering (no Chromium installed in this job)
+        run: npm run sovereign:pdf
+
+      - name: Site acceptance suite + assurance artefacts
+        run: npm run sovereign:acceptance
+
+  # ── Air-gapped, for real: no network interface at all ─────────────────────
+  airgap-platform:
+    name: air-gapped platform (no network namespace)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+
+      - name: Prove the isolation is real
+        run: |
+          set -e
+          # Outside the namespace: DNS + HTTPS work.
+          curl -sSf -o /dev/null --max-time 10 https://registry.npmjs.org/ && echo "host has network: yes"
+          # Inside it: they must not. A success here means the job is lying.
+          if sudo unshare -n sh -c 'ip link set lo up; curl -sS --max-time 5 -o /dev/null https://registry.npmjs.org/'; then
+            echo "::error::the network namespace still has egress — this job would not prove anything"; exit 1
+          fi
+          echo "namespace has network: no (as required)"
+
+      - name: Guardian OS under a real air gap
+        run: |
+          sudo unshare -n sh -c '
+            ip link set lo up
+            export GUARDIAN_PROFILE=air_gapped
+            # Deliberately leave cloud credentials in the environment: the
+            # platform must REFUSE them, not merely fail to reach them.
+            export NEXT_PUBLIC_SUPABASE_URL=https://must-never-be-used.supabase.co
+            export SUPABASE_SERVICE_ROLE_KEY=must-never-be-used
+            node scripts/sovereign/sovereign.test.cjs
+            GUARDIAN_PROFILE=air_gapped node scripts/sovereign/boot.test.cjs
+            node scripts/sovereign/pdf.test.cjs
+            node scripts/sovereign/acceptance.test.cjs
+          '
+
+      - name: guardian verify under a real air gap
+        run: |
+          sudo unshare -n sh -c '
+            ip link set lo up
+            export GUARDIAN_PROFILE=air_gapped
+            export RUNTIME_DATA_DIR=$PWD/.airgap-data
+            export GUARDIAN_TRUST_DIR=$PWD/.airgap-trust
+            node bin/guardian.cjs profile
+            node bin/guardian.cjs pack list
+            # verify EXPECTS to fail here: no policy bundle, no engine. What is
+            # being proven is that it runs offline and reports honestly.
+            node bin/guardian.cjs verify --json > verify.json || true
+            node scripts/sovereign/assert-verify-offline.cjs verify.json
+          '
+
+  # ── The engine, air-gapped, in a container with no network ────────────────
+  airgap-engine:
+    name: air-gapped engine (container, --network none)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: npm ci
+
+      - name: Clone the pinned engine
+        run: |
+          REF=$(grep -m1 '^ARG ENGINE_REF=' governance-service/Dockerfile | cut -d= -f2)
+          git clone --filter=blob:none --no-checkout https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine-src
+          git -C /tmp/engine-src checkout "$REF"
+          mkdir -p /tmp/engine && cp -r /tmp/engine-src/morrison_governance /tmp/engine/
+
+      - name: Engine-side bundle tests
+        run: PYTHONPATH=/tmp/engine python governance-service/test_policy_bundle.py
+
+      - name: Cross-language proof (Node signs → Python verifies)
+        env:
+          ENGINE_PATH: /tmp/engine
+        run: npm run sovereign:crosslang
+
+      - name: Existing dynamic-policy tests still pass (no regression)
+        run: cd governance-service && PYTHONPATH=/tmp/engine python test_dynamic_rules.py
+
+      # Build a real sovereign artefact: a signed policy bundle + trust store
+      # baked into the image, exactly as an operator would ship it.
+      - name: Publish a signed policy bundle
+        run: |
+          set -e
+          mkdir -p dist/src/policies dist/trust
+          export GUARDIAN_TRUST_DIR=$PWD/dist/trust
+          node bin/guardian.cjs keygen --key-id ci-release --out dist/keys
+          cp dist/keys/ci-release.pub dist/trust/
+          # A repo fixture, not a heredoc: inside a YAML block scalar every line
+          # is indented, and a quoted heredoc terminator must sit at column 0.
+          cp scripts/sovereign/fixtures/ci_wire_cap.json dist/src/policies/
+          node bin/guardian.cjs bundle policies dist/src --dir \
+            --id ci-policies --version 1.0.0 --out dist/policy-bundle \
+            --sign-key dist/keys/ci-release.pem --key-id ci-release
+          node bin/guardian.cjs verify dist/policy-bundle
+
+      - name: Build the sovereign engine image
+        run: |
+          set -e
+          # The build context is `governance-service`, matching how the engine is
+          # built everywhere else (deploy-governance.yml and Railway). The
+          # Dockerfile's COPY paths are relative to it, so the bundle and trust
+          # store are STAGED INTO the context rather than the context widened to
+          # the repo root — widening it would break every other build.
+          rm -rf governance-service/ci-sovereign
+          mkdir -p governance-service/ci-sovereign
+          cp -r dist/policy-bundle governance-service/ci-sovereign/policy-bundle
+          cp -r dist/trust         governance-service/ci-sovereign/trust
+          docker build \
+            --build-arg POLICY_BUNDLE=ci-sovereign/policy-bundle \
+            --build-arg TRUST_BUNDLE=ci-sovereign/trust \
+            -t guardian-engine:sovereign-ci governance-service
+
+      - name: Boot + govern with --network none
+        run: |
+          docker run --rm --network none \
+            -e GUARDIAN_PROFILE=air_gapped \
+            -e SUPABASE_URL=https://must-never-be-used.supabase.co \
+            -e SUPABASE_SERVICE_ROLE_KEY=must-never-be-used \
+            -e PYTHONPATH=/app \
+            -v "$PWD/scripts/sovereign:/checks:ro" \
+            guardian-engine:sovereign-ci \
+            python /checks/airgap_engine_check.py
+
+      - name: A tampered bundle must fail closed, offline
+        run: |
+          set -e
+          rm -rf governance-service/ci-sovereign/tampered
+          cp -r dist/policy-bundle governance-service/ci-sovereign/tampered
+          printf ' ' >> governance-service/ci-sovereign/tampered/policies/ci_wire_cap.json
+          docker build \
+            --build-arg POLICY_BUNDLE=ci-sovereign/tampered \
+            --build-arg TRUST_BUNDLE=ci-sovereign/trust \
+            -t guardian-engine:sovereign-tampered governance-service
+          docker run --rm --network none -e GUARDIAN_PROFILE=air_gapped \
+            -e PYTHONPATH=/app \
+            -v "$PWD/scripts/sovereign:/checks:ro" \
+            guardian-engine:sovereign-tampered \
+            python /checks/airgap_engine_check.py --expect-tampered
+
+  # ── The interface makes no external request ───────────────────────────────
+  offline-interface:
+    name: offline-clean interface
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+
+      # The BASELINE run exists so a sovereign pass cannot be vacuous: a cloud
+      # build must show external hosts, or the scanner is broken rather than the
+      # build clean.
+      - name: Cloud baseline — the audit must DETECT external hosts
+        run: |
+          npm run build
+          npm run sovereign:offline-audit:baseline
+
+      - name: Sovereign build — zero external resource loads
+        run: |
+          rm -rf .next
+          npm run build:sovereign
+          npm run sovereign:offline-audit
+
+      # Serve the sovereign build with no network at all and confirm it renders.
+      - name: Serve the sovereign build inside a network namespace
+        run: |
+          sudo unshare -n sh -c '
+            ip link set lo up
+            SOVEREIGN_BUILD=1 GUARDIAN_PROFILE=air_gapped PORT=3000 npm run start &
+            SRV=$!
+            for i in $(seq 1 40); do
+              if curl -sSf -o /tmp/page.html http://127.0.0.1:3000/guardian-os; then break; fi
+              sleep 1
+            done
+            kill $SRV 2>/dev/null || true
+            test -s /tmp/page.html || { echo "::error::the sovereign build did not serve a page offline"; exit 1; }
+            if grep -qiE "fonts\.(googleapis|gstatic)\.com|vercel-insights|vitals\.vercel|assets\.calendly\.com|googletagmanager|plausible\.io" /tmp/page.html; then
+              echo "::error::the served page still references an external host"; exit 1
+            fi
+            echo "served offline, no external host in the delivered HTML"
+          '

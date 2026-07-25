@@ -391,6 +391,11 @@ def health() -> dict:
         "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
         "extended_rules": sorted(EXTENDED_RULES),
         "attestation": _attestation(default, HORIZON),
+        # Where this engine's dynamic Ω policies come from, and — in a sovereign
+        # deployment — whether the signed policy bundle it booted with actually
+        # VERIFIED. An operator with no network can read enforcement state off
+        # the engine itself instead of taking the deployment's word for it.
+        "dynamic_policies": dynamic_rules.status(),
         # Which container is serving this URL, and the fingerprint of the token
         # THIS running process loaded — so a client can prove/compare without the
         # secret ever leaving the box. token_fp is one-way (len + sha256 prefix).

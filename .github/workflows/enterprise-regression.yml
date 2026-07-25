@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Deterministic sector detection + anti-contamination
         run: npm run smoke:sectors
       - name: Overlap + adversarial robustness
@@ -53,7 +53,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
