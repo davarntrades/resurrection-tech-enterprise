@@ -128,14 +128,7 @@ jobs:
             # verify EXPECTS to fail here: no policy bundle, no engine. What is
             # being proven is that it runs offline and reports honestly.
             node bin/guardian.cjs verify --json > verify.json || true
-            node -e "
-              const v = require(\"./verify.json\");
-              const ids = v.checks.map(c => c.id).join(\",\");
-              if (v.checks.length !== 8) { console.error(\"expected 8 checks, got\", ids); process.exit(1); }
-              const eg = v.checks.find(c => c.id === \"egress\");
-              if (eg.status !== \"pass\") { console.error(\"egress check did not pass offline:\", eg.detail); process.exit(1); }
-              console.log(\"guardian verify ran offline:\", v.summary);
-            "
+            node scripts/sovereign/assert-verify-offline.cjs verify.json
           '
 
   # ── The engine, air-gapped, in a container with no network ────────────────
@@ -177,12 +170,9 @@ jobs:
           export GUARDIAN_TRUST_DIR=$PWD/dist/trust
           node bin/guardian.cjs keygen --key-id ci-release --out dist/keys
           cp dist/keys/ci-release.pub dist/trust/
-          cat > dist/src/policies/ci_wire_cap.json <<'JSON'
-          { "name": "ci_wire_cap", "domain": "finance", "status": "active", "version": 1,
-            "spec": { "match": { "tools": ["wire_transfer"] },
-                      "conditions": { "threshold": { "field": "amount", "op": ">", "value": 10000 } },
-                      "severity": "critical" } }
-          JSON
+          # A repo fixture, not a heredoc: inside a YAML block scalar every line
+          # is indented, and a quoted heredoc terminator must sit at column 0.
+          cp scripts/sovereign/fixtures/ci_wire_cap.json dist/src/policies/
           node bin/guardian.cjs bundle policies dist/src --dir \
             --id ci-policies --version 1.0.0 --out dist/policy-bundle \
             --sign-key dist/keys/ci-release.pem --key-id ci-release
@@ -201,22 +191,9 @@ jobs:
             -e GUARDIAN_PROFILE=air_gapped \
             -e SUPABASE_URL=https://must-never-be-used.supabase.co \
             -e SUPABASE_SERVICE_ROLE_KEY=must-never-be-used \
+            -v "$PWD/scripts/sovereign:/checks:ro" \
             guardian-engine:sovereign-ci \
-            python -c "
-import json, sys, dynamic_rules as dr
-st = dr.status()
-print(json.dumps(st, indent=1))
-assert st['provider'] == 'bundle', 'engine did not use the baked policy bundle'
-assert st['bundle']['ok'], 'the baked policy bundle failed verification'
-assert st['bundle']['signed'] and st['bundle']['alg'] == 'ed25519', 'bundle signature was not verified'
-rules = dr.active_rules()
-assert len(rules) == 1, f'expected 1 bundled rule, got {len(rules)}'
-r = rules[0]
-assert r.check({'tool': 'wire_transfer', 'amount': 25000}) is True, 'the bundled policy did not BLOCK'
-assert r.check({'tool': 'wire_transfer', 'amount': 100}) is False, 'the bundled policy over-blocked'
-assert r.check({'tool': 'send_email'}) is False, 'the bundled policy reached an unrelated tool'
-print('air-gapped engine governs with no network: OK')
-"
+            python /checks/airgap_engine_check.py
 
       - name: A tampered bundle must fail closed, offline
         run: |
@@ -228,14 +205,9 @@ print('air-gapped engine governs with no network: OK')
             --build-arg TRUST_BUNDLE=dist/trust \
             -t guardian-engine:sovereign-tampered .
           docker run --rm --network none -e GUARDIAN_PROFILE=air_gapped \
+            -v "$PWD/scripts/sovereign:/checks:ro" \
             guardian-engine:sovereign-tampered \
-            python -c "
-import dynamic_rules as dr
-st = dr.status()
-assert not st['bundle']['ok'], 'a tampered bundle was accepted'
-assert dr.active_rules() == [], 'a tampered bundle still yielded rules — NOT fail-closed'
-print('tampered bundle rejected, zero rules loaded:', st['bundle']['errors'][0])
-"
+            python /checks/airgap_engine_check.py --expect-tampered
 
   # ── The interface makes no external request ───────────────────────────────
   offline-interface:
