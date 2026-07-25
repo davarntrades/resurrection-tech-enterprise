@@ -6,8 +6,8 @@
  * executive perspectives — every workspace a LENS over the same governed source
  * of truth, never a parallel system.
  *
- *   1. ROLES        seven executive perspectives (CEO/CTO/CISO/Compliance/COO/
- *                   CFO/Legal), each producing role-appropriate sections.
+ *   1. ROLES        eight executive perspectives (CEO/CTO/CISO/Risk/Compliance/
+ *                   COO/CFO/Legal), each producing role-appropriate sections.
  *   2. ONE TWIN     the same governance score + estate appears across every
  *                   lens — the workspaces read the same context, not copies.
  *   3. PROJECTION   no new tables/collections are created by rendering a
@@ -54,9 +54,9 @@ async function main() {
   await rt.engine.evaluate([{ tool: "wire_transfer", args: { amount: 25000 } }], ["enterprise"], 3);
   await ops.proposals.propose({ action_id: "wire_transfer", params: { amount: 25000 }, org_id: org, source: "test" }).catch(() => {});
 
-  // ── 1. Seven roles, each projecting sections ──────────────────────────────
+  // ── 1. Eight roles, each projecting sections ──────────────────────────────
   const roles = ops.workspaces.roles();
-  ok(roles.length === 7 && ["ceo", "cto", "ciso", "compliance", "coo", "cfo", "legal"].every((r) => roles.some((x) => x.id === r)), "seven executive perspectives are offered", roles.map((r) => r.id));
+  ok(roles.length === 8 && ["ceo", "cto", "ciso", "risk", "compliance", "coo", "cfo", "legal"].every((r) => roles.some((x) => x.id === r)), "eight executive perspectives are offered", roles.map((r) => r.id));
   ok(roles.every((r) => r.title && r.purpose), "every role carries a title + purpose for navigation");
 
   const built = {};
@@ -73,6 +73,7 @@ async function main() {
   ok(ctoEstate === realSystems && ceoSystems === realSystems, "CEO + CTO read the same AI-system count off the one estate", { cto: ctoEstate, ceo: ceoSystems, real: realSystems });
 
   // Role framing differs — each lens foregrounds its own responsibility.
+  ok(built.risk.sections.some((s) => /risk register|exposure|risk posture/i.test(s.title)), "Chief Risk Officer foregrounds exposure + the risk register");
   ok(built.ciso.sections.some((s) => /threat|blocked|violation/i.test(s.title)), "CISO foregrounds security (threats / blocked / violations)");
   ok(built.compliance.sections.some((s) => /posture|audit|evidence|maturity/i.test(s.title)), "Compliance foregrounds regulatory posture + audit readiness");
   ok(built.legal.sections.some((s) => /decision|attestation|policy version|approval chain/i.test(s.title)), "Legal foregrounds decision history + attestations");
