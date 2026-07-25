@@ -27,9 +27,9 @@ async function api(path: string, opts: RequestInit = {}) {
 const fmtWhen = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const SEV_MARK: Record<string, string> = { ok: "✓", info: "·", warning: "⚠", critical: "✕" };
 
-type View = "guardian" | "workspaces" | "industry" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
-const VIEWS: View[] = ["guardian", "workspaces", "industry", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
-const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", industry: "Industry", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
+type View = "guardian" | "workspaces" | "industry" | "sovereign" | "provision" | "governance" | "briefing" | "command" | "policies" | "customers" | "agents" | "handoffs" | "memory" | "approvals" | "blocked" | "systems" | "evidence";
+const VIEWS: View[] = ["guardian", "workspaces", "industry", "sovereign", "provision", "governance", "briefing", "command", "policies", "customers", "agents", "handoffs", "memory", "approvals", "blocked", "systems", "evidence"];
+const VIEW_LABEL: Record<View, string> = { guardian: "Guardian", workspaces: "Workspaces", industry: "Industry", sovereign: "Sovereign", provision: "Provision", governance: "Governance", briefing: "Briefing", command: "Command", policies: "Policies", customers: "Customers", agents: "Agents", handoffs: "Handoffs", memory: "Memory", approvals: "Approvals", blocked: "Blocked", systems: "Systems", evidence: "Evidence" };
 
 const scoreClass = (band: string) =>
   ["healthy", "ready", "strong", "low"].includes(band) ? "ok"
@@ -161,6 +161,7 @@ export default function OperationsClient() {
         {view === "guardian" && <GuardianView onOpen={openHref} go={go} />}
         {view === "workspaces" && <WorkspacesView onOpen={openHref} go={go} />}
         {view === "industry" && <IndustryView onOpen={openHref} go={go} />}
+        {view === "sovereign" && <SovereignView onOpen={openHref} go={go} />}
         {view === "provision" && <ProvisionView onOpen={openHref} go={go} />}
         {view === "governance" && <GovernanceView onOpen={openHref} go={go} />}
         {view === "briefing" && <BriefingView brief={brief} dash={dash} busy={busy} onRefresh={load} onGenerate={runCycle} onOpen={openHref} onDecide={decide} onPropose={propose} go={go} />}
@@ -2039,6 +2040,209 @@ function IndustryView({ onOpen, go }: { onOpen: (h?: string | null) => void; go:
           {dash.sections.map((s: any) => <WorkspaceSection key={s.key} s={s} />)}
         </>
       )}
+    </>
+  );
+}
+
+/* ============================================================================
+ * Sovereign — where this deployment is running, and whether it can prove it.
+ *
+ * The rest of the Control Room answers "what is my estate doing?". This answers
+ * "what IS this deployment, and is it actually what it claims to be?" — the
+ * question an operator on a disconnected box, or an auditor standing behind
+ * them, asks first.
+ *
+ * READ-ONLY BY DESIGN. Installing bundles and applying updates happen at the
+ * console with `guardian`, where the media physically is. An air-gapped
+ * estate's supply chain must not have a network-reachable write path, so there
+ * is no install button here and there should never be one.
+ * ========================================================================== */
+function SovereignView({ go }: { onOpen: (h?: string | null) => void; go: (v: View) => void }) {
+  const [d, setD] = useState<any>(null);
+  const [ver, setVer] = useState<any>(null);
+  const [updates, setUpdates] = useState<any[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setD(await api("sovereign")); setErr(null); } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const runVerify = useCallback(async () => {
+    setBusy(true);
+    try { const r = await api("sovereign?view=verify"); setVer(r.verification); setErr(null); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }, []);
+
+  const loadUpdates = useCallback(async () => {
+    try { const r = await api("sovereign?view=updates"); setUpdates(r.updates || []); }
+    catch (e: any) { setErr(e.message); }
+  }, []);
+
+  if (err && !d) return <div className="radmin-err">{err}</div>;
+  if (!d) return <div className="radmin-loading">Reading deployment posture…</div>;
+
+  const dep = d.deployment || {};
+  const offline = ["on_prem", "sovereign", "air_gapped"].includes(dep.profile);
+  const bundle = dep.policy_bundle;
+  const trust = dep.trust_store || { keys: 0, dir: "—" };
+  const MARK: Record<string, string> = { pass: "✓", warn: "⚠", fail: "✕" };
+  const cls: Record<string, string> = { pass: "ok", warn: "warn", fail: "bad" };
+
+  return (
+    <>
+      <section className="radmin-card ops-sov-hero">
+        <div className="ops-brief-head">
+          <h2>Sovereign deployment</h2>
+          <span className={`radmin-badge${offline ? " ok" : ""}`}>{dep.title || dep.profile}</span>
+        </div>
+        <p className="radmin-sub">
+          The Runtime Governance kernel is byte-for-byte identical in every deployment profile — only the
+          providers behind it change. This tab reports what THIS deployment actually is, read from the running
+          process rather than from configuration you were told about.
+        </p>
+
+        <div className="ops-sov-grid">
+          {[
+            { k: "Profile", v: dep.profile, hint: dep.summary },
+            { k: "State storage", v: dep.storage, hint: dep.storage === "local" ? "on this box; never leaves the estate" : "managed cloud store" },
+            { k: "Evidence", v: dep.evidence, hint: dep.evidence === "local" ? "written to the local data directory" : "cloud object storage" },
+            { k: "Ω policy source", v: dep.policy_provider, hint: dep.policy_provider === "bundle" ? "signed filesystem bundle — no database" : "control plane over HTTPS" },
+            { k: "Egress", v: dep.egress, hint: dep.egress === "denied" ? "no outbound connection is permitted" : "outbound permitted" },
+            { k: "Runtime", v: dep.immutable && dep.immutable.immutable ? "immutable" : "mutable", hint: dep.immutable && dep.immutable.immutable ? "signed updates only; rollback stays available" : "policies may be authored here" },
+          ].map((x) => (
+            <div className="ops-sov-cell" key={x.k}>
+              <span className="ops-sov-k">{x.k}</span>
+              <b className="ops-sov-v">{String(x.v ?? "—")}</b>
+              <span className="ops-sov-hint">{x.hint}</span>
+            </div>
+          ))}
+        </div>
+
+        {d.store && d.store.cloud_refused && (
+          <p className="ops-sov-refused">
+            <b>Cloud credentials present and REFUSED.</b> This profile pins state to the local filesystem, so the
+            cloud client was never constructed. Remove the credentials so the deployment carries no unused secrets.
+          </p>
+        )}
+      </section>
+
+      {err && <div className="radmin-err">{err}</div>}
+
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <h3>Ω policy bundle</h3>
+          {bundle ? <span className="radmin-badge">{bundle}</span> : <span className="radmin-deliv-meta">not configured</span>}
+        </div>
+        {offline && !bundle && (
+          <p className="radmin-sub">
+            This profile reads policies from a signed bundle, but <code>GUARDIAN_POLICY_BUNDLE</code> is not set —
+            so only the static deployment baseline is enforcing. Install one at the console:
+            <code className="ops-sov-cmd">guardian install ./policies-1.0.0.gos</code>
+          </p>
+        )}
+        {!offline && (
+          <p className="radmin-sub">
+            This deployment reads Ω policies from the control plane. Bundle verification applies to on-premises,
+            sovereign and air-gapped profiles.
+          </p>
+        )}
+        <div className="ops-sov-trust">
+          <span className="radmin-deliv-meta">Trust store</span>
+          <b>{trust.keys} signing key{trust.keys === 1 ? "" : "s"}</b>
+          <span className="radmin-deliv-meta">{trust.dir}{trust.hmac_configured ? " · HMAC configured" : ""}</span>
+        </div>
+        {offline && trust.keys === 0 && !trust.hmac_configured && (
+          <p className="ops-sov-refused">
+            <b>The trust store is empty.</b> Nothing can be installed or updated until a public signing key is
+            provisioned out of band.
+          </p>
+        )}
+      </section>
+
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <h3>Deployment verification</h3>
+          <button className="radmin-btn primary" onClick={runVerify} disabled={busy}>
+            {busy ? "Verifying…" : ver ? "Re-run verification" : "Run verification"}
+          </button>
+        </div>
+        <p className="radmin-sub">
+          Eight checks, diagnostic and never corrective — verification reads, it never activates, installs or
+          &ldquo;fixes&rdquo; anything, so it is safe on a live system in front of an auditor. Anything unknown is
+          reported as unknown, never assumed to pass.
+        </p>
+        {!ver && <p className="radmin-deliv-meta">Not yet run in this session.</p>}
+        {ver && (
+          <>
+            <div className={`ops-sov-result ${ver.ok ? "ok" : "bad"}`}>
+              <b>{ver.ok ? "Deployment verified" : "NOT verified"}</b>
+              <span>{ver.summary.pass} passed · {ver.summary.warn} warning{ver.summary.warn === 1 ? "" : "s"} · {ver.summary.fail} failure{ver.summary.fail === 1 ? "" : "s"}</span>
+            </div>
+            <ul className="ops-sov-checks">
+              {ver.checks.map((c: any) => (
+                <li key={c.id} className={`ops-sov-check ${cls[c.status]}`}>
+                  <span className="ops-sov-mark">{MARK[c.status]}</span>
+                  <div>
+                    <b>{c.title}</b>
+                    <p>{c.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      <section className="radmin-card">
+        <div className="ops-brief-head">
+          <h3>Offline update history</h3>
+          <button className="radmin-btn" onClick={loadUpdates}>{updates ? "Refresh" : "Load"}</button>
+        </div>
+        <p className="radmin-sub">
+          Signed update packages applied at the console. Each captured a rollback plan <i>before</i> its first
+          change, so any of them can be reversed with <code className="ops-sov-cmd">guardian update rollback &lt;id&gt;</code>.
+        </p>
+        {updates === null && <p className="radmin-deliv-meta">Not loaded.</p>}
+        {updates !== null && updates.length === 0 && <p className="radmin-deliv-meta">No offline updates have been applied to this deployment.</p>}
+        {updates !== null && updates.length > 0 && (
+          <table className="radmin-table">
+            <thead><tr><th>Applied</th><th>Bundle</th><th>Version</th><th>Status</th><th>Signature</th></tr></thead>
+            <tbody>
+              {updates.map((u) => (
+                <tr key={u.id}>
+                  <td>{fmtWhen(u.created_at)}</td>
+                  <td>{u.bundle_id}</td>
+                  <td>{u.version}</td>
+                  <td><span className={`radmin-badge${u.status === "applied" ? " ok" : u.status === "rolled_back" ? " warn" : " bad"}`}>{u.status}</span></td>
+                  <td>{u.signature || "—"}{u.key_id ? ` (${u.key_id})` : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="radmin-card">
+        <div className="ops-brief-head"><h3>Industry pack projections in this build</h3></div>
+        <p className="radmin-sub">
+          A pack installed from signed media carries <b>data, never code</b>. Where this build ships the pack&rsquo;s own
+          projection code it renders bespoke analytics; where it does not, the Ω policies still enforce identically
+          and the dashboard renders from declarative content. Enforcement is the same in both modes.
+        </p>
+        <div className="ops-sov-packs">
+          {Object.entries(d.packs?.projections || {}).map(([id, mode]) => (
+            <span key={id} className={`radmin-badge${mode === "builtin" ? " ok" : " warn"}`}>{id} · {String(mode)}</span>
+          ))}
+        </div>
+        <p className="radmin-deliv-meta ops-sov-foot">
+          Installing and updating happen at the console with <code>guardian</code>, never over HTTP — an air-gapped
+          estate&rsquo;s supply chain should not have a network-reachable write path.
+          <button className="radmin-linkbtn" onClick={() => go("industry")}> Industry packs →</button>
+        </p>
+      </section>
     </>
   );
 }

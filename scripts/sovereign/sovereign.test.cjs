@@ -97,7 +97,10 @@ async function main() {
   });
   await withProfile("cloud", async () => {
     rt.store.resetBackend();
-    ok(rt.store.backend() === "supabase", "the same credentials DO build a cloud client under the cloud profile", rt.store.backend());
+    // If this fails, the reason is now recorded rather than swallowed — a
+    // silent fallback to local disk is exactly what cloudError() exists to stop.
+    ok(rt.store.backend() === "supabase", "the same credentials DO build a cloud client under the cloud profile",
+      { backend: rt.store.backend(), error: rt.store.cloudError() });
   });
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -180,10 +180,20 @@ jobs:
 
       - name: Build the sovereign engine image
         run: |
-          docker build -f governance-service/Dockerfile \
-            --build-arg POLICY_BUNDLE=dist/policy-bundle \
-            --build-arg TRUST_BUNDLE=dist/trust \
-            -t guardian-engine:sovereign-ci .
+          set -e
+          # The build context is `governance-service`, matching how the engine is
+          # built everywhere else (deploy-governance.yml and Railway). The
+          # Dockerfile's COPY paths are relative to it, so the bundle and trust
+          # store are STAGED INTO the context rather than the context widened to
+          # the repo root — widening it would break every other build.
+          rm -rf governance-service/ci-sovereign
+          mkdir -p governance-service/ci-sovereign
+          cp -r dist/policy-bundle governance-service/ci-sovereign/policy-bundle
+          cp -r dist/trust         governance-service/ci-sovereign/trust
+          docker build \
+            --build-arg POLICY_BUNDLE=ci-sovereign/policy-bundle \
+            --build-arg TRUST_BUNDLE=ci-sovereign/trust \
+            -t guardian-engine:sovereign-ci governance-service
 
       - name: Boot + govern with --network none
         run: |
@@ -198,12 +208,13 @@ jobs:
       - name: A tampered bundle must fail closed, offline
         run: |
           set -e
-          cp -r dist/policy-bundle dist/tampered
-          printf ' ' >> dist/tampered/policies/ci_wire_cap.json
-          docker build -f governance-service/Dockerfile \
-            --build-arg POLICY_BUNDLE=dist/tampered \
-            --build-arg TRUST_BUNDLE=dist/trust \
-            -t guardian-engine:sovereign-tampered .
+          rm -rf governance-service/ci-sovereign/tampered
+          cp -r dist/policy-bundle governance-service/ci-sovereign/tampered
+          printf ' ' >> governance-service/ci-sovereign/tampered/policies/ci_wire_cap.json
+          docker build \
+            --build-arg POLICY_BUNDLE=ci-sovereign/tampered \
+            --build-arg TRUST_BUNDLE=ci-sovereign/trust \
+            -t guardian-engine:sovereign-tampered governance-service
           docker run --rm --network none -e GUARDIAN_PROFILE=air_gapped \
             -v "$PWD/scripts/sovereign:/checks:ro" \
             guardian-engine:sovereign-tampered \
