@@ -246,3 +246,40 @@
   .gos-pack-specs > div:nth-child(even) { padding-left: 0; }
   .gos-launch { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+/* ── Cross-link from a phase card ────────────────────────────────────────── */
+.gos-phase-link { display: inline-block; margin-top: 16px; font-size: 12.5px; color: var(--accent-bright); text-decoration: none; }
+.gos-phase-link:hover { text-decoration: underline; }
+
+/* ── Engagement ladder ───────────────────────────────────────────────────── */
+.gos-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.gos-ladder-step {
+  display: grid; grid-template-columns: auto 1fr auto; gap: clamp(14px, 2vw, 24px); align-items: center;
+  padding: clamp(18px, 2.2vw, 26px) clamp(20px, 2.4vw, 28px);
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  transition: border-color .22s var(--ease-out);
+}
+.gos-ladder-step:hover { border-color: var(--line-strong); }
+.gos-ladder-n { font-family: var(--mono); font-size: 12px; color: var(--accent-bright); letter-spacing: 0.08em; }
+.gos-ladder-body h3 { margin: 0; font-size: clamp(16px, 1.8vw, 20px); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.gos-ladder-body p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+.gos-ladder-t { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* ── Licence tiers ───────────────────────────────────────────────────────── */
+.gos-tiers { margin-top: clamp(56px, 6.5vw, 88px); padding-top: clamp(44px, 5vw, 64px); border-top: 1px solid var(--line-2); }
+.gos-tiers-h { margin: 0; font-size: clamp(22px, 2.6vw, 32px); font-weight: 600; letter-spacing: -0.026em; color: var(--ink); }
+.gos-tiers-sub { max-width: 62ch; margin: 12px 0 clamp(28px, 3.4vw, 40px); font-size: 14.5px; line-height: 1.62; color: var(--ink-2); }
+.gos-tier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 14px; }
+.gos-tier { display: flex; flex-direction: column; padding: clamp(24px, 2.8vw, 32px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+.gos-tier.is-mid { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.06), var(--panel)); }
+.gos-tier-k { margin: 0; font-size: clamp(18px, 2vw, 22px); font-weight: 600; letter-spacing: -0.022em; color: var(--ink); }
+.gos-tier-who { margin: 10px 0 18px; font-size: 13px; line-height: 1.6; color: var(--ink-3); }
+.gos-tier-list { list-style: none; margin: 0; padding: 18px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.gos-tier-list li { position: relative; padding-left: 16px; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.gos-tier-list li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 6px; height: 1px; background: var(--line-strong); }
+.gos-tier-note { max-width: 74ch; margin: clamp(26px, 3vw, 36px) 0 0; font-size: 13.5px; line-height: 1.66; color: var(--ink-3); }
+
+@media (max-width: 680px) {
+  .gos-ladder-step { grid-template-columns: auto 1fr; }
+  .gos-ladder-t { grid-column: 2; }
+}

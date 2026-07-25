@@ -77,3 +77,37 @@
 }
 
 @media (max-width: 720px) { .twin-render-legend { gap: 12px; } }
+
+/* ── Is / is not ─────────────────────────────────────────────────────────── */
+.twin-isnot { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.twin-isnot-col { padding: clamp(24px, 2.8vw, 32px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+.twin-isnot-is { border-left: 2px solid var(--ok); }
+.twin-isnot-not { border-left: 2px solid var(--omega-dim); }
+.twin-isnot-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.twin-isnot-col li { position: relative; padding-left: 20px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.twin-isnot-is li { color: var(--ink); }
+.twin-isnot-is li::before { content: "✓"; position: absolute; left: 0; top: 0; font-size: 11px; color: var(--ok); }
+.twin-isnot-not li::before { content: "✕"; position: absolute; left: 0; top: 0; font-size: 10px; color: var(--omega); }
+
+/* ── Core design principles ──────────────────────────────────────────────── */
+.twin-principles { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.twin-principle { padding: clamp(24px, 2.8vw, 32px); background: var(--bg-1); transition: background .25s var(--ease-out); }
+.twin-principle:hover { background: var(--panel); }
+.twin-principle dt { font-size: clamp(16px, 1.75vw, 19px); font-weight: 600; letter-spacing: -0.018em; color: var(--ink); }
+.twin-principle dd { margin: 10px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+
+/* ── Architecture caption + control boundary ─────────────────────────────── */
+.twin-arch-caption { max-width: 68ch; margin: clamp(28px, 3.4vw, 40px) auto 0; text-align: center; font-size: 13.5px; line-height: 1.66; font-style: italic; color: var(--ink-3); }
+.twin-boundary { max-width: 72ch; margin: clamp(34px, 4vw, 52px) auto 0; padding: clamp(22px, 2.6vw, 30px); border: 1px solid var(--line-2); border-left: 2px solid #d9a441; border-radius: 12px; background: var(--panel); }
+.twin-boundary p { margin: 12px 0 0; font-size: 14px; line-height: 1.66; color: var(--ink-2); }
+.twin-boundary strong { color: var(--ink); font-weight: 600; }
+
+/* ── Governing distinction ───────────────────────────────────────────────── */
+.twin-dist { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 14px; }
+.twin-dist-item { padding: clamp(22px, 2.6vw, 30px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+.twin-dist-item.is-boundary { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.07), var(--panel)); }
+.twin-dist-item h3 { margin: 0; font-size: clamp(17px, 1.85vw, 20px); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.twin-dist-item p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+.twin-dist-note { margin: clamp(28px, 3.4vw, 40px) 0 0; font-size: 14.5px; color: var(--ink-3); }
+.twin-inline-link { color: var(--accent-bright); text-decoration: none; }
+.twin-inline-link:hover { text-decoration: underline; }

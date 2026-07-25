@@ -142,6 +142,42 @@ export default function AiTwinPage() {
         </div>
       </section>
 
+      {/* ────────────────────────── IS / IS NOT ────────────────────────── */}
+      <section className="gos-section" id="what">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">What it is</span>
+            <h2 className="gos-h2">A shared intelligence layer — not an uncontrolled write surface.</h2>
+            <p className="gos-sec-lede">
+              &ldquo;Digital twin&rdquo; carries a lot of baggage. Here is exactly what Your AI Twin is, and just as
+              importantly, what it is not.
+            </p>
+          </header>
+          <div className="twin-isnot">
+            <div className="twin-isnot-col twin-isnot-is reveal">
+              <span className="twin-vs-h">It is</span>
+              <ul>
+                <li>A live, read-only representation of approved organisational state</li>
+                <li>A shared context for executives, specialists and governed agents</li>
+                <li>A provenance-aware model of systems, workflows, risks and dependencies</li>
+                <li>A policy-enforced intelligence and decision layer</li>
+                <li>A governed route from observation to evidence-backed proposal</li>
+              </ul>
+            </div>
+            <div className="twin-isnot-col twin-isnot-not reveal" data-d="1">
+              <span className="twin-vs-h">It is not</span>
+              <ul>
+                <li>An autonomous copy of the company with unrestricted write access</li>
+                <li>Another isolated dashboard owned by one department</li>
+                <li>A replacement for any source system or system of record</li>
+                <li>Permission for an AI model to act without review</li>
+                <li>A claim that every source is complete, current or automatically correct</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─────────────────────────── SIX GRAPHS ─────────────────────────── */}
       <section className="gos-section" id="graphs">
         <div className="gos-wrap">
@@ -202,6 +238,75 @@ export default function AiTwinPage() {
         </div>
       </section>
 
+      {/* ────────────────────── CORE DESIGN PRINCIPLES ────────────────────── */}
+      <section className="gos-section" id="principles">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">Core design principles</span>
+            <h2 className="gos-h2">Six commitments the Twin is built on.</h2>
+          </header>
+          <dl className="twin-principles">
+            {[
+              ["Read-only by default", "The Twin observes and reconciles organisational state. It does not silently mutate source systems."],
+              ["Shared truth, scoped views", "Leaders work from common evidence, while role, policy and legal boundaries control visibility and authority."],
+              ["Proposals before execution", "Agents may analyse and recommend. Material action remains a separately governed decision."],
+              ["Evidence before autonomy", "Provenance, policy context, approval state and outcome are preserved for accountable review."],
+              ["Model independence", "The governance boundary applies across heterogeneous models, agents, tools and vendors."],
+              ["Graceful uncertainty", "Conflicts, stale data and missing evidence are surfaced — never compressed into false confidence."],
+            ].map(([t, d], i) => (
+              <div className="twin-principle reveal" data-d={String((i % 3) + 1)} key={t}>
+                <dt>{t}</dt>
+                <dd>{d}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ───────────────────── TECHNICAL ARCHITECTURE ───────────────────── */}
+      <section className="gos-section gos-section-alt" id="architecture">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">Technical architecture</span>
+            <h2 className="gos-h2">Approved context in. Accountable evidence out.</h2>
+            <p className="gos-sec-lede">
+              Approved enterprise sources feed the Twin&apos;s read-only model. The Twin continuously provides
+              governed context to Guardian OS. Runtime Governance evaluates authority, reachability, policy and
+              evidence before any proposal can advance.
+            </p>
+          </header>
+          <div className="gos-stack reveal">
+            {[
+              { k: "Approved enterprise sources", d: "Customers · workflows · systems · risks · controls · dependencies" },
+              { k: "Your AI Twin", d: "Continuous enterprise model · systems · agents · workflows · dependencies · policies" },
+              { k: "Guardian OS + Runtime Governance", d: "Workspaces · Intelligence Packs · authority · reachability · proposals · approvals" },
+              { k: "Governed executive & specialist operations", d: "Executive agents · specialist agents · Control Room · accountable decisions" },
+              { k: "Evidence & accountability", d: "Source · policy context · verdict · approval state · audit trail · outcome" },
+            ].map((s, i, arr) => (
+              <div className="gos-stack-row" key={s.k}>
+                <div className={`gos-stack-node${i === 1 ? " is-kernel" : ""}`}>
+                  <span className="gos-stack-k">{s.k}</span>
+                  <span className="gos-stack-d">{s.d}</span>
+                </div>
+                {i < arr.length - 1 && <span className="gos-stack-arrow" aria-hidden="true">↓</span>}
+              </div>
+            ))}
+          </div>
+          <p className="twin-arch-caption reveal">
+            Approved context enters the Twin read-only; Guardian OS turns understanding into governed operations;
+            evidence preserves accountability.
+          </p>
+          <div className="twin-boundary reveal">
+            <span className="gos-kicker">Control boundary</span>
+            <p>
+              Any future write capability, workflow execution or source-system mutation is treated as a
+              <strong> separate governed integration surface</strong>. It must pass explicit policy, approval,
+              testing, evidence and operational-readiness requirements before activation.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ───────────────────────────── DRIFT ───────────────────────────── */}
       <section className="gos-section" id="drift">
         <div className="gos-wrap">
@@ -254,6 +359,32 @@ export default function AiTwinPage() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ────────────────────── THE GOVERNING DISTINCTION ────────────────────── */}
+      <section className="gos-section" id="distinction">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">The governing distinction</span>
+            <h2 className="gos-h2">Three things, doing three jobs.</h2>
+          </header>
+          <div className="twin-dist">
+            {[
+              ["Your AI Twin", "The organisation's shared model — what exists, what it touches, what may authorise it."],
+              ["Guardian OS", "Turns that model into executive and operational capability: workspaces, departments, packs."],
+              ["Runtime Governance", "The conscience and control boundary around how autonomous systems interpret the model and move toward action."],
+            ].map(([t, d], i) => (
+              <article className={`twin-dist-item reveal${i === 2 ? " is-boundary" : ""}`} data-d={String(i + 1)} key={t}>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </article>
+            ))}
+          </div>
+          <p className="twin-dist-note reveal">
+            The Twin is generated automatically when Guardian OS is installed.{" "}
+            <Link href="/guardian-os" className="twin-inline-link">See how the installation works →</Link>
+          </p>
         </div>
       </section>
 
