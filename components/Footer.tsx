@@ -1,81 +1,109 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { SITE } from "@/lib/site";
 
 export function Footer() {
+  const pathname = usePathname();
+  const showSovereignProof = pathname === "/";
+
   return (
-    <footer className="footer">
-      <div className="wrap">
-        <div>
-          <Link className="brand" href="/" style={{ color: "var(--ink)" }}>
-            <span className="mark" aria-hidden="true">
-              <Logo height={22} />
-            </span>
-            <span>
-              Resurrection&nbsp;Tech<span className="tm">™</span>
-            </span>
-          </Link>
-          <p className="fbrand">Safety as Geometry. Intelligence as Reachability.</p>
-          <div className="fcontact">
-            <span>{SITE.legalName}</span>
-            <a href={SITE.url}>{SITE.domain}</a>
-            <a href="mailto:hello@resurrection-tech.com">hello@resurrection-tech.com</a>
-            <a
-              className="fsocial"
-              href="https://www.linkedin.com/company/resurrection-tech/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Resurrection Tech on LinkedIn"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z" />
-              </svg>
-              LinkedIn
-            </a>
+    <>
+      {showSovereignProof && (
+        <section
+          aria-label="Guardian OS Sovereign air-gapped capability"
+          style={{
+            background: "#050505",
+            color: "#f5f1e8",
+            borderTop: "1px solid rgba(213,173,90,.28)",
+            borderBottom: "1px solid rgba(213,173,90,.28)",
+            padding: "clamp(64px,8vw,104px) 0",
+          }}
+        >
+          <div className="wrap">
+            <div style={{ maxWidth: 940 }}>
+              <span style={{ color: "#d5ad5a", fontSize: 12, fontWeight: 800, letterSpacing: ".2em", textTransform: "uppercase" }}>
+                Guardian OS // Sovereign
+              </span>
+              <h2 style={{ fontSize: "clamp(34px,5vw,62px)", lineHeight: 1.04, letterSpacing: "-.045em", margin: "16px 0 20px" }}>
+                Air-gapped operation. Offline policy enforcement. Local governance evidence.
+              </h2>
+              <p style={{ color: "#aaa59b", fontSize: "clamp(17px,2vw,20px)", lineHeight: 1.7, maxWidth: 880 }}>
+                Air-gapped operation is proven in continuous integration with external network access removed, signed offline policy enforcement, an offline-clean interface, local evidence generation and acceptance-testable sovereign deployment artefacts.
+              </p>
+              <p style={{ color: "#d8d0c1", fontSize: 16, lineHeight: 1.7, maxWidth: 880 }}>
+                Guardian OS Sovereign provides an acceptance-testable, offline-clean operating architecture with zero required external resource loads and locally generated governance evidence.
+              </p>
+              <Link
+                href="/guardian-os/sovereign"
+                className="btn btn--ghost btn--sm"
+                style={{ marginTop: 22, borderColor: "#d5ad5a", color: "#d5ad5a" }}
+              >
+                Explore Guardian OS Sovereign <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <footer className="footer">
+        <div className="wrap">
+          <div>
+            <Link className="brand" href="/" style={{ color: "var(--ink)" }}>
+              <span className="mark" aria-hidden="true"><Logo height={22} /></span>
+              <span>Resurrection&nbsp;Tech<span className="tm">™</span></span>
+            </Link>
+            <p className="fbrand">Safety as Geometry. Intelligence as Reachability.</p>
+            <div className="fcontact">
+              <span>{SITE.legalName}</span>
+              <a href={SITE.url}>{SITE.domain}</a>
+              <a href="mailto:hello@resurrection-tech.com">hello@resurrection-tech.com</a>
+              <a className="fsocial" href="https://www.linkedin.com/company/resurrection-tech/" target="_blank" rel="noopener noreferrer" aria-label="Resurrection Tech on LinkedIn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z" /></svg>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+          <div>
+            <h4>Platform</h4>
+            <Link href="/guardian-os">Guardian OS™</Link>
+            <Link href="/ai-twin">Your AI Twin™</Link>
+            <Link href="/intelligence-packs">Industry Intelligence Packs</Link>
+            <Link href="/sovereign-intelligence-packs">Sovereign Intelligence Packs</Link>
+            <Link href="/#what">What Runtime Governance is</Link>
+            <Link href="/why-runtime-governance">Why Runtime Governance</Link>
+            <Link href="/technology">Technology &amp; architecture</Link>
+            <Link href="/solutions">Industries &amp; solutions</Link>
+            <Link href="/integrations">How it integrates</Link>
+            <Link href="/#onboarding">Deployment pathway</Link>
+            <Link href="/technology#reachability">Ω Reachability</Link>
+            <Link href="/enterprise-pathways">Why pricing scales</Link>
+          </div>
+          <div>
+            <h4>Engage</h4>
+            <Link href="/enterprise-pathways">Enterprise pathways</Link>
+            <Link href="/solutions">Target domains</Link>
+            <Link href="/partners">Partners</Link>
+            <Link href="/referral">Partner referrals</Link>
+            <Link href="/licensing">Licensing framework</Link>
+            <Link href="/book#assessment">Book a Runtime Safety Assessment</Link>
+            <Link href="/pay">Payments &amp; invoicing</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/request-audit">Request audit</Link>
+          </div>
+          <div>
+            <h4>Evidence &amp; trust</h4>
+            <Link href="/case-studies">Case studies</Link>
+            <Link href="/evidence">Evidence &amp; methodology</Link>
+            <Link href="/security">Security &amp; deployment</Link>
+            <Link href="/sample-audit">Sample audit report</Link>
+            <Link href="/company">Company</Link>
           </div>
         </div>
-        <div>
-          <h4>Platform</h4>
-          <Link href="/guardian-os">Guardian OS™</Link>
-          <Link href="/ai-twin">Your AI Twin™</Link>
-          <Link href="/intelligence-packs">Industry Intelligence Packs</Link>
-          <Link href="/sovereign-intelligence-packs">Sovereign Intelligence Packs</Link>
-          <Link href="/#what">What Runtime Governance is</Link>
-          <Link href="/why-runtime-governance">Why Runtime Governance</Link>
-          <Link href="/technology">Technology &amp; architecture</Link>
-          <Link href="/solutions">Industries &amp; solutions</Link>
-          <Link href="/integrations">How it integrates</Link>
-          <Link href="/#onboarding">Deployment pathway</Link>
-          <Link href="/technology#reachability">Ω Reachability</Link>
-          <Link href="/enterprise-pathways">Why pricing scales</Link>
-        </div>
-        <div>
-          <h4>Engage</h4>
-          <Link href="/enterprise-pathways">Enterprise pathways</Link>
-          <Link href="/solutions">Target domains</Link>
-          <Link href="/partners">Partners</Link>
-          <Link href="/referral">Partner referrals</Link>
-          <Link href="/licensing">Licensing framework</Link>
-          <Link href="/book#assessment">Book a Runtime Safety Assessment</Link>
-          <Link href="/pay">Payments &amp; invoicing</Link>
-          <Link href="/contact">Contact</Link>
-          <Link href="/request-audit">Request audit</Link>
-        </div>
-        <div>
-          <h4>Evidence &amp; trust</h4>
-          <Link href="/case-studies">Case studies</Link>
-          <Link href="/evidence">Evidence &amp; methodology</Link>
-          <Link href="/security">Security &amp; deployment</Link>
-          <Link href="/sample-audit">Sample audit report</Link>
-          <Link href="/company">Company</Link>
-        </div>
-      </div>
-      <div className="wrap">
-        <div className="footer-base">
-          <span>© {new Date().getFullYear()} {SITE.legalName.toUpperCase()} · ALL RIGHTS RESERVED</span>
-          <span>PATENT {SITE.patent} · MORRISON RUNTIME GOVERNANCE™</span>
-        </div>
-      </div>
-    </footer>
+        <div className="wrap"><div className="footer-base"><span>© {new Date().getFullYear()} {SITE.legalName.toUpperCase()} · ALL RIGHTS RESERVED</span><span>PATENT {SITE.patent} · MORRISON RUNTIME GOVERNANCE™</span></div></div>
+      </footer>
+    </>
   );
 }
