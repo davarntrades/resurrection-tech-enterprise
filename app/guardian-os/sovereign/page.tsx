@@ -101,8 +101,9 @@ export default function GuardianOSSovereignPage() {
               <span className="sov-classification">GUARDIAN OS // SOVEREIGN</span>
               <h1>Governed AI for sovereign, defence and critical infrastructure environments.</h1>
               <p className="sov-hero-copy">
-                Guardian OS allows organisations to adopt governed enterprise AI in months instead of spending multiple
-                years engineering and validating a governance platform before AI can safely reach production.
+                Guardian OS is already built. Organisations can move directly into configuration, verification and
+                deployment instead of spending multiple years engineering a governance platform before governed AI can
+                reach production.
               </p>
               <p className="sov-hero-support">
                 One Runtime Governance kernel operates across cloud, private cloud, on-premises, sovereign and air-gapped
@@ -156,9 +157,12 @@ export default function GuardianOSSovereignPage() {
                 <ol>{BUILD_STEPS.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span>{step}</li>)}</ol>
               </article>
               <article className="sov-path sov-path-short">
-                <div className="sov-path-head"><span>GUARDIAN OS</span><b>Operational deployment path</b></div>
+                <div className="sov-path-head"><span>GUARDIAN OS</span><b>Platform ready for deployment</b></div>
                 <ol>{OPERATE_STEPS.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span>{step}</li>)}</ol>
-                <p className="sov-path-result">The foundations already exist. Customer effort shifts to mission configuration, integration and operation.</p>
+                <p className="sov-path-result">
+                  The platform foundations already exist. Delivery can begin immediately; elapsed time is driven primarily
+                  by customer procurement, legal, assurance, integration and operational acceptance requirements.
+                </p>
               </article>
             </div>
           </div>
