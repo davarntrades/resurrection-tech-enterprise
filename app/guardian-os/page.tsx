@@ -55,7 +55,25 @@ const PHASES = [
   { n: "03", title: "Trust Architecture", verb: "Creates", items: ["Trust boundaries", "Identities", "Approvals", "Protected assets", "Risk zones"] },
   { n: "04", title: "Runtime Governance", verb: "Installs", items: ["Ω Policies", "Fail-closed execution", "Deny-only governance", "Dynamic policy engine"] },
   { n: "05", title: "Department Deployment", verb: "Creates governed departments", items: DEPARTMENTS.map((d) => d.label) },
-  { n: "06", title: "Digital Twin", verb: "Automatically generates", items: ["Enterprise graph", "Dependency graph", "AI relationships", "Trust graph", "Runtime graph", "Risk graph"] },
+  { n: "06", title: "Digital Twin", verb: "Automatically generates", items: ["Enterprise graph", "Dependency graph", "AI relationships", "Trust graph", "Runtime graph", "Risk graph"], href: "/ai-twin", hrefLabel: "Your AI Twin™" },
+];
+
+/* How an enterprise engages. Pathways, not a price list. */
+const PATHWAYS = [
+  { k: "Assessment", p: "Risk, fit, readiness and governance evaluation.", t: "1–2 weeks" },
+  { k: "Enterprise Provisioning", p: "Enterprise identity, AI estate, trust architecture, departments, Your AI Twin and Executive Command.", t: "Scope dependent" },
+  { k: "Guardian OS Licence", p: "The full platform: kernel, operating layer, workspaces, governed agents, Your AI Twin and Intelligence Packs.", t: "Annual" },
+  { k: "Managed Governance", p: "Ongoing monitoring, optimisation, evidence and revalidation.", t: "Monthly / annual" },
+  { k: "Executive Advisory", p: "Fractional CAIO and role-specific executive oversight.", t: "Monthly / annual" },
+];
+
+const TIERS = [
+  { k: "Standard", who: "Organisations beginning enterprise AI governance with a production foundation.",
+    inc: ["Guardian OS, the Runtime Governance kernel, Enterprise Provisioning and Executive Command", "One Industry Intelligence Pack", "One enterprise Digital Twin", "Core executive workspaces and specialist agents", "Standard policies, workflows and support"] },
+  { k: "Executive", who: "Large enterprises requiring broader executive coverage and deeper integration.",
+    inc: ["Everything in Standard", "Multiple Industry Intelligence Packs", "All standard executive workspaces", "Advanced specialist agents and an expanded enterprise twin", "Priority governance engineering, premium managed governance and included advisory hours"] },
+  { k: "Sovereign", who: "Governments, defence, national infrastructure operators and the largest multinationals.",
+    inc: ["Everything in Executive", "Sovereign and air-gapped deployment options", "National-scale or multi-enterprise twins", "Global multi-region governance", "Dedicated governance engineering, a dedicated CAIO programme and sovereign operational support"] },
 ];
 
 const BENEFITS = [
@@ -203,6 +221,7 @@ export default function GuardianOSPage() {
                 <ul className="gos-phase-list">
                   {p.items.map((it) => <li key={it}>{it}</li>)}
                 </ul>
+                {p.href && <Link href={p.href} className="gos-phase-link">{p.hrefLabel} →</Link>}
               </article>
             ))}
           </div>
@@ -381,6 +400,56 @@ export default function GuardianOSPage() {
                 <p>{b.body}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────────── ENGAGEMENT + LICENCE TIERS ───────────────────── */}
+      <section className="gos-section gos-section-alt" id="engage">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">How enterprises engage</span>
+            <h2 className="gos-h2">Start with an assessment. Scale to an operating model.</h2>
+            <p className="gos-sec-lede">
+              Guardian OS is adopted in stages. Most enterprises begin with an assessment — risk, fit and
+              readiness — and the finding credits toward the engagement that follows.
+            </p>
+          </header>
+          <ol className="gos-ladder">
+            {PATHWAYS.map((p, i) => (
+              <li className="gos-ladder-step reveal" data-d={String((i % 3) + 1)} key={p.k}>
+                <span className="gos-ladder-n">{String(i + 1).padStart(2, "0")}</span>
+                <div className="gos-ladder-body">
+                  <h3>{p.k}</h3>
+                  <p>{p.p}</p>
+                </div>
+                <span className="gos-ladder-t">{p.t}</span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="gos-tiers">
+            <h3 className="gos-tiers-h reveal">Licence tiers</h3>
+            <p className="gos-tiers-sub reveal">
+              The tier grows with operational capability, deployment responsibility and the depth of governance
+              support included.
+            </p>
+            <div className="gos-tier-grid">
+              {TIERS.map((t, i) => (
+                <article className={`gos-tier reveal${i === 1 ? " is-mid" : ""}`} data-d={String((i % 3) + 1)} key={t.k}>
+                  <h4 className="gos-tier-k">Guardian OS {t.k}</h4>
+                  <p className="gos-tier-who">{t.who}</p>
+                  <ul className="gos-tier-list">
+                    {t.inc.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <p className="gos-tier-note reveal">
+              Guardian OS Sovereign is the annual platform tier. A sovereign or national deployment is a separate
+              implementation programme to establish governed AI infrastructure across a department, institution or
+              national environment. <Link href="/contact" className="twin-inline-link">Talk to sales about scope and pricing →</Link>
+            </p>
           </div>
         </div>
       </section>
