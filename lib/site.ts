@@ -36,6 +36,7 @@ export const NAV_MENU = [
     group: "Product",
     links: [
       { href: "/guardian-os", label: "Guardian OS™" },
+      { href: "/guardian-os/sovereign", label: "Guardian OS Sovereign" },
       { href: "/ai-twin", label: "Your AI Twin™" },
       { href: "/intelligence-packs", label: "Industry Intelligence Packs" },
       { href: "/#what", label: "Runtime Governance™" },
