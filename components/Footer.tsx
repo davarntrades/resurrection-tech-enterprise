@@ -39,6 +39,7 @@ export function Footer() {
           <Link href="/guardian-os">Guardian OS™</Link>
           <Link href="/ai-twin">Your AI Twin™</Link>
           <Link href="/intelligence-packs">Industry Intelligence Packs</Link>
+          <Link href="/sovereign-intelligence-packs">Sovereign Intelligence Packs</Link>
           <Link href="/#what">What Runtime Governance is</Link>
           <Link href="/why-runtime-governance">Why Runtime Governance</Link>
           <Link href="/technology">Technology &amp; architecture</Link>

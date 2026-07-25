@@ -216,11 +216,37 @@ async function cmdPack(pos, flags) {
   const registry = require(path.join(ROOT, "lib", "ops", "packs"));
 
   if (!sub || sub === "list") {
+    const sovereignty = require(path.join(ROOT, "lib", "ops", "sovereignty"));
     const rows = registry.catalog();
-    emit({ ok: true, packs: rows.map((p) => ({ id: p.id, version: p.version, industry: p.industry, policies: p.counts.policies })) });
+    const industry = rows.filter((p) => !p.sovereign);
+    const sovereignRows = rows.filter((p) => p.sovereign);
+    const admissible = (p) => { try { return sovereignty.assessPack(registry.get(p.id)); } catch { return null; } };
+
+    emit({
+      ok: true,
+      profile: sovereignty.posture().profile,
+      packs: rows.map((p) => ({
+        id: p.id, version: p.version, industry: p.industry, policies: p.counts.policies,
+        sovereign: !!p.sovereign, classification: p.classification || null,
+        admissible: p.sovereign ? !!(admissible(p) || {}).ok : true,
+      })),
+    });
+
     out(bold("\nIndustry Intelligence Packs in this build\n"));
-    for (const p of rows) out(`  ${bold(p.id.padEnd(15))} v${p.version.padEnd(8)} ${p.industry.padEnd(16)} ${dim(`${p.counts.policies} policies · ${p.counts.mappings} evidence mappings`)}`);
-    out("");
+    for (const p of industry) out(`  ${bold(p.id.padEnd(24))} v${p.version.padEnd(8)} ${p.industry.padEnd(28)} ${dim(`${p.counts.policies} policies · ${p.counts.mappings} evidence mappings`)}`);
+
+    const posture = sovereignty.posture();
+    out(bold("\nSovereign Intelligence Packs in this build\n"));
+    for (const p of sovereignRows) {
+      const a = admissible(p);
+      // An operator should learn a pack is inadmissible HERE, not after
+      // carrying signed media to an air-gapped console and finding out.
+      const mark = a && a.ok ? green("✓") : yellow("✗");
+      out(`  ${mark} ${bold(p.id.padEnd(24))} v${p.version.padEnd(8)} ${String(p.classification_title || p.classification).padEnd(20)} ${dim(`${p.counts.policies} policies · ${p.counts.authority_chains} authority chains · ${p.counts.mission_workflows} workflows`)}`);
+      if (a && !a.ok) out(dim(`     requires ${a.eligible_profiles.join(" or ")} — this deployment is ${a.profile}`));
+    }
+    out(dim(`\n  deployment ${bold(posture.profile)} · hosts ${posture.admissible_classifications.join(", ") || "no sovereign classification"}`));
+    out(dim("  sovereign packs are declarative data — they carry no executable code, so an offline install renders at full fidelity\n"));
     return 0;
   }
 
@@ -279,6 +305,54 @@ async function cmdPack(pos, flags) {
   }
 
   return die(`unknown pack command "${sub}" — expected list, export, install or uninstall`, 2);
+}
+
+/**
+ * `guardian sovereign` — what THIS deployment is able to host, and why.
+ *
+ * Diagnostic and never corrective, like `guardian verify`: it reads the running
+ * process and reports. The guarantee list is the honest part — an operator sees
+ * which specific guarantee is missing, not just that a pack was refused.
+ */
+async function cmdSovereign(pos, flags) {
+  const sovereignty = require(path.join(ROOT, "lib", "ops", "sovereignty"));
+  const registry = require(path.join(ROOT, "lib", "ops", "packs"));
+  const sub = pos[0];
+
+  if (sub === "classifications") {
+    const rows = sovereignty.list();
+    emit({ ok: true, classifications: rows });
+    out(bold("\nClassification tiers\n"));
+    for (const c of rows) {
+      out(`  ${bold(c.id.padEnd(20))} ${c.title}`);
+      out(dim(`    ${c.summary}`));
+      out(dim(`    requires: ${c.requires.map((r) => r.label).join(", ")}`));
+      out(dim(`    eligible: ${c.eligible_profiles.join(", ") || "no profile in this build satisfies this tier"}\n`));
+    }
+    return 0;
+  }
+
+  const posture = sovereignty.posture(flags.profile || null);
+  const packs = registry.sovereignPacks().map((p) => ({ pack: p, a: sovereignty.assessPack(p, { profile: flags.profile || null }) }));
+  emit({ ok: true, posture, packs: packs.map(({ pack, a }) => ({ id: pack.id, classification: pack.sovereign.classification, admissible: a.ok, unmet: a.unmet })) });
+
+  out(bold(`\nSovereign posture — ${posture.profile_title} (${posture.profile})\n`));
+  for (const g of posture.guarantees) {
+    out(`  ${g.holds ? green("✓") : dim("·")} ${g.label.padEnd(30)} ${dim(g.detail)}`);
+  }
+  out(bold("\n  Classifications this deployment can host: ") + (posture.admissible_classifications.join(", ") || yellow("none")));
+  if (!posture.sovereign_capable) {
+    out(dim("  This deployment cannot host Secret-tier packs. That is a statement about the deployment,"));
+    out(dim("  not the platform — the same kernel and the same packs run sovereign elsewhere."));
+  }
+
+  out(bold("\n  Sovereign Intelligence Packs\n"));
+  for (const { pack, a } of packs) {
+    out(`  ${a.ok ? green("✓") : yellow("✗")} ${bold(pack.id.padEnd(24))} ${String(a.classification_title || "").padEnd(20)} ${dim(pack.sovereign.mission_domain)}`);
+    if (!a.ok) out(dim(`     missing: ${a.unmet.join(", ")} · eligible on ${a.eligible_profiles.join(", ")}`));
+  }
+  out("");
+  return 0;
 }
 
 async function cmdUpdate(pos, flags) {
@@ -475,11 +549,15 @@ ${bold("Bundles")}
   guardian bundle update   SRC --out F    build a signed offline update package
   guardian install BUNDLE [--to DIR]      install a policy bundle for the engine
 
-${bold("Industry packs")}
+${bold("Intelligence packs")}
   guardian pack list                      packs available in this build
   guardian pack export ID|--all --out D   publish signed pack bundles
   guardian pack install BUNDLE [--org O]  install a pack from signed media
   guardian pack uninstall ID [--org O]    remove a pack (rolls its policies back)
+
+${bold("Sovereign")}
+  guardian sovereign                      what this deployment can host, and why
+  guardian sovereign classifications      the tiers and their eligible profiles
 
 ${bold("Updates")}
   guardian update BUNDLE.gos [--dry-run]  apply a signed offline update
@@ -521,6 +599,7 @@ async function main() {
     case "bundle": return cmdBundle(positional, flags);
     case "install": return cmdInstall(positional, flags);
     case "pack": return cmdPack(positional, flags);
+    case "sovereign": return cmdSovereign(positional, flags);
     case "update": return cmdUpdate(positional, flags);
     case "verify": return cmdVerify(positional, flags);
     case "export": return cmdExport(positional, flags);

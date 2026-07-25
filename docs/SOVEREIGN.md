@@ -231,14 +231,24 @@ enforces until it is deliberately updated and restarted. Set
 
 ---
 
-## 5. Offline Industry Intelligence Packs
+## 5. Offline Intelligence Packs
 
 ```bash
 guardian pack list                                        # what this build carries
+guardian sovereign                                        # what this deployment may host
 guardian pack export --all --out ./dist --sign-key key.pem
 guardian pack install ./dist/finance.pack                 # air-gapped
 guardian pack uninstall finance                           # rolls its policies back
 ```
+
+> **Phase 7.** Sovereign Intelligence Packs — national security, defence
+> operations, critical infrastructure, public sector, national healthcare,
+> research and development, and cyber operations — install through exactly this
+> path, and additionally declare the deployment guarantees their classification
+> requires. Because they are declarative *end to end*, they round-trip through a
+> signed bundle with **no** loss of fidelity: §5.1 below describes the
+> Industry-pack case where projection code stays behind, which does not apply to
+> them. See `docs/SOVEREIGN-INTELLIGENCE-PACKS.md`.
 
 ### 5.1 Data travels; code does not
 
