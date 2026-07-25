@@ -2,7 +2,7 @@
   "name": "resurrection-tech-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "Resurrection Tech™ — Runtime Governance for Autonomous Systems. Production enterprise platform.",
+  "description": "Resurrection Tech\u2122 \u2014 Runtime Governance for Autonomous Systems. Production enterprise platform.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -47,7 +47,13 @@
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
     "ops:schema-check": "node scripts/ops/schema-check.cjs",
-    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/govpolicy.test.cjs && node scripts/ops/provisioning.test.cjs && node scripts/ops/managed.test.cjs && node scripts/ops/workspaces.test.cjs && node scripts/ops/industry.test.cjs && node scripts/ops/schema-resilience.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs"
+    "guardian": "node bin/guardian.cjs",
+    "sovereign:test": "node scripts/sovereign/sovereign.test.cjs",
+    "sovereign:crosslang": "node scripts/sovereign/crosslang.test.cjs",
+    "sovereign:ci": "node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/boot.test.cjs --all && node scripts/sovereign/crosslang.test.cjs",
+    "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/govpolicy.test.cjs && node scripts/ops/provisioning.test.cjs && node scripts/ops/managed.test.cjs && node scripts/ops/workspaces.test.cjs && node scripts/ops/industry.test.cjs && node scripts/ops/schema-resilience.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs && node scripts/sovereign/sovereign.test.cjs",
+    "sovereign:boot": "node scripts/sovereign/boot.test.cjs",
+    "sovereign:profiles": "node scripts/sovereign/boot.test.cjs --all"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
@@ -74,5 +80,8 @@
   },
   "engines": {
     "node": ">=18.18.0"
+  },
+  "bin": {
+    "guardian": "./bin/guardian.cjs"
   }
 }

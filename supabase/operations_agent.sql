@@ -544,6 +544,15 @@ alter table public.rg_industry_packs add column if not exists installed_by text;
 alter table public.rg_industry_packs add column if not exists removed_at timestamptz;
 alter table public.rg_industry_packs add column if not exists updated_at timestamptz default now();
 alter table public.rg_industry_packs add column if not exists created_at timestamptz default now();
+-- Sovereign (Phase 6): offline pack installation from a signed bundle.
+--   source      registry | bundle — how this pack arrived
+--   projections builtin  | generic — whether this build carries the pack's own
+--               projection code, or renders its declarative content generically
+--   content     the verified declarative payload of a bundle install, retained
+--               so a disconnected box survives a restart with no media present
+alter table public.rg_industry_packs add column if not exists source text default 'registry';
+alter table public.rg_industry_packs add column if not exists projections text default 'builtin';
+alter table public.rg_industry_packs add column if not exists content jsonb;
 
 -- Client keys: hashed, scoped keys for external clients (OpenClaw, Slack…) ----
 create table if not exists public.rg_ops_client_keys (
@@ -579,7 +588,47 @@ alter table public.rg_governance_baselines enable row level security;
 alter table public.rg_governance_drift     enable row level security;
 alter table public.rg_governance_health    enable row level security;
 alter table public.rg_evidence_packs       enable row level security;
+-- Sovereign (Phase 6): applied offline update packages -----------------------
+-- Present in every profile so an estate that STARTS air-gapped and later
+-- attaches a control plane keeps one continuous update history. A sovereign
+-- deployment on the local store needs no migration at all — the same rows are
+-- written to .runtime-data/sovereign_updates.json.
+create table if not exists public.rg_sovereign_updates (
+  id             text primary key,
+  org_id         text,
+  bundle_id      text not null,
+  version        text,
+  status         text default 'applying',       -- applying | applied | partial | failed | rolled_back
+  signature      text,                          -- ed25519 | hmac-sha256 | none
+  key_id         text,
+  applied        jsonb default '[]'::jsonb,      -- per-item outcome (policy / pack)
+  undone         jsonb default '[]'::jsonb,      -- per-item outcome of a rollback
+  migrations     jsonb default '[]'::jsonb,      -- reported, never auto-executed
+  rollback_plan  jsonb default '{}'::jsonb,      -- captured BEFORE the first change
+  applied_by     text,
+  rolled_back_at timestamptz,
+  updated_at     timestamptz default now(),
+  created_at     timestamptz default now()
+);
+create index if not exists rg_sov_upd_org_idx on public.rg_sovereign_updates(org_id);
+create index if not exists rg_sov_upd_bundle_idx on public.rg_sovereign_updates(bundle_id, version);
+alter table public.rg_sovereign_updates add column if not exists org_id text;
+alter table public.rg_sovereign_updates add column if not exists bundle_id text;
+alter table public.rg_sovereign_updates add column if not exists version text;
+alter table public.rg_sovereign_updates add column if not exists status text default 'applying';
+alter table public.rg_sovereign_updates add column if not exists signature text;
+alter table public.rg_sovereign_updates add column if not exists key_id text;
+alter table public.rg_sovereign_updates add column if not exists applied jsonb default '[]'::jsonb;
+alter table public.rg_sovereign_updates add column if not exists undone jsonb default '[]'::jsonb;
+alter table public.rg_sovereign_updates add column if not exists migrations jsonb default '[]'::jsonb;
+alter table public.rg_sovereign_updates add column if not exists rollback_plan jsonb default '{}'::jsonb;
+alter table public.rg_sovereign_updates add column if not exists applied_by text;
+alter table public.rg_sovereign_updates add column if not exists rolled_back_at timestamptz;
+alter table public.rg_sovereign_updates add column if not exists updated_at timestamptz default now();
+alter table public.rg_sovereign_updates add column if not exists created_at timestamptz default now();
+
 alter table public.rg_industry_packs       enable row level security;
+alter table public.rg_sovereign_updates    enable row level security;
 alter table public.rg_ops_client_keys  enable row level security;
 
 -- Ask PostgREST to refresh after the complete additive contract is present.
