@@ -438,6 +438,10 @@ async function cmdAcceptance(pos, flags) {
   for (const s2 of res.steps) out(`  ${MARK[s2.status]} ${bold(String(s2.title).padEnd(38))} ${s2.detail}${s2.ms != null ? dim(`  ${s2.ms}ms`) : ""}`);
   out(`\n  ${res.summary.pass} passed · ${res.summary.warn} warning(s) · ${res.summary.fail} failure(s)`);
   if (res.performance.governance_decision_ms != null) out(`  governance decision on this hardware: ${bold(res.performance.governance_decision_ms + "ms")}`);
+  if (!res.sovereign_evidence) {
+    out(yellow(`\n  This run used the ${res.profile} profile (storage ${res.deployment.storage}, policies ${res.deployment.policy_provider}, egress ${res.deployment.egress}).`));
+    out(yellow("  It does NOT evidence sovereign or air-gapped operation — re-run with GUARDIAN_PROFILE=sovereign (or air_gapped)."));
+  }
   if (!res.field_trial) out(yellow("\n  No site and no witness recorded — this is a software self-test, NOT a field trial."));
   out(res.ok ? green("\n  ACCEPTED.\n") : red("\n  NOT ACCEPTED — resolve the failures above.\n"));
   if (flags.pdf) writePdf(sovereign.acceptance.document(res, { classification: flags.classification || null }), String(flags.pdf), "acceptance record");

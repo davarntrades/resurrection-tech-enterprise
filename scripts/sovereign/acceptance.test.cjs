@@ -84,13 +84,42 @@ async function main() {
 
   // ── 4. Honesty about what a run means ─────────────────────────────────────
   ok(a.field_trial === false, "a run with no site and no witness is NOT marked a field trial");
+
+  // A run under a CONNECTED profile proves the platform governs. It proves
+  // nothing about disconnected operation, and the record must refuse to be read
+  // that way — this is the defect that shipped in the first sample PDF.
+  ok(a.sovereign_evidence === false, "a cloud-profile run is NOT marked as sovereign evidence", a.profile);
+  ok(a.deployment && a.deployment.egress === "allowed" && a.deployment.policy_provider === "remote",
+    "the record captures the profile it actually ran under", a.deployment);
+  const cloudDoc = sovereign.acceptance.document(a);
+  ok(/DOES NOT EVIDENCE SOVEREIGN OR AIR-GAPPED OPERATION/.test(cloudDoc.subtitle),
+    "the cloud-profile record says so in its subtitle, where a reader forms their impression");
+  ok(cloudDoc.meta.some((m) => m.label === "Evidences sovereign operation" && m.value === "NO"),
+    "the cover states it plainly as a metadata line");
+  ok(cloudDoc.blocks.some((b) => b.kind === "note" && /NOT evidence of sovereign or air-gapped/.test(b.reason)),
+    "and again as a note in the body");
+  ok(cloudDoc.blocks.some((b) => b.kind === "text" && /must not be cited as evidence of disconnected operation/.test(b.text)),
+    "the sign-off block carries the same caveat, so a signature cannot launder it");
   const selfDoc = sovereign.acceptance.document(a);
   ok(/NO SITE OR WITNESS WAS RECORDED/.test(selfDoc.subtitle) && selfDoc.blocks.some((b) => b.kind === "note"),
-    "the attestation states on its face that it is a self-test");
-  const fieldRun = { ...a, site: "Site B, rack 4", witness: "A. Witness", field_trial: true };
+    "the attestation states on its face that it is a self-test", selfDoc.subtitle);
+  ok(/DOES NOT EVIDENCE SOVEREIGN/.test(selfDoc.subtitle) && /NO SITE OR WITNESS/.test(selfDoc.subtitle),
+    "both caveats COMPOSE in the subtitle — neither displaces the other");
+  const fieldRun = { ...a, site: "Site B, rack 4", witness: "A. Witness", field_trial: true, sovereign_evidence: true,
+    deployment: { profile: "air_gapped", title: "Air-gapped", storage: "local", evidence: "local", policy_provider: "bundle", egress: "denied", immutable: true } };
   const fieldDoc = sovereign.acceptance.document(fieldRun);
   ok(!/NO SITE OR WITNESS/.test(fieldDoc.subtitle) && /observed by the named witness/.test(fieldDoc.subtitle),
     "with a site and a witness recorded it reads as a witnessed run");
+  ok(!/DOES NOT EVIDENCE/.test(fieldDoc.subtitle) && fieldDoc.meta.some((m) => m.label === "Evidences sovereign operation" && m.value === "yes"),
+    "an air-gapped witnessed run carries no sovereign disclaimer");
+  ok(!fieldDoc.blocks.some((b) => b.kind === "note"), "and no self-test or profile notes remain on it");
+  ok(fieldDoc.blocks.some((b) => b.kind === "table" && b.headers[0] === "Property" && b.rows.some((r) => r[1] === "denied")),
+    "the deployment under test is tabulated on the record (storage, policy provider, egress)");
+  // The two caveats are INDEPENDENT: a witnessed field trial on a cloud profile
+  // is still not sovereign evidence, and conflating them is the error to avoid.
+  const witnessedCloud = sovereign.acceptance.document({ ...a, site: "S", witness: "W", field_trial: true });
+  ok(/DOES NOT EVIDENCE SOVEREIGN/.test(witnessedCloud.subtitle),
+    "a WITNESSED run on a cloud profile is still not sovereign evidence");
   ok(fieldDoc.blocks.some((b) => b.kind === "text" && /not.*accreditation|no.*accreditation|neither signature constitutes/i.test(b.text)),
     "even a witnessed record refuses to imply accreditation");
   const rendered = sovereign.report.render(fieldDoc);

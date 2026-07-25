@@ -165,6 +165,34 @@ async function main() {
   ok(contentText(weird.bytes).includes("has no paper layout"),
     "an unknown section kind degrades to a visible note (silence in an audit document is a defect)");
 
+  // ── 5b. Structured values NEVER stringify to "[object Object]" ────────────
+  // The defect this guards against shipped once: governance sub-scores are
+  // { score, band } and escalated approvals are { action, reason }, and both
+  // collapsed into "[object Object]" in a customer-facing PDF.
+  ok(report.readable({ score: 72, band: "developing" }) === "score: 72 · band: developing",
+    "an unlabelled record renders as key: value pairs", report.readable({ score: 72, band: "developing" }));
+  ok(report.readable({ action: "wire_transfer", reason: "above the approved cap" }) === "wire_transfer — above the approved cap",
+    "a labelled record renders as 'label — detail'", report.readable({ action: "wire_transfer", reason: "above the approved cap" }));
+  ok(report.readable([{ name: "a" }, { name: "b" }]) === "a · b", "arrays of records render as a joined list");
+  ok(report.readable(null) === "" && report.readable(undefined) === "" && report.readable(0) === "0",
+    "null and undefined render as empty; zero renders as zero");
+  ok(report.readable({ a: { b: { c: { d: 1 } } } }).includes("…"), "deep graphs are truncated rather than dumped");
+
+  const hostile = report.render({
+    title: "Serialisation probe",
+    meta: [{ label: "Structured", value: { score: 91, band: "strong" } }],
+    blocks: [
+      { kind: "kv", items: [{ label: "Posture", value: { score: 72, band: "developing" } }, { label: "Ratio", value: { n: 3 }, of: { n: 9 } }] },
+      { kind: "table", headers: ["Dimension", "Detail"], rows: [["policy coverage", { score: 64, band: "developing" }], ["nested", [{ x: 1 }, { y: 2 }]]] },
+      { kind: "list", items: [{ action: "bulk_export", reason: "destination is external" }, { foo: "bar" }, null, "plain string"] },
+    ],
+  });
+  const htext2 = contentText(hostile.bytes);
+  ok(!htext2.includes("[object Object]"), "a document full of structured values contains NO '[object Object]'");
+  ok(htext2.includes("developing") && htext2.includes("bulk_export") && htext2.includes("destination is external"),
+    "the structure is rendered rather than discarded");
+  ok(htext2.includes("plain string") && htext2.includes("foo: bar"), "mixed and unlabelled list items both survive");
+
   // ── 6. End to end: a real evidence pack ───────────────────────────────────
   const srv = await startMockEngine({ governancePolicies: true });
   process.env.GOVERNANCE_URL = `http://127.0.0.1:${srv.address().port}`;
@@ -185,6 +213,12 @@ async function main() {
   const etext = contentText(rendered.bytes);
   ok(etext.includes("Governance posture") && etext.includes("Runtime activity") && etext.includes("Audit trail"),
     "the pack's sections all reach paper");
+  ok(!etext.includes("[object Object]"), "the real evidence pack contains NO '[object Object]' anywhere");
+  // Sub-scores split into real columns, and the band words prove it.
+  ok(/strong|developing|watch|weak/.test(etext), "governance sub-scores render their score AND band", etext.match(/strong|developing|watch|weak/g));
+  // h2 headings are set in caps by the layout, so match the rendered form.
+  ok(etext.includes("AWAITING APPROVAL"), "the approvals section is present",
+    etext.slice(0, 0) || (etext.match(/AWAITING[^)]*/) || ["not found"])[0]);
   ok(etext.includes("OFFICIAL-SENSITIVE"), "a classification marking is carried onto the cover");
   ok(etext.includes(String(packJson.hash).slice(0, 16)), "the integrity hash appears in the page footer for the auditor");
   ok(fs.statSync(out).size > 3000 && rendered.pages >= 3, "the pack is a multi-page document of real size",
