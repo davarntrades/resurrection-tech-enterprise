@@ -18,6 +18,8 @@ const packRegistry = require("@/lib/ops/packs");
 const workspaceRoles = require("@/lib/ops/workspaces").ROLES as { id: string; title: string; label: string; purpose: string }[];
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const DEPARTMENTS = require("@/lib/ops/provisioning").DEPARTMENTS as { id: string; label: string }[];
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sovereignProfiles = require("@/lib/sovereign/profiles").PROFILE_IDS as string[];
 
 /** A neutral context so a pack's own metric definitions can be counted. */
 const NEUTRAL_CTX = {
@@ -79,7 +81,27 @@ const TIERS = [
   { k: "Executive", who: "Large enterprises requiring broader executive coverage and deeper integration.",
     inc: ["Everything in Standard", "Multiple Industry Intelligence Packs", "All standard executive workspaces", "Advanced specialist agents and an expanded enterprise twin", "Priority governance engineering, premium managed governance and included advisory hours"] },
   { k: "Sovereign", who: "Governments, defence, national infrastructure operators and the largest multinationals.",
-    inc: ["Everything in Executive", "Sovereign and air-gapped deployment options", "National-scale or multi-enterprise twins", "Global multi-region governance", "Dedicated governance engineering, a dedicated CAIO programme and sovereign operational support"] },
+    inc: ["Everything in Executive", `On-premises, sovereign and air-gapped deployment profiles (${sovereignProfiles.length} in total)`, "National-scale or multi-enterprise twins", "Global multi-region governance", "Dedicated governance engineering, a dedicated CAIO programme and sovereign operational support"] },
+];
+
+/* Sovereign deployment — stated as precisely as it can honestly be stated.
+   Everything in the left column is enforced by code and asserted by a test in
+   CI. Everything in the right column is work that has not been done, named
+   plainly, because a defence or government procurement team will ask and the
+   answer should already be written down. */
+const SOVEREIGN_PROVEN = [
+  "The Ω engine loads customer policy from a signed bundle on disk — no database, no control plane, no network.",
+  "Bundles are Ed25519-signed. The signing key never enters the environment; the engine verifies with the standard library alone.",
+  "Under a sovereign profile the platform refuses to build a cloud client even when credentials are present in the environment.",
+  "The interface makes zero external requests — no font CDN, no analytics, no embeds. Measured on every build.",
+  "Evidence packs, attestations and audit exports render to PDF on the box, with no browser installed.",
+  "CI runs the platform in a network namespace with no interface but loopback, and the engine in a container started with --network none.",
+];
+const SOVEREIGN_NOT_YET = [
+  "No deployment has run on customer hardware yet. The install media, images and acceptance suite exist; a witnessed site record does not.",
+  "No third-party accreditation. No Common Criteria evaluation, no NCSC assurance, no FedRAMP authorisation, no ATO.",
+  "No identity provider of our own — Guardian OS sits behind the estate's existing IdP.",
+  "No independent penetration test of the codebase has been commissioned.",
 ];
 
 const BENEFITS = [
@@ -512,6 +534,42 @@ export default function GuardianOSPage() {
               national environment. <Link href="/contact" className="twin-inline-link">Talk to sales about scope and pricing →</Link>
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────── SOVEREIGN DEPLOYMENT ─────────────────────── */}
+      <section className="gos-section" id="sovereign">
+        <div className="gos-wrap">
+          <header className="gos-sec-head reveal">
+            <span className="gos-kicker">Sovereign deployment</span>
+            <h2 className="gos-h2">The same kernel, with the network taken away.</h2>
+            <p className="gos-sec-lede">
+              Guardian OS runs in {sovereignProfiles.length} deployment profiles, from managed cloud to fully
+              air-gapped. The Runtime Governance kernel is byte-for-byte identical in every one of them — only the
+              providers behind it change. A sovereign estate keeps its state, its policies and its evidence inside
+              its own boundary, and nothing about how a verdict is reached changes.
+            </p>
+          </header>
+
+          <div className="twin-isnot">
+            <div className="twin-isnot-col twin-isnot-is reveal" data-d="1">
+              <span className="twin-vs-h">Proven today — enforced in code, asserted in CI</span>
+              <ul>{SOVEREIGN_PROVEN.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+            <div className="twin-isnot-col twin-isnot-not reveal" data-d="2">
+              <span className="twin-vs-h">Not yet — stated plainly</span>
+              <ul>{SOVEREIGN_NOT_YET.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+          </div>
+
+          <p className="gos-int-note reveal">
+            Air-gapped operation is proven by continuous integration with network access removed, not by assertion.
+            It has not yet been run on a customer site, so the accurate description today is{" "}
+            <strong>acceptance-testable, not field-tested</strong> — and the acceptance suite marks any run without a
+            named site and witness as a self-test on the face of the document. A control mapping and its open gap
+            register are published rather than summarised.{" "}
+            <Link href="/contact" className="twin-inline-link">Request the sovereign deployment pack →</Link>
+          </p>
         </div>
       </section>
 
