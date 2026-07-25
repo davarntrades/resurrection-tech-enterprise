@@ -313,3 +313,152 @@
 }
 .gos-int-tag.is-native { border-color: var(--accent-dim); color: var(--ink); }
 .gos-int-note { max-width: 76ch; margin: clamp(26px, 3vw, 36px) 0 0; font-size: 12.5px; line-height: 1.66; color: var(--ink-4); }
+
+/* ── Enterprise edition: flagship platform narrative ───────────────────── */
+.gos-hero-proof {
+  display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: clamp(36px, 4vw, 50px);
+  padding-top: 20px; border-top: 1px solid var(--line);
+}
+.gos-hero-proof span {
+  position: relative; padding-left: 14px; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .045em; color: var(--ink-3);
+}
+.gos-hero-proof span::before {
+  content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--ok);
+}
+
+.gos-platform-map { display: grid; justify-items: center; }
+.gos-platform-row { display: grid; justify-items: center; width: min(780px, 100%); }
+.gos-platform-node {
+  display: grid; grid-template-columns: auto 1fr; gap: 20px; width: 100%;
+  padding: clamp(22px, 2.8vw, 32px); border: 1px solid var(--line-2);
+  border-radius: 14px; background: var(--panel);
+}
+.gos-platform-node.is-os {
+  border-color: var(--accent-dim);
+  background: linear-gradient(135deg, rgba(76,125,255,.12), var(--panel) 62%);
+  box-shadow: 0 26px 80px -54px rgba(76,125,255,.85);
+}
+.gos-platform-node.is-kernel { border-left: 3px solid var(--accent-bright); }
+.gos-platform-index {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--accent-bright);
+}
+.gos-platform-node h3 { margin: 0; font-size: clamp(19px, 2.2vw, 25px); font-weight: 600; letter-spacing: -.022em; color: var(--ink); }
+.gos-platform-node strong { display: block; margin-top: 6px; font-size: 13.5px; font-weight: 560; color: var(--ink); }
+.gos-platform-node p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+.gos-platform-node a { display: inline-block; margin-top: 12px; font-size: 12.5px; color: var(--accent-bright); text-decoration: none; }
+.gos-platform-node a:hover { text-decoration: underline; }
+.gos-platform-arrow { padding: 10px 0; color: var(--ink-4); }
+
+.gos-operating-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+  overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line);
+}
+.gos-operating-card { padding: clamp(24px, 3vw, 34px); background: var(--bg-1); }
+.gos-operating-card > span { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--accent-bright); }
+.gos-operating-card h3 { margin: 14px 0 0; font-size: clamp(17px, 1.9vw, 22px); font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+.gos-operating-card p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+.gos-kernel-band {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr); gap: 30px;
+  align-items: center; margin-top: 16px; padding: clamp(24px, 3.2vw, 38px);
+  border: 1px solid var(--accent-dim); border-radius: 14px;
+  background: linear-gradient(100deg, rgba(76,125,255,.09), var(--panel) 68%);
+}
+.gos-kernel-band h3 { margin: 10px 0 0; font-size: clamp(20px, 2.5vw, 30px); font-weight: 600; letter-spacing: -.024em; color: var(--ink); }
+.gos-kernel-band ul { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.gos-kernel-band li { position: relative; padding-left: 15px; font-size: 13px; color: var(--ink-2); }
+.gos-kernel-band li::before { content: ""; position: absolute; left: 0; top: .55em; width: 6px; height: 1px; background: var(--accent-bright); }
+
+.gos-lifecycle {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+  margin: 0; padding: 0; list-style: none;
+}
+.gos-lifecycle-step {
+  min-height: 180px; padding: clamp(22px, 2.7vw, 30px); border: 1px solid var(--line);
+  border-radius: 13px; background: var(--panel);
+}
+.gos-lifecycle-number { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--accent-bright); }
+.gos-lifecycle-step h3 { margin: 14px 0 0; font-size: clamp(17px, 1.9vw, 21px); font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+.gos-lifecycle-step p { margin: 9px 0 0; font-size: 13px; line-height: 1.62; color: var(--ink-2); }
+.gos-continuous {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 18px;
+  padding: 20px 24px; border: 1px solid var(--line-2); border-radius: 12px;
+  background: linear-gradient(90deg, rgba(76,125,255,.08), transparent);
+}
+.gos-continuous span { font-family: var(--mono); font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-bright); }
+.gos-continuous strong { font-size: 13px; font-weight: 520; color: var(--ink); }
+
+.gos-outcome-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1px;
+  overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line);
+}
+.gos-outcome { min-height: 170px; padding: clamp(24px, 3vw, 34px); background: var(--bg-1); }
+.gos-outcome h3 { margin: 0; font-size: clamp(20px, 2.3vw, 27px); font-weight: 600; letter-spacing: -.024em; color: var(--ink); }
+.gos-outcome p { margin: 12px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+
+.gos-comparison { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.gos-comparison-head,
+.gos-comparison-row { display: grid; grid-template-columns: .7fr 1fr 1fr; }
+.gos-comparison-head { background: var(--panel-2); border-bottom: 1px solid var(--line-2); }
+.gos-comparison-head span {
+  padding: 14px 20px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.gos-comparison-row { border-bottom: 1px solid var(--line); }
+.gos-comparison-row:last-child { border-bottom: 0; }
+.gos-comparison-row > * { padding: 18px 20px; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.gos-comparison-row > * + *,
+.gos-comparison-head > * + * { border-left: 1px solid var(--line); }
+.gos-comparison-row strong { font-weight: 600; color: var(--ink); }
+.gos-comparison-row span:last-child { color: var(--ink); background: rgba(76,125,255,.035); }
+
+.gos-pack-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(278px, 1fr)); gap: 12px; }
+.gos-pack-compact { display: flex; flex-direction: column; padding: 24px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+.gos-pack-compact header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.gos-pack-compact h3 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+.gos-pack-compact header span { font-family: var(--mono); font-size: 10px; color: var(--ink-4); }
+.gos-pack-compact p { margin: 10px 0 22px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.gos-pack-compact dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: auto 0 0; padding-top: 16px; border-top: 1px solid var(--line); }
+.gos-pack-compact dl div + div { padding-left: 12px; border-left: 1px solid var(--line); }
+.gos-pack-compact dt { font-size: 9.5px; color: var(--ink-4); }
+.gos-pack-compact dd { margin: 4px 0 0; font-family: var(--mono); font-size: 14px; color: var(--ink); }
+
+.gos-deployment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gos-deployment { padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.gos-deployment h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--ink); }
+.gos-deployment p { margin: 9px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.gos-deployment-kernel {
+  display: grid; grid-template-columns: minmax(150px, .5fr) minmax(0, 1.5fr); gap: 10px 24px;
+  margin-top: 18px; padding: 24px; border: 1px solid var(--accent-dim); border-radius: 12px;
+  background: rgba(76,125,255,.045);
+}
+.gos-deployment-kernel span { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.gos-deployment-kernel b { font-size: 13px; font-weight: 520; color: var(--ink); }
+
+@media (max-width: 880px) {
+  .gos-operating-grid,
+  .gos-lifecycle,
+  .gos-deployment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gos-kernel-band { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .gos-operating-grid,
+  .gos-lifecycle,
+  .gos-deployment-grid { grid-template-columns: 1fr; }
+  .gos-comparison-head { display: none; }
+  .gos-comparison-row { grid-template-columns: 1fr; padding: 18px 20px; }
+  .gos-comparison-row > * { padding: 7px 0; }
+  .gos-comparison-row > * + * { border-left: 0; }
+  .gos-comparison-row span::before {
+    display: block; margin-bottom: 3px; font-family: var(--mono); font-size: 9px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-4);
+  }
+  .gos-comparison-row span:nth-child(2)::before { content: "Before"; }
+  .gos-comparison-row span:last-child { padding: 10px 12px; border-radius: 8px; }
+  .gos-comparison-row span:last-child::before { content: "With platform"; }
+  .gos-deployment-kernel { grid-template-columns: 1fr; }
+  .gos-deployment-kernel b + span { margin-top: 8px; }
+  .gos-platform-node { grid-template-columns: 1fr; gap: 10px; }
+  .gos-lifecycle-step { min-height: 0; }
+}
