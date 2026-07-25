@@ -6,7 +6,7 @@
 # Vercel Analytics, no Speed Insights, no Calendly), and the audit in
 # scripts/sovereign/offline-audit.cjs runs as part of the build so an image that
 # would phone home fails to build at all.
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -20,7 +20,7 @@ RUN npm run build \
  && node scripts/sovereign/offline-audit.cjs
 
 # ── Runtime ─────────────────────────────────────────────────────────────────
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

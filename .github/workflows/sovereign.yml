@@ -70,6 +70,16 @@ jobs:
 
       # Everything the sovereign suite needs must already be on disk before the
       # network goes away. Nothing is fetched after this point.
+      # Contract tests run FIRST and everywhere: they are static, take a second,
+      # and catch the class of defect that made this workflow itself dead.
+      - name: Engineering contracts
+        run: npm run contracts
+
+      - name: Startup validation (${{ matrix.profile }})
+        env:
+          GUARDIAN_PROFILE: ${{ matrix.profile }}
+        run: npm run runtime:startup
+
       - name: Boot proof (${{ matrix.profile }})
         env:
           GUARDIAN_PROFILE: ${{ matrix.profile }}
