@@ -38,12 +38,15 @@ from domain_rules import domain_custom_rules
 from sector_rules import sector_custom_rules
 from cyber_rules import cyber_custom_rules
 from healthcare_rules import healthcare_custom_rules
+from operations_rules import operations_custom_rules
 
 # The same deployment Ω rules the live service assembles (app.py DEPLOYMENT_RULES).
+# Every module app.py folds in MUST appear here too, or replayed ruleset_hashes
+# diverge from production attestations — test_replay.py asserts the two match.
 DEPLOYMENT_RULES = (
     finance_custom_rules() + coverage_custom_rules()
     + domain_custom_rules() + sector_custom_rules() + cyber_custom_rules()
-    + healthcare_custom_rules()
+    + healthcare_custom_rules() + operations_custom_rules()
 )
 
 # Field names compared during verification.
