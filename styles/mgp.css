@@ -136,3 +136,35 @@
 .mgp-reports-lead::after { content: "”"; color: var(--accent-bright); }
 .mgp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .mgp-tag { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 13px; background: var(--panel-2); }
+
+/* The site nav renders outside the `.mgp-page` wrapper, so redefining the
+   accent tokens on the page cannot reach it — the Assess CTA stayed blue and
+   read as a foreign element against the gold. `:has()` scopes the override to
+   the partner pages (Partner Portal, Strategic Alliance Partner, Managed
+   Governance Partner, Embedded Runtime Governance Licensing), which all share
+   `.mgp-page`.
+
+   The box-shadow needs overriding too: `.btn--primary`'s focus ring is a
+   hardcoded blue `rgba(76,125,255,.4)` that the accent tokens do not touch,
+   which is what left a blue rim around an otherwise gold button.
+
+   Literal colours, not `var(--accent)`: the tokens are defined ON `.mgp-page`,
+   so they are undefined on a nav element outside it. A `var()` that resolves
+   to nothing makes the whole declaration invalid at computed-value time — the
+   background silently disappears while a literal `color` still applies, which
+   is exactly how this fails: dark text on a transparent button.
+
+   Browsers without `:has()` keep the standard blue CTA — a cohesive-enough
+   fallback rather than a broken one. */
+body:has(.mgp-page) .nav-assess,
+body:has(.mgp-page) .nav-menu-cta .btn--primary {
+  background: linear-gradient(180deg, #f2c66a, #e0a93f);
+  border-color: transparent;
+  color: #14100a;
+  box-shadow: 0 0 0 1px rgba(224, 169, 63, 0.45), 0 10px 30px -12px rgba(224, 169, 63, 0.4);
+}
+body:has(.mgp-page) .nav-assess:hover,
+body:has(.mgp-page) .nav-menu-cta .btn--primary:hover {
+  box-shadow: 0 0 0 1px rgba(242, 198, 106, 0.7), 0 16px 44px -14px rgba(224, 169, 63, 0.5);
+}
+body:has(.mgp-page) .nav-assess .arr { color: #14100a; }
