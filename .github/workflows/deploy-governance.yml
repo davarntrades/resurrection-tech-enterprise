@@ -36,6 +36,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # test_replay.py's parity checks compare app.py's DEPLOYMENT_RULES against
+      # replay.py's. They can only run when app.py is importable, so the gate
+      # needs the service deps — without them both checks silently defer and
+      # rule-composition drift reaches production unnoticed (it did once).
+      - name: Install engine service deps
+        run: pip install -r governance-service/requirements.txt
       - name: Vendor the engine
         run: |
           git clone --filter=blob:none --no-checkout \
