@@ -12,6 +12,8 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      GOVERNANCE_URL: http://127.0.0.1:18791
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,6 +22,17 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Start hermetic governance engine
+        shell: bash
+        run: |
+          nohup node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
+          echo $! > mock-engine.pid
+          for i in {1..50}; do
+            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then exit 0; fi
+            sleep 0.1
+          done
+          cat mock-engine.log
+          exit 1
       - name: Sovereign readiness contracts and connector integration
         run: npm run runtime:sovereign-readiness
       - name: Existing Integration Gateway and connector contracts
@@ -27,16 +40,7 @@ jobs:
       - name: Runtime gateway
         id: runtime_gateway
         shell: bash
-        env:
-          GOVERNANCE_URL: http://127.0.0.1:18791
         run: |
-          node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
-          engine_pid=$!
-          trap 'kill $engine_pid 2>/dev/null || true' EXIT
-          for i in {1..50}; do
-            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then break; fi
-            sleep 0.1
-          done
           set +e
           npm run runtime:test > runtime-gateway.log 2>&1
           status=$?
@@ -88,3 +92,7 @@ jobs:
         run: npm run build
       - name: Sovereign build
         run: npm run build:sovereign
+      - name: Stop hermetic governance engine
+        if: always()
+        shell: bash
+        run: test -f mock-engine.pid && kill "$(cat mock-engine.pid)" 2>/dev/null || true
