@@ -76,14 +76,23 @@ jobs:
         run: npm run runtime:enterprise-assessment
       - name: Runtime engagement stage
         run: npm run runtime:engagement-stage
-      - name: Operations regression suite
+      - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite
         run: npm run sovereign:ci
       - name: Smoke regression suite
         run: npm run smoke:ci
-      - name: Schema checks
-        run: npm run ops:schema-check
+      - name: Live Supabase schema check
+        shell: bash
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [[ -n "$NEXT_PUBLIC_SUPABASE_URL" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
+            npm run ops:schema-check
+          else
+            echo "SKIPPED: live Supabase schema check requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. Static schema contracts passed in ops:test."
+          fi
       - name: Lint
         run: npm run lint
       - name: Type checking
