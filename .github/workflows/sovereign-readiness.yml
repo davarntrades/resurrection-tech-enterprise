@@ -25,10 +25,20 @@ jobs:
       - name: Existing Integration Gateway and connector contracts
         run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
       - name: Runtime gateway
+        id: runtime_gateway
         shell: bash
         run: |
-          set -o pipefail
-          npm run runtime:test 2>&1 | tail -200
+          set +e
+          npm run runtime:test > runtime-gateway.log 2>&1
+          status=$?
+          cat runtime-gateway.log
+          exit $status
+      - name: Upload runtime gateway diagnostics
+        if: failure() && steps.runtime_gateway.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-gateway-diagnostics
+          path: runtime-gateway.log
       - name: Runtime hardening
         run: npm run runtime:harden
       - name: Runtime isolation
