@@ -11,25 +11,34 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
       - name: Sovereign readiness contracts and connector integration
         run: npm run runtime:sovereign-readiness
-      - name: Existing connector contracts
-        run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock
+      - name: Existing Integration Gateway and connector contracts
+        run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
+      - name: Runtime regression suites
+        run: npm run runtime:test && npm run runtime:harden && npm run runtime:isolation && npm run runtime:enterprise && npm run runtime:adminauth && npm run runtime:seq && npm run runtime:alerts && npm run runtime:deliverables && npm run runtime:reports && npm run runtime:report-parity && npm run runtime:enterprise-assessment && npm run runtime:engagement-stage
+      - name: Operations regression suite
+        run: npm run ops:test
       - name: Existing sovereign suite
         run: npm run sovereign:ci
-      - name: Runtime contracts
-        run: npm run contracts
+      - name: Smoke regression suite
+        run: npm run smoke:ci
+      - name: Schema checks
+        run: npm run ops:schema-check
+      - name: Lint
+        run: npm run lint
       - name: Type checking
         run: npm run typecheck
-      - name: Build
+      - name: Production build
         run: npm run build
       - name: Sovereign build
         run: npm run build:sovereign
