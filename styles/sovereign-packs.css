@@ -131,7 +131,11 @@
    less cohesive, fallback rather than a broken one. */
 body:has(main.sip-page) .nav-assess,
 body:has(main.sip-page) .nav-menu-cta .btn--primary {
-  background: #d5ad5a;
-  border-color: #d5ad5a;
+  background: linear-gradient(180deg, #e2c07a, #d5ad5a);
+  border-color: transparent;
   color: #14100a;
+  /* `.btn--primary`'s focus ring is a hardcoded blue the accent tokens do not
+     reach, which otherwise leaves a blue rim on a gold button. */
+  box-shadow: 0 0 0 1px rgba(213, 173, 90, 0.45), 0 10px 30px -12px rgba(213, 173, 90, 0.4);
 }
+body:has(main.sip-page) .nav-assess .arr { color: #14100a; }
