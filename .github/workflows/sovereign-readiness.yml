@@ -27,7 +27,16 @@ jobs:
       - name: Runtime gateway
         id: runtime_gateway
         shell: bash
+        env:
+          GOVERNANCE_URL: http://127.0.0.1:18791
         run: |
+          node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
+          engine_pid=$!
+          trap 'kill $engine_pid 2>/dev/null || true' EXIT
+          for i in {1..50}; do
+            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then break; fi
+            sleep 0.1
+          done
           set +e
           npm run runtime:test > runtime-gateway.log 2>&1
           status=$?
@@ -38,7 +47,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: runtime-gateway-diagnostics
-          path: runtime-gateway.log
+          path: |
+            runtime-gateway.log
+            mock-engine.log
       - name: Runtime hardening
         run: npm run runtime:harden
       - name: Runtime isolation
