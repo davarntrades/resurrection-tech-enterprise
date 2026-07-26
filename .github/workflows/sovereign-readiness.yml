@@ -25,7 +25,10 @@ jobs:
       - name: Existing Integration Gateway and connector contracts
         run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
       - name: Runtime gateway
-        run: npm run runtime:test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run runtime:test 2>&1 | tail -200
       - name: Runtime hardening
         run: npm run runtime:harden
       - name: Runtime isolation
