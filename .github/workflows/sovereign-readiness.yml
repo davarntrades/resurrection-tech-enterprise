@@ -1,0 +1,35 @@
+name: Sovereign Readiness
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sovereign readiness contracts and connector integration
+        run: npm run runtime:sovereign-readiness
+      - name: Existing connector contracts
+        run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock
+      - name: Existing sovereign suite
+        run: npm run sovereign:ci
+      - name: Runtime contracts
+        run: npm run contracts
+      - name: Type checking
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Sovereign build
+        run: npm run build:sovereign
