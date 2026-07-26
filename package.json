@@ -1,16 +1,14 @@
 {
   "name": "resurrection-tech-platform",
   "version": "1.0.0",
-  "engines": {
-    "node": ">=22"
-  },
+  "engines": { "node": ">=22" },
   "private": true,
-  "description": "Resurrection Tech\u2122 \u2014 Runtime Governance for Autonomous Systems. Production enterprise platform.",
+  "description": "Resurrection Tech™ — Runtime Governance for Autonomous Systems. Production enterprise platform.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "runtime:server": "node scripts/runtime/server.cjs",
     "runtime:report": "node scripts/runtime/report.cjs",
@@ -49,6 +47,7 @@
     "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
     "runtime:integration-gateway": "node scripts/runtime/integration-gateway.test.cjs",
     "runtime:aws-bedrock": "node scripts/runtime/aws-bedrock-connector.test.cjs",
+    "runtime:sovereign-readiness": "node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
     "ops:schema-check": "node scripts/ops/schema-check.cjs",
@@ -56,7 +55,7 @@
     "sovereign:test": "node scripts/sovereign/sovereign.test.cjs",
     "sovereign:packs": "node scripts/ops/sovereign-packs.test.cjs",
     "sovereign:crosslang": "node scripts/sovereign/crosslang.test.cjs",
-    "sovereign:ci": "node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/boot.test.cjs --all && node scripts/sovereign/pdf.test.cjs && node scripts/sovereign/acceptance.test.cjs && node scripts/sovereign/crosslang.test.cjs",
+    "sovereign:ci": "node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/boot.test.cjs --all && node scripts/sovereign/pdf.test.cjs && node scripts/sovereign/acceptance.test.cjs && node scripts/sovereign/crosslang.test.cjs && node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs",
     "ops:test": "node scripts/ops/agent.test.cjs && node scripts/ops/briefing.test.cjs && node scripts/ops/intelligence.test.cjs && node scripts/ops/workflow.test.cjs && node scripts/ops/agents.test.cjs && node scripts/ops/handoffs.test.cjs && node scripts/ops/integrity.test.cjs && node scripts/ops/gmail.test.cjs && node scripts/ops/executors.test.cjs && node scripts/ops/graph.test.cjs && node scripts/ops/executive.test.cjs && node scripts/ops/security-agent.test.cjs && node scripts/ops/guardian.test.cjs && node scripts/ops/departments.test.cjs && node scripts/ops/govpolicy.test.cjs && node scripts/ops/provisioning.test.cjs && node scripts/ops/managed.test.cjs && node scripts/ops/workspaces.test.cjs && node scripts/ops/industry.test.cjs && node scripts/ops/sovereign-packs.test.cjs && node scripts/ops/schema-resilience.test.cjs && node scripts/ops/ops-runs-schema-contract.test.cjs && node scripts/sovereign/sovereign.test.cjs && node scripts/sovereign/pdf.test.cjs && node scripts/sovereign/acceptance.test.cjs && node scripts/ops/contracts.test.cjs",
     "sovereign:boot": "node scripts/sovereign/boot.test.cjs",
     "sovereign:profiles": "node scripts/sovereign/boot.test.cjs --all",
@@ -66,7 +65,7 @@
     "sovereign:pdf": "node scripts/sovereign/pdf.test.cjs",
     "sovereign:acceptance": "node scripts/sovereign/acceptance.test.cjs",
     "runtime:startup": "node -e \"require('./lib/runtime/startup').print()\"",
-    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs && node scripts/runtime/aws-bedrock-connector.test.cjs"
+    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs && node scripts/runtime/aws-bedrock-connector.test.cjs && node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1095.0",
@@ -93,7 +92,5 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
   },
-  "bin": {
-    "guardian": "./bin/guardian.cjs"
-  }
+  "bin": { "guardian": "./bin/guardian.cjs" }
 }

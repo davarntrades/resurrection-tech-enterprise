@@ -1,0 +1,120 @@
+name: Sovereign Readiness
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GOVERNANCE_URL: http://127.0.0.1:18791
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Start hermetic governance engine
+        shell: bash
+        run: |
+          nohup node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
+          echo $! > mock-engine.pid
+          for i in {1..50}; do
+            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then exit 0; fi
+            sleep 0.1
+          done
+          cat mock-engine.log
+          exit 1
+      - name: Sovereign readiness contracts and connector integration
+        run: npm run runtime:sovereign-readiness
+      - name: Existing Integration Gateway and connector contracts
+        run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
+      - name: Runtime gateway
+        id: runtime_gateway
+        shell: bash
+        run: |
+          set +e
+          npm run runtime:test > runtime-gateway.log 2>&1
+          status=$?
+          cat runtime-gateway.log
+          exit $status
+      - name: Upload runtime gateway diagnostics
+        if: failure() && steps.runtime_gateway.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-gateway-diagnostics
+          path: |
+            runtime-gateway.log
+            mock-engine.log
+      - name: Runtime hardening
+        run: npm run runtime:harden
+      - name: Runtime isolation
+        run: npm run runtime:isolation
+      - name: Runtime enterprise
+        run: npm run runtime:enterprise
+      - name: Runtime admin authentication
+        run: npm run runtime:adminauth
+      - name: Runtime decision sequence
+        run: npm run runtime:seq
+      - name: Runtime alerts
+        run: npm run runtime:alerts
+      - name: Runtime deliverables
+        run: npm run runtime:deliverables
+      - name: Runtime reports
+        run: npm run runtime:reports
+      - name: Runtime report parity
+        run: npm run runtime:report-parity
+      - name: Runtime enterprise assessment
+        run: npm run runtime:enterprise-assessment
+      - name: Runtime engagement stage
+        run: npm run runtime:engagement-stage
+      - name: Operations regression suite and schema contracts
+        run: npm run ops:test
+      - name: Existing sovereign suite
+        run: npm run sovereign:ci
+      - name: Smoke regression suite
+        run: npm run smoke:ci
+      - name: Live Supabase schema check
+        shell: bash
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [[ -n "$NEXT_PUBLIC_SUPABASE_URL" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
+            npm run ops:schema-check
+          else
+            echo "SKIPPED: live Supabase schema check requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. Static schema contracts passed in ops:test."
+          fi
+      - name: Lint
+        id: lint
+        shell: bash
+        run: |
+          set +e
+          npm run lint > lint.log 2>&1
+          status=$?
+          cat lint.log
+          exit $status
+      - name: Upload lint diagnostics
+        if: failure() && steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-diagnostics
+          path: lint.log
+      - name: Type checking
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Sovereign build
+        run: npm run build:sovereign
+      - name: Stop hermetic governance engine
+        if: always()
+        shell: bash
+        run: test -f mock-engine.pid && kill "$(cat mock-engine.pid)" 2>/dev/null || true
