@@ -69,3 +69,69 @@
 @media (max-width: 700px) {
   .sip-sep-row { grid-template-columns: 1fr; gap: 10px; }
 }
+
+/* ==========================================================================
+   Sovereign — black and gold.
+
+   Scoped to `.sip-page` (applied to <main>) and cascaded through the accent
+   tokens, the same mechanism `.mgp-page` uses, so eyebrows, kickers, CTAs and
+   pack accents all move together rather than being re-coloured one by one.
+   The gold matches the Guardian OS Sovereign platform page (#d5ad5a) and the
+   Control Room's `.ops-sov-theme`, so the marketing surface, the product page
+   and the console read as one product.
+   ========================================================================== */
+
+.sip-page {
+  --accent: #d5ad5a;
+  --accent-bright: #e8c87d;
+  --accent-dim: #6d582c;
+  --accent-glow: rgba(213, 173, 90, 0.38);
+}
+
+/* Deepen the page ground so gold has something to sit against. */
+.sip-page .gos-section { background: #08070a; }
+.sip-page .gos-section-alt { background: #050406; }
+.sip-page .gos-hero {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(213, 173, 90, 0.09), transparent 62%),
+    #050406;
+}
+
+/* Gold CTA reads premium as dark foil rather than white-on-gold. */
+.sip-page .gos-btn-primary { color: #14100a; }
+
+/* The pack row keeps its emphasis, now in gold rather than blue. */
+.sip-page .sip-sep-row.is-pack {
+  border-color: var(--accent-dim);
+  background: linear-gradient(135deg, rgba(213, 173, 90, .13), var(--panel) 68%);
+}
+
+.sip-page .sip-tier-row li::before { color: var(--accent-bright); }
+.sip-page .sip-profiles span { border-color: var(--accent-dim); color: var(--accent-bright); }
+
+/* On a phone the header row is hidden, so each cell needs its own label —
+   otherwise three stacked blocks arrive with no indication of what they are. */
+@media (max-width: 900px) {
+  .sip-tier-row > [role="cell"]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+}
+
+/* The site nav renders outside <main>, so `.sip-page` cannot reach it and the
+   blue Assess CTA reads as a foreign element against the gold. `:has()` scopes
+   the override to this page without a body class or a second <main>. Browsers
+   without :has() simply keep the standard blue CTA — a graceful, if slightly
+   less cohesive, fallback rather than a broken one. */
+body:has(main.sip-page) .nav-assess,
+body:has(main.sip-page) .nav-menu-cta .btn--primary {
+  background: #d5ad5a;
+  border-color: #d5ad5a;
+  color: #14100a;
+}
