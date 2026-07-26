@@ -30,10 +30,13 @@ export async function GET(req: NextRequest) {
       { type: "rest", endpoint: "/api/runtime/evaluate" },
       { type: "webhook", event: "decision.created", signature: "HMAC-SHA256" },
       { type: "github", use_case: "Govern repository automation before privileged actions execute." },
+      { type: "aws-bedrock", use_case: "Govern Bedrock Runtime requests and Agent action groups before AWS execution." },
     ],
     sdk_examples: {
       typescript: "await guardian.evaluate({ trajectory: [{ tool: 'read_account', args: {} }], domains: ['finance'] })",
       python: "guardian.evaluate([{'tool': 'read_account', 'args': {}}], ['finance'])",
+      bedrock_typescript: "await guardian.integrations.bedrock.invokeModel({ connector_id, environment_id, request: { model_id, messages } })",
+      bedrock_python: "guardian.integrations.bedrock.invoke_model(connector_id, environment_id, {'model_id': model_id, 'messages': messages})",
     },
   });
 }

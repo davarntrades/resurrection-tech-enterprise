@@ -14,8 +14,38 @@ export type GuardianClientOptions = {
   fetch?: typeof globalThis.fetch;
 };
 
+export type BedrockActionInput = {
+  connector_id: string;
+  environment_id: string;
+  event: Record<string, unknown>;
+};
+
+export type BedrockInvocationInput = {
+  connector_id: string;
+  environment_id: string;
+  request: {
+    model_id?: string;
+    inference_profile?: string;
+    mode?: "converse" | "invoke";
+    messages?: unknown[];
+    body?: unknown;
+    system?: unknown[];
+    inference_config?: Record<string, unknown>;
+    tool_config?: Record<string, unknown>;
+    stream?: boolean;
+  };
+};
+
 export class GuardianOS {
   readonly baseUrl: string;
+  readonly integrations: {
+    bedrock: {
+      evaluateAction: (input: BedrockActionInput) => Promise<any>;
+      invokeModel: (input: BedrockInvocationInput) => Promise<any>;
+      handleActionGroup: (input: BedrockActionInput) => Promise<any>;
+      getHealth: (connectorId?: string) => Promise<any>;
+    };
+  };
   private readonly apiKey: string;
   private readonly fetcher: typeof globalThis.fetch;
 
@@ -24,6 +54,20 @@ export class GuardianOS {
     this.apiKey = options.apiKey;
     this.baseUrl = (options.baseUrl || "https://resurrection-tech.com").replace(/\/$/, "");
     this.fetcher = options.fetch || globalThis.fetch;
+    const actionGroup = (input: BedrockActionInput) => this.request("/api/integration/v1/bedrock", {
+      method: "POST", body: JSON.stringify({ operation: "action_group", ...input }),
+    });
+    this.integrations = {
+      bedrock: {
+        evaluateAction: actionGroup,
+        invokeModel: (input: BedrockInvocationInput) => this.request("/api/integration/v1/bedrock", {
+          method: "POST", body: JSON.stringify({ operation: "invoke", ...input }),
+        }),
+        handleActionGroup: actionGroup,
+        getHealth: (connectorId?: string) => this.request(
+          `/api/integration/v1/bedrock${connectorId ? `?connector_id=${encodeURIComponent(connectorId)}` : ""}`),
+      },
+    };
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
