@@ -24,8 +24,30 @@ jobs:
         run: npm run runtime:sovereign-readiness
       - name: Existing Integration Gateway and connector contracts
         run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
-      - name: Runtime regression suites
-        run: npm run runtime:test && npm run runtime:harden && npm run runtime:isolation && npm run runtime:enterprise && npm run runtime:adminauth && npm run runtime:seq && npm run runtime:alerts && npm run runtime:deliverables && npm run runtime:reports && npm run runtime:report-parity && npm run runtime:enterprise-assessment && npm run runtime:engagement-stage
+      - name: Runtime gateway
+        run: npm run runtime:test
+      - name: Runtime hardening
+        run: npm run runtime:harden
+      - name: Runtime isolation
+        run: npm run runtime:isolation
+      - name: Runtime enterprise
+        run: npm run runtime:enterprise
+      - name: Runtime admin authentication
+        run: npm run runtime:adminauth
+      - name: Runtime decision sequence
+        run: npm run runtime:seq
+      - name: Runtime alerts
+        run: npm run runtime:alerts
+      - name: Runtime deliverables
+        run: npm run runtime:deliverables
+      - name: Runtime reports
+        run: npm run runtime:reports
+      - name: Runtime report parity
+        run: npm run runtime:report-parity
+      - name: Runtime enterprise assessment
+        run: npm run runtime:enterprise-assessment
+      - name: Runtime engagement stage
+        run: npm run runtime:engagement-stage
       - name: Operations regression suite
         run: npm run ops:test
       - name: Existing sovereign suite
