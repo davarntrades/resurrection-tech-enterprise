@@ -20,6 +20,8 @@ Service-specific endpoint keys are supported for:
 - Azure: `openai`, `ai_foundry`, `identity`
 - Google Vertex AI: `vertex`, `gemini`, `identity`
 
+AWS Bedrock Runtime and STS SDK client construction now receive the configured endpoint override. Azure and Google execution modules receive their service-specific endpoint through the shared governed provider runtime. Bedrock Agent Runtime remains a configuration contract because the repository does not currently contain an outbound Bedrock Agent Runtime SDK execution path.
+
 HTTPS is required by default. Embedded URL credentials and fragments are rejected. Private endpoints are accepted only in an explicitly private or sovereign deployment.
 
 ## Credential providers
@@ -48,7 +50,7 @@ The provider runtime checks, in order:
 
 Azure OpenAI, Azure AI Foundry, Azure identity, Vertex AI, Gemini and Google identity execution modules now receive the resolved endpoint and credentials through this runtime. Their provider clients remain dependency-injected because Azure and Google SDKs are not repository dependencies.
 
-The existing AWS Bedrock production connector predates this layer. Complete migration of Bedrock Runtime and STS client construction into the shared provider runtime remains a merge blocker.
+The existing AWS Bedrock connector now passes customer Runtime and STS endpoint overrides into the AWS SDK clients. It still obtains its encrypted-local secret through the existing Integration Gateway path; migration of that call site to the generic credential registry remains a merge blocker.
 
 ## Evidence custody
 
@@ -59,13 +61,14 @@ The evidence-store contract requires `write` and `find` operations. The local Ru
 | Capability | Classification |
 |---|---|
 | Endpoint parsing and rejection rules | Implemented; hermetic tests authored |
+| AWS Runtime and STS endpoint propagation | Implemented; integration tests authored |
 | Azure/Google endpoint and credential propagation | Implemented; integration tests authored |
 | AWS/Azure/Google secret-manager adapters | Implemented against injected SDK contracts; live customer validation required |
 | HashiCorp Vault and Kubernetes mounted secrets | Implemented; live customer validation required |
 | Outbound deny-before-client behaviour | Implemented; integration tests authored |
 | Sovereign startup dependency rejection | Implemented; contract tests authored |
 | Local evidence ownership enforcement | Implemented; contract tests authored |
-| Existing AWS Bedrock path migration | Not complete |
+| AWS generic credential-registry migration | Not complete |
 | All existing network paths migrated | Not complete |
 | Complete regression, typecheck and build results | Pending GitHub Actions |
 | Live PrivateLink, Azure Government and Vertex private endpoints | Customer-environment validation required |
@@ -77,10 +80,11 @@ The evidence-store contract requires `write` and `find` operations. The local Ru
 - [x] Enterprise credential adapters implemented without live-validation claims
 - [x] No mandatory Resurrection Tech control plane in sovereign policy
 - [x] Deny-before-network provider runtime implemented
+- [x] AWS Bedrock Runtime and STS endpoint overrides reach SDK client configuration
 - [x] Azure and Google connector execution modules use shared endpoint and credential controls
 - [x] CI workflow added for sovereign, connector, typecheck and build checks
-- [ ] Existing AWS Bedrock Runtime and STS execution fully migrated
-- [ ] Bedrock Agent Runtime outbound execution wired and tested
+- [ ] Existing AWS Bedrock encrypted-local credential path migrated to generic credential registry
+- [ ] Bedrock Agent Runtime outbound execution exists and is wired, if added to the repository
 - [ ] Webhook, callback, telemetry, diagnostics and export call sites fully migrated
 - [ ] Main Runtime Governance and Integration Gateway evidence paths use the evidence abstraction
 - [ ] Complete regression, typecheck and build suite green
