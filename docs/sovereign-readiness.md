@@ -89,3 +89,7 @@ The evidence-store contract requires `write` and `find` operations. The local Ru
 - [ ] Main Runtime Governance and Integration Gateway evidence paths use the evidence abstraction
 - [ ] Complete regression, typecheck and build suite green
 - [ ] Live customer private/sovereign endpoint validation
+
+## Merge readiness
+
+This pull request is **not ready to merge**. It must remain a draft until the unchecked items above are resolved and the complete CI matrix is green.
