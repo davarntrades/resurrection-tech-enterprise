@@ -76,7 +76,7 @@ const DELIVERY = [
 
 export default function SovereignIntelligencePacksPage() {
   return (
-    <PageShell>
+    <PageShell className="sip-page">
       <section className="gos-hero ip-hero">
         <div className="gos-wrap">
           <span className="gos-eyebrow">Sovereign Intelligence Packs</span>
@@ -157,14 +157,14 @@ export default function SovereignIntelligencePacksPage() {
             </div>
             {TIERS.map((tier) => (
               <div className="sip-tier-row" role="row" key={tier.id}>
-                <div role="cell">
+                <div role="cell" data-label="Tier">
                   <strong>{tier.title}</strong>
                   <small>{tier.summary}</small>
                 </div>
-                <div role="cell">
+                <div role="cell" data-label="Guarantees required">
                   <ul>{tier.requires.map((requirement) => <li key={requirement.guarantee}>{requirement.label}</li>)}</ul>
                 </div>
-                <div role="cell">
+                <div role="cell" data-label="Eligible deployment profiles">
                   <div className="sip-profiles">
                     {tier.eligible_profiles.map((profile) => <span key={profile}>{profile.replace(/_/g, " ")}</span>)}
                   </div>

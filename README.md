@@ -107,3 +107,20 @@ An internal autonomous operations layer (`lib/ops/*`, `/api/ops/*`,
 health — with **every** action evaluated by Runtime Governance before
 execution (fail-closed). See `docs/OPERATIONS-AGENT.md` for the full
 architecture, API specification, security model and roadmap.
+
+## Engineering standards
+
+Guardian OS is a truth-telling instrument: its value rests on a customer being
+able to believe what it reports about itself. Three documents define and enforce
+that standard, and apply to all code in this repository.
+
+- **`docs/ENGINEERING-PRINCIPLES.md`** — the ten principles, the evidence behind
+  each, and which belong in the Runtime Governance kernel versus the startup
+  contract versus contract tests.
+- **`docs/PLATFORM-TRUTH.md`** — normative specification: what evidence must
+  exist before Guardian OS may claim a capability, the four truth states, and
+  freshness rules. `unknown` is a valid answer; configuration is never evidence.
+- **`docs/PLATFORM-TRUTH-AUDIT.md`** — adversarial audit of the platform against
+  those principles, with prioritised findings and an architecture review.
+
+Background: `docs/OPERATIONAL-READINESS.md` (Phase 6 hardening review).

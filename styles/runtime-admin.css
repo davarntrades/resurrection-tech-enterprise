@@ -651,3 +651,111 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 
 .ops-sov-packs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .ops-sov-foot { margin-top: 16px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * Responsive tables
+ *
+ * `.radmin-table` cells are `white-space: nowrap` because most Control Room
+ * tables carry hashes, timestamps and verdicts that are unreadable when
+ * wrapped. Prose tables are the exception: the sovereign views carry sentence-
+ * length cells ("No vendor telemetry · State held in the estate · …") which
+ * pushed the table far past the viewport. Without an `overflow-x` ancestor the
+ * overflow escaped to the document, so the whole PAGE scrolled sideways and
+ * later columns rendered outside their own card.
+ *
+ * Two rules, so that cannot happen again:
+ *   1. `.radmin-table-wrap` owns the horizontal scroll (already existed; the
+ *      sovereign tables simply were not using it).
+ *   2. `--prose` cells wrap instead of forcing width, so on a phone the table
+ *      collapses into labelled rows rather than needing to be scrolled at all.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+.radmin-table-wrap { max-width: 100%; -webkit-overflow-scrolling: touch; }
+.radmin-table--prose td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; line-height: 1.5; }
+.radmin-table--prose th { white-space: normal; }
+.radmin-table--prose td:first-child { min-width: 148px; }
+
+@media (max-width: 700px) {
+  /* Stack into labelled cards — the pattern already proven on the public
+     Guardian OS Sovereign page. `data-label` supplies the removed header. */
+  /* `box-sizing` is essential here: with `width:100%` and horizontal padding
+     under content-box the cell overflows by exactly its padding, which clips
+     the last ~26px of every line. */
+  .radmin-table--prose,
+  .radmin-table--prose tbody,
+  .radmin-table--prose tr,
+  .radmin-table--prose td { display: block; width: 100%; box-sizing: border-box; }
+  .radmin-table--prose thead { display: none; }
+  .radmin-table--prose tr { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .radmin-table--prose tr:last-child { border-bottom: 0; }
+  .radmin-table--prose td { border: 0; padding: 8px 13px; }
+  .radmin-table--prose td:first-child { min-width: 0; }
+  .radmin-table--prose td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--sov-gold, var(--ink-3));
+  }
+  .radmin-table--prose td[data-label]:empty { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * Sovereign — black and gold
+ *
+ * Scoped to `.ops-sov-theme` (the Sovereign packs and Sovereign deployment
+ * views) so the rest of the Control Room keeps its neutral blue-grey accent.
+ * The gold matches the public Guardian OS Sovereign page (--gold:#d5ad5a), so
+ * an operator moving between the marketing surface and the console sees one
+ * product. Status colours (ok/warn/bad) are deliberately NOT re-tinted: a
+ * refusal must stay legible as a refusal, not become decoration.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+.ops-sov-theme {
+  --sov-gold: #d5ad5a;
+  --sov-gold-bright: #e8c87d;
+  --sov-gold-dim: rgba(213, 173, 90, 0.42);
+  --sov-gold-wash: rgba(213, 173, 90, 0.07);
+}
+
+.ops-sov-theme .radmin-card {
+  background: linear-gradient(180deg, rgba(213, 173, 90, 0.028), transparent 220px), #08070a;
+  border-color: var(--sov-gold-dim);
+}
+
+.ops-sov-theme h2,
+.ops-sov-theme .ops-brief-head h3 { color: #f6f2e9; }
+
+.ops-sov-theme .ops-sov-h4,
+.ops-sov-theme .radmin-table th {
+  color: var(--sov-gold);
+  letter-spacing: 0.1em;
+}
+
+.ops-sov-theme .radmin-table th { border-bottom-color: var(--sov-gold-dim); background: rgba(213, 173, 90, 0.05); }
+.ops-sov-theme .radmin-table td { border-bottom-color: rgba(213, 173, 90, 0.14); }
+.ops-sov-theme .radmin-table-wrap { border-color: var(--sov-gold-dim); }
+
+.ops-sov-theme .ops-sov-k { color: var(--sov-gold); }
+.ops-sov-theme .ops-sov-v { color: #f2ead9; }
+.ops-sov-theme .ops-sov-grid { border-color: var(--sov-gold-dim); }
+.ops-sov-theme .ops-sov-check { background: rgba(213, 173, 90, 0.035); }
+.ops-sov-theme .ops-sov-check b { color: #f2ead9; }
+.ops-sov-theme .ops-sov-cmd {
+  background: rgba(213, 173, 90, 0.1);
+  border: 1px solid var(--sov-gold-dim);
+  color: var(--sov-gold-bright);
+}
+.ops-sov-theme .radmin-pill,
+.ops-sov-theme .radmin-badge { border-color: var(--sov-gold-dim); }
+.ops-sov-theme .radmin-linkbtn { color: var(--sov-gold-bright); }
+.ops-sov-theme code { color: var(--sov-gold-bright); }
+
+/* Status must never be gold — a refusal has to read as a refusal. */
+.ops-sov-theme .radmin-badge.ok, .ops-sov-theme .radmin-pill.ok { color: var(--ok); border-color: rgba(63, 178, 127, 0.45); }
+.ops-sov-theme .radmin-badge.warn { color: var(--warn); border-color: rgba(217, 164, 65, 0.5); }
+.ops-sov-theme .radmin-badge.bad { color: var(--bad); border-color: rgba(210, 80, 80, 0.5); }
+.ops-sov-theme .ops-sov-refused { color: var(--bad, #d25050); }

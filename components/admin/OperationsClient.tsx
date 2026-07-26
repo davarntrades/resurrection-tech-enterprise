@@ -2134,7 +2134,7 @@ function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (
   const admissibleCount = catalog.filter((p) => p.admissibility.ok).length;
 
   return (
-    <>
+    <div className="ops-sov-theme">
       {note && <div className="radmin-card"><p>{note}</p></div>}
 
       <section className="radmin-card ops-ind-hero">
@@ -2245,18 +2245,20 @@ function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (
       {/* Classification tiers — the derivation, shown rather than asserted. */}
       <section className="radmin-card">
         <div className="ops-brief-head"><h3>Classification tiers</h3></div>
-        <table className="radmin-table">
-          <thead><tr><th>Tier</th><th>Requires</th><th>Eligible deployment profiles</th></tr></thead>
-          <tbody>
-            {classifications.map((c: any) => (
-              <tr key={c.id}>
-                <td><b>{c.title}</b><br /><span className="radmin-deliv-meta">{c.summary}</span></td>
-                <td>{c.requires.map((r: any) => r.label).join(" · ")}</td>
-                <td>{c.eligible_profiles.join(", ") || "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="radmin-table-wrap">
+          <table className="radmin-table radmin-table--prose">
+            <thead><tr><th>Tier</th><th>Requires</th><th>Eligible deployment profiles</th></tr></thead>
+            <tbody>
+              {classifications.map((c: any) => (
+                <tr key={c.id}>
+                  <td data-label="Tier"><b>{c.title}</b><br /><span className="radmin-deliv-meta">{c.summary}</span></td>
+                  <td data-label="Requires">{c.requires.map((r: any) => r.label).join(" · ")}</td>
+                  <td data-label="Eligible deployment profiles">{c.eligible_profiles.join(", ") || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* The pack's declarative intelligence, inspectable before install. A
@@ -2297,19 +2299,21 @@ function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (
           </ul>
 
           <h4 className="ops-sov-h4">Ω policies contributed</h4>
-          <table className="radmin-table">
-            <thead><tr><th>Policy</th><th>Ω domain</th><th>Constrains</th><th>Unless</th></tr></thead>
-            <tbody>
-              {detail.pack.policies.map((p: any) => (
-                <tr key={p.name}>
-                  <td><code>{p.name}</code></td>
-                  <td>{p.domain}</td>
-                  <td>{(p.spec.match.tools || []).join(", ")}</td>
-                  <td>{[...(p.spec.conditions?.unauthorized_unless || []), ...(p.spec.conditions?.flag_true_blocks || []).map((f: string) => `blocked if ${f}`)].join(", ") || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="radmin-table-wrap">
+            <table className="radmin-table radmin-table--prose">
+              <thead><tr><th>Policy</th><th>Ω domain</th><th>Constrains</th><th>Unless</th></tr></thead>
+              <tbody>
+                {detail.pack.policies.map((p: any) => (
+                  <tr key={p.name}>
+                    <td data-label="Policy"><code>{p.name}</code></td>
+                    <td data-label="Ω domain">{p.domain}</td>
+                    <td data-label="Constrains">{(p.spec.match.tools || []).join(", ")}</td>
+                    <td data-label="Unless">{[...(p.spec.conditions?.unauthorized_unless || []), ...(p.spec.conditions?.flag_true_blocks || []).map((f: string) => `blocked if ${f}`)].join(", ") || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="radmin-deliv-meta">
             Every Ω domain above is one the Runtime Governance kernel already defines. A pack may add policies; it
             may never add a domain, a condition kind or an evaluation path.
@@ -2323,14 +2327,16 @@ function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (
           </ul>
 
           <h4 className="ops-sov-h4">Operational readiness measures</h4>
-          <table className="radmin-table">
-            <thead><tr><th>Measure</th><th>Grounded in</th></tr></thead>
-            <tbody>
-              {detail.pack.sovereign.readiness.map((r: any) => (
-                <tr key={r.key}><td><b>{r.label}</b>{r.detail && <><br /><span className="radmin-deliv-meta">{r.detail}</span></>}</td><td><code>{r.source}</code></td></tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="radmin-table-wrap">
+            <table className="radmin-table radmin-table--prose">
+              <thead><tr><th>Measure</th><th>Grounded in</th></tr></thead>
+              <tbody>
+                {detail.pack.sovereign.readiness.map((r: any) => (
+                  <tr key={r.key}><td data-label="Measure"><b>{r.label}</b>{r.detail && <><br /><span className="radmin-deliv-meta">{r.detail}</span></>}</td><td data-label="Grounded in"><code>{r.source}</code></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="radmin-deliv-meta">
             A measure whose source is not instrumented in this estate renders as an explicit note carrying the
             reason — never as a substituted figure.
@@ -2389,7 +2395,7 @@ function SovereignPacksView({ go }: { onOpen: (h?: string | null) => void; go: (
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }
 
@@ -2441,7 +2447,7 @@ function SovereignView({ go }: { onOpen: (h?: string | null) => void; go: (v: Vi
   const cls: Record<string, string> = { pass: "ok", warn: "warn", fail: "bad" };
 
   return (
-    <>
+    <div className="ops-sov-theme">
       <section className="radmin-card ops-sov-hero">
         <div className="ops-brief-head">
           <h2>Sovereign deployment</h2>
@@ -2557,20 +2563,22 @@ function SovereignView({ go }: { onOpen: (h?: string | null) => void; go: (v: Vi
         {updates === null && <p className="radmin-deliv-meta">Not loaded.</p>}
         {updates !== null && updates.length === 0 && <p className="radmin-deliv-meta">No offline updates have been applied to this deployment.</p>}
         {updates !== null && updates.length > 0 && (
-          <table className="radmin-table">
-            <thead><tr><th>Applied</th><th>Bundle</th><th>Version</th><th>Status</th><th>Signature</th></tr></thead>
-            <tbody>
-              {updates.map((u) => (
-                <tr key={u.id}>
-                  <td>{fmtWhen(u.created_at)}</td>
-                  <td>{u.bundle_id}</td>
-                  <td>{u.version}</td>
-                  <td><span className={`radmin-badge${u.status === "applied" ? " ok" : u.status === "rolled_back" ? " warn" : " bad"}`}>{u.status}</span></td>
-                  <td>{u.signature || "—"}{u.key_id ? ` (${u.key_id})` : ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="radmin-table-wrap">
+            <table className="radmin-table radmin-table--prose">
+              <thead><tr><th>Applied</th><th>Bundle</th><th>Version</th><th>Status</th><th>Signature</th></tr></thead>
+              <tbody>
+                {updates.map((u) => (
+                  <tr key={u.id}>
+                    <td data-label="Applied">{fmtWhen(u.created_at)}</td>
+                    <td data-label="Bundle">{u.bundle_id}</td>
+                    <td data-label="Version">{u.version}</td>
+                    <td data-label="Status"><span className={`radmin-badge${u.status === "applied" ? " ok" : u.status === "rolled_back" ? " warn" : " bad"}`}>{u.status}</span></td>
+                    <td data-label="Signature">{u.signature || "—"}{u.key_id ? ` (${u.key_id})` : ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -2592,6 +2600,6 @@ function SovereignView({ go }: { onOpen: (h?: string | null) => void; go: (v: Vi
           <button className="radmin-linkbtn" onClick={() => go("industry")}> Industry packs →</button>
         </p>
       </section>
-    </>
+    </div>
   );
 }
