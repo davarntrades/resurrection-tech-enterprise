@@ -11,6 +11,10 @@ export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const isSovereignPage = pathname === "/guardian-os/sovereign";
+  const sovereignAssessStyle = isSovereignPage
+    ? { background: "#d5ad5a", borderColor: "#d5ad5a", color: "#050505" }
+    : undefined;
 
   useEffect(() => {
     // Solidify the bar almost immediately on scroll so content never bleeds
@@ -84,6 +88,7 @@ export function Nav() {
           <Link
             href="/assessment"
             className="btn btn--primary btn--sm nav-assess"
+            style={sovereignAssessStyle}
             onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
           >
             <span className="nav-assess-full">Assess Your Agent</span>
@@ -129,6 +134,7 @@ export function Nav() {
             <Link
               href="/assessment"
               className="btn btn--primary"
+              style={sovereignAssessStyle}
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "assess" }); setMenuOpen(false); }}
             >
               Assess Your Agent — Free <span className="arr">→</span>
