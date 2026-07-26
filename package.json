@@ -48,6 +48,7 @@
     "runtime:enterprise-assessment": "node scripts/runtime/enterprise-assessment.test.cjs",
     "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
     "runtime:integration-gateway": "node scripts/runtime/integration-gateway.test.cjs",
+    "runtime:aws-bedrock": "node scripts/runtime/aws-bedrock-connector.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
     "ops:schema-check": "node scripts/ops/schema-check.cjs",
@@ -65,9 +66,11 @@
     "sovereign:pdf": "node scripts/sovereign/pdf.test.cjs",
     "sovereign:acceptance": "node scripts/sovereign/acceptance.test.cjs",
     "runtime:startup": "node -e \"require('./lib/runtime/startup').print()\"",
-    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs"
+    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs && node scripts/runtime/aws-bedrock-connector.test.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1095.0",
+    "@aws-sdk/client-sts": "^3.1095.0",
     "@supabase/supabase-js": "^2.47.10",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

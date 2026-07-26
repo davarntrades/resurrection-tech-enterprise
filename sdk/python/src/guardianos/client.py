@@ -11,6 +11,35 @@ class GuardianOSError(RuntimeError):
         self.body = body
 
 
+class BedrockIntegration:
+    def __init__(self, guardian: "GuardianOS"):
+        self._guardian = guardian
+
+    def evaluate_action(self, connector_id: str, environment_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+        return self._guardian._request("POST", "/api/integration/v1/bedrock", json={
+            "operation": "action_group", "connector_id": connector_id,
+            "environment_id": environment_id, "event": event,
+        })
+
+    def invoke_model(self, connector_id: str, environment_id: str, request: Dict[str, Any]) -> Dict[str, Any]:
+        return self._guardian._request("POST", "/api/integration/v1/bedrock", json={
+            "operation": "invoke", "connector_id": connector_id,
+            "environment_id": environment_id, "request": request,
+        })
+
+    def handle_action_group(self, connector_id: str, environment_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+        return self.evaluate_action(connector_id, environment_id, event)
+
+    def get_health(self, connector_id: Optional[str] = None) -> Dict[str, Any]:
+        params = {"connector_id": connector_id} if connector_id else None
+        return self._guardian._request("GET", "/api/integration/v1/bedrock", params=params)
+
+
+class Integrations:
+    def __init__(self, guardian: "GuardianOS"):
+        self.bedrock = BedrockIntegration(guardian)
+
+
 class GuardianOS:
     def __init__(self, api_key: str, base_url: str = "https://resurrection-tech.com", timeout: float = 30.0):
         if not api_key:
@@ -24,6 +53,7 @@ class GuardianOS:
                 "X-Guardian-SDK": "python/0.1.0",
             },
         )
+        self.integrations = Integrations(self)
 
     def __enter__(self) -> "GuardianOS":
         return self

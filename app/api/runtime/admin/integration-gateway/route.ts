@@ -27,18 +27,21 @@ export async function GET(req: NextRequest) {
     summary, organisations,
     connector_definitions: (rt.integrationGateway as any).CONNECTOR_DEFINITIONS,
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
+    bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
   }, { headers: { "cache-control": "no-store" } });
-  const [connectors, webhooks, deliveries, deployments, credentials] = await Promise.all([
+  const [connectors, webhooks, deliveries, deployments, credentials, bedrock] = await Promise.all([
     (rt.integrationGateway as any).listConnectors(org_id),
     (rt.integrationGateway as any).listWebhooks(org_id),
     (rt.integrationGateway as any).listDeliveries(org_id),
     (rt.integrationGateway as any).listDeployments(org_id),
     rt.admin.listApiKeys(org_id),
+    (rt.integrationGateway as any).bedrockOverview(org_id),
   ]);
   return NextResponse.json({
-    summary, organisations, connectors, webhooks, deliveries, deployments, credentials,
+    summary, organisations, connectors, webhooks, deliveries, deployments, credentials, bedrock,
     connector_definitions: (rt.integrationGateway as any).CONNECTOR_DEFINITIONS,
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
+    bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
   }, { headers: { "cache-control": "no-store" } });
 }
 
@@ -78,6 +81,22 @@ export async function POST(req: NextRequest) {
         org_id, environment_id: row.environment_id, actor: op.identity, params: { connector_id: row.id },
       });
       return NextResponse.json({ ok: (rt.integrationGateway as any).executed(proposal), governance: governance(proposal), result: proposal.execution?.result || null });
+    }
+    if (body.operation === "bedrock.credentials.rotate") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "aws-bedrock")
+        return NextResponse.json({ error: "Bedrock connector not found" }, { status: 404 });
+      if (!body.credentials) return NextResponse.json({ error: "replacement AWS credentials are required" }, { status: 400 });
+      const secret_ref = await (rt.integrationGateway as any).stageSecret(
+        org_id, body.credentials, "aws-bedrock-credential-rotation");
+      proposal = await (rt.integrationGateway as any).governed("rotate_aws_bedrock_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id, config: body.config || {}, secret_ref },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
     }
     if (body.operation === "webhook.create") {
       const signing_secret = crypto.randomBytes(32).toString("hex");

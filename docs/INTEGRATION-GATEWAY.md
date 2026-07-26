@@ -128,3 +128,10 @@ INTEGRATION_WEBHOOK_TIMEOUT_MS=10000
 Private/on-prem installations may explicitly set
 `INTEGRATION_ALLOW_PRIVATE_ENDPOINTS=1`. HTTP endpoints additionally require
 `INTEGRATION_ALLOW_HTTP=1`.
+
+## Amazon Bedrock
+
+The first-class `aws-bedrock` connector adds governed Bedrock Runtime,
+Converse/streaming APIs, IAM role assumption, credential validation and
+Bedrock Agent action-group mapping without changing the Runtime Governance
+engine. See [AWS-BEDROCK-CONNECTOR.md](./AWS-BEDROCK-CONNECTOR.md).

@@ -104,6 +104,8 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GatewayActions key={orgId} envs={envs} definitions={data.connector_definitions || []} busy={busy} mutate={mutate} />}
 
+      {orgId && <BedrockPanel organisation={org} envs={envs} connectors={data.bedrock || []} busy={busy} mutate={mutate} />}
+
       {orgId && (
         <section className="radmin-card">
           <h2>Connected systems</h2>
@@ -140,9 +142,35 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
   const [type, setType] = useState("rest");
   const [name, setName] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  const [awsRegion, setAwsRegion] = useState("eu-west-2");
+  const [awsAuth, setAwsAuth] = useState("role");
+  const [roleArn, setRoleArn] = useState("");
+  const [accessKeyId, setAccessKeyId] = useState("");
+  const [secretAccessKey, setSecretAccessKey] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
+  const [externalId, setExternalId] = useState("");
+  const [modelIds, setModelIds] = useState("");
+  const [inferenceProfiles, setInferenceProfiles] = useState("");
+  const [agentIds, setAgentIds] = useState("");
+  const [agentAliases, setAgentAliases] = useState("");
+  const [actionGroups, setActionGroups] = useState("");
+  const split = (value: string) => value.split(",").map((x) => x.trim()).filter(Boolean);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (kind === "connector") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
+    if (kind === "connector" && type === "aws-bedrock") await mutate({
+      operation: "connector.create", environment_id: environmentId, type, name: name || "Amazon Bedrock",
+      config: {
+        region: awsRegion, auth_method: awsAuth, role_arn: roleArn || undefined,
+        model_ids: split(modelIds), inference_profiles: split(inferenceProfiles),
+        agent_ids: split(agentIds), agent_aliases: split(agentAliases),
+        action_groups: split(actionGroups), timeout_ms: 30000, max_retries: 2,
+      },
+      secret: {
+        access_key_id: accessKeyId || undefined, secret_access_key: secretAccessKey || undefined,
+        session_token: sessionToken || undefined, external_id: externalId || undefined,
+      },
+    });
+    if (kind === "connector" && type !== "aws-bedrock") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
     if (kind === "webhook") await mutate({ operation: "webhook.create", environment_id: environmentId, name, url: endpoint, events: ["decision.created"] });
     if (kind === "credential") await mutate({ operation: "credential.issue", environment_id: environmentId, label: name || "Integration credential", role: "admin", scopes: ["runtime:read", "runtime:write", "integrations:read", "integrations:manage", "webhooks:read", "webhooks:manage", "evidence:read", "evidence:write", "deployments:read", "deployments:manage"] });
     if (kind === "deployment") await mutate({ operation: "deployment.create", environment_id: environmentId, name: name || "GuardianOS deployment", target: envs.find((e) => e.id === environmentId)?.kind, model: "platform" });
@@ -158,9 +186,87 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
           {kind === "connector" && <label>Connector type<select className="radmin-select" value={type} onChange={(e) => setType(e.target.value)}>{definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
         </div>
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "credential" ? "Production automation" : "Customer system"} /></label>
-        {(kind === "connector" || kind === "webhook") && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock")) && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {kind === "connector" && type === "aws-bedrock" && <>
+          <div className="radmin-row">
+            <label>AWS region<input value={awsRegion} onChange={(e) => setAwsRegion(e.target.value)} placeholder="eu-west-2" required /></label>
+            <label>IAM method<select className="radmin-select" value={awsAuth} onChange={(e) => setAwsAuth(e.target.value)}><option value="role">Assume IAM role</option><option value="access_key">Access key</option></select></label>
+            {awsAuth === "role" && <label>Role ARN<input value={roleArn} onChange={(e) => setRoleArn(e.target.value)} placeholder="arn:aws:iam::123456789012:role/GuardianOSBedrock" required /></label>}
+          </div>
+          <div className="radmin-row">
+            <label>Access key ID<input autoComplete="off" value={accessKeyId} onChange={(e) => setAccessKeyId(e.target.value)} placeholder={awsAuth === "role" ? "Optional source credential" : "AKIA…"} required={awsAuth === "access_key"} /></label>
+            <label>Secret access key<input type="password" autoComplete="new-password" value={secretAccessKey} onChange={(e) => setSecretAccessKey(e.target.value)} required={awsAuth === "access_key"} /></label>
+            <label>Session token<input type="password" autoComplete="new-password" value={sessionToken} onChange={(e) => setSessionToken(e.target.value)} placeholder="Optional" /></label>
+            <label>External ID<input type="password" autoComplete="new-password" value={externalId} onChange={(e) => setExternalId(e.target.value)} placeholder="Optional role trust value" /></label>
+          </div>
+          <label>Model IDs<input value={modelIds} onChange={(e) => setModelIds(e.target.value)} placeholder="Comma-separated Bedrock model IDs" /></label>
+          <label>Inference profiles<input value={inferenceProfiles} onChange={(e) => setInferenceProfiles(e.target.value)} placeholder="Comma-separated inference profile IDs or ARNs" /></label>
+          <div className="radmin-row">
+            <label>Agent IDs<input value={agentIds} onChange={(e) => setAgentIds(e.target.value)} placeholder="Comma-separated" /></label>
+            <label>Agent aliases<input value={agentAliases} onChange={(e) => setAgentAliases(e.target.value)} placeholder="Comma-separated" /></label>
+            <label>Action groups<input value={actionGroups} onChange={(e) => setActionGroups(e.target.value)} placeholder="Comma-separated" /></label>
+          </div>
+          <p className="radmin-muted">AWS secrets are encrypted before storage and never appear in proposal records, logs, evidence or this dashboard.</p>
+        </>}
         <button className="radmin-btn primary" disabled={busy || !environmentId}>{busy ? "Governing…" : `Create ${kind}`}</button>
       </form>
+    </section>
+  );
+}
+
+function BedrockPanel({ organisation, envs, connectors, busy, mutate }: { organisation: any; envs: any[]; connectors: any[]; busy: boolean; mutate: (body: any) => Promise<void> }) {
+  const [connectorId, setConnectorId] = useState("");
+  const [accessKeyId, setAccessKeyId] = useState("");
+  const [secretAccessKey, setSecretAccessKey] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
+  const [externalId, setExternalId] = useState("");
+  const rotate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!connectorId) return;
+    await mutate({
+      operation: "bedrock.credentials.rotate", connector_id: connectorId,
+      credentials: {
+        access_key_id: accessKeyId || undefined, secret_access_key: secretAccessKey || undefined,
+        session_token: sessionToken || undefined, external_id: externalId || undefined,
+      },
+    });
+    setAccessKeyId(""); setSecretAccessKey(""); setSessionToken(""); setExternalId("");
+  };
+  return (
+    <section className="radmin-card">
+      <h2>AWS Bedrock</h2>
+      <p className="radmin-muted">First-class Bedrock Runtime and Agent action-group connections. Secrets remain redacted.</p>
+      {!connectors.length ? <p className="radmin-muted">No Amazon Bedrock connectors configured.</p> : (
+        <>
+          <div className="radmin-table-wrap"><table className="radmin-table"><thead><tr><th>Organisation</th><th>Environment</th><th>AWS account</th><th>Region</th><th>IAM</th><th>Models / profiles</th><th>Agents / aliases</th><th>Action groups</th><th>Health</th><th>Last success</th><th>Failures</th><th>Decisions</th><th>Evidence</th></tr></thead><tbody>
+            {connectors.map((c: any) => <tr key={c.id}>
+              <td>{organisation?.name || c.organisation_id}</td>
+              <td>{envs.find((e: any) => e.id === c.environment_id)?.kind || c.environment_id}</td>
+              <td>{c.aws_account_id || "Unvalidated"}</td><td>{c.region}</td><td>{c.iam_authentication_method === "role" ? "IAM role" : "Access key"}</td>
+              <td>{[...(c.model_ids || []), ...(c.inference_profiles || [])].join(", ") || "—"}</td>
+              <td>{[...(c.agent_ids || []), ...(c.agent_aliases || [])].join(", ") || "—"}</td>
+              <td>{(c.action_groups || []).join(", ") || "—"}</td><td>{c.health}</td><td>{ago(c.last_successful_request)}</td>
+              <td>{(c.recent_failures || []).length}</td>
+              <td>{`${c.governance_decision_counts?.permit || 0}/${c.governance_decision_counts?.block || 0}/${c.governance_decision_counts?.escalate || 0}`}</td>
+              <td>{c.evidence_generated || 0}</td>
+            </tr>)}
+          </tbody></table></div>
+          <form className="radmin-form" onSubmit={rotate} style={{ marginTop: 20 }}>
+            <h3>Rotate Bedrock IAM credentials</h3>
+            <select className="radmin-select" value={connectorId} onChange={(e) => setConnectorId(e.target.value)} required>
+              <option value="">Select Bedrock connector</option>
+              {connectors.map((c: any) => <option key={c.id} value={c.id}>{c.name} · {c.region}</option>)}
+            </select>
+            <div className="radmin-row">
+              <label>Access key ID<input autoComplete="off" value={accessKeyId} onChange={(e) => setAccessKeyId(e.target.value)} /></label>
+              <label>Secret access key<input type="password" autoComplete="new-password" value={secretAccessKey} onChange={(e) => setSecretAccessKey(e.target.value)} /></label>
+              <label>Session token<input type="password" autoComplete="new-password" value={sessionToken} onChange={(e) => setSessionToken(e.target.value)} /></label>
+              <label>External ID<input type="password" autoComplete="new-password" value={externalId} onChange={(e) => setExternalId(e.target.value)} /></label>
+            </div>
+            <button className="radmin-btn" disabled={busy || !connectorId}>Validate and rotate</button>
+          </form>
+        </>
+      )}
     </section>
   );
 }
