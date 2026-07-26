@@ -35,7 +35,7 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   const acme = await rt.admin.onboardCustomer({ name: "Acme Bank", slug: "acme" });
   const beta = await rt.admin.onboardCustomer({ name: "Beta Health", slug: "beta" });
   ok(acme.ingest_key && acme.ingest_key.startsWith("rtk_live_"), "onboarding returns a live ingest key");
-  eq(acme.environments.map((e) => e.kind).sort(), ["production", "staging"], "onboarding creates prod + staging");
+  eq(acme.environments.map((e) => e.kind).sort(), ["production", "sandbox", "staging"], "onboarding creates prod + staging + sandbox");
   eq(acme.production.mode, "shadow", "production starts in shadow mode (safe rollout)");
 
   // ── Auth + RBAC ────────────────────────────────────────────────────────────

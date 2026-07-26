@@ -47,6 +47,7 @@
     "runtime:report-parity": "node scripts/runtime/report-parity.test.cjs",
     "runtime:enterprise-assessment": "node scripts/runtime/enterprise-assessment.test.cjs",
     "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
+    "runtime:integration-gateway": "node scripts/runtime/integration-gateway.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
     "ops:schema-check": "node scripts/ops/schema-check.cjs",
@@ -64,7 +65,7 @@
     "sovereign:pdf": "node scripts/sovereign/pdf.test.cjs",
     "sovereign:acceptance": "node scripts/sovereign/acceptance.test.cjs",
     "runtime:startup": "node -e \"require('./lib/runtime/startup').print()\"",
-    "contracts": "node scripts/ops/contracts.test.cjs"
+    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
