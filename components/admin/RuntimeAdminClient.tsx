@@ -12,6 +12,7 @@ import "@/styles/runtime-admin.css";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { VolumeChart, RatioBar, LatencySpark, FreqBars, Info, MiniSpark } from "./Charts";
 import { deliverableFileUrl } from "@/lib/deliverable-url";
+import IntegrationGatewayPanel from "./IntegrationGatewayPanel";
 
 const OMEGA_TIP = "Ω (Omega) domains are the catastrophic-risk categories the engine governs — e.g. finance, healthcare, infrastructure. Every blocked or escalated action is attributed to the Ω domain whose safety boundary it would cross.";
 
@@ -27,7 +28,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "overview" | "customers" | "onboard" | "readiness" | "alerts" | "audit";
+type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "alerts" | "audit";
 
 export default function RuntimeAdminClient() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -53,7 +54,7 @@ export default function RuntimeAdminClient() {
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["overview", "customers", "onboard", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "customers", "onboard", "integrations", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -69,6 +70,7 @@ export default function RuntimeAdminClient() {
         {tab === "overview" && <OverviewPanel onOpenCustomers={() => setTab("customers")} />}
         {tab === "customers" && <CustomersPanel />}
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
+        {tab === "integrations" && <IntegrationGatewayPanel />}
         {tab === "readiness" && <ReadinessPanel />}
         {tab === "alerts" && <AlertsPanel />}
         {tab === "audit" && <AuditPanel />}
@@ -114,8 +116,9 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
     return (
       <section className="radmin-card">
         <h2>✅ {result.org?.name} onboarded</h2>
-        <p className="radmin-muted">Production + staging environments created (both in shadow mode).</p>
+        <p className="radmin-muted">Production, staging and sandbox environments created in shadow mode.</p>
         <KeyReveal label="Ingest key (shown once — send to the customer)" value={result.ingest_key} warning={result.warning} />
+        <KeyReveal label="Sandbox integration key (shown once)" value={result.sandbox_key} />
         <div className="radmin-kv">
           <div><span>Org id</span><code>{result.org?.id}</code></div>
           <div><span>Production env</span><code>{result.production?.id}</code></div>
@@ -130,7 +133,7 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
   return (
     <section className="radmin-card">
       <h2>Onboard a customer</h2>
-      <p className="radmin-muted">Provisions the org, production + staging environments, and a production ingest key.</p>
+      <p className="radmin-muted">Provisions the org, production + staging + sandbox environments, and one-time production and sandbox credentials.</p>
       <form className="radmin-form" onSubmit={submit}>
         <label>Company name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Corp" required /></label>
         <label>Slug <span className="radmin-muted">(optional)</span><input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="acme-corp" /></label>

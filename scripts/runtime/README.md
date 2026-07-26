@@ -38,7 +38,7 @@ export RUNTIME_ADMIN_KEY=$(openssl rand -hex 16)   # gate for /admin/*
 # 2. start the gateway (serves the API + dashboard on :8790)
 npm run runtime:server
 
-# 3. onboard a customer (the "yes after audit" moment) → returns an ingest key ONCE
+# 3. onboard a customer → production/staging/sandbox + one-time live/test keys
 curl -sX POST localhost:8790/admin/onboard -H "x-admin-key: $RUNTIME_ADMIN_KEY" \
   -H 'content-type: application/json' -d '{"name":"Meridian Sterling Bank","slug":"meridian"}'
 

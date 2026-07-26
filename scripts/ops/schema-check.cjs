@@ -32,6 +32,9 @@ const TABLES = [
   // industry intelligence packs
   "rg_industry_packs",
   "rg_sovereign_updates",
+  // integration gateway
+  "rg_integration_connectors", "rg_integration_webhooks", "rg_integration_webhook_deliveries",
+  "rg_integration_deployments", "rg_integration_usage", "rg_integration_events", "rg_integration_secrets",
 ];
 
 async function main() {
@@ -58,7 +61,7 @@ async function main() {
   if (missing.length) {
     console.log(`\n  MISSING (${missing.length}) — surfaces reading these render empty:`);
     for (const t of missing) console.log(`    · ${t}`);
-    console.log(`\n  Fix: apply supabase/operations_agent.sql to this project.`);
+    console.log(`\n  Fix: apply supabase/operations_agent.sql and supabase/integration_gateway.sql to this project.`);
     console.log(`  It is additive and idempotent (create table if not exists / add column if not exists).`);
   }
   if (other.length) {

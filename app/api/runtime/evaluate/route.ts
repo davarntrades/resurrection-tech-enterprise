@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
   const auth = await rt.admin.authenticate(bearer(req));
   if (!auth) return NextResponse.json({ error: "valid API key required (Authorization: Bearer <key>)" }, { status: 401 });
   if (auth.role === "viewer") return NextResponse.json({ error: "ingest role required" }, { status: 403 });
+  await (rt.integrationGateway as any).recordUsage({
+    org_id: auth.org.id, environment_id: auth.environment?.id || null, key_id: auth.key_id,
+    operation: "runtime:evaluate", sdk: req.headers.get("x-guardian-sdk") || null,
+  }).catch(() => { /* telemetry never breaks governance */ });
 
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
@@ -35,5 +39,23 @@ export async function POST(req: NextRequest) {
     agent: body.agent,
     correlation_id: body.correlation_id,
   });
+  const eventEnvironment = auth.environment || (await rt.admin.listEnvironments(auth.org.id)).find((e: any) => e.kind === "production");
+  if (result.ok && result.decision_id && eventEnvironment) {
+    await (rt.integrationGateway as any).dispatchEvent({
+      org_id: auth.org.id,
+      environment_id: eventEnvironment.id,
+      event_type: "decision.created",
+      event_id: result.decision_id,
+      payload: {
+        decision_id: result.decision_id, verdict: result.verdict,
+        engine_verdict: result.engine_verdict, mode: result.mode,
+        omega_domain: result.omega_domain, rule: result.rule,
+        recorded_at: result.recorded_at, correlation_id: body.correlation_id || null,
+      },
+    }).catch((e: any) => rt.log.warn("integration_webhook_dispatch_failed", {
+      org_id: auth.org.id, environment_id: eventEnvironment.id,
+      decision_id: result.decision_id, error: e?.message || String(e),
+    }));
+  }
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
 }
