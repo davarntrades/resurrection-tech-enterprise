@@ -8,24 +8,13 @@ This additive layer defines reusable contracts for provider endpoint overrides, 
 
 1. Runtime Governance remains the authority that must reach an executed proposal before provider execution.
 2. Connector credentials are resolved locally through a configured provider and are never included in public configuration, evidence or errors.
-3. Every GuardianOS-originated network request must be authorized before the network client is called.
+3. Every migrated GuardianOS-originated network request is authorized before the network or SDK client is constructed.
 4. Evidence is written through a deployment-selected store with organisation and environment ownership checks.
 5. Sovereign mode rejects mandatory Resurrection Tech control-plane, telemetry or remote-evidence dependencies at startup.
 
-## Configuration
-
-| Variable | Purpose | Sovereign default |
-|---|---|---|
-| `GUARDIANOS_DEPLOYMENT_MODE` | `hosted`, `private`, or `sovereign` | `sovereign` when selected |
-| `GUARDIANOS_OUTBOUND_POLICY` | `none`, `approved_endpoints_only`, or `custom` | `approved_endpoints_only` |
-| `GUARDIANOS_ALLOW_HTTP_ENDPOINTS` | Allows explicitly configured HTTP endpoints for isolated development networks | disabled |
-| `INTEGRATION_ALLOW_PRIVATE_ENDPOINTS` | Enables private endpoint addresses | enabled by sovereign mode |
-| `GUARDIANOS_EXTERNAL_EVIDENCE_DELIVERY` | Opt-in external evidence delivery outside sovereign mode | disabled |
-| `GUARDIANOS_TELEMETRY_ENABLED` | Opt-in telemetry outside sovereign mode | disabled |
-
 ## Provider endpoint configuration
 
-First-class connector configuration may supply `provider_endpoints` or `endpoints` with service-specific URLs.
+Service-specific endpoint keys are supported for:
 
 - AWS Bedrock: `runtime`, `agent_runtime`, `sts`
 - Azure: `openai`, `ai_foundry`, `identity`
@@ -35,62 +24,64 @@ HTTPS is required by default. Embedded URL credentials and fragments are rejecte
 
 ## Credential providers
 
-Implemented and directly usable:
+Implemented adapters:
 
-- encrypted local storage (existing Integration Gateway mechanism)
+- encrypted local storage through the existing Integration Gateway mechanism
 - deployment-injected environment secrets
-- customer-defined callback provider
+- customer-defined callback providers
+- AWS Secrets Manager through an injected AWS SDK client
+- Azure Key Vault through an injected `SecretClient`
+- Google Secret Manager through an injected client
+- HashiCorp Vault through governed HTTP
+- Kubernetes Secrets through a read-only mounted filesystem
 
-Contract-defined and requiring provider SDK/customer-environment integration before a live claim:
+The registry resolves on every request, allowing rotation and refresh without application restart. Enterprise adapters are contract implementations and still require live customer identity, network and service validation.
 
-- AWS Secrets Manager
-- Azure Key Vault
-- Google Secret Manager
-- HashiCorp Vault
-- Kubernetes Secrets
+## Governed provider execution
 
-The registry resolves on every request, allowing rotation and refresh without application restart.
+The provider runtime checks, in order:
 
-## Outbound policy
+1. the proposal is verified as executed;
+2. the customer credential provider resolves successfully;
+3. the destination is approved by the outbound policy;
+4. only then is the provider client constructed and invoked.
 
-`none` denies every outbound request before network execution. `approved_endpoints_only` permits only configured origins/path prefixes. `custom` delegates to a customer-local policy function. An optional Runtime Governance callback can require an executed governance proposal after destination-policy approval and before the network call.
+Azure OpenAI, Azure AI Foundry, Azure identity, Vertex AI, Gemini and Google identity execution modules now receive the resolved endpoint and credentials through this runtime. Their provider clients remain dependency-injected because Azure and Google SDKs are not repository dependencies.
 
-Denied requests expose only safe destination and purpose metadata. Secrets are redacted from nested objects, bearer values and AWS access-key patterns.
+The existing AWS Bedrock production connector predates this layer. Complete migration of Bedrock Runtime and STS client construction into the shared provider runtime remains a merge blocker.
 
 ## Evidence custody
 
-The evidence-store contract requires `write` and `find` operations. The local Runtime store adapter checks both `org_id` and `environment_id` before writing or reading. Sovereign defaults disable external export, webhook delivery and remote replication. Existing evidence schemas and APIs remain unchanged.
-
-## Deployment models and limitations
-
-- Private cloud, sovereign cloud, government cloud and on-premises deployments are supported by configuration contracts.
-- Disconnected and air-gapped governance operation is supported when no external provider execution is required.
-- External cloud-model calls are not possible in a fully air-gapped environment unless the provider is reachable through a customer-controlled private route.
-- Secret-manager adapters are contract-tested abstractions; live provider validation requires the customer's identity, network and secret-store environment.
-- Azure and Google connector execution wiring must be validated against their first-class connector implementations before being marked directly proven.
+The evidence-store contract requires `write` and `find` operations. The local Runtime store adapter checks both `org_id` and `environment_id`. Sovereign defaults disable external export, webhook delivery and remote replication. Existing evidence schemas and APIs remain unchanged. Complete wiring of the main Runtime Governance and Integration Gateway evidence call sites remains required before a full containment claim.
 
 ## Validation classification
 
 | Capability | Classification |
 |---|---|
-| Endpoint parsing and rejection rules | Implemented and contract-tested |
-| AWS/Azure/Google service endpoint model | Implemented and mocked in CI |
-| Environment/custom credential providers | Implemented and contract-tested |
-| Enterprise secret-manager definitions | Contract-tested; customer-environment validation required |
-| Outbound deny-before-network behaviour | Implemented and contract-tested |
-| Sovereign startup dependency rejection | Implemented and contract-tested |
-| Local evidence ownership enforcement | Implemented and contract-tested |
-| Live AWS PrivateLink/Azure Government/Vertex private endpoint | Customer-environment validation required |
+| Endpoint parsing and rejection rules | Implemented; hermetic tests authored |
+| Azure/Google endpoint and credential propagation | Implemented; integration tests authored |
+| AWS/Azure/Google secret-manager adapters | Implemented against injected SDK contracts; live customer validation required |
+| HashiCorp Vault and Kubernetes mounted secrets | Implemented; live customer validation required |
+| Outbound deny-before-client behaviour | Implemented; integration tests authored |
+| Sovereign startup dependency rejection | Implemented; contract tests authored |
+| Local evidence ownership enforcement | Implemented; contract tests authored |
+| Existing AWS Bedrock path migration | Not complete |
+| All existing network paths migrated | Not complete |
+| Complete regression, typecheck and build results | Pending GitHub Actions |
+| Live PrivateLink, Azure Government and Vertex private endpoints | Customer-environment validation required |
 
 ## Sovereign readiness checklist
 
 - [x] Customer endpoint abstraction implemented
 - [x] Customer-controlled credential abstraction implemented
+- [x] Enterprise credential adapters implemented without live-validation claims
 - [x] No mandatory Resurrection Tech control plane in sovereign policy
-- [x] Deny-before-network outbound enforcement contract-tested
-- [x] Local evidence-store boundary and tenant checks contract-tested
-- [x] Organisation isolation maintained by evidence adapter
-- [x] Environment isolation maintained by evidence adapter
-- [x] Existing APIs remain unchanged
-- [ ] All first-class connector execution paths wired to the shared abstractions
-- [ ] Complete existing suite and live-provider validation recorded
+- [x] Deny-before-network provider runtime implemented
+- [x] Azure and Google connector execution modules use shared endpoint and credential controls
+- [x] CI workflow added for sovereign, connector, typecheck and build checks
+- [ ] Existing AWS Bedrock Runtime and STS execution fully migrated
+- [ ] Bedrock Agent Runtime outbound execution wired and tested
+- [ ] Webhook, callback, telemetry, diagnostics and export call sites fully migrated
+- [ ] Main Runtime Governance and Integration Gateway evidence paths use the evidence abstraction
+- [ ] Complete regression, typecheck and build suite green
+- [ ] Live customer private/sovereign endpoint validation
