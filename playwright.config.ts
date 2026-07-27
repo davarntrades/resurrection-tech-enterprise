@@ -10,6 +10,7 @@ import { defineConfig, devices } from "@playwright/test";
  *   npx playwright install webkit && npx playwright test
  */
 const BASE = process.env.E2E_BASE_URL || "http://127.0.0.1:3000";
+const VERCEL_BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,6 +23,14 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Allow the browser context itself to enter protected Vercel preview deployments.
+    // Values remain masked by GitHub Actions and are never printed by the test.
+    extraHTTPHeaders: VERCEL_BYPASS
+      ? {
+          "x-vercel-protection-bypass": VERCEL_BYPASS,
+          "x-vercel-set-bypass-cookie": "true",
+        }
+      : undefined,
     // HTTP Basic Auth for the /admin/* proxy (proxy.ts). Only applied when set.
     httpCredentials:
       process.env.ADMIN_USER && process.env.ADMIN_PASSWORD
