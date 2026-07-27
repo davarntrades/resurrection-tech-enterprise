@@ -1,8 +1,8 @@
 name: E2E — Control Room Preview (production)
 
 # Automatic gate: reproduces Customers → Dry Run Customer → Audit pack → Preview
-# on the LIVE site (WebKit / Safari engine). If Preview does not open the PDF,
-# this job fails — and so does the build.
+# on the LIVE site (WebKit / Safari engine), then runs one governed Customer Support
+# production smoke and publishes a structured evidence report.
 on:
   push:
     branches: [main]
@@ -14,7 +14,7 @@ on:
 jobs:
   preview-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,7 +31,28 @@ jobs:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
+      - name: Run governed Customer Support production smoke
+        run: node scripts/runtime/customer-support-production-smoke.cjs
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          E2E_ORG_ID: ${{ secrets.E2E_ORG_ID }}
+          E2E_ENVIRONMENT_ID: ${{ secrets.E2E_ENVIRONMENT_ID }}
+      - name: Publish production smoke Job Summary
+        if: success()
+        shell: bash
+        run: cat artifacts/customer-support-production-smoke.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload production smoke report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-support-production-smoke
+          path: artifacts/customer-support-production-smoke.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload trace on failure
         if: failure()
         uses: actions/upload-artifact@v4
