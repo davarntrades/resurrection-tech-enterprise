@@ -4,6 +4,8 @@ import * as rt from "@/lib/runtime";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const invocationRuns = rt.bedrockInvocationRuns as any;
+
 function operator(req: NextRequest) {
   return rt.adminauth.authorize({
     sessionToken: req.cookies.get(rt.adminauth.SESSION_COOKIE)?.value,
@@ -29,21 +31,15 @@ export async function GET(req: NextRequest) {
   if (!org) return NextResponse.json({ error: "organisation not found" }, { status: 404 });
 
   try {
-    const connectors = await rt.bedrockInvocationRuns.listEligibleConnectors(org_id, environment_id || null);
+    const connectors = await invocationRuns.listEligibleConnectors(org_id, environment_id || null);
     let runs: any[] = [];
-    if (batch_id) {
-      runs = await rt.bedrockInvocationRuns.advanceBatch(batch_id, org_id, rt.integrationGateway);
-    } else {
-      runs = await rt.bedrockInvocationRuns.recentRuns(org_id, environment_id || null, 30);
-    }
+    if (batch_id) runs = await invocationRuns.advanceBatch(batch_id, org_id, rt.integrationGateway);
+    else runs = await invocationRuns.recentRuns(org_id, environment_id || null, 30);
     return NextResponse.json({
       connectors,
       runs,
-      aggregate: rt.bedrockInvocationRuns.aggregate(runs),
-      limits: {
-        max_requests: rt.bedrockInvocationRuns.MAX_REQUESTS,
-        max_concurrency: rt.bedrockInvocationRuns.MAX_CONCURRENCY,
-      },
+      aggregate: invocationRuns.aggregate(runs),
+      limits: { max_requests: invocationRuns.MAX_REQUESTS, max_concurrency: invocationRuns.MAX_CONCURRENCY },
     }, { headers: { "cache-control": "no-store" } });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "invocation state unavailable" }, { status: statusFor(error) });
@@ -66,7 +62,7 @@ export async function POST(req: NextRequest) {
   if (!environment || environment.org_id !== org_id) return NextResponse.json({ error: "environment not found" }, { status: 404 });
 
   try {
-    const created = await rt.bedrockInvocationRuns.createRuns({
+    const created = await invocationRuns.createRuns({
       ...body,
       org_id,
       environment_id,
