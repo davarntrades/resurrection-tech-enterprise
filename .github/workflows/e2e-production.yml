@@ -15,6 +15,12 @@ jobs:
   preview-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+      RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+      E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
+      E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,24 +30,22 @@ jobs:
       - run: npm ci
       - name: Install WebKit (Safari engine)
         run: npx playwright install --with-deps webkit
+      - name: Safe production configuration preflight
+        shell: bash
+        run: |
+          echo "E2E_BASE_URL configured: $([[ -n \"$E2E_BASE_URL\" ]] && echo yes || echo no)"
+          echo "RUNTIME_ADMIN_KEY configured: $([[ -n \"$RUNTIME_ADMIN_KEY\" ]] && echo yes || echo no)"
+          echo "E2E_ORG_ID configured: $([[ -n \"$E2E_ORG_ID\" ]] && echo yes || echo no)"
+          echo "E2E_ENVIRONMENT_ID configured: $([[ -n \"$E2E_ENVIRONMENT_ID\" ]] && echo yes || echo no)"
       - name: Run production Preview E2E
         run: npm run test:e2e
         env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
       - name: Run governed Customer Support production smoke
         id: customer_support_smoke
         run: node scripts/runtime/customer-support-production-smoke.cjs
-        env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
-          E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
       - name: Publish production smoke Job Summary
         if: always()
         shell: bash
