@@ -36,22 +36,7 @@ jobs:
       - name: Sovereign readiness contracts and connector integration
         run: npm run runtime:sovereign-readiness
       - name: Existing Integration Gateway and connector contracts
-        id: connector_contracts
-        shell: bash
-        run: |
-          set +e
-          npm run runtime:integration-gateway > connector-contracts.log 2>&1
-          status=$?
-          if [ $status -eq 0 ]; then npm run runtime:aws-bedrock >> connector-contracts.log 2>&1; status=$?; fi
-          if [ $status -eq 0 ]; then npm run contracts >> connector-contracts.log 2>&1; status=$?; fi
-          cat connector-contracts.log
-          exit $status
-      - name: Upload connector contract diagnostics
-        if: failure() && steps.connector_contracts.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: connector-contract-diagnostics
-          path: connector-contracts.log
+        run: npm run runtime:integration-gateway && npm run runtime:aws-bedrock && npm run contracts
       - name: Runtime gateway
         id: runtime_gateway
         shell: bash
