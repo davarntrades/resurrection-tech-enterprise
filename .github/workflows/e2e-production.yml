@@ -38,6 +38,7 @@ jobs:
         env:
           CUSTOMER_SUPPORT_E2E_BASE_URL: https://resurrection-tech-enterprise-git-a-f64a6d-davarntrades-projects.vercel.app
           RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           CUSTOMER_SUPPORT_SMOKE_REPORT: customer-support-production-smoke.json
       - name: Upload Customer Support production validation
         if: always() && hashFiles('.github/customer-support-production-smoke') != ''
