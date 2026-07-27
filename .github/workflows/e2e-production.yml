@@ -82,6 +82,7 @@ jobs:
           echo "E2E_BASE_URL=$safe_url" >> "$GITHUB_ENV"
           echo "configured=yes" >> "$GITHUB_OUTPUT"
       - name: Safe production configuration preflight
+        id: production_preflight
         shell: bash
         run: |
           set -euo pipefail
@@ -96,6 +97,7 @@ jobs:
           done
           exit "$missing"
       - name: Run production Preview E2E
+        id: preview_ui_e2e
         run: npm run test:e2e
         env:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
@@ -103,6 +105,7 @@ jobs:
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
       - name: Run governed Customer Support production smoke
         id: customer_support_smoke
+        if: ${{ always() && steps.production_preflight.outcome == 'success' }}
         run: node scripts/runtime/customer-support-production-smoke.cjs
       - name: Publish production smoke Job Summary
         if: always()
@@ -115,6 +118,8 @@ jobs:
               echo "## Customer Support production smoke"
               echo
               echo "Status: failed before a structured report was generated."
+              echo
+              echo "Preview UI outcome: ${{ steps.preview_ui_e2e.outcome }}"
               echo
               echo "Smoke step outcome: ${{ steps.customer_support_smoke.outcome }}"
               echo
