@@ -34,24 +34,38 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
       - name: Run governed Customer Support production smoke
+        id: customer_support_smoke
         run: node scripts/runtime/customer-support-production-smoke.cjs
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          E2E_ORG_ID: ${{ secrets.E2E_ORG_ID }}
-          E2E_ENVIRONMENT_ID: ${{ secrets.E2E_ENVIRONMENT_ID }}
+          E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
+          E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
       - name: Publish production smoke Job Summary
-        if: success()
+        if: always()
         shell: bash
-        run: cat artifacts/customer-support-production-smoke.md >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          if [[ -f artifacts/customer-support-production-smoke.md ]]; then
+            cat artifacts/customer-support-production-smoke.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Customer Support production smoke"
+              echo
+              echo "Status: failed before a structured report was generated."
+              echo
+              echo "Smoke step outcome: ${{ steps.customer_support_smoke.outcome }}"
+              echo
+              echo "Inspect the 'Run governed Customer Support production smoke' log for the exact non-secret failure."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload production smoke report
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: customer-support-production-smoke
           path: artifacts/customer-support-production-smoke.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
       - name: Upload trace on failure
         if: failure()
