@@ -22,20 +22,23 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     // 1) Open the Control Room (HTTP Basic Auth comes from httpCredentials).
     await page.goto("/admin/runtime", { waitUntil: "domcontentloaded" });
 
-    // 2) Wait for the client to resolve the session (login form OR the tab nav),
-    //    then operator sign-in via the real login form if it's shown.
-    await page
-      .locator('input[placeholder="Operator password"], nav.radmin-tabs')
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
-    const pw = page.getByPlaceholder("Operator password");
-    if (await pw.isVisible().catch(() => false)) {
-      await pw.fill(OP_PASSWORD);
+    // 2) The deployment may already have an authenticated operator session. Wait for
+    //    either the real login field or the authenticated Control Room shell, and only
+    //    submit credentials when the login field is actually present.
+    const password = page.getByPlaceholder("Operator password");
+    const controlRoom = page.getByRole("heading", { name: "Operator Control Room" });
+    await password.or(controlRoom).first().waitFor({ state: "visible", timeout: 20_000 });
+
+    if (await password.isVisible().catch(() => false)) {
+      await password.fill(OP_PASSWORD);
       await page.getByRole("button", { name: "Sign in" }).click();
+      await expect(controlRoom).toBeVisible({ timeout: 20_000 });
     }
 
     // 3) Customers tab (exact — avoids matching an overview "View customers →" button).
-    await page.getByRole("button", { name: "Customers", exact: true }).click();
+    const customersTab = page.getByRole("button", { name: "Customers", exact: true });
+    await expect(customersTab).toBeVisible({ timeout: 20_000 });
+    await customersTab.click();
 
     // 4) The Dry Run Customer card → ensure expanded → its PRODUCTION environment.
     const card = page.locator(".radmin-card", { hasText: CUSTOMER }).first();
