@@ -97,6 +97,38 @@ async function seed() {
     assert.equal(calls, 1);
   });
 
+  await test("rejected approval remains fail-closed with zero provider calls", async () => {
+    const created = await runs.createRuns({ org_id: fixture.org.id, environment_id: fixture.env.id, connector_id: fixture.connector.id, model_id: "model.test", prompt: "reject", idempotency_key: "reject" });
+    const run = created.runs[0];
+    await store.update("bedrock_invocation_runs", run.id, { status: "awaiting_approval", proposal_id: "proposal_rejected" });
+    await store.insert("ops_proposals", { id: "proposal_rejected", org_id: fixture.org.id, environment_id: fixture.env.id, action_id: "invoke_aws_bedrock_model", status: "denied", evidence_id: "deny_evidence" });
+    let calls = 0;
+    const result = await runs.reconcileApproval(await store.findOne("bedrock_invocation_runs", { id: run.id }), { executeApprovedBedrockInvocation: async () => { calls += 1; } });
+    assert.equal(result.status, "rejected");
+    assert.equal(result.provider_invocation_count, 0);
+    assert.equal(result.aws_called, false);
+    assert.equal(calls, 0);
+  });
+
+  await test("approved escalation resumes exactly once through the approved gateway continuation", async () => {
+    const created = await runs.createRuns({ org_id: fixture.org.id, environment_id: fixture.env.id, connector_id: fixture.connector.id, model_id: "model.test", prompt: "approve", idempotency_key: "approve" });
+    const run = created.runs[0];
+    await store.update("bedrock_invocation_runs", run.id, { status: "awaiting_approval", proposal_id: "proposal_approved" });
+    await store.insert("ops_proposals", {
+      id: "proposal_approved", org_id: fixture.org.id, environment_id: fixture.env.id,
+      action_id: "invoke_aws_bedrock_model", status: "executed", params: { connector_id: fixture.connector.id, model_id: "model.test", request_hash: "approved_hash" },
+      execution: { executed: true, result: { authorized: true } }, evidence_id: "approval_evidence",
+    });
+    let calls = 0;
+    const gateway = { executeApprovedBedrockInvocation: async () => { calls += 1; return { ok: true, response: "approved", latency_ms: 3, governance: { proposal_id: "proposal_approved", evidence_id: "approval_evidence", status: "executed" }, evidence: { id: "provider_evidence" } }; } };
+    const first = await runs.reconcileApproval(await store.findOne("bedrock_invocation_runs", { id: run.id }), gateway);
+    await runs.reconcileApproval(await store.findOne("bedrock_invocation_runs", { id: run.id }), gateway);
+    assert.equal(first.status, "completed");
+    assert.equal(first.approval_status, "approved_and_executed");
+    assert.equal(first.provider_invocation_count, 1);
+    assert.equal(calls, 1);
+  });
+
   await test("batch aggregation reports independent outcomes", async () => {
     const summary = runs.aggregate([
       { status: "completed", provider_invocation_count: 1, evidence_count: 1, total_latency_ms: 10 },
