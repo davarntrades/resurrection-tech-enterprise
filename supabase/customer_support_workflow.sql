@@ -26,6 +26,7 @@ create table if not exists public.rg_customer_support_workflow_runs (
   status text not null,
   lifecycle_state text not null,
   proposal_id text,
+  provider_proposal_id text,
   governance_decision text,
   approval_status text,
   bedrock_run_id text,
@@ -49,6 +50,8 @@ create table if not exists public.rg_customer_support_workflow_runs (
   workflow_evidence_recorded boolean not null default false
 );
 
+alter table public.rg_customer_support_workflow_runs add column if not exists provider_proposal_id text;
+
 create table if not exists public.rg_customer_support_workflow_locks (
   id text primary key,
   created_at timestamptz not null default now(),
@@ -65,6 +68,8 @@ create index if not exists rg_customer_support_workflow_runs_org_env_created_idx
   on public.rg_customer_support_workflow_runs (org_id, environment_id, created_at desc);
 create index if not exists rg_customer_support_workflow_runs_proposal_idx
   on public.rg_customer_support_workflow_runs (proposal_id) where proposal_id is not null;
+create index if not exists rg_customer_support_workflow_runs_provider_proposal_idx
+  on public.rg_customer_support_workflow_runs (provider_proposal_id) where provider_proposal_id is not null;
 create unique index if not exists rg_customer_support_workflow_locks_run_uq
   on public.rg_customer_support_workflow_locks (workflow_run_id);
 create unique index if not exists rg_customer_support_workflow_locks_idempotency_uq
