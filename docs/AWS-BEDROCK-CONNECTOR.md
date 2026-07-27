@@ -234,6 +234,53 @@ infrastructure.
 10. Create production credentials only after the evidence and IAM scope are
     accepted.
 
+## 7. Governed invocation console
+
+The operations console at `/runtime/admin/bedrock-invocations` drives governed
+invocations from the browser. It never constructs an AWS client: every run
+advances through `integrationGateway.invokeBedrock`, so the canonical action,
+proposal, Runtime Governance decision, connector credentials and evidence path
+are the same ones documented above.
+
+### Migration (required before first use)
+
+Apply the additive migration, then reload the schema cache:
+
+```bash
+psql "$SUPABASE_DB_URL" -f supabase/bedrock_invocation_runs.sql
+```
+
+It creates `rg_bedrock_invocation_runs` and `rg_bedrock_invocation_locks` with
+RLS enabled, no policies and `anon`/`authenticated` revoked — only the service
+role the server routes use can read or write invocation state. Re-running it is
+safe. `npm run ops:schema-check` reports both tables as missing until it is
+applied, and `npm run runtime:bedrock-migration` pins the file against the
+columns and statuses the runtime actually writes.
+
+### Approval-resume
+
+An escalated invocation parks at `awaiting_approval` and **does not call AWS**.
+It carries a real `ops_proposals` row, so an operator resolves it through the
+existing lifecycle in the operations console — the same Approve/Deny controls
+that govern every other proposed action. Nothing here is a second approval path.
+
+On the next poll the console reconciles that decision:
+
+| Proposal outcome | Run status | AWS calls |
+|---|---|---|
+| unresolved (`escalated`) | `awaiting_approval` | 0 |
+| `denied` | `rejected` | 0 |
+| `blocked` after approval | `rejected` | 0 |
+| `executed` (approved) | `completed` | exactly 1 |
+
+Approval authorises one specific payload. The approved request hash is
+recomputed from the payload about to be sent, so a run whose stored payload
+changed after sign-off fails closed with `APPROVAL_REQUEST_MISMATCH` rather than
+reaching Bedrock under a stale approval. A unique per-run execution lock means
+polling, retries, a browser refresh and concurrent tabs cannot duplicate a
+provider call, and the resumed execution crosses the same sovereign outbound
+policy and credential-provider boundary as a first-pass invocation.
+
 ## Troubleshooting
 
 | Code | Meaning | Resolution |
@@ -247,6 +294,8 @@ infrastructure.
 | `GOVERNANCE_BLOCKED` | Runtime Governance denied the proposal | Inspect the linked evidence and rule |
 | `GOVERNANCE_ESCALATED` | Human decision remains unresolved | Resolve the existing proposal; do not execute |
 | `GOVERNANCE_UNAVAILABLE` | GuardianOS could not obtain a decision | Restore Runtime Governance; the request failed closed |
+| `APPROVAL_NOT_EXECUTABLE` | Approved proposal is missing or not in an executable state | Resolve the proposal in the operations console; never re-approve out of band |
+| `APPROVAL_REQUEST_MISMATCH` | Payload no longer matches what was approved | Submit a new invocation; the stale approval is not transferable |
 | `AWS_REPLAY_DETECTED` | Signed nonce was reused | Generate a new nonce and timestamp |
 
 This connector is validated in CI with mocked AWS SDK clients. Live AWS
