@@ -11,12 +11,15 @@ on:
   schedule:
     - cron: "0 */6 * * *" # every 6h, catch production drift
 
+permissions:
+  contents: read
+  deployments: read
+
 jobs:
   preview-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
       RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
       E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
       E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
@@ -30,13 +33,68 @@ jobs:
       - run: npm ci
       - name: Install WebKit (Safari engine)
         run: npx playwright install --with-deps webkit
+      - name: Resolve production Preview E2E base URL
+        id: resolve_preview_url
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFIGURED_E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          candidate="$CONFIGURED_E2E_BASE_URL"
+
+          if [[ -z "$candidate" ]]; then
+            for attempt in {1..30}; do
+              candidate="$({
+                gh api --paginate \
+                  -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" \
+                | jq -r '.[].id'
+              } | while read -r deployment_id; do
+                [[ -n "$deployment_id" ]] || continue
+                gh api \
+                  -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
+                  | jq -r '.[] | select(.state == "success") | .environment_url // empty' \
+                  | head -n 1
+              done | head -n 1)"
+              [[ -n "$candidate" ]] && break
+              sleep 10
+            done
+          fi
+
+          if [[ -z "$candidate" ]]; then
+            echo "No successful deployment URL was found for the PR head SHA, and E2E_BASE_URL is not configured." >&2
+            exit 1
+          fi
+
+          safe_url="$(node -e '
+            const raw = process.argv[1];
+            const url = new URL(raw);
+            if (url.protocol !== "https:") throw new Error("resolved deployment URL must use HTTPS");
+            url.search = "";
+            url.hash = "";
+            process.stdout.write(url.toString().replace(/\/$/, ""));
+          ' "$candidate")"
+
+          echo "::add-mask::$safe_url"
+          echo "E2E_BASE_URL=$safe_url" >> "$GITHUB_ENV"
+          echo "configured=yes" >> "$GITHUB_OUTPUT"
       - name: Safe production configuration preflight
         shell: bash
         run: |
-          echo "E2E_BASE_URL configured: $([[ -n \"$E2E_BASE_URL\" ]] && echo yes || echo no)"
-          echo "RUNTIME_ADMIN_KEY configured: $([[ -n \"$RUNTIME_ADMIN_KEY\" ]] && echo yes || echo no)"
-          echo "E2E_ORG_ID configured: $([[ -n \"$E2E_ORG_ID\" ]] && echo yes || echo no)"
-          echo "E2E_ENVIRONMENT_ID configured: $([[ -n \"$E2E_ENVIRONMENT_ID\" ]] && echo yes || echo no)"
+          set -euo pipefail
+          missing=0
+          for name in E2E_BASE_URL RUNTIME_ADMIN_KEY E2E_ORG_ID E2E_ENVIRONMENT_ID; do
+            if [[ -n "${!name:-}" ]]; then
+              echo "$name configured: yes"
+            else
+              echo "$name configured: no"
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Run production Preview E2E
         run: npm run test:e2e
         env:
@@ -60,7 +118,7 @@ jobs:
               echo
               echo "Smoke step outcome: ${{ steps.customer_support_smoke.outcome }}"
               echo
-              echo "Inspect the 'Run governed Customer Support production smoke' log for the exact non-secret failure."
+              echo "Inspect the URL resolution, safe preflight and smoke-step logs for the exact non-secret failure."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Upload production smoke report
