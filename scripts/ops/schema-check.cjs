@@ -35,6 +35,8 @@ const TABLES = [
   // integration gateway
   "rg_integration_connectors", "rg_integration_webhooks", "rg_integration_webhook_deliveries",
   "rg_integration_deployments", "rg_integration_usage", "rg_integration_events", "rg_integration_secrets",
+  // governed Amazon Bedrock invocation console (supabase/bedrock_invocation_runs.sql)
+  "rg_bedrock_invocation_runs", "rg_bedrock_invocation_locks",
 ];
 
 async function main() {
