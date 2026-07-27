@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const workflow = rt.customerSupportWorkflow as any;
+const invocationRuns = rt.bedrockInvocationRuns as any;
 
 function operator(req: NextRequest) {
   return rt.adminauth.authorize({
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     if (workflow_run_id) current = await workflow.advanceExecution(workflow_run_id, org_id, rt.integrationGateway);
     const executions = await workflow.recentExecutions(org_id, environment_id || null, 50);
     const evidence = await workflow.recentEvidence(org_id, environment_id || null, 20);
-    const connectors = await rt.bedrockInvocationRuns.listEligibleConnectors(org_id, environment_id || null);
+    const connectors = await invocationRuns.listEligibleConnectors(org_id, environment_id || null);
     return NextResponse.json({
       workflow: workflow.WORKFLOW,
       current,
