@@ -14,7 +14,7 @@ on:
 jobs:
   preview-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +32,20 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
+      - name: Run governed Customer Support production validation
+        if: hashFiles('.github/customer-support-production-smoke') != ''
+        run: node scripts/runtime/customer-support-production-smoke.cjs
+        env:
+          CUSTOMER_SUPPORT_E2E_BASE_URL: https://resurrection-tech-enterprise-git-a-f64a6d-davarntrades-projects.vercel.app
+          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+          CUSTOMER_SUPPORT_SMOKE_REPORT: customer-support-production-smoke.json
+      - name: Upload Customer Support production validation
+        if: always() && hashFiles('.github/customer-support-production-smoke') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-support-production-smoke
+          path: customer-support-production-smoke.json
+          if-no-files-found: ignore
       - name: Upload trace on failure
         if: failure()
         uses: actions/upload-artifact@v4
