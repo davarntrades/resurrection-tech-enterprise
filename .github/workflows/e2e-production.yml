@@ -1,15 +1,14 @@
 name: E2E — Control Room Preview (production)
 
-# Automatic gate: reproduces Customers → Dry Run Customer → Audit pack → Preview
-# on the LIVE site (WebKit / Safari engine). If Preview does not open the PDF,
-# this job fails — and so does the build.
+# DORMANT — manual-only. Reproduces Customers → Dry Run Customer → Audit pack →
+# Preview on the LIVE site (WebKit / Safari engine). Deliberately does NOT run on
+# push / pull_request / merge / schedule / deployment; it runs only when a
+# maintainer triggers it. It also does nothing against production until the
+# required repository secrets (E2E_BASE_URL, ADMIN_USER, ADMIN_PASSWORD,
+# RUNTIME_ADMIN_KEY) are configured. Full hardening (secret preflight + docs) is
+# tracked in a separate PR.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *" # every 6h, catch production drift
 
 jobs:
   preview-e2e:
