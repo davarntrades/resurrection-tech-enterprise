@@ -6,6 +6,7 @@ const assert = require("node:assert/strict");
 
 const base = String(process.env.CUSTOMER_SUPPORT_E2E_BASE_URL || "").replace(/\/$/, "");
 const adminKey = process.env.RUNTIME_ADMIN_KEY;
+const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 const org_id = process.env.CUSTOMER_SUPPORT_ORG_ID || "org_e3601a7cdb20ccd0cc";
 const environment_id = process.env.CUSTOMER_SUPPORT_ENVIRONMENT_ID || "env_162372e33b67b39b0d";
 const connector_id = process.env.CUSTOMER_SUPPORT_CONNECTOR_ID || "int_3dc2e5a77bde601e53";
@@ -15,7 +16,11 @@ const reportPath = process.env.CUSTOMER_SUPPORT_SMOKE_REPORT || "customer-suppor
 if (!base || !adminKey) throw new Error("CUSTOMER_SUPPORT_E2E_BASE_URL and RUNTIME_ADMIN_KEY are required");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const headers = { "content-type": "application/json", "x-admin-key": adminKey };
+const headers = {
+  "content-type": "application/json",
+  "x-admin-key": adminKey,
+  ...(vercelBypass ? { "x-vercel-protection-bypass": vercelBypass } : {}),
+};
 
 async function request(path, options = {}) {
   const response = await fetch(`${base}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } });
@@ -116,29 +121,15 @@ async function waitForDeployment() {
   assert.ok(after.dashboard.average_provider_latency_ms != null);
 
   const report = {
-    validated_at: new Date().toISOString(),
-    deployment: base,
-    workflow_run_id: current.id,
-    canonical_action: current.canonical_action.action_id,
-    proposal_id: current.proposal_id,
-    provider_proposal_id: current.provider_proposal_id,
-    governance_decision: current.governance_decision,
-    approval_status: current.approval_status,
-    provider_invocation_count: current.provider_invocation_count,
-    connector_id: current.connector_id,
-    provider: current.provider,
-    model_id: current.model_id,
-    evidence_id: current.evidence_id,
-    underlying_evidence_id: current.underlying_evidence_id,
-    total_latency_ms: current.total_latency_ms,
-    governance_latency_ms: current.governance_latency_ms,
-    provider_latency_ms: current.provider_latency_ms,
-    dashboard: after.dashboard,
-    status: current.status,
+    validated_at: new Date().toISOString(), deployment: base, workflow_run_id: current.id,
+    canonical_action: current.canonical_action.action_id, proposal_id: current.proposal_id,
+    provider_proposal_id: current.provider_proposal_id, governance_decision: current.governance_decision,
+    approval_status: current.approval_status, provider_invocation_count: current.provider_invocation_count,
+    connector_id: current.connector_id, provider: current.provider, model_id: current.model_id,
+    evidence_id: current.evidence_id, underlying_evidence_id: current.underlying_evidence_id,
+    total_latency_ms: current.total_latency_ms, governance_latency_ms: current.governance_latency_ms,
+    provider_latency_ms: current.provider_latency_ms, dashboard: after.dashboard, status: current.status,
   };
   fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
-})().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+})().catch((error) => { console.error(error); process.exit(1); });
