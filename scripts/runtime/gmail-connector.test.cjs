@@ -380,6 +380,30 @@ function seal(value) {
     assert.match(String(result.error), /not configured to list/);
   });
 
+  await test("Gmail is offered by the Integration Gateway admin UI", () => {
+    // The connector-type dropdown is driven by CONNECTOR_DEFINITIONS, so Gmail
+    // must be registered there or the option silently disappears.
+    const definitions = gateway.CONNECTOR_DEFINITIONS.map((d) => d.id);
+    assert.ok(definitions.includes("gmail"), "gmail must be a registered connector type");
+    const root = path.join(__dirname, "../..");
+    const panel = fs.readFileSync(path.join(root, "components/admin/IntegrationGatewayPanel.tsx"), "utf8");
+    for (const field of ["Sender mailbox", "Allowed recipient domains", "OAuth client ID", "OAuth client secret", "Refresh token", "Capabilities"]) {
+      assert.ok(panel.includes(field), `the Gmail form must expose ${field}`);
+    }
+    for (const operation of ["gmail.credentials.check", "gmail.credentials.rotate", "gmail.credentials.revoke", "connector.status"]) {
+      assert.ok(panel.includes(operation), `the Gmail panel must expose ${operation}`);
+    }
+    // The generic HTTPS endpoint field must NOT render for Gmail.
+    assert.ok(/type !== "aws-bedrock" && type !== "gmail"\)\) && <label>HTTPS endpoint/.test(panel),
+      "the generic HTTPS endpoint field must be suppressed for Gmail");
+    // Credentials must be cleared from client state after submit.
+    assert.ok(panel.includes("clearGmailSecrets"), "Gmail credentials must be cleared from component state on submit");
+    // Exactly one Gmail administration path: the route is a thin wrapper.
+    const route = fs.readFileSync(path.join(root, "app/runtime/admin/integration-gateway/page.tsx"), "utf8");
+    assert.ok(route.includes("RuntimeAdminClient"), "the route must reuse the shared console, not duplicate it");
+    assert.ok(!/client_secret|refresh_token/.test(route), "the route must not implement its own credential form");
+  });
+
   await test("provisioning refuses an incomplete OAuth credential", async () => {
     const connectors = require("../../lib/runtime/connectors/gmail");
     assert.throws(() => connectors.validateConfiguration({ mailbox: MAILBOX }, { client_id: "a", client_secret: "b" }), /refresh_token is required/);

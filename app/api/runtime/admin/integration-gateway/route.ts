@@ -12,7 +12,18 @@ function operator(req: NextRequest) {
   });
 }
 function governance(proposal: any) {
-  return { proposal_id: proposal?.id, evidence_id: proposal?.evidence_id, status: proposal?.status };
+  return {
+    proposal_id: proposal?.id,
+    evidence_id: proposal?.evidence_id,
+    status: proposal?.status,
+    // Surfaced so an operator can see WHY a governed administrative operation
+    // was blocked or escalated, rather than only that it did not complete.
+    verdict: proposal?.decision?.verdict ?? null,
+    policy: proposal?.decision?.policy ?? null,
+    rule: proposal?.decision?.rule ?? null,
+    reason: proposal?.decision?.reason ?? null,
+    safe_failure_reason: proposal?.execution?.executed === false ? (proposal?.execution?.error ?? null) : null,
+  };
 }
 
 export async function GET(req: NextRequest) {
