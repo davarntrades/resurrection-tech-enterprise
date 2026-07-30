@@ -128,9 +128,22 @@ export async function POST(req: NextRequest) {
       const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
       if (!row || row.org_id !== org_id || row.type !== "gmail")
         return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      const requestId = req.headers.get("x-vercel-id") || null;
+      console.log(JSON.stringify({
+        level: "info", event: "gmail_connector_validation_started",
+        route: "/api/runtime/admin/integration-gateway", request_id: requestId,
+        org_id, environment_id: row.environment_id, connector_id: row.id,
+      }));
       const result = await (rt.integrationGateway as any).checkCommunicationHealthRaw({
         org_id, environment_id: row.environment_id, connector_id: row.id, connector_type: "gmail",
       });
+      console.log(JSON.stringify({
+        level: result.ok ? "info" : "error", event: "gmail_connector_validation_completed",
+        route: "/api/runtime/admin/integration-gateway", request_id: requestId,
+        org_id, environment_id: row.environment_id, connector_id: row.id,
+        ok: !!result.ok, code: result.code || null, error: result.error || null,
+        latency_ms: result.latency_ms ?? null,
+      }));
       return NextResponse.json({ ok: !!result.ok, result });
     }
     if (body.operation === "bedrock.credentials.rotate") {
