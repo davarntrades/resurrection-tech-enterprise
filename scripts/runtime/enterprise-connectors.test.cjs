@@ -242,6 +242,18 @@ function seal(value) {
     assert.deepEqual(offenders, []);
   });
 
+  await test("the operator preview exposes the existing governed action lifecycle without embedding provider logic", () => {
+    const ui = fs.readFileSync(path.join(__dirname, "../../components/admin/IntegrationGatewayPanel.tsx"), "utf8");
+    const route = fs.readFileSync(path.join(__dirname, "../../app/api/runtime/admin/integration-gateway/route.ts"), "utf8");
+    assert.match(ui, /api\/runtime\/admin\/enterprise-actions/);
+    assert.match(ui, /Run governed read/);
+    assert.match(ui, /Start approval-gated mutation/);
+    assert.match(ui, /Resume after approval/);
+    assert.match(ui, /provider_invocation_count/);
+    assert.match(route, /enterprise_actions:.*listActions/);
+    assert.doesNotMatch(ui, /connectors\/salesforce|connectors\/servicenow|enterpriseExecute/);
+  });
+
   engine.close();
   console.log(`\n${passed} governed enterprise connector tests passed.`);
 })().catch((error) => {

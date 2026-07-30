@@ -13,6 +13,18 @@ async function gateway(path = "", opts: RequestInit = {}) {
   return data;
 }
 
+async function enterpriseAction(path = "", opts: RequestInit = {}) {
+  const res = await fetch(`/api/runtime/admin/enterprise-actions${path}`, {
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    cache: "no-store",
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.code || `HTTP ${res.status}`);
+  return data;
+}
+
 const ago = (iso?: string | null) => {
   if (!iso) return "—";
   const n = Date.now() - Date.parse(iso);
@@ -143,7 +155,16 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
-      {orgId && <EnterpriseConnectorPanel connectors={(data.connectors || []).filter((c: any) => ["salesforce", "servicenow"].includes(c.type))} executions={data.enterprise_executions || []} dashboard={data.enterprise_dashboard || {}} busy={busy} mutate={mutate} />}
+      {orgId && <EnterpriseConnectorPanel
+        orgId={orgId}
+        connectors={(data.connectors || []).filter((c: any) => ["salesforce", "servicenow"].includes(c.type))}
+        actions={data.enterprise_actions || []}
+        executions={data.enterprise_executions || []}
+        dashboard={data.enterprise_dashboard || {}}
+        busy={busy}
+        mutate={mutate}
+        refresh={() => load(orgId)}
+      />}
 
       {orgId && (
         <section className="radmin-card">
@@ -414,11 +435,77 @@ function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boo
   );
 }
 
-function EnterpriseConnectorPanel({ connectors, executions, dashboard, busy, mutate }: { connectors: any[]; executions: any[]; dashboard: any; busy: boolean; mutate: (body: any) => Promise<void> }) {
+function exampleEnterpriseInput(actionId: string) {
+  const examples: Record<string, any> = {
+    "salesforce.get_record": { object: "Lead", record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID" },
+    "salesforce.search_records": { object: "Lead", term: "GuardianOS Test", limit: 5 },
+    "salesforce.create_lead": { fields: { LastName: "GuardianOS Test", Company: "Resurrection Tech Test", Status: "Open - Not Contacted" } },
+    "salesforce.update_lead": { record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID", fields: { Company: "Resurrection Tech Governed Test" } },
+    "salesforce.create_case": { fields: { Subject: "GuardianOS governed test", Status: "New" } },
+    "salesforce.update_case": { record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID", fields: { Subject: "GuardianOS governed test update" } },
+    "salesforce.add_case_comment": { fields: { ParentId: "REPLACE_WITH_DEDICATED_TEST_CASE_ID", CommentBody: "GuardianOS governed test", IsPublished: false } },
+    "salesforce.create_task": { fields: { Subject: "GuardianOS governed test", Status: "Not Started", Priority: "Normal" } },
+    "servicenow.get_record": { table: "incident", record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID" },
+    "servicenow.list_incidents": { limit: 5 },
+    "servicenow.list_change_requests": { limit: 5 },
+    "servicenow.create_incident": { fields: { short_description: "GuardianOS governed test", description: "Dedicated non-production test record" } },
+    "servicenow.update_incident": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", fields: { short_description: "GuardianOS governed test update" } },
+    "servicenow.add_work_note": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", work_note: "GuardianOS governed test note" },
+    "servicenow.assign_incident": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", assigned_to: "REPLACE_WITH_TEST_USER_SYS_ID" },
+    "servicenow.create_change_request": { fields: { short_description: "GuardianOS governed test change", description: "Dedicated non-production test record" } },
+    "servicenow.update_change_request": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", fields: { short_description: "GuardianOS governed test change update" } },
+  };
+  return JSON.stringify(examples[actionId] || {}, null, 2);
+}
+
+function EnterpriseConnectorPanel({
+  orgId, connectors, actions, executions, dashboard, busy, mutate, refresh,
+}: {
+  orgId: string; connectors: any[]; actions: any[]; executions: any[]; dashboard: any;
+  busy: boolean; mutate: (body: any) => Promise<void>; refresh: () => Promise<void>;
+}) {
   const [rotating, setRotating] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
+  const eligible = useMemo(
+    () => connectors.filter((c: any) => c.status !== "disabled" && c.health === "healthy"),
+    [connectors],
+  );
+  const [connectorId, setConnectorId] = useState("");
+  const connector = useMemo(
+    () => eligible.find((c: any) => c.id === connectorId) || eligible[0] || null,
+    [connectorId, eligible],
+  );
+  const availableActions = useMemo(
+    () => actions.filter((a: any) => a.connector_type === connector?.type
+      && (!connector?.config?.capabilities?.length || connector.config.capabilities.includes(a.operation))),
+    [actions, connector],
+  );
+  const [actionId, setActionId] = useState("");
+  const action = availableActions.find((a: any) => a.action_id === actionId) || availableActions[0] || null;
+  const [inputJson, setInputJson] = useState("{}");
+  const [confirmedTestMutation, setConfirmedTestMutation] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [currentRun, setCurrentRun] = useState<any>(null);
+
+  useEffect(() => {
+    if (!connectorId && eligible[0]) setConnectorId(eligible[0].id);
+    if (connectorId && !eligible.some((c: any) => c.id === connectorId)) setConnectorId(eligible[0]?.id || "");
+  }, [connectorId, eligible]);
+  useEffect(() => {
+    const next = availableActions.find((a: any) => a.action_id === actionId) || availableActions.find((a: any) => a.reads) || availableActions[0];
+    if (next && next.action_id !== actionId) setActionId(next.action_id);
+    if (!next && actionId) setActionId("");
+  }, [actionId, availableActions]);
+  useEffect(() => {
+    setInputJson(exampleEnterpriseInput(actionId));
+    setConfirmedTestMutation(false);
+    setCurrentRun(null);
+    setActionError("");
+  }, [actionId, connectorId]);
+
   const clear = () => { setRotating(""); setClientId(""); setClientSecret(""); setRefreshToken(""); };
   const rotate = async (connector: any) => {
     try {
@@ -427,6 +514,50 @@ function EnterpriseConnectorPanel({ connectors, executions, dashboard, busy, mut
         credentials: { client_id: clientId.trim(), client_secret: clientSecret.trim(), refresh_token: refreshToken.trim() },
       });
     } finally { clear(); }
+  };
+  const advance = async (run: any) => {
+    const query = new URLSearchParams({
+      org_id: orgId,
+      environment_id: run.environment_id,
+      enterprise_action_run_id: run.id,
+    });
+    const state = await enterpriseAction(`?${query.toString()}`);
+    const next = state.current || run;
+    setCurrentRun(next);
+    await refresh();
+    return next;
+  };
+  const startAction = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!connector || !action) return;
+    setActionBusy(true); setActionError(""); setCurrentRun(null);
+    try {
+      let input: any;
+      try { input = JSON.parse(inputJson); }
+      catch { throw new Error("Action input must be valid JSON"); }
+      if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Action input must be a JSON object");
+      if (action.mutates && !confirmedTestMutation) throw new Error("Confirm that this mutation targets only a dedicated test record");
+      const created = await enterpriseAction("", {
+        method: "POST",
+        body: JSON.stringify({
+          org_id: orgId,
+          environment_id: connector.environment_id,
+          connector_id: connector.id,
+          action_id: action.action_id,
+          source_type: "operator_preview_validation",
+          input,
+        }),
+      });
+      await advance(created);
+    } catch (e: any) { setActionError(e.message || "Enterprise action failed closed"); }
+    finally { setActionBusy(false); }
+  };
+  const resumeAfterApproval = async () => {
+    if (!currentRun) return;
+    setActionBusy(true); setActionError("");
+    try { await advance(currentRun); }
+    catch (e: any) { setActionError(e.message || "Approval resume failed closed"); }
+    finally { setActionBusy(false); }
   };
   return (
     <section className="radmin-card">
@@ -466,6 +597,50 @@ function EnterpriseConnectorPanel({ connectors, executions, dashboard, busy, mut
           </tr>)}</tbody>
         </table></div>
       )}
+      <h3 style={{ marginTop: 20 }}>Governed test action</h3>
+      <p className="radmin-muted">Run a read first. Mutations stop after the initial Runtime Governance evaluation and cannot reach the provider until a separate operator approval is recorded and you explicitly resume the run.</p>
+      {!eligible.length ? <p className="radmin-muted">Create and validate a dedicated test connector before running an action. Only enabled, healthy connectors are eligible.</p> : (
+        <form className="radmin-form" onSubmit={startAction}>
+          <div className="radmin-row">
+            <label>Healthy connector<select className="radmin-select" value={connector?.id || ""} onChange={(e) => setConnectorId(e.target.value)}>
+              {eligible.map((c: any) => <option key={c.id} value={c.id}>{c.name} · {c.type} · {c.environment_id}</option>)}
+            </select></label>
+            <label>Canonical action<select className="radmin-select" value={action?.action_id || ""} onChange={(e) => setActionId(e.target.value)}>
+              {availableActions.map((a: any) => <option key={a.action_id} value={a.action_id}>{a.action_id} · {a.reads ? "read" : "approval-gated mutation"}</option>)}
+            </select></label>
+          </div>
+          <label>Test input JSON<textarea rows={8} value={inputJson} onChange={(e) => setInputJson(e.target.value)} spellCheck={false} /></label>
+          {action?.mutates && <label className="radmin-check">
+            <input type="checkbox" checked={confirmedTestMutation} onChange={(e) => setConfirmedTestMutation(e.target.checked)} />
+            <span>I confirm this targets only a dedicated, disposable provider test record. Initial execution must stop for approval with zero provider calls.</span>
+          </label>}
+          {actionError && <div className="radmin-err">{actionError}</div>}
+          <button className="radmin-btn primary" disabled={busy || actionBusy || !connector || !action || (action.mutates && !confirmedTestMutation)}>
+            {actionBusy ? "Governing…" : action?.mutates ? "Start approval-gated mutation" : "Run governed read"}
+          </button>
+        </form>
+      )}
+      {currentRun && <div className="radmin-keyreveal" style={{ overflowWrap: "anywhere", marginTop: 12 }}>
+        <strong>{currentRun.action_id} · {currentRun.status}</strong>
+        <div className="radmin-muted" style={{ marginTop: 6 }}>
+          Run: {currentRun.id}
+          {" · "}Proposal: {currentRun.proposal_id || "—"}
+          {" · "}Governance: {currentRun.governance_verdict || currentRun.governance_decision || "—"}
+          {" · "}Approval: {currentRun.approval_status || "—"}
+          {" · "}Provider calls: {currentRun.provider_invocation_count || 0}
+          {" · "}Record ID: {currentRun.external_record_id || "—"}
+          {" · "}Evidence: {currentRun.evidence_id || "—"}
+          {" · "}Governance latency: {currentRun.governance_latency_ms ?? "—"}ms
+          {" · "}Provider latency: {currentRun.provider_latency_ms ?? "—"}ms
+          {" · "}Total latency: {currentRun.total_latency_ms ?? "—"}ms
+        </div>
+        {currentRun.safe_failure_reason && <div className="radmin-muted" style={{ marginTop: 6 }}>Safe failure: {currentRun.safe_failure_reason}</div>}
+        {currentRun.status === "awaiting_approval" && <div className="radmin-row" style={{ marginTop: 10 }}>
+          <a className="radmin-btn sm" href="/admin/operations" target="_blank" rel="noreferrer">Open operator approvals</a>
+          <button className="radmin-btn primary sm" type="button" disabled={actionBusy} onClick={resumeAfterApproval}>Resume after approval</button>
+          <span className="radmin-muted">Approve the exact proposal first. Resuming without approval remains non-executable.</span>
+        </div>}
+      </div>}
       {!!executions.length && <>
         <h3 style={{ marginTop: 20 }}>Recent governed record actions</h3>
         <div className="radmin-table-wrap"><table className="radmin-table">

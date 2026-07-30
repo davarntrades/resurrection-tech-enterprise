@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     summary, organisations, connectors, webhooks, deliveries, deployments, credentials, bedrock,
     enterprise_executions: enterpriseExecutions, enterprise_dashboard: enterpriseDashboard,
+    enterprise_actions: (rt.enterpriseActionAdapters as any).listActions(),
     connector_definitions: (rt.integrationGateway as any).CONNECTOR_DEFINITIONS,
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
     bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
