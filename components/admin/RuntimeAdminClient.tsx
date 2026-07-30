@@ -30,9 +30,9 @@ async function api(path: string, opts: RequestInit = {}) {
 
 type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "alerts" | "audit";
 
-export default function RuntimeAdminClient() {
+export default function RuntimeAdminClient({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   const check = useCallback(async () => {
     try { await api("orgs"); setAuthed(true); }

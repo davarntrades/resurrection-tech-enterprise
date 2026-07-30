@@ -1,8 +1,8 @@
 name: E2E — Control Room Preview (production)
 
 # Automatic gate: reproduces Customers → Dry Run Customer → Audit pack → Preview
-# on the LIVE site (WebKit / Safari engine). If Preview does not open the PDF,
-# this job fails — and so does the build.
+# on the LIVE site (WebKit / Safari engine), then runs one governed Customer Support
+# production smoke and publishes a structured evidence report.
 on:
   push:
     branches: [main]
@@ -11,10 +11,19 @@ on:
   schedule:
     - cron: "0 */6 * * *" # every 6h, catch production drift
 
+permissions:
+  contents: read
+  deployments: read
+
 jobs:
   preview-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+      E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
+      E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,14 +33,177 @@ jobs:
       - run: npm ci
       - name: Install WebKit (Safari engine)
         run: npx playwright install --with-deps webkit
+      - name: Resolve production Preview E2E base URL
+        id: resolve_preview_url
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFIGURED_E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          candidate="$CONFIGURED_E2E_BASE_URL"
+
+          if [[ -z "$candidate" ]]; then
+            for attempt in {1..30}; do
+              candidate="$({
+                gh api --paginate \
+                  -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" \
+                | jq -r '.[].id'
+              } | while read -r deployment_id; do
+                [[ -n "$deployment_id" ]] || continue
+                gh api \
+                  -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
+                  | jq -r '.[] | select(.state == "success") | .environment_url // empty' \
+                  | head -n 1
+              done | head -n 1)"
+              [[ -n "$candidate" ]] && break
+              sleep 10
+            done
+          fi
+
+          if [[ -z "$candidate" ]]; then
+            echo "No successful deployment URL was found for the PR head SHA, and E2E_BASE_URL is not configured." >&2
+            exit 1
+          fi
+
+          safe_url="$(node -e '
+            const raw = process.argv[1];
+            const url = new URL(raw);
+            if (url.protocol !== "https:") throw new Error("resolved deployment URL must use HTTPS");
+            url.search = "";
+            url.hash = "";
+            process.stdout.write(url.toString().replace(/\/$/, ""));
+          ' "$candidate")"
+
+          echo "::add-mask::$safe_url"
+          echo "E2E_BASE_URL=$safe_url" >> "$GITHUB_ENV"
+          echo "configured=yes" >> "$GITHUB_OUTPUT"
+      - name: Safe production configuration preflight
+        id: production_preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in E2E_BASE_URL RUNTIME_ADMIN_KEY E2E_ORG_ID E2E_ENVIRONMENT_ID; do
+            if [[ -n "${!name:-}" ]]; then
+              echo "$name configured: yes"
+            else
+              echo "$name configured: no"
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Run production Preview E2E
+        id: preview_ui_e2e
         run: npm run test:e2e
         env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
+      - name: Run governed Customer Support production smoke
+        id: customer_support_smoke
+        if: ${{ always() && steps.production_preflight.outcome == 'success' }}
+        run: node scripts/runtime/customer-support-production-smoke.cjs
+      - name: Publish production smoke Job Summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/customer-support-production-smoke.md ]]; then
+            cat artifacts/customer-support-production-smoke.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Customer Support production smoke"
+              echo
+              echo "Status: failed before a structured report was generated."
+              echo
+              echo "Preview UI outcome: ${{ steps.preview_ui_e2e.outcome }}"
+              echo
+              echo "Smoke step outcome: ${{ steps.customer_support_smoke.outcome }}"
+              echo
+              echo "Inspect the URL resolution, safe preflight and smoke-step logs for the exact non-secret failure."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload production smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-support-production-smoke
+          path: artifacts/customer-support-production-smoke.json
+          if-no-files-found: warn
+          retention-days: 30
+      # ── Governed Gmail delivery ────────────────────────────────────────────
+      # Deliberately NOT a skip-when-unset step: a governed-delivery gate that
+      # silently passes when unconfigured is worse than no gate. The preflight
+      # FAILS the job when GMAIL_SMOKE_ENABLED is on and anything required is
+      # missing, and states plainly in the summary when it is off.
+      - name: Gmail governed smoke preflight
+        id: gmail_preflight
+        if: ${{ always() && steps.production_preflight.outcome == 'success' }}
+        shell: bash
+        env:
+          GMAIL_SMOKE_ENABLED: ${{ vars.GMAIL_SMOKE_ENABLED }}
+          GMAIL_SMOKE_RECIPIENT: ${{ secrets.GMAIL_SMOKE_RECIPIENT || vars.GMAIL_SMOKE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${GMAIL_SMOKE_ENABLED:-}" =~ ^(1|true|yes|on)$ ]]; then
+            echo "enabled=no" >> "$GITHUB_OUTPUT"
+            echo "GMAIL_SMOKE_ENABLED is not set — governed Gmail delivery will NOT be validated by this run."
+            exit 0
+          fi
+          missing=0
+          for name in E2E_BASE_URL RUNTIME_ADMIN_KEY E2E_ORG_ID E2E_ENVIRONMENT_ID GMAIL_SMOKE_RECIPIENT; do
+            if [[ -n "${!name:-}" ]]; then echo "$name configured: yes"; else echo "$name configured: no"; missing=1; fi
+          done
+          if [[ "$missing" != "0" ]]; then
+            echo "::error::GMAIL_SMOKE_ENABLED is on but required configuration is missing; the governed Gmail smoke cannot run." >&2
+            exit 1
+          fi
+          echo "enabled=yes" >> "$GITHUB_OUTPUT"
+      - name: Run governed Gmail production smoke
+        id: gmail_smoke
+        if: ${{ always() && steps.gmail_preflight.outputs.enabled == 'yes' }}
+        env:
+          GMAIL_SMOKE_RECIPIENT: ${{ secrets.GMAIL_SMOKE_RECIPIENT || vars.GMAIL_SMOKE_RECIPIENT }}
+          GMAIL_SMOKE_ACTION: ${{ vars.GMAIL_SMOKE_ACTION || 'gmail.send_email' }}
+        run: node scripts/runtime/gmail-production-smoke.cjs
+      - name: Publish governed Gmail Job Summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/gmail-production-smoke.md ]]; then
+            cat artifacts/gmail-production-smoke.md >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "${{ steps.gmail_preflight.outputs.enabled }}" == "yes" ]]; then
+            {
+              echo "## Gmail governed production smoke"
+              echo
+              echo "Status: failed before a structured report was generated."
+              echo
+              echo "Smoke step outcome: ${{ steps.gmail_smoke.outcome }}"
+              echo
+              echo "Inspect the smoke-step logs for the exact non-secret failure."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Gmail governed production smoke"
+              echo
+              echo "**NOT VALIDATED** — \`GMAIL_SMOKE_ENABLED\` is not set for this repository."
+              echo
+              echo "Governed Gmail delivery has not been proven by this run. Provision the Gmail"
+              echo "connector, set the required configuration, then set the repository variable"
+              echo "\`GMAIL_SMOKE_ENABLED=true\` to make this gate enforcing."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload governed Gmail smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmail-production-smoke
+          path: artifacts/gmail-production-smoke.json
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Upload trace on failure
         if: failure()
         uses: actions/upload-artifact@v4

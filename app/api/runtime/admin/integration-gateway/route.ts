@@ -12,7 +12,18 @@ function operator(req: NextRequest) {
   });
 }
 function governance(proposal: any) {
-  return { proposal_id: proposal?.id, evidence_id: proposal?.evidence_id, status: proposal?.status };
+  return {
+    proposal_id: proposal?.id,
+    evidence_id: proposal?.evidence_id,
+    status: proposal?.status,
+    // Surfaced so an operator can see WHY a governed administrative operation
+    // was blocked or escalated, rather than only that it did not complete.
+    verdict: proposal?.decision?.verdict ?? null,
+    policy: proposal?.decision?.policy ?? null,
+    rule: proposal?.decision?.rule ?? null,
+    reason: proposal?.decision?.reason ?? null,
+    safe_failure_reason: proposal?.execution?.executed === false ? (proposal?.execution?.error ?? null) : null,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -81,6 +92,59 @@ export async function POST(req: NextRequest) {
         org_id, environment_id: row.environment_id, actor: op.identity, params: { connector_id: row.id },
       });
       return NextResponse.json({ ok: (rt.integrationGateway as any).executed(proposal), governance: governance(proposal), result: proposal.execution?.result || null });
+    }
+    if (body.operation === "gmail.credentials.rotate") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      if (!body.credentials) return NextResponse.json({ error: "replacement Gmail OAuth credentials are required" }, { status: 400 });
+      // Plaintext is staged for minutes, sealed on consumption, and never
+      // reaches the proposal — the governed action receives only a reference.
+      const secret_ref = await (rt.integrationGateway as any).stageSecret(
+        org_id, body.credentials, "gmail-credential-rotation");
+      proposal = await (rt.integrationGateway as any).governed("rotate_gmail_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id, config: body.config || {}, secret_ref },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
+    }
+    if (body.operation === "gmail.credentials.revoke") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      proposal = await (rt.integrationGateway as any).governed("revoke_gmail_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
+    }
+    if (body.operation === "gmail.credentials.check") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      const requestId = req.headers.get("x-vercel-id") || null;
+      console.log(JSON.stringify({
+        level: "info", event: "gmail_connector_validation_started",
+        route: "/api/runtime/admin/integration-gateway", request_id: requestId,
+        org_id, environment_id: row.environment_id, connector_id: row.id,
+      }));
+      const result = await (rt.integrationGateway as any).checkCommunicationHealthRaw({
+        org_id, environment_id: row.environment_id, connector_id: row.id, connector_type: "gmail",
+      });
+      console.log(JSON.stringify({
+        level: result.ok ? "info" : "error", event: "gmail_connector_validation_completed",
+        route: "/api/runtime/admin/integration-gateway", request_id: requestId,
+        org_id, environment_id: row.environment_id, connector_id: row.id,
+        ok: !!result.ok, code: result.code || null, error: result.error || null,
+        latency_ms: result.latency_ms ?? null,
+      }));
+      return NextResponse.json({ ok: !!result.ok, result });
     }
     if (body.operation === "bedrock.credentials.rotate") {
       const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });

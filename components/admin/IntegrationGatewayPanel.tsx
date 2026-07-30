@@ -29,6 +29,7 @@ export default function IntegrationGatewayPanel() {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [governanceResult, setGovernanceResult] = useState<any>(null);
 
   const load = useCallback(async (selected = orgId) => {
     setError("");
@@ -41,9 +42,20 @@ export default function IntegrationGatewayPanel() {
 
   const chooseOrg = async (id: string) => { setOrgId(id); await load(id); };
   const mutate = async (body: any) => {
-    setBusy(true); setError(""); setNote("");
+    setBusy(true); setError(""); setNote(""); setGovernanceResult(null);
     try {
       const result = await gateway("", { method: "POST", body: JSON.stringify({ ...body, org_id: orgId }) });
+      if (result.governance) setGovernanceResult({ operation: body.operation, ok: !!result.ok, ...result.governance });
+      // Credential validation is a provider-health result, not a governance
+      // decision. Always refresh the row, then show Google's normalized reason
+      // verbatim when it failed instead of leaving an unhelpful "unknown".
+      if (body.operation === "gmail.credentials.check") {
+        await load(orgId);
+        const health = result.result || {};
+        if (result.ok) setNote(`Gmail validated · ${health.mailbox || "mailbox confirmed"} · ${health.latency_ms ?? "—"}ms`);
+        else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Gmail credential validation failed"}`);
+        return;
+      }
       if (result.key) setNote(`Credential (shown once): ${result.key}`);
       else if (result.signing_secret) setNote(`Webhook signing secret (shown once): ${result.signing_secret}`);
       else setNote(result.ok ? `Governed operation completed · evidence ${result.governance?.evidence_id || "recorded"}` : `Governance status: ${result.governance?.status}`);
@@ -81,6 +93,22 @@ export default function IntegrationGatewayPanel() {
         </div>
         {error && <div className="radmin-err">{error}</div>}
         {note && <div className="radmin-keyreveal" style={{ overflowWrap: "anywhere" }}>{note}</div>}
+        {governanceResult && (
+          <div className="radmin-keyreveal" style={{ overflowWrap: "anywhere" }}>
+            <strong>{governanceResult.operation} · {governanceResult.ok ? "permitted" : `not permitted (${governanceResult.status || "unknown"})`}</strong>
+            <div className="radmin-muted" style={{ marginTop: 6 }}>
+              Governance decision: {governanceResult.verdict || governanceResult.status || "—"}
+              {" · "}Proposal: {governanceResult.proposal_id || "—"}
+              {" · "}Evidence: {governanceResult.evidence_id || "—"}
+              {governanceResult.rule ? ` · Rule: ${governanceResult.rule}` : ""}
+            </div>
+            {(governanceResult.safe_failure_reason || (!governanceResult.ok && governanceResult.reason)) && (
+              <div className="radmin-muted" style={{ marginTop: 6 }}>
+                Safe failure reason: {governanceResult.safe_failure_reason || governanceResult.reason}
+              </div>
+            )}
+          </div>
+        )}
         <div className="radmin-kpis">
           {cards.map(([label, value, tone]) => <div key={label} className={`radmin-kpi${tone ? ` ${tone}` : ""}`}><div className="radmin-kpi-v">{value}</div><div className="radmin-kpi-l">{label}</div></div>)}
         </div>
@@ -105,6 +133,8 @@ export default function IntegrationGatewayPanel() {
       {orgId && <GatewayActions key={orgId} envs={envs} definitions={data.connector_definitions || []} busy={busy} mutate={mutate} />}
 
       {orgId && <BedrockPanel organisation={org} envs={envs} connectors={data.bedrock || []} busy={busy} mutate={mutate} />}
+
+      {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
       {orgId && (
         <section className="radmin-card">
@@ -154,9 +184,41 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
   const [agentIds, setAgentIds] = useState("");
   const [agentAliases, setAgentAliases] = useState("");
   const [actionGroups, setActionGroups] = useState("");
+  // Gmail connector fields. Credentials live in component state only until
+  // submit, then are cleared immediately — they are posted once, sealed
+  // server-side by the Integration Gateway secret model, and never read back.
+  const [mailbox, setMailbox] = useState("");
+  const [allowedDomains, setAllowedDomains] = useState("");
+  const [capabilities, setCapabilities] = useState<string[]>(["send", "reply", "draft", "list", "read"]);
+  const [gmailClientId, setGmailClientId] = useState("");
+  const [gmailClientSecret, setGmailClientSecret] = useState("");
+  const [gmailRefreshToken, setGmailRefreshToken] = useState("");
+  const clearGmailSecrets = () => { setGmailClientId(""); setGmailClientSecret(""); setGmailRefreshToken(""); };
   const split = (value: string) => value.split(",").map((x) => x.trim()).filter(Boolean);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (kind === "connector" && type === "gmail") {
+      try {
+        await mutate({
+          operation: "connector.create", environment_id: environmentId, type, name: name || "Gmail",
+          config: {
+            mailbox: mailbox.trim().toLowerCase(),
+            allowed_recipient_domains: split(allowedDomains).map((d) => d.toLowerCase()),
+            capabilities,
+          },
+          secret: {
+            client_id: gmailClientId.trim(),
+            client_secret: gmailClientSecret.trim(),
+            refresh_token: gmailRefreshToken.trim(),
+          },
+        });
+      } finally {
+        // Cleared on success AND failure: a rejected submission must not leave
+        // a refresh token sitting in the browser.
+        clearGmailSecrets();
+      }
+      return;
+    }
     if (kind === "connector" && type === "aws-bedrock") await mutate({
       operation: "connector.create", environment_id: environmentId, type, name: name || "Amazon Bedrock",
       config: {
@@ -170,7 +232,7 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
         session_token: sessionToken || undefined, external_id: externalId || undefined,
       },
     });
-    if (kind === "connector" && type !== "aws-bedrock") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
+    if (kind === "connector" && type !== "aws-bedrock" && type !== "gmail") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
     if (kind === "webhook") await mutate({ operation: "webhook.create", environment_id: environmentId, name, url: endpoint, events: ["decision.created"] });
     if (kind === "credential") await mutate({ operation: "credential.issue", environment_id: environmentId, label: name || "Integration credential", role: "admin", scopes: ["runtime:read", "runtime:write", "integrations:read", "integrations:manage", "webhooks:read", "webhooks:manage", "evidence:read", "evidence:write", "deployments:read", "deployments:manage"] });
     if (kind === "deployment") await mutate({ operation: "deployment.create", environment_id: environmentId, name: name || "GuardianOS deployment", target: envs.find((e) => e.id === environmentId)?.kind, model: "platform" });
@@ -186,7 +248,28 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
           {kind === "connector" && <label>Connector type<select className="radmin-select" value={type} onChange={(e) => setType(e.target.value)}>{definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
         </div>
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "credential" ? "Production automation" : "Customer system"} /></label>
-        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock")) && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock" && type !== "gmail")) && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {kind === "connector" && type === "gmail" && <>
+          <div className="radmin-row">
+            <label>Sender mailbox<input type="email" value={mailbox} onChange={(e) => setMailbox(e.target.value)} placeholder="governed@yourdomain.com" required /></label>
+            <label>Allowed recipient domains<input value={allowedDomains} onChange={(e) => setAllowedDomains(e.target.value)} placeholder="Comma-separated · empty means no connector-level restriction" /></label>
+          </div>
+          <fieldset className="radmin-fieldset">
+            <legend>Capabilities</legend>
+            {[["send", "Send"], ["reply", "Reply"], ["draft", "Draft"], ["list", "List messages"], ["read", "Read message"]].map(([id, label]) => (
+              <label key={id} className="radmin-check">
+                <input type="checkbox" checked={capabilities.includes(id)} onChange={(ev) => setCapabilities((prev) => ev.target.checked ? [...prev, id] : prev.filter((c) => c !== id))} />
+                <span>{label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="radmin-row">
+            <label>OAuth client ID<input autoComplete="off" value={gmailClientId} onChange={(e) => setGmailClientId(e.target.value)} required /></label>
+            <label>OAuth client secret<input type="password" autoComplete="new-password" value={gmailClientSecret} onChange={(e) => setGmailClientSecret(e.target.value)} required /></label>
+            <label>Refresh token<input type="password" autoComplete="new-password" value={gmailRefreshToken} onChange={(e) => setGmailRefreshToken(e.target.value)} required /></label>
+          </div>
+          <p className="radmin-muted">Narrowing capabilities narrows the OAuth scopes this connector needs and what it can ever do — a staging connector can be draft-only and unable to deliver. Credentials are encrypted before storage, cleared from this form on submit, and never appear in proposal records, logs, evidence or this dashboard. A new connector starts <strong>unknown</strong> and cannot send until credential validation succeeds.</p>
+        </>}
         {kind === "connector" && type === "aws-bedrock" && <>
           <div className="radmin-row">
             <label>AWS region<input value={awsRegion} onChange={(e) => setAwsRegion(e.target.value)} placeholder="eu-west-2" required /></label>
@@ -208,8 +291,69 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
           </div>
           <p className="radmin-muted">AWS secrets are encrypted before storage and never appear in proposal records, logs, evidence or this dashboard.</p>
         </>}
-        <button className="radmin-btn primary" disabled={busy || !environmentId}>{busy ? "Governing…" : `Create ${kind}`}</button>
+        <button className="radmin-btn primary" disabled={busy || !environmentId || (kind === "connector" && type === "gmail" && !(mailbox.trim() && gmailClientId.trim() && gmailClientSecret.trim() && gmailRefreshToken.trim() && capabilities.length))}>{busy ? "Governing…" : `Create ${kind}`}</button>
       </form>
+    </section>
+  );
+}
+
+/* Post-creation Gmail administration. Every button is a governed operation
+ * against the SAME communication connector framework the runtime uses — this
+ * panel adds no second Gmail path, it only drives the existing one. */
+function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boolean; mutate: (body: any) => Promise<void> }) {
+  const [rotating, setRotating] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const clear = () => { setClientId(""); setClientSecret(""); setRefreshToken(""); setRotating(""); };
+  const rotate = async (connector_id: string) => {
+    try {
+      await mutate({
+        operation: "gmail.credentials.rotate", connector_id,
+        credentials: { client_id: clientId.trim(), client_secret: clientSecret.trim(), refresh_token: refreshToken.trim() },
+      });
+    } finally { clear(); }
+  };
+  return (
+    <section className="radmin-card">
+      <h2>Gmail connectors</h2>
+      <p className="radmin-muted">A new Gmail connector starts <strong>unknown</strong> and cannot send, reply, draft, list or read until credential validation succeeds and health becomes healthy.</p>
+      {!connectors.length ? <p className="radmin-muted">No Gmail connector configured for this organisation.</p> : (
+        <div className="radmin-table-wrap"><table className="radmin-table">
+          <thead><tr><th>Name</th><th>Mailbox</th><th>Environment</th><th>Health</th><th>Status</th><th>Capabilities</th><th>Actions</th></tr></thead>
+          <tbody>
+            {connectors.map((c: any) => (
+              <tr key={c.id}>
+                <td>{c.name}<div className="radmin-muted" style={{ fontSize: 11 }}>{c.id}</div></td>
+                <td>{c.config?.mailbox || "—"}</td>
+                <td>{c.environment_id}</td>
+                <td>{c.health}{c.health !== "healthy" && <div className="radmin-muted" style={{ fontSize: 11 }}>not usable</div>}</td>
+                <td>{c.status}</td>
+                <td>{(c.config?.capabilities || []).join(", ") || "—"}</td>
+                <td><div className="radmin-row" style={{ flexWrap: "wrap", gap: 6 }}>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: "gmail.credentials.check", connector_id: c.id })}>Validate</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: "connector.status", connector_id: c.id, status: c.status === "disabled" ? "active" : "disabled" })}>{c.status === "disabled" ? "Enable" : "Disable"}</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => setRotating(rotating === c.id ? "" : c.id)}>Rotate</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={() => { if (confirm(`Revoke credentials for ${c.id}? This disables the connector and cannot be undone.`)) mutate({ operation: "gmail.credentials.revoke", connector_id: c.id }); }}>Revoke</button>
+                </div>
+                {rotating === c.id && (
+                  <div className="radmin-form" style={{ marginTop: 10 }}>
+                    <label>New OAuth client ID<input autoComplete="off" value={clientId} onChange={(e) => setClientId(e.target.value)} /></label>
+                    <label>New client secret<input type="password" autoComplete="new-password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} /></label>
+                    <label>New refresh token<input type="password" autoComplete="new-password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} /></label>
+                    <div className="radmin-row">
+                      <button className="radmin-btn primary sm" disabled={busy || !clientId.trim() || !clientSecret.trim() || !refreshToken.trim()} onClick={() => rotate(c.id)}>Rotate credentials</button>
+                      <button className="radmin-btn sm" disabled={busy} onClick={clear}>Cancel</button>
+                    </div>
+                    <p className="radmin-muted">The replacement is validated against Gmail before it is stored, and the superseded token is revoked at Google.</p>
+                  </div>
+                )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      )}
     </section>
   );
 }

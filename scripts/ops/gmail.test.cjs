@@ -100,9 +100,28 @@ async function main() {
 
   // ── 5. Read-only by construction ──────────────────────────────────────────
   ok(typeof gmail.send === "undefined" && typeof gmail.reply === "undefined" && typeof gmail.deleteMessage === "undefined" && typeof gmail.modify === "undefined", "the module exposes no send/reply/delete/modify function");
+  // The Operations Agent's own mailbox access stays read-only forever: this
+  // module holds a gmail.readonly token and has no mutating function. Email
+  // mutation exists ONLY as a governed Integration Gateway communication action
+  // executed with a separate, enterprise-scoped credential — never from here.
+  //
+  // The invariant is therefore "no UNGOVERNED email mutation", not "no email
+  // mutation": every mutating action must be a registered communication action
+  // with an executor, and any action that actually DELIVERS must be incapable of
+  // auto-executing, so a message can never leave without an operator on record.
   const EMAIL_MUTATING = /send_email|send_mail|reply_email|reply_to|delete_email|archive_email|modify_email|label_email|gmail_send|gmail_modify/i;
   const mutating = ops.actions.list().filter((a) => EMAIL_MUTATING.test(a.id) || EMAIL_MUTATING.test(String(a.tool || "")));
-  ok(mutating.length === 0, "the action catalog contains no email-mutating action (deny-by-default)", mutating.map((a) => a.id));
+  const adapters = require("../../lib/runtime/communication-adapters");
+  const dispatchable = new Set(adapters.listActions().map((item) => item.action_id));
+  const ungoverned = mutating.filter((a) => !dispatchable.has(a.id) || a.refuse || typeof ops.actions.CATALOG[a.id].execute !== "function");
+  ok(ungoverned.length === 0, "every email-mutating action is a governed communication action (deny-by-default)", ungoverned.map((a) => a.id));
+  const autoDelivering = mutating.filter((a) => {
+    const spec = adapters.listActions().find((item) => item.action_id === a.id);
+    return spec && spec.delivers && a.auto_executable;
+  });
+  ok(autoDelivering.length === 0, "no email that actually DELIVERS can auto-execute without operator sign-off", autoDelivering.map((a) => a.id));
+  const gatewayOnly = mutating.every((a) => /^gmail\./.test(a.id));
+  ok(gatewayOnly, "email mutation exists only as Integration Gateway connector actions, never as ops-agent actions");
 
   // ── 6. Prompt-injection safety ────────────────────────────────────────────
   const props = await ops.proposals.list({ limit: 100 });

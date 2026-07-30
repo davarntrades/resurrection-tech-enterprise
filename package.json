@@ -51,6 +51,8 @@
     "runtime:bedrock-invocation-console": "node scripts/runtime/bedrock-invocation-console.test.cjs && node scripts/runtime/bedrock-approval-resume.test.cjs && node scripts/runtime/bedrock-migration-contract.test.cjs",
     "runtime:bedrock-approval-resume": "node scripts/runtime/bedrock-approval-resume.test.cjs",
     "runtime:bedrock-migration": "node scripts/runtime/bedrock-migration-contract.test.cjs",
+    "runtime:gmail-connector": "node scripts/runtime/gmail-connector.test.cjs && node scripts/runtime/communication-migration-contract.test.cjs",
+    "runtime:customer-support-workflow": "node scripts/runtime/gmail-connector.test.cjs && node scripts/runtime/communication-migration-contract.test.cjs && node scripts/runtime/customer-support-workflow.test.cjs && node scripts/runtime/customer-support-governance-registration.test.cjs && node scripts/runtime/customer-support-production-smoke.test.cjs && node scripts/runtime/customer-support-workflow-migration.test.cjs",
     "runtime:sovereign-readiness": "node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
@@ -69,7 +71,7 @@
     "sovereign:pdf": "node scripts/sovereign/pdf.test.cjs",
     "sovereign:acceptance": "node scripts/sovereign/acceptance.test.cjs",
     "runtime:startup": "node -e \"require('./lib/runtime/startup').print()\"",
-    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs && node scripts/runtime/aws-bedrock-connector.test.cjs && node scripts/runtime/bedrock-provider-errors.test.cjs && node scripts/runtime/bedrock-invocation-console.test.cjs && node scripts/runtime/bedrock-approval-resume.test.cjs && node scripts/runtime/bedrock-migration-contract.test.cjs && node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs"
+    "contracts": "node scripts/ops/contracts.test.cjs && node scripts/runtime/integration-gateway.test.cjs && node scripts/runtime/aws-bedrock-connector.test.cjs && node scripts/runtime/bedrock-provider-errors.test.cjs && node scripts/runtime/bedrock-invocation-console.test.cjs && node scripts/runtime/bedrock-approval-resume.test.cjs && node scripts/runtime/bedrock-migration-contract.test.cjs && node scripts/runtime/gmail-connector.test.cjs && node scripts/runtime/communication-migration-contract.test.cjs && node scripts/runtime/customer-support-workflow.test.cjs && node scripts/runtime/customer-support-governance-registration.test.cjs && node scripts/runtime/customer-support-production-smoke.test.cjs && node scripts/runtime/customer-support-workflow-migration.test.cjs && node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1095.0",

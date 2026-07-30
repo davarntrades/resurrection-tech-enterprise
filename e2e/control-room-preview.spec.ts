@@ -22,20 +22,23 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     // 1) Open the Control Room (HTTP Basic Auth comes from httpCredentials).
     await page.goto("/admin/runtime", { waitUntil: "domcontentloaded" });
 
-    // 2) Wait for the client to resolve the session (login form OR the tab nav),
-    //    then operator sign-in via the real login form if it's shown.
-    await page
-      .locator('input[placeholder="Operator password"], nav.radmin-tabs')
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
-    const pw = page.getByPlaceholder("Operator password");
-    if (await pw.isVisible().catch(() => false)) {
-      await pw.fill(OP_PASSWORD);
+    // 2) The deployment may already have an authenticated operator session. Wait for
+    //    either the real login field or the authenticated Control Room shell, and only
+    //    submit credentials when the login field is actually present.
+    const password = page.getByPlaceholder("Operator password");
+    const controlRoom = page.getByRole("heading", { name: "Operator Control Room" });
+    await password.or(controlRoom).first().waitFor({ state: "visible", timeout: 20_000 });
+
+    if (await password.isVisible().catch(() => false)) {
+      await password.fill(OP_PASSWORD);
       await page.getByRole("button", { name: "Sign in" }).click();
+      await expect(controlRoom).toBeVisible({ timeout: 20_000 });
     }
 
     // 3) Customers tab (exact — avoids matching an overview "View customers →" button).
-    await page.getByRole("button", { name: "Customers", exact: true }).click();
+    const customersTab = page.getByRole("button", { name: "Customers", exact: true });
+    await expect(customersTab).toBeVisible({ timeout: 20_000 });
+    await customersTab.click();
 
     // 4) The Dry Run Customer card → ensure expanded → its PRODUCTION environment.
     const card = page.locator(".radmin-card", { hasText: CUSTOMER }).first();
@@ -68,5 +71,57 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     const res = await page.request.get(href!, { headers: { range: "bytes=0-1" } });
     expect([200, 206], `Preview HTTP ${res.status()}`).toContain(res.status());
     expect(res.headers()["content-type"] || "", "Preview did not return a PDF").toContain("application/pdf");
+  });
+
+  test("Gmail Validate reaches Google and persists a terminal health result", async ({ request }) => {
+    const orgId = process.env.E2E_ORG_ID || "";
+    test.skip(!orgId, "set E2E_ORG_ID to validate Gmail");
+    const headers = { "x-admin-key": OP_PASSWORD, "content-type": "application/json" };
+
+    const beforeResponse = await request.get(
+      `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
+      { headers },
+    );
+    expect(beforeResponse.status(), "Integration Gateway inventory request failed").toBe(200);
+    const before = await beforeResponse.json();
+    const connector = (before.connectors || []).find((item: any) => item.type === "gmail");
+    test.skip(!connector, "no Gmail connector exists for the configured organisation");
+
+    const validationResponse = await request.post("/api/runtime/admin/integration-gateway", {
+      headers,
+      data: { operation: "gmail.credentials.check", org_id: orgId, connector_id: connector.id },
+    });
+    const validation = await validationResponse.json();
+    expect(validationResponse.status(), JSON.stringify(validation)).toBe(200);
+    expect(typeof validation.ok).toBe("boolean");
+    expect(validation.result?.connector_id).toBe(connector.id);
+
+    const afterResponse = await request.get(
+      `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
+      { headers },
+    );
+    expect(afterResponse.status()).toBe(200);
+    const after = await afterResponse.json();
+    const persisted = (after.connectors || []).find((item: any) => item.id === connector.id);
+    expect(persisted, "validated Gmail connector disappeared from the organisation projection").toBeTruthy();
+    expect(persisted.health, "Validate must never leave connector health unknown").not.toBe("unknown");
+    if (validation.ok) expect(persisted.health).toBe("healthy");
+    else expect(["down", "degraded"]).toContain(persisted.health);
+
+    // Non-secret receipt for the workflow log. OAuth material is never returned
+    // by either endpoint and therefore cannot enter this output.
+    console.log(JSON.stringify({
+      event: "gmail_validation_acceptance",
+      http_status: validationResponse.status(),
+      connector_id: connector.id,
+      ok: validation.ok,
+      code: validation.result?.code || null,
+      google_api_response: validation.ok
+        ? { mailbox: validation.result?.mailbox || null, latency_ms: validation.result?.latency_ms ?? null }
+        : { error: validation.result?.error || null },
+      persisted_health: persisted.health,
+      persisted_last_error: persisted.last_error || null,
+      persisted_last_checked_at: persisted.last_checked_at || null,
+    }));
   });
 });
