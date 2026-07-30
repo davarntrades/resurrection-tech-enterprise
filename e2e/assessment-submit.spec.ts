@@ -14,18 +14,37 @@ import { test, expect, type Page } from "@playwright/test";
  *
  *   E2E_BASE_URL=http://127.0.0.1:3000 npx playwright test assessment-submit
  *
- * Most tests stub /api/assessment and are safe anywhere. The few that exercise
- * the real endpoint would create a genuine lead and send genuine emails, so
- * they only run against a local or preview target — never the live site unless
- * E2E_ALLOW_LIVE_SUBMIT=1 is set deliberately.
+ * ── Why this spec is target-scoped ─────────────────────────────────────────
+ * `npm run test:e2e` points every spec at E2E_BASE_URL, which in CI is the
+ * live site. These tests drive UI that only exists once this change ships —
+ * the `assessment-submit` test id, the `data-section` review cards, and the
+ * error summary — so against production `main` they fail by construction until
+ * the feature merges, which would leave the gate permanently red and hide real
+ * regressions. The spec therefore runs only where that UI is present: a local
+ * build, or a Vercel branch preview (their host carries `-git-`; production
+ * aliases do not). It is scoped by target, not disabled: once this is on
+ * production the marker below is the only thing to relax. No other spec is
+ * affected — control-room-preview still runs against production exactly as
+ * before, including its current failure.
+ *
+ * A stricter second gate covers the tests that hit the real endpoint: those
+ * create a genuine lead row and send genuine emails, so they never run
+ * unattended against a shared target — localhost only, or explicit opt-in.
  */
 
 const BASE = process.env.E2E_BASE_URL || "http://127.0.0.1:3000";
-const LIVE_SUBMIT_OK =
-  process.env.E2E_ALLOW_LIVE_SUBMIT === "1" ||
-  /^https?:\/\/(127\.0\.0\.1|localhost|[^/]*\.vercel\.app)([:/]|$)/.test(BASE);
+const IS_LOCAL = /^https?:\/\/(127\.0\.0\.1|localhost)([:/]|$)/.test(BASE);
+const IS_BRANCH_PREVIEW = /^https?:\/\/[^/]*-git-[^/]*\.vercel\.app([:/]|$)/.test(BASE);
+
+/** Does the target run a build containing this change's assessment UI? */
+const SPEC_TARGET_OK = IS_LOCAL || IS_BRANCH_PREVIEW || process.env.E2E_ALLOW_LIVE_SUBMIT === "1";
+const SPEC_TARGET_SKIP =
+  "assessment UI ships in this change — run against a local build or a Vercel branch preview";
+
+/** May we create a real assessment (Supabase row + emails) on this target? */
+const LIVE_SUBMIT_OK = IS_LOCAL || process.env.E2E_ALLOW_LIVE_SUBMIT === "1";
 const LIVE_SUBMIT_SKIP =
-  "sends a real assessment — set E2E_ALLOW_LIVE_SUBMIT=1 to run against this target";
+  "creates a real lead and sends real emails — set E2E_ALLOW_LIVE_SUBMIT=1 to run against this target";
 
 const VIEWPORTS = [
   { name: "desktop", width: 1280, height: 900 },
@@ -109,6 +128,7 @@ const summary = (page: Page) => page.getByTestId("assessment-error-summary");
 
 for (const viewport of VIEWPORTS) {
   test.describe(`Assessment submission — ${viewport.name}`, () => {
+    test.skip(!SPEC_TARGET_OK, SPEC_TARGET_SKIP);
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
     test("a fully completed assessment submits and shows the recommended pathway", async ({ page }) => {
