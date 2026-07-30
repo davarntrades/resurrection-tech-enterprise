@@ -72,4 +72,59 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     expect([200, 206], `Preview HTTP ${res.status()}`).toContain(res.status());
     expect(res.headers()["content-type"] || "", "Preview did not return a PDF").toContain("application/pdf");
   });
+
+  test("Gmail Validate reaches Google and persists a terminal health result", async ({ request }) => {
+    const orgId = process.env.E2E_ORG_ID || "";
+    const environmentId = process.env.E2E_ENVIRONMENT_ID || "";
+    test.skip(!orgId || !environmentId, "set E2E_ORG_ID and E2E_ENVIRONMENT_ID to validate Gmail");
+    const headers = { "x-admin-key": OP_PASSWORD, "content-type": "application/json" };
+
+    const beforeResponse = await request.get(
+      `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
+      { headers },
+    );
+    expect(beforeResponse.status(), "Integration Gateway inventory request failed").toBe(200);
+    const before = await beforeResponse.json();
+    const connector = (before.connectors || []).find(
+      (item: any) => item.type === "gmail" && item.environment_id === environmentId,
+    );
+    test.skip(!connector, "no Gmail connector exists for the configured organisation/environment");
+
+    const validationResponse = await request.post("/api/runtime/admin/integration-gateway", {
+      headers,
+      data: { operation: "gmail.credentials.check", org_id: orgId, connector_id: connector.id },
+    });
+    const validation = await validationResponse.json();
+    expect(validationResponse.status(), JSON.stringify(validation)).toBe(200);
+    expect(typeof validation.ok).toBe("boolean");
+    expect(validation.result?.connector_id).toBe(connector.id);
+
+    const afterResponse = await request.get(
+      `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
+      { headers },
+    );
+    expect(afterResponse.status()).toBe(200);
+    const after = await afterResponse.json();
+    const persisted = (after.connectors || []).find((item: any) => item.id === connector.id);
+    expect(persisted, "validated Gmail connector disappeared from the organisation projection").toBeTruthy();
+    expect(persisted.health, "Validate must never leave connector health unknown").not.toBe("unknown");
+    if (validation.ok) expect(persisted.health).toBe("healthy");
+    else expect(["down", "degraded"]).toContain(persisted.health);
+
+    // Non-secret receipt for the workflow log. OAuth material is never returned
+    // by either endpoint and therefore cannot enter this output.
+    console.log(JSON.stringify({
+      event: "gmail_validation_acceptance",
+      http_status: validationResponse.status(),
+      connector_id: connector.id,
+      ok: validation.ok,
+      code: validation.result?.code || null,
+      google_api_response: validation.ok
+        ? { mailbox: validation.result?.mailbox || null, latency_ms: validation.result?.latency_ms ?? null }
+        : { error: validation.result?.error || null },
+      persisted_health: persisted.health,
+      persisted_last_error: persisted.last_error || null,
+      persisted_last_checked_at: persisted.last_checked_at || null,
+    }));
+  });
 });
