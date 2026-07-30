@@ -46,6 +46,16 @@ export default function IntegrationGatewayPanel() {
     try {
       const result = await gateway("", { method: "POST", body: JSON.stringify({ ...body, org_id: orgId }) });
       if (result.governance) setGovernanceResult({ operation: body.operation, ok: !!result.ok, ...result.governance });
+      // Credential validation is a provider-health result, not a governance
+      // decision. Always refresh the row, then show Google's normalized reason
+      // verbatim when it failed instead of leaving an unhelpful "unknown".
+      if (body.operation === "gmail.credentials.check") {
+        await load(orgId);
+        const health = result.result || {};
+        if (result.ok) setNote(`Gmail validated · ${health.mailbox || "mailbox confirmed"} · ${health.latency_ms ?? "—"}ms`);
+        else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Gmail credential validation failed"}`);
+        return;
+      }
       if (result.key) setNote(`Credential (shown once): ${result.key}`);
       else if (result.signing_secret) setNote(`Webhook signing secret (shown once): ${result.signing_secret}`);
       else setNote(result.ok ? `Governed operation completed · evidence ${result.governance?.evidence_id || "recorded"}` : `Governance status: ${result.governance?.status}`);
