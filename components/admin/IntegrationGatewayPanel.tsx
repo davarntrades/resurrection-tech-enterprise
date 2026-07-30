@@ -56,6 +56,13 @@ export default function IntegrationGatewayPanel() {
         else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Gmail credential validation failed"}`);
         return;
       }
+      if (["salesforce.credentials.check", "servicenow.credentials.check"].includes(body.operation)) {
+        await load(orgId);
+        const health = result.result || {};
+        if (result.ok) setNote(`${health.provider} validated · ${health.identity || "identity confirmed"} · ${health.latency_ms ?? "—"}ms`);
+        else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Provider credential validation failed"}`);
+        return;
+      }
       if (result.key) setNote(`Credential (shown once): ${result.key}`);
       else if (result.signing_secret) setNote(`Webhook signing secret (shown once): ${result.signing_secret}`);
       else setNote(result.ok ? `Governed operation completed · evidence ${result.governance?.evidence_id || "recorded"}` : `Governance status: ${result.governance?.status}`);
@@ -136,6 +143,8 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
+      {orgId && <EnterpriseConnectorPanel connectors={(data.connectors || []).filter((c: any) => ["salesforce", "servicenow"].includes(c.type))} executions={data.enterprise_executions || []} dashboard={data.enterprise_dashboard || {}} busy={busy} mutate={mutate} />}
+
       {orgId && (
         <section className="radmin-card">
           <h2>Connected systems</h2>
@@ -193,6 +202,13 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
   const [gmailClientId, setGmailClientId] = useState("");
   const [gmailClientSecret, setGmailClientSecret] = useState("");
   const [gmailRefreshToken, setGmailRefreshToken] = useState("");
+  const [enterpriseInstanceUrl, setEnterpriseInstanceUrl] = useState("");
+  const [enterpriseLoginUrl, setEnterpriseLoginUrl] = useState("https://login.salesforce.com");
+  const [enterpriseClientId, setEnterpriseClientId] = useState("");
+  const [enterpriseClientSecret, setEnterpriseClientSecret] = useState("");
+  const [enterpriseRefreshToken, setEnterpriseRefreshToken] = useState("");
+  const [enterpriseCapabilities, setEnterpriseCapabilities] = useState("");
+  const [enterpriseTargets, setEnterpriseTargets] = useState("");
   const clearGmailSecrets = () => { setGmailClientId(""); setGmailClientSecret(""); setGmailRefreshToken(""); };
   const split = (value: string) => value.split(",").map((x) => x.trim()).filter(Boolean);
   const submit = async (e: FormEvent) => {
@@ -219,6 +235,32 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
       }
       return;
     }
+    if (kind === "connector" && ["salesforce", "servicenow"].includes(type)) {
+      try {
+        const targets = split(enterpriseTargets);
+        await mutate({
+          operation: "connector.create", environment_id: environmentId, type,
+          name: name || (type === "salesforce" ? "Salesforce" : "ServiceNow"),
+          config: {
+            instance_url: enterpriseInstanceUrl.trim(),
+            ...(type === "salesforce" ? {
+              login_url: enterpriseLoginUrl.trim(), api_version: "v61.0",
+              allowed_objects: targets.length ? targets : ["Account", "Contact", "Lead", "Case", "CaseComment", "Task"],
+            } : {
+              allowed_tables: targets.length ? targets : ["incident", "change_request"],
+            }),
+            capabilities: split(enterpriseCapabilities),
+          },
+          secret: {
+            client_id: enterpriseClientId.trim(), client_secret: enterpriseClientSecret.trim(),
+            refresh_token: enterpriseRefreshToken.trim(),
+          },
+        });
+      } finally {
+        setEnterpriseClientId(""); setEnterpriseClientSecret(""); setEnterpriseRefreshToken("");
+      }
+      return;
+    }
     if (kind === "connector" && type === "aws-bedrock") await mutate({
       operation: "connector.create", environment_id: environmentId, type, name: name || "Amazon Bedrock",
       config: {
@@ -232,7 +274,7 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
         session_token: sessionToken || undefined, external_id: externalId || undefined,
       },
     });
-    if (kind === "connector" && type !== "aws-bedrock" && type !== "gmail") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
+    if (kind === "connector" && !["aws-bedrock", "gmail", "salesforce", "servicenow"].includes(type)) await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
     if (kind === "webhook") await mutate({ operation: "webhook.create", environment_id: environmentId, name, url: endpoint, events: ["decision.created"] });
     if (kind === "credential") await mutate({ operation: "credential.issue", environment_id: environmentId, label: name || "Integration credential", role: "admin", scopes: ["runtime:read", "runtime:write", "integrations:read", "integrations:manage", "webhooks:read", "webhooks:manage", "evidence:read", "evidence:write", "deployments:read", "deployments:manage"] });
     if (kind === "deployment") await mutate({ operation: "deployment.create", environment_id: environmentId, name: name || "GuardianOS deployment", target: envs.find((e) => e.id === environmentId)?.kind, model: "platform" });
@@ -248,7 +290,21 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
           {kind === "connector" && <label>Connector type<select className="radmin-select" value={type} onChange={(e) => setType(e.target.value)}>{definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
         </div>
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "credential" ? "Production automation" : "Customer system"} /></label>
-        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock" && type !== "gmail")) && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock" && type !== "gmail")) && <label hidden={kind === "connector" && ["salesforce", "servicenow"].includes(type)}>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required={kind === "webhook" || !["salesforce", "servicenow"].includes(type)} /></label>}
+        {kind === "connector" && ["salesforce", "servicenow"].includes(type) && <>
+          <div className="radmin-row">
+            <label>Instance URL<input value={enterpriseInstanceUrl} onChange={(e) => setEnterpriseInstanceUrl(e.target.value)} placeholder={type === "salesforce" ? "https://acme.my.salesforce.com" : "https://acme.service-now.com"} required /></label>
+            {type === "salesforce" && <label>OAuth login URL<input value={enterpriseLoginUrl} onChange={(e) => setEnterpriseLoginUrl(e.target.value)} required /></label>}
+          </div>
+          <div className="radmin-row">
+            <label>OAuth client ID<input autoComplete="off" value={enterpriseClientId} onChange={(e) => setEnterpriseClientId(e.target.value)} required /></label>
+            <label>OAuth client secret<input type="password" autoComplete="new-password" value={enterpriseClientSecret} onChange={(e) => setEnterpriseClientSecret(e.target.value)} required /></label>
+            <label>Refresh token<input type="password" autoComplete="new-password" value={enterpriseRefreshToken} onChange={(e) => setEnterpriseRefreshToken(e.target.value)} required /></label>
+          </div>
+          <label>{type === "salesforce" ? "Allowed objects" : "Allowed tables"}<input value={enterpriseTargets} onChange={(e) => setEnterpriseTargets(e.target.value)} placeholder={type === "salesforce" ? "Account, Contact, Lead, Case" : "incident, change_request"} /></label>
+          <label>Capabilities<input value={enterpriseCapabilities} onChange={(e) => setEnterpriseCapabilities(e.target.value)} placeholder="Comma-separated · empty enables the provider catalog" /></label>
+          <p className="radmin-muted">Credentials are encrypted before storage and never returned. Object/table, field and capability allowlists are re-applied after approval. The connector remains unusable until live OAuth validation succeeds.</p>
+        </>}
         {kind === "connector" && type === "gmail" && <>
           <div className="radmin-row">
             <label>Sender mailbox<input type="email" value={mailbox} onChange={(e) => setMailbox(e.target.value)} placeholder="governed@yourdomain.com" required /></label>
@@ -354,6 +410,74 @@ function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boo
           </tbody>
         </table></div>
       )}
+    </section>
+  );
+}
+
+function EnterpriseConnectorPanel({ connectors, executions, dashboard, busy, mutate }: { connectors: any[]; executions: any[]; dashboard: any; busy: boolean; mutate: (body: any) => Promise<void> }) {
+  const [rotating, setRotating] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const clear = () => { setRotating(""); setClientId(""); setClientSecret(""); setRefreshToken(""); };
+  const rotate = async (connector: any) => {
+    try {
+      await mutate({
+        operation: `${connector.type}.credentials.rotate`, connector_id: connector.id,
+        credentials: { client_id: clientId.trim(), client_secret: clientSecret.trim(), refresh_token: refreshToken.trim() },
+      });
+    } finally { clear(); }
+  };
+  return (
+    <section className="radmin-card">
+      <h2>Governed CRM &amp; Service Management</h2>
+      <p className="radmin-muted">Salesforce and ServiceNow actions share the canonical proposal → Runtime Governance → approval → permit → at-most-once provider → immutable evidence path.</p>
+      <div className="radmin-badges" style={{ marginBottom: 12 }}>
+        <span className="radmin-badge ghost">Runs {dashboard.total || 0}</span>
+        <span className="radmin-badge ok">Completed {dashboard.completed || 0}</span>
+        <span className="radmin-badge">Awaiting approval {dashboard.awaiting_approval || 0}</span>
+        <span className="radmin-badge">Blocked {dashboard.blocked || 0}</span>
+        <span className="radmin-badge ghost">Provider calls {dashboard.provider_invocations || 0}</span>
+      </div>
+      {!connectors.length ? <p className="radmin-muted">No Salesforce or ServiceNow connectors configured.</p> : (
+        <div className="radmin-table-wrap"><table className="radmin-table">
+          <thead><tr><th>Name</th><th>Provider</th><th>Environment</th><th>Health</th><th>Scope</th><th>Actions</th></tr></thead>
+          <tbody>{connectors.map((c: any) => <tr key={c.id}>
+            <td>{c.name}<div className="radmin-muted" style={{ fontSize: 11 }}>{c.id}</div></td>
+            <td>{c.type}</td><td>{c.environment_id}</td>
+            <td>{c.health}{c.last_error && <div className="radmin-muted" style={{ fontSize: 11 }}>{c.last_error}</div>}</td>
+            <td>{(c.config?.allowed_objects || c.config?.allowed_tables || []).join(", ")}<div className="radmin-muted" style={{ fontSize: 11 }}>{(c.config?.capabilities || []).join(", ")}</div></td>
+            <td>
+              <div className="radmin-row" style={{ flexWrap: "wrap", gap: 6 }}>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: `${c.type}.credentials.check`, connector_id: c.id })}>Validate</button>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => setRotating(rotating === c.id ? "" : c.id)}>Rotate</button>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: "connector.status", connector_id: c.id, status: c.status === "disabled" ? "active" : "disabled" })}>{c.status === "disabled" ? "Enable" : "Disable"}</button>
+              </div>
+              {rotating === c.id && <div className="radmin-form" style={{ marginTop: 10 }}>
+                <label>New OAuth client ID<input autoComplete="off" value={clientId} onChange={(e) => setClientId(e.target.value)} /></label>
+                <label>New client secret<input type="password" autoComplete="new-password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} /></label>
+                <label>New refresh token<input type="password" autoComplete="new-password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} /></label>
+                <div className="radmin-row">
+                  <button className="radmin-btn primary sm" disabled={busy || !clientId.trim() || !clientSecret.trim() || !refreshToken.trim()} onClick={() => rotate(c)}>Validate and rotate</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={clear}>Cancel</button>
+                </div>
+              </div>}
+            </td>
+          </tr>)}</tbody>
+        </table></div>
+      )}
+      {!!executions.length && <>
+        <h3 style={{ marginTop: 20 }}>Recent governed record actions</h3>
+        <div className="radmin-table-wrap"><table className="radmin-table">
+          <thead><tr><th>Action</th><th>Provider</th><th>State</th><th>Governance</th><th>Approval</th><th>Provider calls</th><th>Record ID</th><th>Evidence</th></tr></thead>
+          <tbody>{executions.map((run: any) => <tr key={run.id}>
+            <td>{run.action_id}<div className="radmin-muted" style={{ fontSize: 11 }}>{run.id}</div></td>
+            <td>{run.provider}</td><td>{run.lifecycle_state}</td><td>{run.governance_decision || "—"}</td>
+            <td>{run.approval_status || "—"}</td><td>{run.provider_invocation_count || 0}</td>
+            <td>{run.external_record_id || "—"}</td><td>{run.evidence_id || "—"}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </>}
     </section>
   );
 }

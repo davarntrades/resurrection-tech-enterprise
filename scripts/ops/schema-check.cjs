@@ -37,6 +37,10 @@ const TABLES = [
   "rg_integration_deployments", "rg_integration_usage", "rg_integration_events", "rg_integration_secrets",
   // governed Amazon Bedrock invocation console (supabase/bedrock_invocation_runs.sql)
   "rg_bedrock_invocation_runs", "rg_bedrock_invocation_locks",
+  // governed communication + customer support
+  "rg_communication_runs", "rg_communication_run_locks", "rg_customer_support_workflow_runs",
+  // governed Salesforce + ServiceNow record actions
+  "rg_enterprise_action_runs", "rg_enterprise_action_run_locks",
 ];
 
 async function main() {
@@ -63,7 +67,7 @@ async function main() {
   if (missing.length) {
     console.log(`\n  MISSING (${missing.length}) — surfaces reading these render empty:`);
     for (const t of missing) console.log(`    · ${t}`);
-    console.log(`\n  Fix: apply supabase/operations_agent.sql and supabase/integration_gateway.sql to this project.`);
+    console.log(`\n  Fix: apply the additive SQL files in supabase/, including enterprise_action_connector.sql, to this project.`);
     console.log(`  It is additive and idempotent (create table if not exists / add column if not exists).`);
   }
   if (other.length) {

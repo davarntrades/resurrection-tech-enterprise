@@ -1,0 +1,48 @@
+name: ServiceNow governed production smoke
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      E2E_ORG_ID: ${{ vars.E2E_ORG_ID }}
+      RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      ENTERPRISE_SMOKE_ENABLED: ${{ vars.SERVICENOW_SMOKE_ENABLED }}
+      ENTERPRISE_SMOKE_PROVIDER: servicenow
+      ENTERPRISE_SMOKE_ENVIRONMENT_ID: ${{ vars.SERVICENOW_SMOKE_ENVIRONMENT_ID }}
+      ENTERPRISE_SMOKE_CONNECTOR_ID: ${{ vars.SERVICENOW_SMOKE_CONNECTOR_ID }}
+      ENTERPRISE_SMOKE_ACTION: ${{ vars.SERVICENOW_SMOKE_ACTION }}
+      ENTERPRISE_SMOKE_INPUT: ${{ secrets.SERVICENOW_SMOKE_INPUT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Refuse unless explicitly enabled and fully configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${ENTERPRISE_SMOKE_ENABLED:-}" =~ ^(1|true|yes|on)$ ]] || { echo "::error::SERVICENOW_SMOKE_ENABLED is not true; no provider call was made."; exit 1; }
+          for name in E2E_BASE_URL E2E_ORG_ID RUNTIME_ADMIN_KEY ENTERPRISE_SMOKE_ENVIRONMENT_ID ENTERPRISE_SMOKE_CONNECTOR_ID ENTERPRISE_SMOKE_ACTION ENTERPRISE_SMOKE_INPUT; do
+            [[ -n "${!name:-}" ]] || { echo "::error::$name is missing; no provider call was made."; exit 1; }
+          done
+      - name: Run exactly one governed ServiceNow mutation
+        run: node scripts/runtime/enterprise-production-smoke.cjs
+      - name: Publish evidence summary
+        if: always()
+        run: test -f artifacts/servicenow-production-smoke.md && cat artifacts/servicenow-production-smoke.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: servicenow-production-smoke
+          path: artifacts/servicenow-production-smoke.json
+          if-no-files-found: ignore
+          retention-days: 30
