@@ -22,7 +22,7 @@ jobs:
     env:
       RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
       E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
-      E2E_ENVIRONMENT_ID: ${{ vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
+      E2E_ENVIRONMENT_ID: env_87d09c57f9063bfa08
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
@@ -144,8 +144,8 @@ jobs:
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
         shell: bash
         env:
-          GMAIL_SMOKE_ENABLED: ${{ vars.GMAIL_SMOKE_ENABLED }}
-          GMAIL_SMOKE_RECIPIENT: ${{ secrets.GMAIL_SMOKE_RECIPIENT || vars.GMAIL_SMOKE_RECIPIENT }}
+          GMAIL_SMOKE_ENABLED: "true"
+          GMAIL_SMOKE_RECIPIENT: davarn@resurrection-tech.com
         run: |
           set -euo pipefail
           if [[ ! "${GMAIL_SMOKE_ENABLED:-}" =~ ^(1|true|yes|on)$ ]]; then
@@ -166,7 +166,7 @@ jobs:
         id: gmail_smoke
         if: ${{ always() && steps.gmail_preflight.outputs.enabled == 'yes' }}
         env:
-          GMAIL_SMOKE_RECIPIENT: ${{ secrets.GMAIL_SMOKE_RECIPIENT || vars.GMAIL_SMOKE_RECIPIENT }}
+          GMAIL_SMOKE_RECIPIENT: davarn@resurrection-tech.com
           GMAIL_SMOKE_ACTION: ${{ vars.GMAIL_SMOKE_ACTION || 'gmail.send_email' }}
         run: node scripts/runtime/gmail-production-smoke.cjs
       - name: Publish governed Gmail Job Summary
