@@ -75,8 +75,7 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
 
   test("Gmail Validate reaches Google and persists a terminal health result", async ({ request }) => {
     const orgId = process.env.E2E_ORG_ID || "";
-    const environmentId = process.env.E2E_ENVIRONMENT_ID || "";
-    test.skip(!orgId || !environmentId, "set E2E_ORG_ID and E2E_ENVIRONMENT_ID to validate Gmail");
+    test.skip(!orgId, "set E2E_ORG_ID to validate Gmail");
     const headers = { "x-admin-key": OP_PASSWORD, "content-type": "application/json" };
 
     const beforeResponse = await request.get(
@@ -85,10 +84,8 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     );
     expect(beforeResponse.status(), "Integration Gateway inventory request failed").toBe(200);
     const before = await beforeResponse.json();
-    const connector = (before.connectors || []).find(
-      (item: any) => item.type === "gmail" && item.environment_id === environmentId,
-    );
-    test.skip(!connector, "no Gmail connector exists for the configured organisation/environment");
+    const connector = (before.connectors || []).find((item: any) => item.type === "gmail");
+    test.skip(!connector, "no Gmail connector exists for the configured organisation");
 
     const validationResponse = await request.post("/api/runtime/admin/integration-gateway", {
       headers,
