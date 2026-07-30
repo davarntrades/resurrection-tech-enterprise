@@ -245,6 +245,150 @@ function seal(value) {
     await assert.rejects(() => create({ message: message({ to: ["ok@example.com\r\nBcc: attacker@example.com"] }) }), /control characters|invalid/i);
   });
 
+  await test("a modified recipient, subject or body after approval all fail closed", async () => {
+    const created = await create();
+    const run = await runs.advanceRun(created.id, org.id, gateway);
+    await ops.proposals.approve(run.proposal_id, { actor: "operator@resurrection.tech" });
+    const before = gmail.state.sent.length;
+    const tampered = [
+      ["recipient", message({ to: ["attacker@example.com"] })],
+      ["subject", message({ subject: "Different subject" })],
+      ["body", message({ body: "Different body entirely." })],
+      ["extra bcc", message({ bcc: ["silent@example.com"] })],
+    ];
+    for (const [label, payload] of tampered) {
+      await assert.rejects(
+        () => gateway.executeApprovedCommunication({
+          org_id: org.id, environment_id: environment.id, connector_id: connector.id,
+          action_id: "gmail.send_email", proposal_id: run.proposal_id,
+          message: payload, actor: "operator@resurrection.tech",
+        }),
+        /does not match the message/,
+        `a modified ${label} must fail closed`,
+      );
+    }
+    assert.equal(gmail.state.sent.length, before, "no tampered message may reach the provider");
+  });
+
+  await test("no ungoverned path can reach the provider (structural invariant)", () => {
+    // The narrowed gmail.test.cjs invariant only holds if provider execution is
+    // reachable from exactly two places, both of which gate on an EXECUTED
+    // proposal. Pin that structurally so a refactor cannot add a third.
+    const root = path.join(__dirname, "../..");
+    const scanned = [];
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(js|ts|tsx|cjs)$/.test(entry.name)) scanned.push(full);
+      }
+    };
+    for (const dir of ["lib", "app"]) walk(path.join(root, dir));
+    const ALLOWED = new Set(["lib/runtime/integration-gateway.js", "lib/runtime/communication-approved-send.js"]);
+    const offenders = scanned.filter((file) => {
+      const rel = path.relative(root, file);
+      if (ALLOWED.has(rel)) return false;
+      const source = fs.readFileSync(file, "utf8");
+      return /adapters\.execute\s*\(|communicationExecute|\.createDraft\s*\(/.test(source)
+        || /require\(["'][^"']*connectors\/gmail["']\)[\s\S]{0,200}?\.(send|reply|createDraft)\s*\(/.test(source);
+    }).map((file) => path.relative(root, file));
+    assert.deepEqual(offenders, [], "only the two governed call sites may reach provider execution");
+
+    const gatewaySource = fs.readFileSync(path.join(root, "lib/runtime/integration-gateway.js"), "utf8");
+    const send = gatewaySource.split("async function sendCommunication")[1].split("\nasync function")[0];
+    assert.ok(send.indexOf("if (!executed(proposal))") < send.indexOf("adapters.execute"),
+      "sendCommunication must reject a non-executed proposal BEFORE reaching the provider");
+
+    // Catalog executors for email-mutating actions authorize only — they must
+    // not themselves be able to produce a delivery.
+    for (const action_id of ["gmail.send_email", "gmail.reply_email", "gmail.create_draft"]) {
+      const source = String(ops.actions.CATALOG[action_id].execute);
+      assert.ok(!/adapters\.execute|\.send\(|createDraft/.test(source), `${action_id} executor must authorize only`);
+    }
+  });
+
+  await test("provisioning refuses an incomplete OAuth credential", async () => {
+    const connectors = require("../../lib/runtime/connectors/gmail");
+    assert.throws(() => connectors.validateConfiguration({ mailbox: MAILBOX }, { client_id: "a", client_secret: "b" }), /refresh_token is required/);
+    assert.throws(() => connectors.validateConfiguration({ mailbox: MAILBOX }, {}), /client_id is required/);
+    assert.throws(() => connectors.validateConfiguration({ mailbox: "not-an-email" }, { client_id: "a", client_secret: "b", refresh_token: "c" }), /valid Gmail mailbox/);
+    await assert.rejects(
+      () => gateway.createConnectorRaw({ org_id: org.id, environment_id: environment.id, type: "gmail", name: "Half provisioned", config: { mailbox: MAILBOX } }),
+      /client_id is required/,
+      "a Gmail connector must not be creatable without a complete credential",
+    );
+  });
+
+  await test("no OAuth secret material can reach a connector's public configuration", async () => {
+    const connectors = require("../../lib/runtime/connectors/gmail");
+    const config = connectors.publicConfiguration({
+      mailbox: MAILBOX, allowed_recipient_domains: ["example.com"],
+      client_id: "leaked-client", client_secret: "leaked-secret", refresh_token: "leaked-token",
+    });
+    const blob = JSON.stringify(config);
+    for (const secret of ["leaked-client", "leaked-secret", "leaked-token"]) {
+      assert.ok(!blob.includes(secret), `${secret} must never appear in a public connector configuration`);
+    }
+    assert.deepEqual(config.required_scopes.sort(), [connectors.COMPOSE_SCOPE, connectors.SEND_SCOPE].sort());
+    const projected = await rt.store.findOptional("integration_connectors", { org_id: org.id });
+    const rowBlob = JSON.stringify(projected.map((row) => row.config));
+    assert.ok(!rowBlob.includes("rtoken"), "no refresh token may be stored in a connector config column");
+  });
+
+  await test("credential rotation validates live and binds to the configured mailbox", async () => {
+    const ref = await gateway.stageSecret(org.id, { client_id: "cid2", client_secret: "csecret2", refresh_token: "rtoken2" }, "gmail");
+    const rotated = await gateway.rotateGmailCredentialsRaw({
+      org_id: org.id, environment_id: environment.id, connector_id: connector.id, secret_ref: ref.secret_ref || ref.id || ref,
+    });
+    assert.equal(rotated.health, "healthy");
+    assert.ok(rotated.config.credential_rotated_at, "rotation must be timestamped");
+    assert.equal(rotated.has_secret, true);
+    assert.ok(gmail.state.revoked.includes("rtoken"), "the superseded refresh token must be revoked at Google");
+    const blob = JSON.stringify(rotated);
+    assert.ok(!blob.includes("rtoken2") && !blob.includes("csecret2"), "rotation must not echo the new credential");
+  });
+
+  await test("revocation drops the ciphertext and disables the connector", async () => {
+    const doomed = await rt.store.insert("integration_connectors", {
+      id: "con_gmail_revoke", org_id: org.id, environment_id: environment.id, type: "gmail", name: "Decommission",
+      status: "configured", health: "healthy", config: { mailbox: MAILBOX },
+      secret_encrypted: seal({ client_id: "cid", client_secret: "csecret", refresh_token: "rtoken-doomed" }),
+    });
+    const result = await gateway.revokeGmailCredentialsRaw({ org_id: org.id, connector_id: doomed.id });
+    assert.equal(result.revoked, true);
+    assert.equal(result.status, "disabled");
+    assert.equal(result.has_secret, false, "the stored ciphertext must be dropped");
+    assert.ok(gmail.state.revoked.includes("rtoken-doomed"), "the token must be revoked at Google");
+    const row = await rt.store.findOne("integration_connectors", { id: doomed.id });
+    assert.equal(row.secret_encrypted, null);
+    await assert.rejects(() => runs.createRun({
+      org_id: org.id, environment_id: environment.id, connector_id: doomed.id,
+      action_id: "gmail.send_email", message: message(), idempotency_key: `revoked-${crypto.randomUUID()}`,
+    }), /enabled and healthy/, "a revoked connector must be unusable");
+  });
+
+  await test("a draft-only connector cannot deliver even with an approval", async () => {
+    const sandbox = await rt.store.insert("integration_connectors", {
+      id: "con_gmail_sandbox", org_id: org.id, environment_id: environment.id, type: "gmail", name: "Sandbox Gmail",
+      status: "configured", health: "healthy",
+      config: { mailbox: MAILBOX, allowed_recipient_domains: ["example.com"], capabilities: ["draft"] },
+      secret_encrypted: seal({ client_id: "cid", client_secret: "csecret", refresh_token: "rtoken" }),
+    });
+    const before = gmail.state.sent.length;
+    await assert.rejects(() => runs.createRun({
+      org_id: org.id, environment_id: environment.id, connector_id: sandbox.id,
+      action_id: "gmail.send_email", message: message(), idempotency_key: `sandbox-${crypto.randomUUID()}`,
+    }), /not configured to send/, "a draft-only connector must refuse a send before governance");
+    assert.equal(gmail.state.sent.length, before);
+    const drafted = await runs.createRun({
+      org_id: org.id, environment_id: environment.id, connector_id: sandbox.id,
+      action_id: "gmail.create_draft", message: message(), idempotency_key: `sandbox-draft-${crypto.randomUUID()}`,
+    });
+    const run = await runs.advanceRun(drafted.id, org.id, gateway);
+    assert.equal(run.status, "completed", run.safe_failure_reason || "the draft capability must still work");
+  });
+
   engine.close();
   gmail.close();
   console.log(`\n${passed} governed communication connector tests passed.`);

@@ -7,7 +7,7 @@
 const http = require("node:http");
 
 function startMockGmail({ mailbox = "governed@resurrection.tech", failWith = null } = {}) {
-  const state = { sent: [], drafts: [], tokenRequests: 0, sendRequests: 0 };
+  const state = { sent: [], drafts: [], revoked: [], tokenRequests: 0, sendRequests: 0 };
   const server = http.createServer((req, res) => {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
@@ -25,6 +25,13 @@ function startMockGmail({ mailbox = "governed@resurrection.tech", failWith = nul
           return json(400, { error: { message: "invalid_grant" } });
         }
         return json(200, { access_token: `mock-access-${state.tokenRequests}`, expires_in: 3600, scope: "https://www.googleapis.com/auth/gmail.send" });
+      }
+      if (path === "/revoke") {
+        const params = new URLSearchParams(body);
+        const token = params.get("token");
+        if (!token) return json(400, { error: { message: "missing token" } });
+        state.revoked.push(token);
+        return json(200, {});
       }
       if (!/^Bearer mock-access-/.test(String(req.headers.authorization || ""))) {
         return json(401, { error: { message: "Request had invalid authentication credentials" } });
