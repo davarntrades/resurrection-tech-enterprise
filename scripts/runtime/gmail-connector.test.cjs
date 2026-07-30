@@ -93,6 +93,46 @@ function seal(value) {
     secret_encrypted: seal({ client_id: "cid", client_secret: "csecret", refresh_token: "rtoken" }),
   });
 
+  await test("Validate can promote a newly configured unknown connector to healthy", async () => {
+    await rt.store.update("integration_connectors", connector.id, {
+      health: "unknown", last_checked_at: null, last_error: null,
+    });
+    const tokenRequestsBefore = gmail.state.tokenRequests;
+    const result = await gateway.checkCommunicationHealthRaw({
+      org_id: org.id, environment_id: environment.id, connector_id: connector.id, connector_type: "gmail",
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.mailbox, MAILBOX);
+    assert.equal(gmail.state.tokenRequests, tokenRequestsBefore + 1, "the stored OAuth credential must be decrypted and exchanged");
+    const persisted = await rt.store.findOne("integration_connectors", { id: connector.id });
+    assert.equal(persisted.health, "healthy");
+    assert.ok(persisted.last_checked_at, "successful validation must persist its timestamp");
+    assert.equal(persisted.last_error, null);
+  });
+
+  await test("Validate persists a failed health state and exact provider reason", async () => {
+    const invalid = await rt.store.insert("integration_connectors", {
+      id: "con_gmail_invalid", org_id: org.id, environment_id: environment.id,
+      type: "gmail", name: "Invalid Gmail", status: "configured", health: "unknown",
+      config: { mailbox: MAILBOX, capabilities: ["read"] },
+      secret_encrypted: seal({ client_id: "cid", client_secret: "csecret", refresh_token: "invalid-refresh-token" }),
+    });
+    const result = await gateway.checkCommunicationHealthRaw({
+      org_id: org.id, environment_id: environment.id, connector_id: invalid.id, connector_type: "gmail",
+    }, {
+      fetch: async () => new Response(JSON.stringify({
+        error: { message: "invalid_grant: refresh token expired or revoked" },
+      }), { status: 400, headers: { "content-type": "application/json" } }),
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "GMAIL_TOKEN_REFUSED");
+    assert.match(result.error, /invalid_grant: refresh token expired or revoked/);
+    const persisted = await rt.store.findOne("integration_connectors", { id: invalid.id });
+    assert.equal(persisted.health, "down");
+    assert.ok(persisted.last_checked_at, "failed validation must persist its timestamp");
+    assert.match(persisted.last_error, /GMAIL_TOKEN_REFUSED: invalid_grant: refresh token expired or revoked/);
+  });
+
   const message = (overrides = {}) => ({ to: ["customer@example.com"], subject: "Governed reply", body: BODY, ...overrides });
   const create = (overrides = {}) => runs.createRun({
     org_id: org.id, environment_id: environment.id, connector_id: connector.id,
