@@ -82,6 +82,46 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ ok: (rt.integrationGateway as any).executed(proposal), governance: governance(proposal), result: proposal.execution?.result || null });
     }
+    if (body.operation === "gmail.credentials.rotate") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      if (!body.credentials) return NextResponse.json({ error: "replacement Gmail OAuth credentials are required" }, { status: 400 });
+      // Plaintext is staged for minutes, sealed on consumption, and never
+      // reaches the proposal — the governed action receives only a reference.
+      const secret_ref = await (rt.integrationGateway as any).stageSecret(
+        org_id, body.credentials, "gmail-credential-rotation");
+      proposal = await (rt.integrationGateway as any).governed("rotate_gmail_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id, config: body.config || {}, secret_ref },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
+    }
+    if (body.operation === "gmail.credentials.revoke") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      proposal = await (rt.integrationGateway as any).governed("revoke_gmail_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
+    }
+    if (body.operation === "gmail.credentials.check") {
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== "gmail")
+        return NextResponse.json({ error: "Gmail connector not found" }, { status: 404 });
+      const result = await (rt.integrationGateway as any).checkCommunicationHealthRaw({
+        org_id, environment_id: row.environment_id, connector_id: row.id, connector_type: "gmail",
+      });
+      return NextResponse.json({ ok: !!result.ok, result });
+    }
     if (body.operation === "bedrock.credentials.rotate") {
       const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
       if (!row || row.org_id !== org_id || row.type !== "aws-bedrock")
