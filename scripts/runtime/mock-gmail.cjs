@@ -7,7 +7,23 @@
 const http = require("node:http");
 
 function startMockGmail({ mailbox = "governed@resurrection.tech", failWith = null } = {}) {
-  const state = { sent: [], drafts: [], revoked: [], tokenRequests: 0, sendRequests: 0 };
+  const state = {
+    sent: [], drafts: [], revoked: [], tokenRequests: 0, sendRequests: 0,
+    inbox: [{
+      id: "gmailmsg_inbox_1", threadId: "gmailthread_inbox_1", labelIds: ["INBOX"],
+      snippet: "Quarterly governance review request",
+      sizeEstimate: 2048,
+      payload: {
+        headers: [
+          { name: "From", value: "customer@example.com" },
+          { name: "To", value: mailbox },
+          { name: "Subject", value: "Quarterly governance review" },
+          { name: "Date", value: "Thu, 30 Jul 2026 09:00:00 +0000" },
+        ],
+        body: { data: Buffer.from("Full inbound body text.", "utf8").toString("base64url") },
+      },
+    }],
+  };
   const server = http.createServer((req, res) => {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
@@ -38,6 +54,16 @@ function startMockGmail({ mailbox = "governed@resurrection.tech", failWith = nul
       }
       if (/\/profile$/.test(path)) {
         return json(200, { emailAddress: mailbox, messagesTotal: 42 });
+      }
+      if (/\/messages$/.test(path) && req.method === "GET") {
+        const ids = state.inbox.map((m) => ({ id: m.id, threadId: m.threadId }));
+        return json(200, { messages: ids.slice(0, Number(url.searchParams.get("maxResults") || 25)), resultSizeEstimate: ids.length });
+      }
+      const detail = path.match(/\/messages\/([^/?]+)$/);
+      if (detail && req.method === "GET") {
+        const found = state.inbox.find((m) => m.id === decodeURIComponent(detail[1]));
+        if (!found) return json(404, { error: { message: "not found" } });
+        return json(200, found);
       }
       if (/\/messages\/send$/.test(path)) {
         state.sendRequests += 1;

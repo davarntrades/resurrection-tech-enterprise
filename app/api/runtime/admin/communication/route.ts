@@ -80,6 +80,23 @@ export async function POST(req: NextRequest) {
   if (!environment || environment.org_id !== org_id) return NextResponse.json({ error: "environment not found" }, { status: 404 });
 
   try {
+    // Governed mailbox reads are idempotent, so they resolve inline rather than
+    // creating durable run state. They still pass through proposal → Runtime
+    // Governance → permit before Google is contacted.
+    const readActions = adapters.listActions().filter((item: any) => item.reads).map((item: any) => item.action_id);
+    if (readActions.includes(String(body.action_id || ""))) {
+      const result = await rt.integrationGateway.readCommunication({
+        org_id,
+        environment_id,
+        connector_id: String(body.connector_id || ""),
+        action_id: String(body.action_id),
+        canonical_action: { action_id: String(body.action_id) },
+        request: body.request || {},
+        actor: op.identity,
+        sdk: "guardianos-communication/1.0",
+      });
+      return NextResponse.json(result, { status: result.ok ? 200 : 409, headers: { "cache-control": "no-store" } });
+    }
     const created = await runs.createRun({
       org_id,
       environment_id,

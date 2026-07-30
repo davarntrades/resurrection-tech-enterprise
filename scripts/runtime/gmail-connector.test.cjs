@@ -308,6 +308,78 @@ function seal(value) {
     }
   });
 
+  await test("governed reads are permitted, evidenced, and match the Bedrock posture", async () => {
+    for (const action_id of ["gmail.list_messages", "gmail.read_message"]) {
+      const entry = ops.actions.get(action_id);
+      assert.ok(entry, `${action_id} must be registered`);
+      assert.equal(entry.risk, "medium", "read posture must match invoke_aws_bedrock_model");
+      assert.equal(ops.actions.autoExecutable(entry), true, "a permitted read auto-executes, like Bedrock");
+    }
+    const listed = await gateway.readCommunication({
+      org_id: org.id, environment_id: environment.id, connector_id: connector.id,
+      action_id: "gmail.list_messages", canonical_action: { action_id: "gmail.list_messages" },
+      request: { query: "in:inbox", max_results: 10 }, actor: "communication_gateway",
+    });
+    assert.equal(listed.ok, true, listed.error || "listing should be permitted");
+    assert.equal(listed.governance.status, "executed");
+    assert.ok(listed.governance.proposal_id, "a read must create a proposal");
+    assert.equal(listed.message_count, 1);
+    assert.equal(listed.messages[0].subject, "Quarterly governance review");
+    assert.ok(listed.evidence && listed.evidence.id, "a read must record immutable evidence");
+    assert.ok(Number.isFinite(Number(listed.provider_latency_ms)));
+
+    const read = await gateway.readCommunication({
+      org_id: org.id, environment_id: environment.id, connector_id: connector.id,
+      action_id: "gmail.read_message", canonical_action: { action_id: "gmail.read_message" },
+      request: { message_id: "gmailmsg_inbox_1", include_body: true }, actor: "communication_gateway",
+    });
+    assert.equal(read.ok, true, read.error || "reading should be permitted");
+    assert.equal(read.message.body, "Full inbound body text.");
+    assert.ok(read.evidence.id);
+  });
+
+  await test("a blocked or unavailable engine stops a read before Google", async () => {
+    const engineModule = require("../../lib/runtime/engine");
+    const realEvaluate = engineModule.evaluate;
+    engineModule.evaluate = async () => ({ ok: false, error: "connection refused" });
+    try {
+      const result = await gateway.readCommunication({
+        org_id: org.id, environment_id: environment.id, connector_id: connector.id,
+        action_id: "gmail.list_messages", canonical_action: { action_id: "gmail.list_messages" },
+        request: { query: "in:inbox" }, actor: "communication_gateway",
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "GOVERNANCE_BLOCKED");
+      assert.ok(!result.messages, "no mailbox data may be returned without a permit");
+    } finally { engineModule.evaluate = realEvaluate; }
+  });
+
+  await test("read evidence carries ids and counts but never message content", async () => {
+    const events = await rt.store.findOptional("integration_events", { org_id: org.id });
+    const reads = events.filter((item) => item.type === "communication.mailbox.read");
+    assert.ok(reads.length >= 2, "each governed read records evidence");
+    const blob = JSON.stringify(reads);
+    assert.ok(!blob.includes("Full inbound body text."), "no message body may enter evidence");
+    assert.ok(!blob.includes("Quarterly governance review"), "no subject line may enter evidence");
+    assert.ok(reads.every((item) => item.immutable === true && item.evidence.proposal_id));
+  });
+
+  await test("a connector without the read capability refuses reads", async () => {
+    const sendOnly = await rt.store.insert("integration_connectors", {
+      id: "con_gmail_sendonly", org_id: org.id, environment_id: environment.id, type: "gmail", name: "Send only",
+      status: "configured", health: "healthy",
+      config: { mailbox: MAILBOX, capabilities: ["send"] },
+      secret_encrypted: seal({ client_id: "cid", client_secret: "csecret", refresh_token: "rtoken" }),
+    });
+    const result = await gateway.readCommunication({
+      org_id: org.id, environment_id: environment.id, connector_id: sendOnly.id,
+      action_id: "gmail.list_messages", canonical_action: { action_id: "gmail.list_messages" },
+      request: { query: "in:inbox" }, actor: "communication_gateway",
+    }).catch((error) => ({ ok: false, error: error.message }));
+    assert.equal(result.ok, false);
+    assert.match(String(result.error), /not configured to list/);
+  });
+
   await test("provisioning refuses an incomplete OAuth credential", async () => {
     const connectors = require("../../lib/runtime/connectors/gmail");
     assert.throws(() => connectors.validateConfiguration({ mailbox: MAILBOX }, { client_id: "a", client_secret: "b" }), /refresh_token is required/);
@@ -330,7 +402,10 @@ function seal(value) {
     for (const secret of ["leaked-client", "leaked-secret", "leaked-token"]) {
       assert.ok(!blob.includes(secret), `${secret} must never appear in a public connector configuration`);
     }
-    assert.deepEqual(config.required_scopes.sort(), [connectors.COMPOSE_SCOPE, connectors.SEND_SCOPE].sort());
+    assert.deepEqual(config.required_scopes.sort(), [connectors.COMPOSE_SCOPE, connectors.READ_SCOPE, connectors.SEND_SCOPE].sort());
+    // Least privilege is real: a narrowed connector asks for fewer scopes.
+    assert.deepEqual(connectors.publicConfiguration({ mailbox: MAILBOX, capabilities: ["draft"] }).required_scopes, [connectors.COMPOSE_SCOPE]);
+    assert.deepEqual(connectors.publicConfiguration({ mailbox: MAILBOX, capabilities: ["list", "read"] }).required_scopes, [connectors.READ_SCOPE]);
     const projected = await rt.store.findOptional("integration_connectors", { org_id: org.id });
     const rowBlob = JSON.stringify(projected.map((row) => row.config));
     assert.ok(!rowBlob.includes("rtoken"), "no refresh token may be stored in a connector config column");
