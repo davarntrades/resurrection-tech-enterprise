@@ -12,8 +12,17 @@ const UNCONDITIONAL = new Map([
   ["share_credentials", "ops_credential_sharing"],
   ["share_api_key", "ops_credential_sharing"],
 ]);
+// operations_rules.py matches the WHOLE OPS_REPORT_DELIVERY vocabulary, not just
+// send_confidential_report. Mirroring every name keeps the mock faithful for the
+// governed communication actions, which ride this same outbound-delivery rule.
+const REPORT_DELIVERY_RULE = ["ops_unauthorized_report_delivery", ["report_delivery_authorized", "delivery_authorized"]];
 const AUTH_RULES = new Map([
-  ["send_confidential_report", ["ops_unauthorized_report_delivery", ["report_delivery_authorized", "delivery_authorized"]]],
+  ["send_confidential_report", REPORT_DELIVERY_RULE],
+  ["deliver_report", REPORT_DELIVERY_RULE],
+  ["email_report", REPORT_DELIVERY_RULE],
+  ["send_enterprise_report", REPORT_DELIVERY_RULE],
+  ["publish_report", REPORT_DELIVERY_RULE],
+  ["send_report", REPORT_DELIVERY_RULE],
   ["deploy_runtime", ["ops_unauthorized_deployment", ["deployment_approved", "change_approved"]]],
   ["create_organisation", ["ops_unauthorized_org_creation", ["onboarding_verified", "operator_approved"]]],
   ["promote_to_pilot", ["ops_unauthorized_pilot_promotion", ["pilot_approved", "operator_approved"]]],
