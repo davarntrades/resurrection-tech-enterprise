@@ -38,7 +38,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          CONFIGURED_E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          CONFIGURED_E2E_BASE_URL: https://www.resurrection-tech.com
           TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
