@@ -228,6 +228,24 @@ test("no internal field key is ever exposed to the participant", () => {
   }
 });
 
+test("the API's own message wins over inference, so 'required' is not reworded", () => {
+  // timeline is answered, but the API reports it as missing. The participant
+  // must be told what the API actually said, not a guess from local state.
+  const data = completedAssessment({ timeline: "this_quarter" });
+  const [issue] = issuesFromFieldErrors({ timeline: "Engagement timeline is required" }, data);
+  assert.equal(issue.label, "Engagement timeline");
+  assert.equal(issue.sectionLabel, "Commercial");
+  assert.equal(issue.message, "Engagement timeline is required");
+  assert.equal(issue.missing, true);
+});
+
+test("a raw zod message is replaced with participant-facing wording", () => {
+  const data = completedAssessment({ incidents: "x".repeat(4001) });
+  const [issue] = issuesFromFieldErrors({ incidents: "String must contain at most 4000 character(s)" }, data);
+  assert.match(issue.message, /4000 characters or fewer/);
+  assert.ok(!issue.message.includes("String must contain"), "leaked a raw validator message");
+});
+
 test("an unknown key from the API is never rendered to the participant", () => {
   const issues = issuesFromFieldErrors({ some_internal_key: "boom" }, completedAssessment());
   assert.deepEqual(issues, []);

@@ -301,24 +301,39 @@ export function issuesFromFieldErrors(
 ): ValidationIssue[] {
   const out: ValidationIssue[] = [];
   const seen = new Set<string>();
-  for (const key of Object.keys(fieldErrors ?? {})) {
+  for (const [key, serverMessage] of Object.entries(fieldErrors ?? {})) {
     const spec = FIELD_BY_KEY[key];
     if (!spec) continue; // unknown key — never leak it to the participant
     if (seen.has(String(spec.key))) continue;
     seen.add(String(spec.key));
-    const value = data[spec.key];
-    const empty = Array.isArray(value) ? value.length === 0 : !String(value ?? "").trim();
+
     if (spec.internal) {
       out.push(issueFor(spec, GENERIC_ISSUE_MESSAGE, false));
-    } else if (empty) {
-      out.push(issueFor(spec, requiredMessage(spec.key), true));
-    } else if (spec.kind === "email") {
-      out.push(issueFor(spec, INVALID_EMAIL_MESSAGE, false));
-    } else if (spec.kind === "list") {
-      out.push(issueFor(spec, tooManyMessage(spec.key), false));
-    } else {
-      out.push(issueFor(spec, tooLongMessage(spec.key), false));
+      continue;
     }
+
+    // The API builds its messages from the helpers above, so a recognised
+    // message is already participant-ready and states the real problem.
+    // Anything else (a zod default, an older deployment) is not shown.
+    const known: Array<[string, boolean]> = [
+      [requiredMessage(spec.key), true],
+      [tooLongMessage(spec.key), false],
+      [tooManyMessage(spec.key), false],
+      [INVALID_EMAIL_MESSAGE, false],
+    ];
+    const match = known.find(([text]) => text === serverMessage);
+    if (match) {
+      out.push(issueFor(spec, match[0], match[1]));
+      continue;
+    }
+
+    // Unrecognised message — infer from the answer we hold.
+    const value = data[spec.key];
+    const empty = Array.isArray(value) ? value.length === 0 : !String(value ?? "").trim();
+    if (empty) out.push(issueFor(spec, requiredMessage(spec.key), true));
+    else if (spec.kind === "email") out.push(issueFor(spec, INVALID_EMAIL_MESSAGE, false));
+    else if (spec.kind === "list") out.push(issueFor(spec, tooManyMessage(spec.key), false));
+    else out.push(issueFor(spec, tooLongMessage(spec.key), false));
   }
   return out;
 }
