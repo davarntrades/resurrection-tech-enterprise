@@ -76,6 +76,8 @@ jobs:
         run: npm run runtime:enterprise-assessment
       - name: Runtime engagement stage
         run: npm run runtime:engagement-stage
+      - name: Assessment submission contract
+        run: npm run runtime:assessment-submission
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite

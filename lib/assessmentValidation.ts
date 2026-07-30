@@ -1,25 +1,61 @@
 import { z } from "zod";
+import {
+  EMAIL_RE, INVALID_EMAIL_MESSAGE, maxItemLengthOf, maxItemsOf, maxLengthOf,
+  requiredMessage, tooLongMessage, tooManyMessage,
+} from "./assessmentFields";
+import type { AssessmentData } from "./assessment";
 
-/** Server-side validation for the Runtime Governance Assessment questionnaire. */
+/**
+ * Server-side validation for the Runtime Governance Assessment questionnaire.
+ *
+ * Every bound and every message is derived from the shared field specs in
+ * `assessmentFields`, so the questionnaire UI, this schema, and the Stage 8
+ * error summary can never disagree about what is required or how long an
+ * answer may be. Messages are written for the participant, because the client
+ * renders them verbatim.
+ */
+
+type Key = keyof AssessmentData;
+
 const yesNo = z.enum(["yes", "no", ""]).default("");
-const strArr = z.array(z.string().max(60)).max(20).optional().default([]);
+
+/** Required free-text / single-choice answer. */
+const req = (key: Key) =>
+  z.string().trim()
+    .min(1, requiredMessage(key))
+    .max(maxLengthOf(key) ?? 200, tooLongMessage(key));
+
+/** Optional free-text / single-choice answer. */
+const opt = (key: Key) =>
+  z.string().trim()
+    .max(maxLengthOf(key) ?? 200, tooLongMessage(key))
+    .optional().default("");
+
+/** Multi-select answer. */
+const list = (key: Key) =>
+  z.array(z.string().max(maxItemLengthOf(key)))
+    .max(maxItemsOf(key), tooManyMessage(key))
+    .optional().default([]);
 
 export const assessmentSchema = z.object({
-  // Section 1 — Company (required core)
-  fullName: z.string().trim().min(1, "Full name is required").max(160),
-  jobTitle: z.string().trim().min(1, "Job title is required").max(160),
-  companyName: z.string().trim().min(1, "Company name is required").max(200),
-  email: z.string().trim().email("Enter a valid email").max(200),
-  phone: z.string().trim().max(60).optional().default(""),
-  industry: z.string().trim().min(1, "Industry is required").max(80),
-  companySize: z.string().trim().min(1, "Company size is required").max(40),
-  country: z.string().trim().min(1, "Country is required").max(80),
-  operatingRegions: strArr,
-  deploymentRegions: strArr,
+  // Stage 1 — Organisation (required core)
+  fullName: req("fullName"),
+  jobTitle: req("jobTitle"),
+  companyName: req("companyName"),
+  email: z.string().trim()
+    .min(1, requiredMessage("email"))
+    .regex(EMAIL_RE, INVALID_EMAIL_MESSAGE)
+    .max(maxLengthOf("email") ?? 200, tooLongMessage("email")),
+  phone: opt("phone"),
+  industry: req("industry"),
+  companySize: req("companySize"),
+  country: req("country"),
+  operatingRegions: list("operatingRegions"),
+  deploymentRegions: list("deploymentRegions"),
 
   // Stage 2 — AI programme (current vs target)
-  aiMaturityCurrent: z.string().trim().max(40).optional().default(""),
-  aiMaturityTarget: z.string().trim().max(40).optional().default(""),
+  aiMaturityCurrent: opt("aiMaturityCurrent"),
+  aiMaturityTarget: opt("aiMaturityTarget"),
   agentsDeployed: yesNo,
   customerFacing: yesNo,
   connectedToTools: yesNo,
@@ -28,57 +64,57 @@ export const assessmentSchema = z.object({
   inProduction: yesNo,
 
   // Stage 3 — Runtime risk
-  toolAccess: strArr,
-  executionPermissions: strArr,
+  toolAccess: list("toolAccess"),
+  executionPermissions: list("executionPermissions"),
   criticalSystems: yesNo,
   downstreamAutomation: yesNo,
-  customersCurrent: z.string().trim().max(40).optional().default(""),
-  customersFuture: z.string().trim().max(40).optional().default(""),
-  revenueExposureCurrent: z.string().trim().max(40).optional().default(""),
-  revenueExposureFuture: z.string().trim().max(40).optional().default(""),
+  customersCurrent: opt("customersCurrent"),
+  customersFuture: opt("customersFuture"),
+  revenueExposureCurrent: opt("revenueExposureCurrent"),
+  revenueExposureFuture: opt("revenueExposureFuture"),
 
   // Stage 4 — Technical architecture
-  deploymentModel: strArr,
-  cloudProviders: strArr,
-  modelStack: strArr,
-  agentStack: strArr,
-  protectedEnvironments: z.string().trim().max(20).optional().default(""),
-  numAgents: z.string().trim().max(20).optional().default(""),
-  agentsExpected: z.string().trim().max(20).optional().default(""),
-  agentCount: z.string().trim().max(12).optional().default(""),
-  businessUnits: z.string().trim().max(12).optional().default(""),
+  deploymentModel: list("deploymentModel"),
+  cloudProviders: list("cloudProviders"),
+  modelStack: list("modelStack"),
+  agentStack: list("agentStack"),
+  protectedEnvironments: opt("protectedEnvironments"),
+  numAgents: opt("numAgents"),
+  agentsExpected: opt("agentsExpected"),
+  agentCount: opt("agentCount"),
+  businessUnits: opt("businessUnits"),
   sharedMemory: yesNo,
   sharedTools: yesNo,
   autonomousCoordination: yesNo,
   crossAgentComm: yesNo,
 
   // Stage 5 — Governance (current + target)
-  controls: strArr,
-  governanceOps: strArr,
-  governanceTarget: z.string().trim().max(40).optional().default(""),
-  unsafePrevention: z.string().trim().max(4000).optional().default(""),
-  incidents: z.string().trim().max(4000).optional().default(""),
+  controls: list("controls"),
+  governanceOps: list("governanceOps"),
+  governanceTarget: opt("governanceTarget"),
+  unsafePrevention: opt("unsafePrevention"),
+  incidents: opt("incidents"),
 
   // Stage 6 — Compliance & oversight
-  compliance: strArr,
-  evidenceRequirements: strArr,
-  execOversight: z.string().trim().max(40).optional().default(""),
-  execNeed: z.string().trim().max(40).optional().default(""),
+  compliance: list("compliance"),
+  evidenceRequirements: list("evidenceRequirements"),
+  execOversight: opt("execOversight"),
+  execNeed: opt("execNeed"),
 
   // Stage 7 — Commercial qualification
-  intent: z.string().trim().max(40).optional().default(""),
-  partnerType: z.string().trim().max(40).optional().default(""),
-  customerReach: z.string().trim().max(40).optional().default(""),
-  customerReachPotential: z.string().trim().max(40).optional().default(""),
-  customerBase: z.string().trim().max(4000).optional().default(""),
-  stage: z.string().trim().max(40).optional().default(""),
-  timeline: z.string().trim().max(40).optional().default(""),
-  successCriteria: strArr,
-  successNotes: z.string().trim().max(4000).optional().default(""),
+  intent: opt("intent"),
+  partnerType: opt("partnerType"),
+  customerReach: opt("customerReach"),
+  customerReachPotential: opt("customerReachPotential"),
+  customerBase: opt("customerBase"),
+  stage: opt("stage"),
+  timeline: opt("timeline"),
+  successCriteria: list("successCriteria"),
+  successNotes: opt("successNotes"),
 
   // Referral attribution (captured client-side from ?ref=)
-  referralCode: z.string().trim().max(80).optional().default(""),
-  referralSource: z.string().trim().max(160).optional().default(""),
+  referralCode: opt("referralCode"),
+  referralSource: opt("referralSource"),
 
   // Honeypot — bots fill it. Accepted by the schema so the route can silently
   // accept (200, no processing) without signalling the trap.

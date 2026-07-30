@@ -74,6 +74,34 @@ select.rgq-input {
 .rgq-actions { display: flex; gap: 12px; justify-content: space-between; margin-top: 24px; flex-wrap: wrap; }
 .rgq-actions .btn--primary { margin-left: auto; }
 .rgq-error { margin-top: 16px; color: var(--omega); font-size: 0.9rem; }
+
+/* Validation summary — names the missing/invalid answers and links to their stage */
+.rgq-summary {
+  margin: 0 0 20px; padding: 14px 16px;
+  background: rgba(229, 72, 77, 0.07);
+  border: 1px solid var(--omega); border-left: 3px solid var(--omega);
+  border-radius: var(--radius-sm, 10px);
+}
+.rgq-summary:focus { outline: 2px solid var(--omega); outline-offset: 2px; }
+.rgq-summary-h { margin: 0 0 8px; color: var(--omega); font-size: 0.92rem; font-weight: 600; }
+.rgq-summary-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.rgq-summary-list li { color: var(--ink); font-size: 0.9rem; line-height: 1.45; }
+.rgq-summary-link {
+  cursor: pointer; font: inherit; color: var(--ink); background: none; border: 0; padding: 0;
+  text-align: left; text-decoration: underline; text-underline-offset: 3px;
+}
+.rgq-summary-link:hover { color: var(--accent-bright); }
+.rgq-summary-link.is-static { cursor: default; text-decoration: none; }
+.rgq-summary-why { display: block; color: var(--muted, #8a929c); font-size: 0.82rem; }
+
+/* Spinner shown while the recommendation is being generated */
+.rgq-spinner {
+  display: inline-block; width: 0.85em; height: 0.85em; margin-right: 0.5em;
+  vertical-align: -0.08em; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; animation: rgq-spin 0.7s linear infinite;
+}
+@keyframes rgq-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rgq-spinner { animation-duration: 2s; } }
 .rgq-foot { margin-top: 18px; text-align: center; color: var(--muted, #8a929c); font-size: 0.88rem; }
 .rgq-foot a { color: var(--accent-bright); }
 
@@ -85,6 +113,8 @@ select.rgq-input {
   padding: 14px 16px; margin-bottom: 10px; transition: border-color .15s var(--ease);
 }
 .rgq-rev-group:hover { border-color: var(--line-strong); }
+.rgq-rev-group.is-invalid { border-color: var(--omega); background: rgba(229, 72, 77, 0.06); }
+.rgq-rev-group.is-invalid .rgq-rev-h { color: var(--omega); }
 .rgq-rev-h { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }
 .rgq-edit { font-size: 0.72rem; color: var(--muted, #8a929c); }
 .rgq-rev-row { display: flex; justify-content: space-between; gap: 14px; padding: 4px 0; font-size: 0.9rem; }

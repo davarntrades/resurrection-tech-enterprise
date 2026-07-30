@@ -44,6 +44,7 @@
     "runtime:reports": "node scripts/runtime/reports.test.cjs",
     "runtime:report-parity": "node scripts/runtime/report-parity.test.cjs",
     "runtime:enterprise-assessment": "node scripts/runtime/enterprise-assessment.test.cjs",
+    "runtime:assessment-submission": "node --import ./scripts/testing/ts-resolve.mjs scripts/runtime/assessment-submission.test.mjs",
     "runtime:engagement-stage": "node scripts/runtime/engagement-stage.test.cjs",
     "runtime:integration-gateway": "node scripts/runtime/integration-gateway.test.cjs",
     "runtime:aws-bedrock": "node scripts/runtime/aws-bedrock-connector.test.cjs",
