@@ -49,34 +49,40 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONFIGURED_E2E_BASE_URL: ${{ inputs.base_url || secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
           TARGET_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           candidate="$CONFIGURED_E2E_BASE_URL"
-          if [[ -z "$candidate" ]]; then
-            # PRODUCTION deployments first. A commit that only touches workflows
-            # can still produce a Preview deployment, and pointing the trace at
-            # one means asserting against a build that is not the running app —
-            # which is exactly how the previous attempt got a 404.
-            for attempt in {1..30}; do
-              for want in Production ""; do
-                candidate="$({
-                  gh api --paginate -H "Accept: application/vnd.github+json" \
-                    "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" \
-                    | jq -r --arg want "$want" '.[] | select($want == "" or (.environment // "") == $want) | .id'
-                } | while read -r deployment_id; do
+          # Resolution order, most explicit first:
+          #   1. a configured value (secret/variable/input) — always wins;
+          #   2. a successful PRODUCTION deployment for this commit;
+          #   3. the most recent successful production deployment on the default
+          #      branch. A commit that only touches workflows or docs may produce
+          #      no deployment of its own, and that must not make the target
+          #      unresolvable — the running application is still the right target.
+          resolve_from () {   # $1 = deployments query
+            gh api --paginate -H "Accept: application/vnd.github+json" "$1" \
+              | jq -r '.[] | select((.environment // "") == "Production") | .id' \
+              | while read -r deployment_id; do
                   [[ -n "$deployment_id" ]] || continue
                   gh api -H "Accept: application/vnd.github+json" \
                     "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
                     | jq -r '.[] | select(.state == "success") | .environment_url // empty' | head -n 1
-                done | head -n 1)"
-                [[ -n "$candidate" ]] && break
-              done
-              [[ -n "$candidate" ]] && break
+                done | head -n 1
+          }
+          if [[ -z "$candidate" ]]; then
+            for attempt in {1..12}; do
+              candidate="$(resolve_from "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100")"
+              [[ -n "$candidate" ]] && { echo "resolved from: this commit"; break; }
+              candidate="$(resolve_from "/repos/${GITHUB_REPOSITORY}/deployments?ref=${DEFAULT_BRANCH}&per_page=100")"
+              [[ -n "$candidate" ]] && { echo "resolved from: latest production deployment on ${DEFAULT_BRANCH}"; break; }
               sleep 10
             done
+          else
+            echo "resolved from: configured value"
           fi
           if [[ -z "$candidate" ]]; then
-            echo "::error::No successful deployment URL was found for this commit and no base URL was supplied. Refusing to run — a trace with no target would make a provider call and prove nothing." >&2
+            echo "::error::No production deployment URL could be resolved and no base URL was supplied. Refusing to run — a trace with no target would make a provider call and prove nothing. Set the E2E_BASE_URL repository variable, or re-dispatch with the base_url input." >&2
             exit 1
           fi
           safe_url="$(node -e '
