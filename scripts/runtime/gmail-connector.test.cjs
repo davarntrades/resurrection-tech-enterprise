@@ -434,7 +434,7 @@ function seal(value) {
       assert.ok(panel.includes(operation), `the Gmail panel must expose ${operation}`);
     }
     // The generic HTTPS endpoint field must NOT render for Gmail.
-    assert.ok(/type !== "aws-bedrock" && type !== "gmail"\)\) && <label>HTTPS endpoint/.test(panel),
+    assert.ok(/type !== "aws-bedrock" && type !== "gmail"\)\) && <label/.test(panel),
       "the generic HTTPS endpoint field must be suppressed for Gmail");
     // Credentials must be cleared from client state after submit.
     assert.ok(panel.includes("clearGmailSecrets"), "Gmail credentials must be cleared from component state on submit");

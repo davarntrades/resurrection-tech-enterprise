@@ -13,6 +13,18 @@ async function gateway(path = "", opts: RequestInit = {}) {
   return data;
 }
 
+async function enterpriseAction(path = "", opts: RequestInit = {}) {
+  const res = await fetch(`/api/runtime/admin/enterprise-actions${path}`, {
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    cache: "no-store",
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.code || `HTTP ${res.status}`);
+  return data;
+}
+
 const ago = (iso?: string | null) => {
   if (!iso) return "—";
   const n = Date.now() - Date.parse(iso);
@@ -54,6 +66,13 @@ export default function IntegrationGatewayPanel() {
         const health = result.result || {};
         if (result.ok) setNote(`Gmail validated · ${health.mailbox || "mailbox confirmed"} · ${health.latency_ms ?? "—"}ms`);
         else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Gmail credential validation failed"}`);
+        return;
+      }
+      if (["salesforce.credentials.check", "servicenow.credentials.check"].includes(body.operation)) {
+        await load(orgId);
+        const health = result.result || {};
+        if (result.ok) setNote(`${health.provider} validated · ${health.identity || "identity confirmed"} · ${health.latency_ms ?? "—"}ms`);
+        else setError(`${health.code ? `${health.code}: ` : ""}${health.error || "Provider credential validation failed"}`);
         return;
       }
       if (result.key) setNote(`Credential (shown once): ${result.key}`);
@@ -136,6 +155,17 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
+      {orgId && <EnterpriseConnectorPanel
+        orgId={orgId}
+        connectors={(data.connectors || []).filter((c: any) => ["salesforce", "servicenow"].includes(c.type))}
+        actions={data.enterprise_actions || []}
+        executions={data.enterprise_executions || []}
+        dashboard={data.enterprise_dashboard || {}}
+        busy={busy}
+        mutate={mutate}
+        refresh={() => load(orgId)}
+      />}
+
       {orgId && (
         <section className="radmin-card">
           <h2>Connected systems</h2>
@@ -193,6 +223,13 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
   const [gmailClientId, setGmailClientId] = useState("");
   const [gmailClientSecret, setGmailClientSecret] = useState("");
   const [gmailRefreshToken, setGmailRefreshToken] = useState("");
+  const [enterpriseInstanceUrl, setEnterpriseInstanceUrl] = useState("");
+  const [enterpriseLoginUrl, setEnterpriseLoginUrl] = useState("https://login.salesforce.com");
+  const [enterpriseClientId, setEnterpriseClientId] = useState("");
+  const [enterpriseClientSecret, setEnterpriseClientSecret] = useState("");
+  const [enterpriseRefreshToken, setEnterpriseRefreshToken] = useState("");
+  const [enterpriseCapabilities, setEnterpriseCapabilities] = useState("");
+  const [enterpriseTargets, setEnterpriseTargets] = useState("");
   const clearGmailSecrets = () => { setGmailClientId(""); setGmailClientSecret(""); setGmailRefreshToken(""); };
   const split = (value: string) => value.split(",").map((x) => x.trim()).filter(Boolean);
   const submit = async (e: FormEvent) => {
@@ -219,6 +256,32 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
       }
       return;
     }
+    if (kind === "connector" && ["salesforce", "servicenow"].includes(type)) {
+      try {
+        const targets = split(enterpriseTargets);
+        await mutate({
+          operation: "connector.create", environment_id: environmentId, type,
+          name: name || (type === "salesforce" ? "Salesforce" : "ServiceNow"),
+          config: {
+            instance_url: enterpriseInstanceUrl.trim(),
+            ...(type === "salesforce" ? {
+              login_url: enterpriseLoginUrl.trim(), api_version: "v61.0",
+              allowed_objects: targets.length ? targets : ["Account", "Contact", "Lead", "Case", "CaseComment", "Task"],
+            } : {
+              allowed_tables: targets.length ? targets : ["incident", "change_request"],
+            }),
+            capabilities: split(enterpriseCapabilities),
+          },
+          secret: {
+            client_id: enterpriseClientId.trim(), client_secret: enterpriseClientSecret.trim(),
+            refresh_token: enterpriseRefreshToken.trim(),
+          },
+        });
+      } finally {
+        setEnterpriseClientId(""); setEnterpriseClientSecret(""); setEnterpriseRefreshToken("");
+      }
+      return;
+    }
     if (kind === "connector" && type === "aws-bedrock") await mutate({
       operation: "connector.create", environment_id: environmentId, type, name: name || "Amazon Bedrock",
       config: {
@@ -232,7 +295,7 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
         session_token: sessionToken || undefined, external_id: externalId || undefined,
       },
     });
-    if (kind === "connector" && type !== "aws-bedrock" && type !== "gmail") await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
+    if (kind === "connector" && !["aws-bedrock", "gmail", "salesforce", "servicenow"].includes(type)) await mutate({ operation: "connector.create", environment_id: environmentId, type, name, endpoint });
     if (kind === "webhook") await mutate({ operation: "webhook.create", environment_id: environmentId, name, url: endpoint, events: ["decision.created"] });
     if (kind === "credential") await mutate({ operation: "credential.issue", environment_id: environmentId, label: name || "Integration credential", role: "admin", scopes: ["runtime:read", "runtime:write", "integrations:read", "integrations:manage", "webhooks:read", "webhooks:manage", "evidence:read", "evidence:write", "deployments:read", "deployments:manage"] });
     if (kind === "deployment") await mutate({ operation: "deployment.create", environment_id: environmentId, name: name || "GuardianOS deployment", target: envs.find((e) => e.id === environmentId)?.kind, model: "platform" });
@@ -248,7 +311,21 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
           {kind === "connector" && <label>Connector type<select className="radmin-select" value={type} onChange={(e) => setType(e.target.value)}>{definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
         </div>
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "credential" ? "Production automation" : "Customer system"} /></label>
-        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock" && type !== "gmail")) && <label>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required /></label>}
+        {(kind === "webhook" || (kind === "connector" && type !== "aws-bedrock" && type !== "gmail")) && <label hidden={kind === "connector" && ["salesforce", "servicenow"].includes(type)}>HTTPS endpoint<input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://customer.example.com/guardian" required={kind === "webhook" || !["salesforce", "servicenow"].includes(type)} /></label>}
+        {kind === "connector" && ["salesforce", "servicenow"].includes(type) && <>
+          <div className="radmin-row">
+            <label>Instance URL<input value={enterpriseInstanceUrl} onChange={(e) => setEnterpriseInstanceUrl(e.target.value)} placeholder={type === "salesforce" ? "https://acme.my.salesforce.com" : "https://acme.service-now.com"} required /></label>
+            {type === "salesforce" && <label>OAuth login URL<input value={enterpriseLoginUrl} onChange={(e) => setEnterpriseLoginUrl(e.target.value)} required /></label>}
+          </div>
+          <div className="radmin-row">
+            <label>OAuth client ID<input autoComplete="off" value={enterpriseClientId} onChange={(e) => setEnterpriseClientId(e.target.value)} required /></label>
+            <label>OAuth client secret<input type="password" autoComplete="new-password" value={enterpriseClientSecret} onChange={(e) => setEnterpriseClientSecret(e.target.value)} required /></label>
+            <label>Refresh token<input type="password" autoComplete="new-password" value={enterpriseRefreshToken} onChange={(e) => setEnterpriseRefreshToken(e.target.value)} required /></label>
+          </div>
+          <label>{type === "salesforce" ? "Allowed objects" : "Allowed tables"}<input value={enterpriseTargets} onChange={(e) => setEnterpriseTargets(e.target.value)} placeholder={type === "salesforce" ? "Account, Contact, Lead, Case" : "incident, change_request"} /></label>
+          <label>Capabilities<input value={enterpriseCapabilities} onChange={(e) => setEnterpriseCapabilities(e.target.value)} placeholder="Comma-separated · empty enables the provider catalog" /></label>
+          <p className="radmin-muted">Credentials are encrypted before storage and never returned. Object/table, field and capability allowlists are re-applied after approval. The connector remains unusable until live OAuth validation succeeds.</p>
+        </>}
         {kind === "connector" && type === "gmail" && <>
           <div className="radmin-row">
             <label>Sender mailbox<input type="email" value={mailbox} onChange={(e) => setMailbox(e.target.value)} placeholder="governed@yourdomain.com" required /></label>
@@ -354,6 +431,228 @@ function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boo
           </tbody>
         </table></div>
       )}
+    </section>
+  );
+}
+
+function exampleEnterpriseInput(actionId: string) {
+  const examples: Record<string, any> = {
+    "salesforce.get_record": { object: "Lead", record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID" },
+    "salesforce.search_records": { object: "Lead", term: "GuardianOS Test", limit: 5 },
+    "salesforce.create_lead": { fields: { LastName: "GuardianOS Test", Company: "Resurrection Tech Test", Status: "Open - Not Contacted" } },
+    "salesforce.update_lead": { record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID", fields: { Company: "Resurrection Tech Governed Test" } },
+    "salesforce.create_case": { fields: { Subject: "GuardianOS governed test", Status: "New" } },
+    "salesforce.update_case": { record_id: "REPLACE_WITH_DEDICATED_TEST_RECORD_ID", fields: { Subject: "GuardianOS governed test update" } },
+    "salesforce.add_case_comment": { fields: { ParentId: "REPLACE_WITH_DEDICATED_TEST_CASE_ID", CommentBody: "GuardianOS governed test", IsPublished: false } },
+    "salesforce.create_task": { fields: { Subject: "GuardianOS governed test", Status: "Not Started", Priority: "Normal" } },
+    "servicenow.get_record": { table: "incident", record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID" },
+    "servicenow.list_incidents": { limit: 5 },
+    "servicenow.list_change_requests": { limit: 5 },
+    "servicenow.create_incident": { fields: { short_description: "GuardianOS governed test", description: "Dedicated non-production test record" } },
+    "servicenow.update_incident": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", fields: { short_description: "GuardianOS governed test update" } },
+    "servicenow.add_work_note": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", work_note: "GuardianOS governed test note" },
+    "servicenow.assign_incident": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", assigned_to: "REPLACE_WITH_TEST_USER_SYS_ID" },
+    "servicenow.create_change_request": { fields: { short_description: "GuardianOS governed test change", description: "Dedicated non-production test record" } },
+    "servicenow.update_change_request": { record_id: "REPLACE_WITH_DEDICATED_TEST_SYS_ID", fields: { short_description: "GuardianOS governed test change update" } },
+  };
+  return JSON.stringify(examples[actionId] || {}, null, 2);
+}
+
+function EnterpriseConnectorPanel({
+  orgId, connectors, actions, executions, dashboard, busy, mutate, refresh,
+}: {
+  orgId: string; connectors: any[]; actions: any[]; executions: any[]; dashboard: any;
+  busy: boolean; mutate: (body: any) => Promise<void>; refresh: () => Promise<void>;
+}) {
+  const [rotating, setRotating] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const eligible = useMemo(
+    () => connectors.filter((c: any) => c.status !== "disabled" && c.health === "healthy"),
+    [connectors],
+  );
+  const [connectorId, setConnectorId] = useState("");
+  const connector = useMemo(
+    () => eligible.find((c: any) => c.id === connectorId) || eligible[0] || null,
+    [connectorId, eligible],
+  );
+  const availableActions = useMemo(
+    () => actions.filter((a: any) => a.connector_type === connector?.type
+      && (!connector?.config?.capabilities?.length || connector.config.capabilities.includes(a.operation))),
+    [actions, connector],
+  );
+  const [actionId, setActionId] = useState("");
+  const action = availableActions.find((a: any) => a.action_id === actionId) || availableActions[0] || null;
+  const [inputJson, setInputJson] = useState("{}");
+  const [confirmedTestMutation, setConfirmedTestMutation] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [currentRun, setCurrentRun] = useState<any>(null);
+
+  useEffect(() => {
+    if (!connectorId && eligible[0]) setConnectorId(eligible[0].id);
+    if (connectorId && !eligible.some((c: any) => c.id === connectorId)) setConnectorId(eligible[0]?.id || "");
+  }, [connectorId, eligible]);
+  useEffect(() => {
+    const next = availableActions.find((a: any) => a.action_id === actionId) || availableActions.find((a: any) => a.reads) || availableActions[0];
+    if (next && next.action_id !== actionId) setActionId(next.action_id);
+    if (!next && actionId) setActionId("");
+  }, [actionId, availableActions]);
+  useEffect(() => {
+    setInputJson(exampleEnterpriseInput(actionId));
+    setConfirmedTestMutation(false);
+    setCurrentRun(null);
+    setActionError("");
+  }, [actionId, connectorId]);
+
+  const clear = () => { setRotating(""); setClientId(""); setClientSecret(""); setRefreshToken(""); };
+  const rotate = async (connector: any) => {
+    try {
+      await mutate({
+        operation: `${connector.type}.credentials.rotate`, connector_id: connector.id,
+        credentials: { client_id: clientId.trim(), client_secret: clientSecret.trim(), refresh_token: refreshToken.trim() },
+      });
+    } finally { clear(); }
+  };
+  const advance = async (run: any) => {
+    const query = new URLSearchParams({
+      org_id: orgId,
+      environment_id: run.environment_id,
+      enterprise_action_run_id: run.id,
+    });
+    const state = await enterpriseAction(`?${query.toString()}`);
+    const next = state.current || run;
+    setCurrentRun(next);
+    await refresh();
+    return next;
+  };
+  const startAction = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!connector || !action) return;
+    setActionBusy(true); setActionError(""); setCurrentRun(null);
+    try {
+      let input: any;
+      try { input = JSON.parse(inputJson); }
+      catch { throw new Error("Action input must be valid JSON"); }
+      if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Action input must be a JSON object");
+      if (action.mutates && !confirmedTestMutation) throw new Error("Confirm that this mutation targets only a dedicated test record");
+      const created = await enterpriseAction("", {
+        method: "POST",
+        body: JSON.stringify({
+          org_id: orgId,
+          environment_id: connector.environment_id,
+          connector_id: connector.id,
+          action_id: action.action_id,
+          source_type: "operator_preview_validation",
+          input,
+        }),
+      });
+      await advance(created);
+    } catch (e: any) { setActionError(e.message || "Enterprise action failed closed"); }
+    finally { setActionBusy(false); }
+  };
+  const resumeAfterApproval = async () => {
+    if (!currentRun) return;
+    setActionBusy(true); setActionError("");
+    try { await advance(currentRun); }
+    catch (e: any) { setActionError(e.message || "Approval resume failed closed"); }
+    finally { setActionBusy(false); }
+  };
+  return (
+    <section className="radmin-card">
+      <h2>Governed CRM &amp; Service Management</h2>
+      <p className="radmin-muted">Salesforce and ServiceNow actions share the canonical proposal → Runtime Governance → approval → permit → at-most-once provider → immutable evidence path.</p>
+      <div className="radmin-badges" style={{ marginBottom: 12 }}>
+        <span className="radmin-badge ghost">Runs {dashboard.total || 0}</span>
+        <span className="radmin-badge ok">Completed {dashboard.completed || 0}</span>
+        <span className="radmin-badge">Awaiting approval {dashboard.awaiting_approval || 0}</span>
+        <span className="radmin-badge">Blocked {dashboard.blocked || 0}</span>
+        <span className="radmin-badge ghost">Provider calls {dashboard.provider_invocations || 0}</span>
+      </div>
+      {!connectors.length ? <p className="radmin-muted">No Salesforce or ServiceNow connectors configured.</p> : (
+        <div className="radmin-table-wrap"><table className="radmin-table">
+          <thead><tr><th>Name</th><th>Provider</th><th>Environment</th><th>Health</th><th>Scope</th><th>Actions</th></tr></thead>
+          <tbody>{connectors.map((c: any) => <tr key={c.id}>
+            <td>{c.name}<div className="radmin-muted" style={{ fontSize: 11 }}>{c.id}</div></td>
+            <td>{c.type}</td><td>{c.environment_id}</td>
+            <td>{c.health}{c.last_error && <div className="radmin-muted" style={{ fontSize: 11 }}>{c.last_error}</div>}</td>
+            <td>{(c.config?.allowed_objects || c.config?.allowed_tables || []).join(", ")}<div className="radmin-muted" style={{ fontSize: 11 }}>{(c.config?.capabilities || []).join(", ")}</div></td>
+            <td>
+              <div className="radmin-row" style={{ flexWrap: "wrap", gap: 6 }}>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: `${c.type}.credentials.check`, connector_id: c.id })}>Validate</button>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => setRotating(rotating === c.id ? "" : c.id)}>Rotate</button>
+                <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: "connector.status", connector_id: c.id, status: c.status === "disabled" ? "active" : "disabled" })}>{c.status === "disabled" ? "Enable" : "Disable"}</button>
+              </div>
+              {rotating === c.id && <div className="radmin-form" style={{ marginTop: 10 }}>
+                <label>New OAuth client ID<input autoComplete="off" value={clientId} onChange={(e) => setClientId(e.target.value)} /></label>
+                <label>New client secret<input type="password" autoComplete="new-password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} /></label>
+                <label>New refresh token<input type="password" autoComplete="new-password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} /></label>
+                <div className="radmin-row">
+                  <button className="radmin-btn primary sm" disabled={busy || !clientId.trim() || !clientSecret.trim() || !refreshToken.trim()} onClick={() => rotate(c)}>Validate and rotate</button>
+                  <button className="radmin-btn sm" disabled={busy} onClick={clear}>Cancel</button>
+                </div>
+              </div>}
+            </td>
+          </tr>)}</tbody>
+        </table></div>
+      )}
+      <h3 style={{ marginTop: 20 }}>Governed test action</h3>
+      <p className="radmin-muted">Run a read first. Mutations stop after the initial Runtime Governance evaluation and cannot reach the provider until a separate operator approval is recorded and you explicitly resume the run.</p>
+      {!eligible.length ? <p className="radmin-muted">Create and validate a dedicated test connector before running an action. Only enabled, healthy connectors are eligible.</p> : (
+        <form className="radmin-form" onSubmit={startAction}>
+          <div className="radmin-row">
+            <label>Healthy connector<select className="radmin-select" value={connector?.id || ""} onChange={(e) => setConnectorId(e.target.value)}>
+              {eligible.map((c: any) => <option key={c.id} value={c.id}>{c.name} · {c.type} · {c.environment_id}</option>)}
+            </select></label>
+            <label>Canonical action<select className="radmin-select" value={action?.action_id || ""} onChange={(e) => setActionId(e.target.value)}>
+              {availableActions.map((a: any) => <option key={a.action_id} value={a.action_id}>{a.action_id} · {a.reads ? "read" : "approval-gated mutation"}</option>)}
+            </select></label>
+          </div>
+          <label>Test input JSON<textarea rows={8} value={inputJson} onChange={(e) => setInputJson(e.target.value)} spellCheck={false} /></label>
+          {action?.mutates && <label className="radmin-check">
+            <input type="checkbox" checked={confirmedTestMutation} onChange={(e) => setConfirmedTestMutation(e.target.checked)} />
+            <span>I confirm this targets only a dedicated, disposable provider test record. Initial execution must stop for approval with zero provider calls.</span>
+          </label>}
+          {actionError && <div className="radmin-err">{actionError}</div>}
+          <button className="radmin-btn primary" disabled={busy || actionBusy || !connector || !action || (action.mutates && !confirmedTestMutation)}>
+            {actionBusy ? "Governing…" : action?.mutates ? "Start approval-gated mutation" : "Run governed read"}
+          </button>
+        </form>
+      )}
+      {currentRun && <div className="radmin-keyreveal" style={{ overflowWrap: "anywhere", marginTop: 12 }}>
+        <strong>{currentRun.action_id} · {currentRun.status}</strong>
+        <div className="radmin-muted" style={{ marginTop: 6 }}>
+          Run: {currentRun.id}
+          {" · "}Proposal: {currentRun.proposal_id || "—"}
+          {" · "}Governance: {currentRun.governance_verdict || currentRun.governance_decision || "—"}
+          {" · "}Approval: {currentRun.approval_status || "—"}
+          {" · "}Provider calls: {currentRun.provider_invocation_count || 0}
+          {" · "}Record ID: {currentRun.external_record_id || "—"}
+          {" · "}Evidence: {currentRun.evidence_id || "—"}
+          {" · "}Governance latency: {currentRun.governance_latency_ms ?? "—"}ms
+          {" · "}Provider latency: {currentRun.provider_latency_ms ?? "—"}ms
+          {" · "}Total latency: {currentRun.total_latency_ms ?? "—"}ms
+        </div>
+        {currentRun.safe_failure_reason && <div className="radmin-muted" style={{ marginTop: 6 }}>Safe failure: {currentRun.safe_failure_reason}</div>}
+        {currentRun.status === "awaiting_approval" && <div className="radmin-row" style={{ marginTop: 10 }}>
+          <a className="radmin-btn sm" href="/admin/operations" target="_blank" rel="noreferrer">Open operator approvals</a>
+          <button className="radmin-btn primary sm" type="button" disabled={actionBusy} onClick={resumeAfterApproval}>Resume after approval</button>
+          <span className="radmin-muted">Approve the exact proposal first. Resuming without approval remains non-executable.</span>
+        </div>}
+      </div>}
+      {!!executions.length && <>
+        <h3 style={{ marginTop: 20 }}>Recent governed record actions</h3>
+        <div className="radmin-table-wrap"><table className="radmin-table">
+          <thead><tr><th>Action</th><th>Provider</th><th>State</th><th>Governance</th><th>Approval</th><th>Provider calls</th><th>Record ID</th><th>Evidence</th></tr></thead>
+          <tbody>{executions.map((run: any) => <tr key={run.id}>
+            <td>{run.action_id}<div className="radmin-muted" style={{ fontSize: 11 }}>{run.id}</div></td>
+            <td>{run.provider}</td><td>{run.lifecycle_state}</td><td>{run.governance_decision || "—"}</td>
+            <td>{run.approval_status || "—"}</td><td>{run.provider_invocation_count || 0}</td>
+            <td>{run.external_record_id || "—"}</td><td>{run.evidence_id || "—"}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </>}
     </section>
   );
 }

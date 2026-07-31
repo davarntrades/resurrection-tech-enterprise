@@ -40,16 +40,20 @@ export async function GET(req: NextRequest) {
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
     bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
   }, { headers: { "cache-control": "no-store" } });
-  const [connectors, webhooks, deliveries, deployments, credentials, bedrock] = await Promise.all([
+  const [connectors, webhooks, deliveries, deployments, credentials, bedrock, enterpriseExecutions, enterpriseDashboard] = await Promise.all([
     (rt.integrationGateway as any).listConnectors(org_id),
     (rt.integrationGateway as any).listWebhooks(org_id),
     (rt.integrationGateway as any).listDeliveries(org_id),
     (rt.integrationGateway as any).listDeployments(org_id),
     rt.admin.listApiKeys(org_id),
     (rt.integrationGateway as any).bedrockOverview(org_id),
+    (rt.enterpriseActionRuns as any).recentRuns(org_id, null, 25),
+    (rt.enterpriseActionRuns as any).aggregate(org_id),
   ]);
   return NextResponse.json({
     summary, organisations, connectors, webhooks, deliveries, deployments, credentials, bedrock,
+    enterprise_executions: enterpriseExecutions, enterprise_dashboard: enterpriseDashboard,
+    enterprise_actions: (rt.enterpriseActionAdapters as any).listActions(),
     connector_definitions: (rt.integrationGateway as any).CONNECTOR_DEFINITIONS,
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
     bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
@@ -145,6 +149,33 @@ export async function POST(req: NextRequest) {
         latency_ms: result.latency_ms ?? null,
       }));
       return NextResponse.json({ ok: !!result.ok, result });
+    }
+    if (["salesforce.credentials.check", "servicenow.credentials.check"].includes(body.operation)) {
+      const connectorType = body.operation.split(".")[0];
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== connectorType)
+        return NextResponse.json({ error: `${connectorType} connector not found` }, { status: 404 });
+      const result = await (rt.integrationGateway as any).checkEnterpriseConnectorHealthRaw({
+        org_id, environment_id: row.environment_id, connector_id: row.id, connector_type: connectorType,
+      });
+      return NextResponse.json({ ok: !!result.ok, result });
+    }
+    if (["salesforce.credentials.rotate", "servicenow.credentials.rotate"].includes(body.operation)) {
+      const connectorType = body.operation.split(".")[0];
+      const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
+      if (!row || row.org_id !== org_id || row.type !== connectorType)
+        return NextResponse.json({ error: `${connectorType} connector not found` }, { status: 404 });
+      if (!body.credentials) return NextResponse.json({ error: "replacement OAuth credentials are required" }, { status: 400 });
+      const secret_ref = await (rt.integrationGateway as any).stageSecret(
+        org_id, body.credentials, `${connectorType}-credential-rotation`);
+      proposal = await (rt.integrationGateway as any).governed("rotate_enterprise_connector_credentials", {
+        org_id, environment_id: row.environment_id, actor: op.identity,
+        params: { connector_id: row.id, connector_type: connectorType, config: body.config || {}, secret_ref },
+      });
+      return NextResponse.json({
+        ok: (rt.integrationGateway as any).executed(proposal),
+        governance: governance(proposal), result: proposal.execution?.result || null,
+      });
     }
     if (body.operation === "bedrock.credentials.rotate") {
       const row = await rt.store.findOne("integration_connectors", { id: body.connector_id });
