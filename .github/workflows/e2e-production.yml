@@ -135,10 +135,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       # ── Governed Gmail delivery ────────────────────────────────────────────
-      # Deliberately NOT a skip-when-unset step: a governed-delivery gate that
-      # silently passes when unconfigured is worse than no gate. The preflight
-      # FAILS the job when GMAIL_SMOKE_ENABLED is on and anything required is
-      # missing, and states plainly in the summary when it is off.
+      # ENFORCING BY DEFAULT. Governed Gmail delivery has been proven in
+      # production, so this is a standing control, not an opt-in demonstration:
+      # a proof that never re-runs is a demo, and the first quiet regression
+      # would be found by a customer rather than by CI.
+      #
+      # The gate therefore runs unless someone EXPLICITLY disables it with
+      # GMAIL_SMOKE_ENABLED=false, and it fails the job when it is on but
+      # unconfigured. Turning it off is a deliberate, visible act that says so
+      # in the Job Summary — it can never lapse by omission.
       - name: Gmail governed smoke preflight
         id: gmail_preflight
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
@@ -148,9 +153,9 @@ jobs:
           GMAIL_SMOKE_RECIPIENT: ${{ secrets.GMAIL_SMOKE_RECIPIENT || vars.GMAIL_SMOKE_RECIPIENT }}
         run: |
           set -euo pipefail
-          if [[ ! "${GMAIL_SMOKE_ENABLED:-}" =~ ^(1|true|yes|on)$ ]]; then
+          if [[ "${GMAIL_SMOKE_ENABLED:-}" =~ ^(0|false|no|off)$ ]]; then
             echo "enabled=no" >> "$GITHUB_OUTPUT"
-            echo "GMAIL_SMOKE_ENABLED is not set — governed Gmail delivery will NOT be validated by this run."
+            echo "::warning::GMAIL_SMOKE_ENABLED is explicitly disabled — governed Gmail delivery is NOT being enforced by this run."
             exit 0
           fi
           missing=0
@@ -158,7 +163,7 @@ jobs:
             if [[ -n "${!name:-}" ]]; then echo "$name configured: yes"; else echo "$name configured: no"; missing=1; fi
           done
           if [[ "$missing" != "0" ]]; then
-            echo "::error::GMAIL_SMOKE_ENABLED is on but required configuration is missing; the governed Gmail smoke cannot run." >&2
+            echo "::error::The governed Gmail control is enforcing but required configuration is missing. Set the missing values, or set GMAIL_SMOKE_ENABLED=false to disable the control deliberately." >&2
             exit 1
           fi
           echo "enabled=yes" >> "$GITHUB_OUTPUT"
@@ -189,11 +194,11 @@ jobs:
             {
               echo "## Gmail governed production smoke"
               echo
-              echo "**NOT VALIDATED** — \`GMAIL_SMOKE_ENABLED\` is not set for this repository."
+              echo "**CONTROL DISABLED** — \`GMAIL_SMOKE_ENABLED\` is explicitly set to false."
               echo
-              echo "Governed Gmail delivery has not been proven by this run. Provision the Gmail"
-              echo "connector, set the required configuration, then set the repository variable"
-              echo "\`GMAIL_SMOKE_ENABLED=true\` to make this gate enforcing."
+              echo "Governed Gmail delivery is a standing production control and was deliberately"
+              echo "switched off for this run, so it proves nothing about the current deployment."
+              echo "Remove \`GMAIL_SMOKE_ENABLED\` (or set it to true) to restore enforcement."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Upload governed Gmail smoke report
