@@ -357,6 +357,33 @@ const event = (id, org, env, type, evidence, at) => store.insert("integration_ev
     && storedRow.connector_activity.register.some((r) => r.evidence_id === "ev_ok"),
   "24d. the persisted section carries the traceable evidence register");
 
+  // 25. The rendered register must show the MOST RECENT rows. Showing the oldest
+  //     rows of a truncated register buries the newest activity — the exact
+  //     failure that made a production trace unable to find its own evidence.
+  const many = { ...sparse };
+  many.register = [];
+  for (let i = 0; i < 60; i += 1) {
+    many.register.push({
+      evidence_id: `ev_bulk_${String(i).padStart(3, "0")}`,
+      executed_at: `2026-06-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,
+      canonical_action_id: "bulk.action", proposal_id: `ops_bulk_${i}`,
+      governance_decision: "executed", normalized_connector: "aws-bedrock",
+      provider: "amazon-bedrock", model: "m", execution_outcome: "executed",
+      provider_invocation_count: 1, request_hash: null, response_hash: null,
+    });
+  }
+  const newest = many.register[many.register.length - 1].evidence_id;
+  const oldest = many.register[0].evidence_id;
+  const bulkReport = { ...report, connector_activity: { ...many, register_total: many.register.length, register_truncated: false, available: true } };
+  const bulkHtml = reports.toHtml(bulkReport);
+  const bulkMd = reports.toMarkdown(bulkReport);
+  ok(bulkHtml.includes(newest) && bulkMd.includes(newest),
+    `25a. the newest register row (${newest}) is rendered when the register is truncated`);
+  ok(!bulkHtml.includes(oldest) && !bulkMd.includes(oldest),
+    `25b. the oldest row (${oldest}) is the one dropped, not the newest`);
+  ok(/most recent of 60 records, newest first/.test(bulkHtml) && /most recent of 60 records, newest first/.test(bulkMd),
+    "25c. the document discloses that it shows the most recent records, newest first");
+
   console.log(`\nconnector audit projection test: ${pass} passed, ${fail} failed`);
   if (fail) { console.log("FAILURES:"); for (const f of fails) console.log("  ✗ " + f); }
   try { fs.rmSync(process.env.RUNTIME_DATA_DIR, { recursive: true, force: true }); } catch { /* */ }
