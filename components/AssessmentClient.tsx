@@ -16,28 +16,18 @@ import {
 import { slugifyRef, humanizeRef, DIRECT_SOURCE } from "@/lib/referral";
 import { REPORT_STORAGE_KEY, type StoredReport } from "@/lib/assessmentReport";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
+import {
+  EMPTY_ASSESSMENT, blankAssessment, errorMapFrom, issuesFromFieldErrors, maxLengthOf,
+  sectionsForStep, summaryHeading, validateAssessment,
+  type SectionKey, type ValidationIssue,
+} from "@/lib/assessmentFields";
 
 const STORAGE_KEY = "rt-assessment-v2";
 
-const EMPTY: AssessmentData = {
-  fullName: "", jobTitle: "", companyName: "", email: "", phone: "",
-  industry: "", companySize: "", country: "",
-  operatingRegions: [], deploymentRegions: [],
-  aiMaturityCurrent: "", aiMaturityTarget: "",
-  agentsDeployed: "", customerFacing: "", connectedToTools: "",
-  canTakeActions: "", multipleAgents: "", inProduction: "",
-  toolAccess: [], executionPermissions: [], criticalSystems: "", downstreamAutomation: "",
-  customersCurrent: "", customersFuture: "", revenueExposureCurrent: "", revenueExposureFuture: "",
-  deploymentModel: [], cloudProviders: [], modelStack: [], agentStack: [],
-  protectedEnvironments: "", numAgents: "", agentsExpected: "", agentCount: "", businessUnits: "",
-  sharedMemory: "", sharedTools: "", autonomousCoordination: "", crossAgentComm: "",
-  controls: [], governanceOps: [], governanceTarget: "", unsafePrevention: "", incidents: "",
-  compliance: [], evidenceRequirements: [], execOversight: "", execNeed: "",
-  intent: "", partnerType: "", customerReach: "", customerReachPotential: "", customerBase: "",
-  stage: "", timeline: "",
-  successCriteria: [], successNotes: "",
-  referralCode: "", referralSource: "",
-};
+const EMPTY: AssessmentData = EMPTY_ASSESSMENT;
+
+/** Character cap for a field, taken from the shared specs the API validates against. */
+const cap = (key: keyof AssessmentData) => maxLengthOf(key);
 
 /** Every string[] field the chip toggles operate on. */
 type MultiKey =
@@ -57,17 +47,25 @@ const SECTIONS = [
 ] as const;
 
 const TOTAL = SECTIONS.length;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AssessmentClient() {
   const [data, setData] = useState<AssessmentData>(EMPTY);
   const [step, setStep] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ recommendation: Recommendation; reference: string; emailed: boolean } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const restored = useRef(false);
+  // Autosave must not run until the saved answers have actually been committed
+  // to state, or the first render would write a blank form over saved progress.
+  const [hydrated, setHydrated] = useState(false);
+  // Bumped whenever a validation failure needs to be announced and scrolled to.
+  const [announce, setAnnounce] = useState(0);
+  // Guards a double-click: `submitting` only takes effect on the next render.
+  const inFlight = useRef(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  const errors = errorMapFrom(issues);
 
   // Restore saved progress + capture referral (?ref=). A fresh referral link
   // always wins; otherwise we keep a previously-captured one; else Direct/Unknown.
@@ -83,46 +81,59 @@ export function AssessmentClient() {
     const referralSource = referralCode ? humanizeRef(referralCode) : DIRECT_SOURCE;
 
     setData((d) => ({ ...d, ...(saved.data ?? {}), referralCode, referralSource }));
-    if (typeof saved.step === "number") setStep(Math.min(Math.max(0, saved.step), TOTAL - 2));
-    restored.current = true;
+    if (typeof saved.step === "number") setStep(Math.min(Math.max(0, saved.step), TOTAL - 1));
+    setHydrated(true);
   }, []);
 
   // Autosave.
   useEffect(() => {
-    if (!restored.current) return;
+    if (!hydrated) return;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, step })); } catch { /* ignore */ }
-  }, [data, step]);
+  }, [hydrated, data, step]);
+
+  function clearIssue(key: string) {
+    setIssues((list) => (list.some((i) => i.key === key) ? list.filter((i) => i.key !== key) : list));
+  }
 
   function set<K extends keyof AssessmentData>(key: K, value: AssessmentData[K]) {
     setData((d) => ({ ...d, [key]: value }));
-    if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));
+    clearIssue(key as string);
   }
   function toggle(key: MultiKey, value: string) {
     setData((d) => {
-      const cur = d[key];
+      const cur = d[key] ?? [];
       return { ...d, [key]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] };
     });
-  }
-
-  function validateOrganisation(): boolean {
-    const e: Record<string, string> = {};
-    if (!data.fullName.trim()) e.fullName = "Required";
-    if (!data.jobTitle.trim()) e.jobTitle = "Required";
-    if (!data.companyName.trim()) e.companyName = "Required";
-    if (!EMAIL_RE.test(data.email.trim())) e.email = "Enter a valid email";
-    if (!data.industry) e.industry = "Select one";
-    if (!data.companySize) e.companySize = "Select one";
-    if (!data.country.trim()) e.country = "Required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    clearIssue(key);
   }
 
   function scrollTop() {
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  /** Surface a validation failure where the participant can act on it. */
+  function reportIssues(found: ValidationIssue[]) {
+    setIssues(found);
+    setAnnounce((n) => n + 1);
+  }
+
+  // Bring the summary into view once it has actually rendered, so a failed
+  // submit is never silent — the participant lands on the list of what to fix.
+  useEffect(() => {
+    if (!announce) return;
+    const el = summaryRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus({ preventScroll: true });
+    } else {
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [announce]);
+
   function next() {
-    if (step === 0 && !validateOrganisation()) return;
+    const found = validateAssessment(data, sectionsForStep(step));
+    if (found.length) { reportIssues(found); return; }
+    setIssues([]);
     setStep((s) => Math.min(s + 1, TOTAL - 1));
     scrollTop();
   }
@@ -131,8 +142,24 @@ export function AssessmentClient() {
     scrollTop();
   }
 
+  function goto(s: number) {
+    setStep(s);
+    scrollTop();
+  }
+
   async function submit() {
-    if (!validateOrganisation()) { setStep(0); scrollTop(); return; }
+    // Already submitted, or a submission is in flight — never send twice.
+    if (inFlight.current || submitting || result) return;
+
+    const found = validateAssessment(data);
+    if (found.length) {
+      setSubmitError(null);
+      reportIssues(found);
+      return;
+    }
+
+    inFlight.current = true;
+    setIssues([]);
     setSubmitting(true);
     setSubmitError(null);
     track(Events.CTA_CLICK, { location: "assessment", cta: "submit" });
@@ -144,9 +171,16 @@ export function AssessmentClient() {
       });
       const json = await res.json();
       if (!json.ok) {
-        if (json.fieldErrors) setErrors(json.fieldErrors);
-        setSubmitError(json.error || "Submission failed. Please try again.");
-        setStep(0);
+        // Answers are never discarded on failure — the participant stays on the
+        // review stage with the offending fields named and linked.
+        const serverIssues = issuesFromFieldErrors(json.fieldErrors, data);
+        if (serverIssues.length) {
+          reportIssues(serverIssues);
+          setSubmitError(null);
+        } else {
+          setSubmitError(json.error || "Submission failed. Please try again — your answers have been kept.");
+          scrollTop();
+        }
       } else {
         setResult({ recommendation: json.recommendation, reference: json.reference, emailed: json.delivery?.emailed });
         // Persist the full submission on this device so /assessment/report can
@@ -162,22 +196,29 @@ export function AssessmentClient() {
         scrollTop();
       }
     } catch {
-      setSubmitError("Could not reach the assessment service. Please try again.");
+      setSubmitError("Could not reach the assessment service. Your answers have been kept — please try again.");
+      scrollTop();
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   }
 
   function startOver() {
-    setData(EMPTY);
+    setData(blankAssessment());
     setStep(0);
     setResult(null);
-    setErrors({});
+    setIssues([]);
+    setSubmitError(null);
+    inFlight.current = false;
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     scrollTop();
   }
 
   const pct = Math.round(((step + 1) / TOTAL) * 100);
+  const invalidSections = new Set<SectionKey>(
+    issues.map((i) => i.section).filter((s): s is SectionKey => s !== null),
+  );
 
   return (
     <section className="rgq" aria-label="Runtime Governance Assessment">
@@ -220,6 +261,8 @@ export function AssessmentClient() {
                 </div>
               </div>
 
+              <ErrorSummary issues={issues} onJump={goto} summaryRef={summaryRef} />
+
               <div className="rgq-fields">
                 {step === 0 && <OrganisationStep data={data} set={set} errors={errors} toggle={toggle} />}
                 {step === 1 && <ProgrammeStep data={data} set={set} />}
@@ -228,7 +271,7 @@ export function AssessmentClient() {
                 {step === 4 && <GovernanceStep data={data} set={set} toggle={toggle} />}
                 {step === 5 && <ComplianceStep data={data} set={set} toggle={toggle} />}
                 {step === 6 && <CommercialStep data={data} set={set} toggle={toggle} />}
-                {step === 7 && <ReviewStep data={data} goto={(s) => { setStep(s); scrollTop(); }} />}
+                {step === 7 && <ReviewStep data={data} goto={goto} invalidSections={invalidSections} />}
               </div>
 
               {submitError && <div className="rgq-error" role="alert">{submitError}</div>}
@@ -244,8 +287,21 @@ export function AssessmentClient() {
                     Continue <span className="arr">→</span>
                   </button>
                 ) : (
-                  <button className="btn btn--primary" onClick={submit} disabled={submitting} type="button">
-                    {submitting ? "Generating recommendation…" : "Get my recommended pathway"} <span className="arr">→</span>
+                  <button
+                    className="btn btn--primary"
+                    onClick={submit}
+                    disabled={submitting}
+                    aria-busy={submitting}
+                    data-testid="assessment-submit"
+                    type="button"
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="rgq-spinner" aria-hidden="true" /> Generating recommendation…
+                      </>
+                    ) : (
+                      <>Get my recommended pathway <span className="arr">→</span></>
+                    )}
                   </button>
                 )}
               </div>
@@ -259,6 +315,39 @@ export function AssessmentClient() {
         )}
       </div>
     </section>
+  );
+}
+
+/* ── Validation summary ─────────────────────────────────────────────────── */
+/**
+ * Names every field that is missing or invalid, in the participant's own
+ * language, and links each one to the stage that owns it. Internal field keys
+ * are never rendered — the summary works from the shared field specs.
+ */
+function ErrorSummary({ issues, onJump, summaryRef }: {
+  issues: ValidationIssue[];
+  onJump: (step: number) => void;
+  summaryRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (!issues.length) return null;
+  return (
+    <div className="rgq-summary" role="alert" tabIndex={-1} ref={summaryRef} data-testid="assessment-error-summary">
+      <p className="rgq-summary-h">{summaryHeading(issues)}</p>
+      <ul className="rgq-summary-list">
+        {issues.map((i) => (
+          <li key={i.key}>
+            {i.step >= 0 ? (
+              <button type="button" className="rgq-summary-link" onClick={() => onJump(i.step)}>
+                {i.sectionLabel} — {i.label}
+              </button>
+            ) : (
+              <span className="rgq-summary-link is-static">{i.sectionLabel}</span>
+            )}
+            {!i.missing && <span className="rgq-summary-why">{i.message}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -378,19 +467,19 @@ function OrganisationStep({ data, set, errors, toggle }: { data: AssessmentData;
     <div>
       <div className="rgq-grid2">
         <Field label="Full name" error={errors.fullName}>
-          <input className="rgq-input" value={data.fullName} onChange={(e) => set("fullName", e.target.value)} autoComplete="name" />
+          <input className="rgq-input" maxLength={cap("fullName")} value={data.fullName} onChange={(e) => set("fullName", e.target.value)} autoComplete="name" />
         </Field>
         <Field label="Job title" error={errors.jobTitle}>
-          <input className="rgq-input" value={data.jobTitle} onChange={(e) => set("jobTitle", e.target.value)} autoComplete="organization-title" />
+          <input className="rgq-input" maxLength={cap("jobTitle")} value={data.jobTitle} onChange={(e) => set("jobTitle", e.target.value)} autoComplete="organization-title" />
         </Field>
         <Field label="Company name" error={errors.companyName}>
-          <input className="rgq-input" value={data.companyName} onChange={(e) => set("companyName", e.target.value)} autoComplete="organization" />
+          <input className="rgq-input" maxLength={cap("companyName")} value={data.companyName} onChange={(e) => set("companyName", e.target.value)} autoComplete="organization" />
         </Field>
         <Field label="Email address" error={errors.email}>
-          <input className="rgq-input" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" />
+          <input className="rgq-input" type="email" maxLength={cap("email")} value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" />
         </Field>
         <Field label="Phone number" hint="Optional">
-          <input className="rgq-input" value={data.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel" />
+          <input className="rgq-input" maxLength={cap("phone")} value={data.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel" />
         </Field>
         <Field label="Headquarters country" error={errors.country}>
           <select className="rgq-input" value={data.country} onChange={(e) => set("country", e.target.value)} autoComplete="country-name">
@@ -528,14 +617,14 @@ function ArchitectureStep({ data, set, toggle }: { data: AssessmentData; set: Se
           onChange={(v) => set("agentsExpected", v)}
         />
         <Field label="Exact agent count" hint="Optional — sharpens your recommendation">
-          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 14"
-            value={data.agentCount ?? ""} onChange={(e) => set("agentCount", e.target.value)} />
+          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 14" maxLength={cap("agentCount")}
+            value={data.agentCount ?? ""} onChange={(e) => set("agentCount", e.target.value.slice(0, cap("agentCount")))} />
         </Field>
       </div>
       <div className="rgq-grid2">
         <Field label="Business units involved" hint="Optional — how many units the agents span">
-          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 3"
-            value={data.businessUnits ?? ""} onChange={(e) => set("businessUnits", e.target.value)} />
+          <input className="rgq-input" type="number" min={0} inputMode="numeric" placeholder="e.g. 3" maxLength={cap("businessUnits")}
+            value={data.businessUnits ?? ""} onChange={(e) => set("businessUnits", e.target.value.slice(0, cap("businessUnits")))} />
         </Field>
       </div>
       <div className="rgq-yesno-grid">
@@ -563,10 +652,10 @@ function GovernanceStep({ data, set, toggle }: { data: AssessmentData; set: SetF
         onChange={(v) => set("governanceTarget", v)}
       />
       <Field label="How are unsafe actions prevented today?">
-        <textarea className="rgq-input rgq-textarea" rows={4} value={data.unsafePrevention} onChange={(e) => set("unsafePrevention", e.target.value)} placeholder="e.g. human approval on payments, allow-listed tools, manual review…" />
+        <textarea className="rgq-input rgq-textarea" rows={4} maxLength={cap("unsafePrevention")} value={data.unsafePrevention} onChange={(e) => set("unsafePrevention", e.target.value)} placeholder="e.g. human approval on payments, allow-listed tools, manual review…" />
       </Field>
       <Field label="Have you experienced AI failures, near misses, or unexpected agent behaviour?">
-        <textarea className="rgq-input rgq-textarea" rows={4} value={data.incidents} onChange={(e) => set("incidents", e.target.value)} placeholder="Briefly describe anything notable (optional but valuable)." />
+        <textarea className="rgq-input rgq-textarea" rows={4} maxLength={cap("incidents")} value={data.incidents} onChange={(e) => set("incidents", e.target.value)} placeholder="Briefly describe anything notable (optional but valuable)." />
       </Field>
     </div>
   );
@@ -632,7 +721,7 @@ function CommercialStep({ data, set, toggle }: { data: AssessmentData; set: SetF
             />
           </div>
           <Field label="Who would you offer or embed Runtime Governance for?" hint="Optional — your customer base, service model, or the product you'd embed it in.">
-            <textarea className="rgq-input rgq-textarea" rows={3} value={data.customerBase} onChange={(e) => set("customerBase", e.target.value)} placeholder="e.g. mid-market financial-services clients via our MSSP offering; or embedded in our agent platform." />
+            <textarea className="rgq-input rgq-textarea" rows={3} maxLength={cap("customerBase")} value={data.customerBase} onChange={(e) => set("customerBase", e.target.value)} placeholder="e.g. mid-market financial-services clients via our MSSP offering; or embedded in our agent platform." />
           </Field>
         </div>
       )}
@@ -653,14 +742,16 @@ function CommercialStep({ data, set, toggle }: { data: AssessmentData; set: SetF
       <Chips label="What outcome would make this engagement successful?" options={SUCCESS_CRITERIA}
         selected={data.successCriteria} onToggle={(v) => toggle("successCriteria", v)} />
       <Field label="Anything else about your goals or constraints?">
-        <textarea className="rgq-input rgq-textarea" rows={4} value={data.successNotes} onChange={(e) => set("successNotes", e.target.value)} placeholder="Free text — timelines, regulatory deadlines, board pressure, specific risks…" />
+        <textarea className="rgq-input rgq-textarea" rows={4} maxLength={cap("successNotes")} value={data.successNotes} onChange={(e) => set("successNotes", e.target.value)} placeholder="Free text — timelines, regulatory deadlines, board pressure, specific risks…" />
       </Field>
     </div>
   );
 }
 
 /* ── Stage 8 · Review ───────────────────────────────────────────────────── */
-function ReviewStep({ data, goto }: { data: AssessmentData; goto: (s: number) => void }) {
+function ReviewStep({ data, goto, invalidSections }: {
+  data: AssessmentData; goto: (s: number) => void; invalidSections: Set<SectionKey>;
+}) {
   const yn = (v: YesNo) => (v === "yes" ? "Yes" : v === "no" ? "No" : "—");
   const lbl = (opts: Option[], vals: string[]) =>
     vals.length ? vals.map((v) => opts.find((o) => o.value === v)?.label ?? v).join(", ") : "—";
@@ -668,11 +759,13 @@ function ReviewStep({ data, goto }: { data: AssessmentData; goto: (s: number) =>
   const Rrow = ({ k, v }: { k: string; v: string }) => (
     <div className="rgq-rev-row"><span>{k}</span><span>{v || "—"}</span></div>
   );
+  /** Highlights the section a validation failure belongs to. */
+  const cls = (s: SectionKey) => `rgq-rev-group${invalidSections.has(s) ? " is-invalid" : ""}`;
   return (
     <div className="rgq-review">
       <p className="rgq-review-intro">Review your answers, then get your recommended pathway. Tap a section to edit.</p>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(0)}>
+      <button className={cls("organisation")} data-section="organisation" type="button" onClick={() => goto(0)}>
         <span className="rgq-rev-h">Organisation <span className="rgq-edit">Edit</span></span>
         <Rrow k="Contact" v={`${data.fullName}${data.jobTitle ? `, ${data.jobTitle}` : ""}`} />
         <Rrow k="Company" v={data.companyName} />
@@ -681,7 +774,7 @@ function ReviewStep({ data, goto }: { data: AssessmentData; goto: (s: number) =>
         <Rrow k="HQ / operating regions" v={[data.country, lbl(REGIONS, data.operatingRegions)].filter((s) => s && s !== "—").join(" · ")} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(1)}>
+      <button className={cls("programme")} data-section="programme" type="button" onClick={() => goto(1)}>
         <span className="rgq-rev-h">AI programme <span className="rgq-edit">Edit</span></span>
         <Rrow k="Maturity today" v={one(AI_MATURITY, data.aiMaturityCurrent)} />
         <Rrow k="Target (12–18 mo)" v={one(AI_MATURITY_TARGET, data.aiMaturityTarget)} />
@@ -689,35 +782,35 @@ function ReviewStep({ data, goto }: { data: AssessmentData; goto: (s: number) =>
         <Rrow k="Takes actions" v={yn(data.canTakeActions)} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(2)}>
+      <button className={cls("risk")} data-section="risk" type="button" onClick={() => goto(2)}>
         <span className="rgq-rev-h">Runtime risk <span className="rgq-edit">Edit</span></span>
         <Rrow k="Tool access" v={lbl(TOOL_ACCESS, data.toolAccess)} />
         <Rrow k="Permissions" v={lbl(EXECUTION_PERMISSIONS, data.executionPermissions)} />
         <Rrow k="Customers today / future" v={[one(CUSTOMERS_CURRENT, data.customersCurrent), one(CUSTOMERS_FUTURE, data.customersFuture)].join(" → ")} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(3)}>
+      <button className={cls("architecture")} data-section="architecture" type="button" onClick={() => goto(3)}>
         <span className="rgq-rev-h">Architecture <span className="rgq-edit">Edit</span></span>
         <Rrow k="Deployment" v={lbl(DEPLOYMENT_MODELS, data.deploymentModel)} />
         <Rrow k="Environments" v={one(PROTECTED_ENVIRONMENTS, data.protectedEnvironments)} />
         <Rrow k="Agents today / expected" v={[data.numAgents || "—", one(AGENTS_EXPECTED, data.agentsExpected)].join(" → ")} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(4)}>
+      <button className={cls("governance")} data-section="governance" type="button" onClick={() => goto(4)}>
         <span className="rgq-rev-h">Governance <span className="rgq-edit">Edit</span></span>
         <Rrow k="Controls today" v={lbl(CONTROLS, data.controls)} />
         <Rrow k="Operations today" v={lbl(GOVERNANCE_OPS, data.governanceOps)} />
         <Rrow k="Target (12 mo)" v={one(GOVERNANCE_TARGETS, data.governanceTarget)} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(5)}>
+      <button className={cls("compliance")} data-section="compliance" type="button" onClick={() => goto(5)}>
         <span className="rgq-rev-h">Compliance &amp; oversight <span className="rgq-edit">Edit</span></span>
         <Rrow k="Requirements" v={lbl(COMPLIANCE, data.compliance)} />
         <Rrow k="Evidence consumers" v={lbl(EVIDENCE_REQUIREMENTS, data.evidenceRequirements)} />
         <Rrow k="AI risk owner" v={one(EXEC_OVERSIGHT, data.execOversight)} />
       </button>
 
-      <button className="rgq-rev-group" type="button" onClick={() => goto(6)}>
+      <button className={cls("commercial")} data-section="commercial" type="button" onClick={() => goto(6)}>
         <span className="rgq-rev-h">Commercial <span className="rgq-edit">Edit</span></span>
         <Rrow k="Reason" v={ENGAGEMENT_INTENTS.find((o) => o.value === data.intent)?.label ?? "—"} />
         <Rrow k="Readiness / timeline" v={[one(STAGES, data.stage), one(TIMELINES, data.timeline)].filter((s) => s !== "—").join(" · ")} />
