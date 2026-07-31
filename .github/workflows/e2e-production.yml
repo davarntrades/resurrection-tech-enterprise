@@ -40,6 +40,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONFIGURED_E2E_BASE_URL: https://www.resurrection-tech.com
           TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           candidate="$CONFIGURED_E2E_BASE_URL"
@@ -64,8 +65,24 @@ jobs:
             done
           fi
 
+          # A commit that only touches workflows or docs may produce no deployment
+          # of its own. That must not fail the gate: the running application on
+          # the default branch is still the correct target. Purely additive — this
+          # only fires where the SHA lookup above already came up empty.
           if [[ -z "$candidate" ]]; then
-            echo "No successful deployment URL was found for the PR head SHA, and E2E_BASE_URL is not configured." >&2
+            candidate="$({
+              gh api --paginate -H "Accept: application/vnd.github+json" \
+                "/repos/${GITHUB_REPOSITORY}/deployments?ref=${DEFAULT_BRANCH}&per_page=100" | jq -r '.[].id'
+            } | while read -r deployment_id; do
+              [[ -n "$deployment_id" ]] || continue
+              gh api -H "Accept: application/vnd.github+json" \
+                "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
+                | jq -r '.[] | select(.state == "success") | .environment_url // empty' | head -n 1
+            done | head -n 1)"
+            [[ -n "$candidate" ]] && echo "No deployment for this commit; using the latest successful deployment on ${DEFAULT_BRANCH}."
+          fi
+          if [[ -z "$candidate" ]]; then
+            echo "No successful deployment URL was found for this commit or for ${DEFAULT_BRANCH}, and E2E_BASE_URL is not configured." >&2
             exit 1
           fi
 

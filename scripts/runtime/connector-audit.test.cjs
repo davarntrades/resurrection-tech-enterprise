@@ -384,6 +384,83 @@ const event = (id, org, env, type, evidence, at) => store.insert("integration_ev
   ok(/most recent of 60 records, newest first/.test(bulkHtml) && /most recent of 60 records, newest first/.test(bulkMd),
     "25c. the document discloses that it shows the most recent records, newest first");
 
+  // 26. REGRESSION — the production trace shape. A Customer Support Assistant
+  //     execution keeps its run in customer_support_workflow_runs, not in the
+  //     Bedrock table. The projection read only the Bedrock and communication
+  //     tables, and its redaction allow-list dropped the hashes and latencies
+  //     the evidence itself carried, so a real traced execution reported nulls
+  //     for telemetry that had been recorded all along.
+  await proposal("ops_cs_trace", ORG, ENV, "customer_support_assistant.respond", "executed", { execution: { executed: true } });
+  await store.insert("customer_support_workflow_runs", {
+    id: "csw_trace", org_id: ORG, environment_id: ENV, workflow: "customer_support_assistant",
+    connector_id: "int_bedrock", connector_name: "Production Bedrock",
+    provider: "amazon-bedrock", model_id: "openai.gpt-oss-20b-1:0",
+    canonical_action_hash: "9".repeat(64), response_hash: "8".repeat(64),
+    proposal_id: "ops_cs_trace", provider_proposal_id: "ops_cs_provider",
+    evidence_id: "ev_cs_trace", underlying_evidence_id: "ev_cs_provider",
+    governance_decision: "executed", approval_status: "not_required_or_approved",
+    status: "completed", lifecycle_state: "complete",
+    provider_invocation_count: 1, aws_called: true,
+    total_latency_ms: 2432, governance_latency_ms: 900, provider_latency_ms: 419,
+    idempotency_key: "idem-cs-trace", completed_at: "2026-06-25T09:00:00.000Z",
+    // Customer content that must never reach a report.
+    message: "SECRET CUSTOMER MESSAGE", customer_name: "SECRET CUSTOMER NAME",
+    response_content: { text: "SECRET WORKFLOW REPLY" },
+  });
+  await event("ev_cs_trace", ORG, ENV, "customer_support.workflow.execution", {
+    workflow: "customer_support_assistant", workflow_run_id: "csw_trace",
+    canonical_action_hash: "9".repeat(64), proposal_id: "ops_cs_trace",
+    provider_proposal_id: "ops_cs_provider", governance_decision: "executed",
+    execution_status: "completed", approval_status: "not_required_or_approved",
+    provider: "amazon-bedrock", connector_id: "int_bedrock", model_id: "openai.gpt-oss-20b-1:0",
+    total_latency_ms: 2432, canonical_governance_latency_ms: 900, provider_latency_ms: 419,
+    provider_invocation_count: 1, aws_called: true, underlying_evidence_id: "ev_cs_provider",
+  }, "2026-06-25T09:00:00.000Z");
+
+  const traced = await audit.summary({ org_id: ORG, environment_id: ENV, since: SINCE, until: UNTIL });
+  const tr = traced.register.find((r) => r.evidence_id === "ev_cs_trace") || {};
+  ok(tr.request_hash === "9".repeat(64), `26a. the canonical action hash reaches the register (got ${tr.request_hash})`);
+  ok(tr.response_hash === "8".repeat(64), `26b. the response hash reaches the register (got ${tr.response_hash})`);
+  ok(tr.total_latency_ms === 2432 && tr.governance_latency_ms === 900 && tr.provider_latency_ms === 419,
+    `26c. all three latencies reach the register (got ${tr.total_latency_ms}/${tr.governance_latency_ms}/${tr.provider_latency_ms})`);
+  ok(tr.provider_invocation_count === 1 && tr.provider_called === true,
+    "26d. the provider invocation count and call flag come from the workflow run");
+  ok(tr.canonical_action_id === "customer_support_assistant.respond" && tr.normalized_connector === "aws-bedrock",
+    "26e. the canonical action and connector still normalize correctly");
+
+  // 27. The same execution must survive with the run table absent entirely —
+  //     the evidence alone carries enough to report hashes and latency.
+  const noRunEvidence = audit.safeEvidence({
+    workflow_run_id: "csw_x", canonical_action_hash: "7".repeat(64),
+    total_latency_ms: 111, canonical_governance_latency_ms: 22, provider_latency_ms: 33,
+    provider_invocation_count: 1, aws_called: true,
+    message: "SECRET", customer_name: "SECRET", response_content: "SECRET",
+  });
+  ok(noRunEvidence.canonical_action_hash === "7".repeat(64) && noRunEvidence.total_latency_ms === 111,
+    "27a. evidence-carried hashes and latency survive redaction");
+  ok(!("message" in noRunEvidence) && !("customer_name" in noRunEvidence) && !("response_content" in noRunEvidence),
+    "27b. customer message, name and response content are still stripped");
+
+  // 28. Redaction must still hold across the whole traced projection.
+  const tracedBlob = JSON.stringify(traced);
+  const tracedLeaks = ["SECRET CUSTOMER MESSAGE", "SECRET CUSTOMER NAME", "SECRET WORKFLOW REPLY"]
+    .filter((n) => tracedBlob.includes(n));
+  ok(tracedLeaks.length === 0, `28. no customer content leaks from the workflow run (leaked: ${tracedLeaks.join(", ") || "none"})`);
+
+  // 29. Evidence with no usable timestamp must surface as a finding rather than
+  //     disappearing. It is the only path that removes in-scope evidence from
+  //     the register, so it is the one that must never be silent.
+  await store.insert("integration_events", {
+    id: "ev_undated", org_id: ORG, environment_id: ENV, type: "aws.bedrock.invocation",
+    actor: "customer", evidence: { connector_id: "int_bedrock", proposal_id: "ops_ok" },
+    evidence_hash: "h", immutable: true, occurred_at: null, created_at: null,
+  });
+  const withUndated = await audit.summary({ org_id: ORG, environment_id: ENV, since: SINCE, until: UNTIL });
+  ok(!withUndated.register.some((r) => r.evidence_id === "ev_undated"),
+    "29a. undated evidence stays out of the register, so period totals are not corrupted");
+  ok(withUndated.findings.some((f) => f.kind === "evidence_without_usable_timestamp" && f.evidence_id === "ev_undated"),
+    "29b. undated evidence is reported as a finding rather than silently dropped");
+
   console.log(`\nconnector audit projection test: ${pass} passed, ${fail} failed`);
   if (fail) { console.log("FAILURES:"); for (const f of fails) console.log("  ✗ " + f); }
   try { fs.rmSync(process.env.RUNTIME_DATA_DIR, { recursive: true, force: true }); } catch { /* */ }
