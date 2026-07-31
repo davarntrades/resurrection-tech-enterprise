@@ -49,7 +49,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
         <div className="radmin-brand">
           <span className="radmin-omega">Ω</span>
           <div>
-            <div className="radmin-title">Operator Control Room</div>
+            <h1 className="radmin-title">Operator Control Room</h1>
             <div className="radmin-sub">Morrison Runtime Governance</div>
           </div>
         </div>
