@@ -114,7 +114,9 @@ jobs:
         id: customer_support_smoke
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
         env:
-          E2E_ENVIRONMENT_ID: ${{ vars.CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID || env.E2E_ENVIRONMENT_ID }}
+          # TEMPORARY, BRANCH-ONLY: pinned to confirm the Bedrock connector's
+          # environment. Reverted to the variable before merge.
+          E2E_ENVIRONMENT_ID: env_162372e33b67b39b0d
         run: node scripts/runtime/customer-support-production-smoke.cjs
       - name: Publish production smoke Job Summary
         if: always()
@@ -153,7 +155,10 @@ jobs:
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
         shell: bash
         env:
-          GMAIL_SMOKE_ENABLED: "true"
+          # TEMPORARY, BRANCH-ONLY: this run is authorised for exactly one
+          # Customer Support smoke, so the Gmail control is not fired here.
+          # Gmail's connector and credentials are untouched; main is unaffected.
+          GMAIL_SMOKE_ENABLED: "false"
           GMAIL_SMOKE_RECIPIENT: davarn@resurrection-tech.com
         run: |
           set -euo pipefail
