@@ -14,9 +14,15 @@ name: Governed connector evidence — production trace
 # chargeable invocation.
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Override the target base URL (leave blank to resolve the deployment for this commit)"
+        required: false
+        type: string
 
 permissions:
   contents: read
+  deployments: read
 
 jobs:
   trace:
@@ -24,7 +30,6 @@ jobs:
     timeout-minutes: 15
     env:
       RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
       E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
       E2E_ENVIRONMENT_ID: ${{ vars.CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID || vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
@@ -35,6 +40,46 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # E2E_BASE_URL is not a stored secret in this repository — the production
+      # E2E resolves it from the successful deployment for the commit, and this
+      # trace has to resolve it the same way or it targets nothing.
+      - name: Resolve the production base URL
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFIGURED_E2E_BASE_URL: ${{ inputs.base_url || secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          candidate="$CONFIGURED_E2E_BASE_URL"
+          if [[ -z "$candidate" ]]; then
+            for attempt in {1..30}; do
+              candidate="$({
+                gh api --paginate -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" | jq -r '.[].id'
+              } | while read -r deployment_id; do
+                [[ -n "$deployment_id" ]] || continue
+                gh api -H "Accept: application/vnd.github+json" \
+                  "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
+                  | jq -r '.[] | select(.state == "success") | .environment_url // empty' | head -n 1
+              done | head -n 1)"
+              [[ -n "$candidate" ]] && break
+              sleep 10
+            done
+          fi
+          if [[ -z "$candidate" ]]; then
+            echo "::error::No successful deployment URL was found for this commit and no base URL was supplied. Refusing to run — a trace with no target would make a provider call and prove nothing." >&2
+            exit 1
+          fi
+          safe_url="$(node -e '
+            const url = new URL(process.argv[1]);
+            if (url.protocol !== "https:") throw new Error("resolved deployment URL must use HTTPS");
+            url.search = ""; url.hash = "";
+            process.stdout.write(url.toString().replace(/\/$/, ""));
+          ' "$candidate")"
+          echo "::add-mask::$safe_url"
+          echo "E2E_BASE_URL=$safe_url" >> "$GITHUB_ENV"
+          echo "base URL resolved: yes"
       - name: Preflight — fail closed before any provider call
         shell: bash
         run: |
