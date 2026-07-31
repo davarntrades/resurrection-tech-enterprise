@@ -12,7 +12,15 @@ import { test, expect } from "@playwright/test";
  *   RUNTIME_ADMIN_KEY (or RUNTIME_OPERATOR_PASSWORD)   operator login password
  *   E2E_CUSTOMER              customer card name (default "Dry Run Customer")
  */
+// TWO different credentials, deliberately kept apart.
+//   OP_PASSWORD — the operator sign-in inside the Control Room UI. Mirrors the
+//     server's own order: RUNTIME_OPERATOR_PASSWORD, else RUNTIME_ADMIN_KEY.
+//   ADMIN_KEY   — the x-admin-key header on /api/runtime/admin/*, which is only
+//     ever RUNTIME_ADMIN_KEY (adminauth compares it to exactly that).
+// Collapsing them into one constant works right up until a deployment sets an
+// operator password, at which point the API calls start 401ing.
 const OP_PASSWORD = process.env.RUNTIME_OPERATOR_PASSWORD || process.env.RUNTIME_ADMIN_KEY || "";
+const ADMIN_KEY = process.env.RUNTIME_ADMIN_KEY || "";
 const CUSTOMER = process.env.E2E_CUSTOMER || "Dry Run Customer";
 
 test.describe("Control Room — Audit pack → Preview (production)", () => {
@@ -143,7 +151,7 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
   test("Gmail Validate reaches Google and persists a terminal health result", async ({ request }) => {
     const orgId = process.env.E2E_ORG_ID || "";
     test.skip(!orgId, "set E2E_ORG_ID to validate Gmail");
-    const headers = { "x-admin-key": OP_PASSWORD, "content-type": "application/json" };
+    const headers = { "x-admin-key": ADMIN_KEY, "content-type": "application/json" };
 
     const beforeResponse = await request.get(
       `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
