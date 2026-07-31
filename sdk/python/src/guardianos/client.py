@@ -11,6 +11,23 @@ class GuardianOSError(RuntimeError):
         self.body = body
 
 
+class GuardianOSStepBlocked(RuntimeError):
+    """Raised when Runtime Governance refuses a governed step.
+
+    Carries the full decision so the caller can log or escalate it: the verdict,
+    the proposal it produced, the evidence recorded, and whether the accumulated
+    trajectory — rather than the step itself — was what forced the refusal.
+    """
+
+    def __init__(self, step: Dict[str, Any]):
+        super().__init__(step.get("reason") or f"{step.get('action_id')} was not permitted ({step.get('verdict')})")
+        self.step = step
+        self.verdict = step.get("verdict")
+        self.proposal_id = step.get("proposal_id")
+        self.evidence_id = step.get("evidence_id")
+        self.restricted_by_trajectory = bool(step.get("restricted_by_trajectory"))
+
+
 class BedrockIntegration:
     def __init__(self, guardian: "GuardianOS"):
         self._guardian = guardian
@@ -82,6 +99,66 @@ class GuardianOS:
 
     def propose(self, action: str, args: Optional[Dict[str, Any]] = None, domains: Optional[Iterable[str]] = None, correlation_id: Optional[str] = None) -> Dict[str, Any]:
         return self.evaluate([{"tool": action, "args": args or {}}], domains, label=f"proposal:{action}", correlation_id=correlation_id)
+
+    # ── Step-level governance ────────────────────────────────────────────
+    def open_session(self, environment_id: str, workflow: Optional[str] = None,
+                     correlation_id: Optional[str] = None, domains: Optional[Iterable[str]] = None,
+                     horizon: Optional[int] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Open a governed session — one workflow run.
+
+        Every step evaluated inside it is judged against the ACCUMULATED
+        trajectory, so a sequence of individually benign steps that together
+        reach a forbidden state is caught.
+        """
+        body: Dict[str, Any] = {"operation": "session.open", "environment_id": environment_id}
+        if workflow: body["workflow"] = workflow
+        if correlation_id: body["correlation_id"] = correlation_id
+        if domains: body["domains"] = list(domains)
+        if horizon: body["horizon"] = horizon
+        if idempotency_key: body["idempotency_key"] = idempotency_key
+        return self._request("POST", "/api/integration/v1/steps", json=body)
+
+    def evaluate_step(self, session_id: str, action_id: str,
+                      params: Optional[Dict[str, Any]] = None,
+                      environment_id: Optional[str] = None) -> Dict[str, Any]:
+        """Govern one workflow step.
+
+        Returns BEFORE anything runs. Act only when ``allowed`` is true — a
+        blocked or escalated step must not execute.
+        """
+        body: Dict[str, Any] = {
+            "operation": "step.evaluate", "session_id": session_id,
+            "action_id": action_id, "params": params or {},
+        }
+        if environment_id: body["environment_id"] = environment_id
+        return self._request("POST", "/api/integration/v1/steps", json=body)
+
+    def close_session(self, session_id: str, status: str = "completed", summary: Any = None) -> Dict[str, Any]:
+        """Close the session and emit immutable, replayable session evidence."""
+        return self._request("POST", "/api/integration/v1/steps", json={
+            "operation": "session.close", "session_id": session_id, "status": status, "summary": summary,
+        })
+
+    def replay_session(self, session_id: str) -> Dict[str, Any]:
+        """Re-evaluate the recorded trajectory and confirm the verdicts hold."""
+        return self._request("GET", f"/api/integration/v1/steps?session_id={session_id}&replay=1")
+
+    def governed(self, session_id: str, action_id: str, fn: Any, to_params: Any = None) -> Any:
+        """Wrap an existing agent tool so it cannot run without a permit.
+
+        The smallest possible change to an existing agent — wrap once and every
+        call is governed, evidenced and replayable::
+
+            send = guardian.governed(session_id, "gmail.send_email", send_email)
+            send(to=..., subject=...)   # raises GuardianOSStepBlocked unless permitted
+        """
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            params = to_params(*args, **kwargs) if to_params else {}
+            step = self.evaluate_step(session_id, action_id, params)
+            if not step.get("allowed"):
+                raise GuardianOSStepBlocked(step)
+            return fn(*args, **kwargs)
+        return wrapper
 
     def submit_evidence(self, environment_id: str, evidence: Any, evidence_type: str = "customer.evidence") -> Dict[str, Any]:
         return self._request("POST", "/api/integration/v1/evidence", json={"environment_id": environment_id, "evidence": evidence, "type": evidence_type})

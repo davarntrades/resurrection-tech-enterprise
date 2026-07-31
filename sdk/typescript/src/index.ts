@@ -8,6 +8,37 @@ export type GuardianDecision = {
   [key: string]: unknown;
 };
 
+export type GuardianSession = {
+  id: string;
+  org_id: string;
+  environment_id: string;
+  workflow: string;
+  status: string;
+  step_count: number;
+  allowed_count: number;
+  blocked_count: number;
+  escalated_count: number;
+  domains: string[];
+  horizon: number;
+  evidence_id?: string | null;
+};
+
+export type GuardianStep = {
+  /** True only on a full permit. Never execute when false. */
+  allowed: boolean;
+  verdict: "allow" | "block" | "escalate";
+  session_id: string | null;
+  step_index: number | null;
+  action_id: string;
+  proposal_id: string;
+  evidence_id: string | null;
+  trajectory_hash: string | null;
+  /** True when the accumulated trajectory, not the step itself, forced the refusal. */
+  restricted_by_trajectory: boolean;
+  governance_latency_ms: number;
+  reason?: string | null;
+};
+
 export type GuardianClientOptions = {
   apiKey: string;
   baseUrl?: string;
@@ -100,6 +131,71 @@ export class GuardianOS {
       correlation_id: options.correlation_id,
       label: `proposal:${action}`,
     });
+  }
+
+  /**
+   * Open a governed session — one workflow run. Every step evaluated inside it
+   * is judged against the ACCUMULATED trajectory, so a sequence of individually
+   * benign steps that together reach a forbidden state is caught.
+   */
+  openSession(input: { environment_id: string; workflow?: string; correlation_id?: string; domains?: string[]; horizon?: number; idempotency_key?: string }) {
+    return this.request<GuardianSession>("/api/integration/v1/steps", {
+      method: "POST", body: JSON.stringify({ operation: "session.open", ...input }),
+    });
+  }
+
+  /**
+   * Govern one workflow step. Returns BEFORE anything runs — the caller acts
+   * only when `allowed` is true. A blocked or escalated step must not execute.
+   *
+   *   const step = await guardian.evaluateStep({
+   *     session_id, action_id: "gmail.send_email", params: { ... },
+   *   });
+   *   if (!step.allowed) throw new Error(step.reason);
+   *   await sendTheEmail();
+   */
+  evaluateStep(input: { session_id: string; action_id: string; params?: Record<string, unknown>; environment_id?: string }) {
+    return this.request<GuardianStep>("/api/integration/v1/steps", {
+      method: "POST", body: JSON.stringify({ operation: "step.evaluate", ...input }),
+    });
+  }
+
+  /** Close the session and emit the immutable, replayable session evidence. */
+  closeSession(sessionId: string, input: { status?: string; summary?: unknown } = {}) {
+    return this.request<GuardianSession>("/api/integration/v1/steps", {
+      method: "POST", body: JSON.stringify({ operation: "session.close", session_id: sessionId, ...input }),
+    });
+  }
+
+  /** Re-evaluate the recorded trajectory and confirm the verdicts still hold. */
+  replaySession(sessionId: string) {
+    return this.request<{ session_id: string; deterministic: boolean; steps: unknown[] }>(
+      `/api/integration/v1/steps?session_id=${encodeURIComponent(sessionId)}&replay=1`);
+  }
+
+  /**
+   * Wrap an existing agent tool so it cannot run without a permit. This is the
+   * smallest possible change to an existing agent: wrap the function once and
+   * every call is governed, evidenced and replayable.
+   *
+   *   const send = guardian.governed(session_id, "gmail.send_email", sendEmail);
+   *   await send({ to, subject, body });   // throws unless permitted
+   */
+  governed<A extends unknown[], R>(
+    sessionId: string,
+    actionId: string,
+    fn: (...args: A) => Promise<R> | R,
+    toParams: (...args: A) => Record<string, unknown> = () => ({}),
+  ): (...args: A) => Promise<R> {
+    return async (...args: A): Promise<R> => {
+      const step = await this.evaluateStep({ session_id: sessionId, action_id: actionId, params: toParams(...args) });
+      if (!step.allowed) {
+        const error = new Error(step.reason || `${actionId} was not permitted (${step.verdict})`);
+        Object.assign(error, { verdict: step.verdict, proposal_id: step.proposal_id, evidence_id: step.evidence_id, guardianStep: step });
+        throw error;
+      }
+      return fn(...args);
+    };
   }
 
   submitEvidence(environmentId: string, evidence: unknown, type = "customer.evidence") {
