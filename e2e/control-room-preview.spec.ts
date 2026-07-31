@@ -36,6 +36,19 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
       // the CI log alone. Control Room chrome is non-secret; truncated regardless.
       const visible = (await page.locator("body").innerText().catch(() => ""))
         .replace(/\s+/g, " ").trim().slice(0, 300);
+      // The commonest cause is the /admin/* Basic Auth gate (proxy.ts) rejecting
+      // the browser, which renders its 401 body as the page. Name it, and say
+      // whether credentials were supplied at all — never what they were.
+      if (/Authentication required/i.test(visible)) {
+        const supplied = Boolean(process.env.ADMIN_USER && process.env.ADMIN_PASSWORD);
+        throw new Error(
+          "Blocked by the /admin/* HTTP Basic Auth gate — the Control Room never rendered. " +
+          `ADMIN_USER/ADMIN_PASSWORD supplied to this run: ${supplied ? "yes" : "no"}. ` +
+          (supplied
+            ? "They do not match the values the deployment is configured with."
+            : "Set them to the values the deployment is configured with."),
+        );
+      }
       throw new Error(
         "Control Room reached neither the operator login form nor the authenticated " +
         `shell within 20s. Visible page text: ${visible || "<empty>"}`,

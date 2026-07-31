@@ -96,6 +96,25 @@ jobs:
             fi
           done
           exit "$missing"
+      # /admin/* sits behind HTTP Basic Auth (proxy.ts). Without these the browser
+      # is served a 401 "Authentication required" page and every Control Room test
+      # fails on a locator timeout that says nothing about the cause. Reported
+      # separately from the gating preflight above so a missing admin credential
+      # can never silently skip the governed smokes, which do not need it.
+      - name: Report Control Room Basic Auth configuration
+        shell: bash
+        env:
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in ADMIN_USER ADMIN_PASSWORD; do
+            if [[ -n "${!name:-}" ]]; then echo "$name configured: yes"; else echo "$name configured: no"; missing=1; fi
+          done
+          if [[ "$missing" != "0" ]]; then
+            echo "::warning::Control Room HTTP Basic Auth is not configured for this run. The Preview E2E will be served a 401 page and its Control Room tests cannot pass. Set the ADMIN_USER and ADMIN_PASSWORD repository secrets to the values the deployment uses."
+          fi
       - name: Run production Preview E2E
         id: preview_ui_e2e
         run: npm run test:e2e

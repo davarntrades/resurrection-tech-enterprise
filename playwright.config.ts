@@ -32,9 +32,12 @@ export default defineConfig({
         }
       : undefined,
     // HTTP Basic Auth for the /admin/* proxy (proxy.ts). Only applied when set.
+    // send: "always" puts the Authorization header on the first request instead of
+    // waiting to be challenged — the challenge-retry handshake is the flakier path
+    // in WebKit, and a missed retry surfaces as the 401 body rendering as the page.
     httpCredentials:
       process.env.ADMIN_USER && process.env.ADMIN_PASSWORD
-        ? { username: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD }
+        ? { username: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD, send: "always" }
         : undefined,
   },
   projects: [
