@@ -46,6 +46,15 @@ const TABLES = [
   "rg_customer_support_workflow_runs", "rg_customer_support_workflow_locks",
 ];
 
+// Additive COLUMNS on tables that already exist. A table check cannot see these:
+// rg_reports predates the column below, so the table is present and the schema
+// still incomplete. Writes to a missing column fail at runtime, so an additive
+// column is exactly as deploy-blocking as an additive table and belongs here.
+const COLUMNS = [
+  // normalized connector audit projection (supabase/connector_audit_projection.sql)
+  { table: "rg_reports", column: "connector_activity", migration: "supabase/connector_audit_projection.sql" },
+];
+
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,8 +74,30 @@ async function main() {
     else other.push({ table: t, error: msg });
   }
 
+  // Column probe: select ONLY the column, head-only, zero rows. PostgREST answers
+  // 42703/PGRST204 when it is absent. Skipped when the table itself is missing,
+  // so one missing migration is not reported twice.
+  const missingColumns = [], presentColumns = [], columnErrors = [];
+  for (const c of COLUMNS) {
+    if (missing.includes(c.table)) continue;
+    const { error } = await sb.from(c.table).select(c.column, { head: true, count: "exact" }).limit(0);
+    if (!error) { presentColumns.push(`${c.table}.${c.column}`); continue; }
+    const msg = String(error.message || error);
+    if (/does not exist|could not find|schema cache|PGRST204|42703/i.test(msg)) missingColumns.push(c);
+    else columnErrors.push({ table: `${c.table}.${c.column}`, error: msg });
+  }
+
   console.log(`\nGuardian OS schema check — ${url}\n`);
-  console.log(`  present: ${present.length}/${TABLES.length}`);
+  console.log(`  present: ${present.length}/${TABLES.length} tables · ${presentColumns.length}/${COLUMNS.length} additive columns`);
+  for (const name of presentColumns) console.log(`    ✓ ${name}`);
+  if (missingColumns.length) {
+    console.log(`\n  MISSING COLUMNS (${missingColumns.length}) — writes touching these fail at runtime:`);
+    for (const c of missingColumns) console.log(`    · ${c.table}.${c.column} — apply ${c.migration}`);
+  }
+  if (columnErrors.length) {
+    console.log(`\n  COLUMN ERRORS (not a missing migration — investigate):`);
+    for (const o of columnErrors) console.log(`    · ${o.table}: ${o.error}`);
+  }
   if (missing.length) {
     console.log(`\n  MISSING (${missing.length}) — surfaces reading these render empty:`);
     for (const t of missing) console.log(`    · ${t}`);
@@ -77,8 +108,10 @@ async function main() {
     console.log(`\n  OTHER ERRORS (not a missing migration — investigate):`);
     for (const o of other) console.log(`    · ${o.table}: ${o.error}`);
   }
-  if (!missing.length && !other.length) console.log("\n  All tables present. Schema is up to date.\n");
-  process.exit(missing.length || other.length ? 1 : 0);
+  if (!missing.length && !other.length && !missingColumns.length && !columnErrors.length) {
+    console.log("\n  All tables and additive columns present. Schema is up to date.\n");
+  }
+  process.exit(missing.length || other.length || missingColumns.length || columnErrors.length ? 1 : 0);
 }
 
 main().catch((e) => { console.error("schema check failed:", e.message); process.exit(2); });

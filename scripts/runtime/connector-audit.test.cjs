@@ -329,12 +329,33 @@ const event = (id, org, env, type, evidence, at) => store.insert("integration_ev
     persistedKeys = Object.keys(row);
     return { ...row, id: "rep_fallback" };
   };
-  const persisted = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", persist: true });
+  const persisted = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: UNTIL, persist: true });
   store.insert = realInsert;
   ok(attempts === 2 && persistedKeys && !persistedKeys.includes("connector_activity"),
     `23a. a missing connector_activity column falls back to persisting without it (attempts ${attempts})`);
-  ok(persisted.connector_activity_persisted === false && !!persisted.connector_activity,
-    "23b. the fallback still returns the section for rendering, and flags that it was not stored");
+  ok(persisted.connector_activity_persisted === false && !!persisted.connector_activity
+    && persisted.connector_activity.register.some((r) => r.evidence_id === "ev_ok"),
+  "23b. the fallback still returns the populated section for rendering, and flags that it was not stored");
+
+  // 24. With the migration applied, persistence must store the section for real
+  //     — the fallback above must NOT be the path a migrated deployment takes.
+  let migratedAttempts = 0; let storedRow = null;
+  store.insert = async (collection, row) => {
+    if (collection !== "reports") return realInsert(collection, row);
+    migratedAttempts += 1; storedRow = row;
+    return { ...row, id: "rep_migrated" };
+  };
+  const stored = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: UNTIL, persist: true });
+  store.insert = realInsert;
+  ok(migratedAttempts === 1, `24a. a migrated deployment persists in one attempt, with no fallback (attempts ${migratedAttempts})`);
+  ok(storedRow && Object.prototype.hasOwnProperty.call(storedRow, "connector_activity")
+    && storedRow.connector_activity && storedRow.connector_activity.available === true,
+  "24b. the stored row contains the connector_activity section");
+  ok(stored.connector_activity_persisted === undefined,
+    `24c. no fallback flag is set when the column exists (got ${stored.connector_activity_persisted})`);
+  ok(storedRow && Array.isArray(storedRow.connector_activity.register)
+    && storedRow.connector_activity.register.some((r) => r.evidence_id === "ev_ok"),
+  "24d. the persisted section carries the traceable evidence register");
 
   console.log(`\nconnector audit projection test: ${pass} passed, ${fail} failed`);
   if (fail) { console.log("FAILURES:"); for (const f of fails) console.log("  ✗ " + f); }
