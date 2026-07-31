@@ -53,16 +53,24 @@ jobs:
           set -euo pipefail
           candidate="$CONFIGURED_E2E_BASE_URL"
           if [[ -z "$candidate" ]]; then
+            # PRODUCTION deployments first. A commit that only touches workflows
+            # can still produce a Preview deployment, and pointing the trace at
+            # one means asserting against a build that is not the running app —
+            # which is exactly how the previous attempt got a 404.
             for attempt in {1..30}; do
-              candidate="$({
-                gh api --paginate -H "Accept: application/vnd.github+json" \
-                  "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" | jq -r '.[].id'
-              } | while read -r deployment_id; do
-                [[ -n "$deployment_id" ]] || continue
-                gh api -H "Accept: application/vnd.github+json" \
-                  "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
-                  | jq -r '.[] | select(.state == "success") | .environment_url // empty' | head -n 1
-              done | head -n 1)"
+              for want in Production ""; do
+                candidate="$({
+                  gh api --paginate -H "Accept: application/vnd.github+json" \
+                    "/repos/${GITHUB_REPOSITORY}/deployments?sha=${TARGET_SHA}&per_page=100" \
+                    | jq -r --arg want "$want" '.[] | select($want == "" or (.environment // "") == $want) | .id'
+                } | while read -r deployment_id; do
+                  [[ -n "$deployment_id" ]] || continue
+                  gh api -H "Accept: application/vnd.github+json" \
+                    "/repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=100" \
+                    | jq -r '.[] | select(.state == "success") | .environment_url // empty' | head -n 1
+                done | head -n 1)"
+                [[ -n "$candidate" ]] && break
+              done
               [[ -n "$candidate" ]] && break
               sleep 10
             done
@@ -89,6 +97,23 @@ jobs:
             if [[ -n "${!name:-}" ]]; then echo "$name configured: yes"; else echo "$name configured: no"; missing=1; fi
           done
           exit "$missing"
+      # Prove the target actually serves the governed admin API BEFORE spending a
+      # provider call. A resolved-but-wrong deployment answers 404 here, which is
+      # a configuration fact worth stating plainly rather than discovering as an
+      # opaque crash three requests into the smoke.
+      - name: Verify the target serves the governed admin API
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /tmp/probe.json -w "%{http_code}" \
+            -H "x-admin-key: ${RUNTIME_ADMIN_KEY}" \
+            ${VERCEL_AUTOMATION_BYPASS_SECRET:+-H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}"} \
+            "${E2E_BASE_URL}/api/runtime/admin/customer-support-workflow?org_id=${E2E_ORG_ID}&environment_id=${E2E_ENVIRONMENT_ID}" || echo 000)
+          echo "admin API probe: HTTP $status"
+          if [[ "$status" != "200" ]]; then
+            echo "::error::The resolved target answered HTTP $status for the governed admin API, so it is not the running application. Refusing to spend a provider call against it. Re-dispatch with the base_url input set to the production URL." >&2
+            exit 1
+          fi
       - name: Governed Bedrock invocation (exactly one)
         run: node scripts/runtime/customer-support-production-smoke.cjs
       - name: Trace the evidence to the monthly artefact (no provider calls)
