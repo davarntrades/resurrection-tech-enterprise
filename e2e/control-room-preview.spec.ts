@@ -58,7 +58,34 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     if (await password.isVisible().catch(() => false)) {
       await password.fill(OP_PASSWORD);
       await page.getByRole("button", { name: "Sign in" }).click();
-      await expect(controlRoom).toBeVisible({ timeout: 20_000 });
+      // Wait for the sign-in to RESOLVE either way — the authenticated heading,
+      // or the login form's own error. Asserting only on the heading cannot tell
+      // "credentials rejected" apart from "signed in, but this deployment
+      // predates the heading", and those need opposite fixes.
+      const loginError = page.locator(".radmin-err");
+      const tabNav = page.locator("nav.radmin-tabs");
+      await controlRoom.or(loginError).or(tabNav).first()
+        .waitFor({ state: "visible", timeout: 20_000 })
+        .catch(() => { /* fall through to the explicit report below */ });
+
+      if (await loginError.isVisible().catch(() => false)) {
+        throw new Error(
+          "Operator sign-in was REJECTED by the deployment: " +
+          `${(await loginError.innerText().catch(() => "")).trim() || "no message"}. ` +
+          "RUNTIME_ADMIN_KEY reaches the admin API, so the deployment likely sets " +
+          "RUNTIME_OPERATOR_PASSWORD to a different value than this run supplies.",
+        );
+      }
+      if (!(await controlRoom.isVisible().catch(() => false))) {
+        const shell = await tabNav.isVisible().catch(() => false);
+        throw new Error(
+          shell
+            ? "Signed in — the authenticated Control Room shell rendered — but it has no " +
+              "'Operator Control Room' heading. The deployment predates the <h1> fix; redeploy main."
+            : "Sign-in neither succeeded nor reported an error within 20s. Visible page text: " +
+              `${(await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 300) || "<empty>"}`,
+        );
+      }
     }
 
     // 3) Customers tab (exact — avoids matching an overview "View customers →" button).
