@@ -160,3 +160,43 @@ observability of the gap changes.
 `scripts/runtime/evidence-gap-observability.test.cjs` pins this, including a
 guard that fails if any evidence write reverts to a bare
 `.catch(() => {})`.
+
+## Verifiable evidence hashes
+
+Every connector evidence record carries `evidence_hash`, and the audit
+projection **recomputes it from the stored row**. A mismatch is reported as a
+`critical` finding in the monthly pack rather than passing silently.
+
+The hash is taken over a **canonical** serialisation — object keys sorted
+recursively, array order preserved. This matters because Postgres `jsonb` does
+not preserve key order. A hash taken over insertion-order JSON cannot be
+recomputed after a round trip, so verifying it would report ordinary,
+untampered evidence as altered — worse than not verifying at all.
+
+Verification is therefore **three-valued**, never two:
+
+| State | Meaning |
+|---|---|
+| `verified` | recomputed hash matches; the payload is byte-for-byte what was recorded |
+| `unverifiable` | written before canonical hashing (`evidence_hash_alg` is NULL). The hash is retained but cannot be independently recomputed. **Never reported as tampered** |
+| `mismatch` | recomputed hash differs — the payload has been altered since it was written |
+
+`evidence_hash_alg` records which algorithm produced the stored hash, so only
+records that *can* be verified are verified. A legacy serialisation and a real
+alteration are indistinguishable, and an audit trail that guesses in the
+accusing direction is worse than one that admits what it cannot prove.
+
+### Known limit
+
+Connector evidence is hashed **per record, not chained**. An altered record is
+detected; deleting an entire record is not, because there is no sequence to
+break. Only decisions (`rg_decisions`) are hash-chained. `AU-9` in
+`lib/sovereign/controls.js` states this limit explicitly.
+
+### Deployment
+
+```bash
+psql "$SUPABASE_DB_URL" -f supabase/evidence_hash_canonical.sql
+```
+
+Additive, idempotent, no backfill. Historical evidence is never rewritten.
