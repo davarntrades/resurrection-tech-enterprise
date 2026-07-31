@@ -103,9 +103,18 @@ jobs:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
+      # Environment isolation: the governed smokes target DIFFERENT connectors,
+      # which live in different environments. Sharing one E2E_ENVIRONMENT_ID
+      # meant pointing it at the Gmail connector's environment silently broke
+      # the Customer Support smoke, which needs the Bedrock connector.
+      #
+      # Defaults to E2E_ENVIRONMENT_ID so behaviour is unchanged until
+      # CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID is set deliberately.
       - name: Run governed Customer Support production smoke
         id: customer_support_smoke
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
+        env:
+          E2E_ENVIRONMENT_ID: ${{ vars.CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID || env.E2E_ENVIRONMENT_ID }}
         run: node scripts/runtime/customer-support-production-smoke.cjs
       - name: Publish production smoke Job Summary
         if: always()
