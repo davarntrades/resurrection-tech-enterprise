@@ -85,6 +85,14 @@ const query = (run = "") => `${base}/api/runtime/admin/enterprise-actions?org_id
     total_latency_ms: run.total_latency_ms, organisation_id: run.org_id,
     environment_id: run.environment_id, lifecycle_state: run.lifecycle_state,
     workflow_status: run.status, dashboard_update_confirmation: !!dashboardRow,
+    // Replay information: what an auditor needs to reproduce this verdict.
+    governance_rule: run.governance_rule || null,
+    replay_trajectory_hash: run.governance_trajectory_hash || null,
+    replay_attestation: run.governance_attestation
+      ? (run.governance_attestation.engine_commit || run.governance_attestation.ruleset_hash
+        ? `engine_commit=${run.governance_attestation.engine_commit || "n/a"} ruleset_hash=${run.governance_attestation.ruleset_hash || "n/a"}`
+        : JSON.stringify(run.governance_attestation))
+      : null,
   };
   const failures = [];
   if (report.workflow_status !== "completed") failures.push(`run status is ${report.workflow_status}`);
@@ -93,6 +101,7 @@ const query = (run = "") => `${base}/api/runtime/admin/enterprise-actions?org_id
   if (report.provider_invocation_count !== 1) failures.push(`provider invocation count is ${report.provider_invocation_count}`);
   if (!report.external_record_id) failures.push("real external record id is missing");
   if (!report.evidence_id) failures.push("immutable evidence id is missing");
+  if (!report.replay_trajectory_hash) failures.push("replay information (trajectory hash) is missing");
   if (!report.dashboard_update_confirmation) failures.push("dashboard does not contain the completed run");
   for (const field of ["governance_latency_ms", "provider_latency_ms", "total_latency_ms"]) {
     if (!Number.isFinite(Number(report[field]))) failures.push(`${field} is missing`);

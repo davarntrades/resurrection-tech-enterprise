@@ -15,6 +15,7 @@ delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const { startMockEngine } = require("../ops/mock-engine.cjs");
+const row_hash = (row) => row.governance_trajectory_hash;
 let passed = 0;
 async function test(name, fn) {
   try { await fn(); passed++; console.log(`✓ ${name}`); }
@@ -189,6 +190,21 @@ function seal(value) {
     assert.ok(!blob.includes(confidential));
     assert.ok(!blob.includes("refresh-token"));
     assert.ok(evidence.some((x) => x.type === "enterprise.record.read" && x.immutable === true));
+  });
+
+  await test("replay information is persisted so a verdict can be reproduced", async () => {
+    // The production smoke hard-asserts this, so it must be populated on the
+    // run record and not merely present in the engine response.
+    const runs = await rt.store.findOptional("enterprise_action_runs", { org_id: org.id });
+    const executed = runs.filter((r) => r.proposal_id);
+    assert.ok(executed.length, "at least one governed run must exist");
+    for (const row of executed) {
+      assert.ok(row.governance_trajectory_hash,
+        `run ${row.id} must record a trajectory hash for replay`);
+    }
+    const proposal = await ops.proposals.get(executed[0].proposal_id);
+    assert.equal(row_hash(executed[0]), proposal.decision.trajectory_hash,
+      "the recorded hash must be the engine's own trajectory hash, not a local value");
   });
 
   await test("organisation and environment isolation reject mismatched connectors and runs", async () => {

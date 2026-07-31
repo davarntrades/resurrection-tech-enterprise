@@ -31,6 +31,9 @@ create table if not exists public.rg_enterprise_action_runs (
   governance_verdict text,
   governance_policy text,
   governance_rule text,
+  -- Replay information: reproduces the verdict against the pinned ruleset.
+  governance_trajectory_hash text,
+  governance_attestation jsonb,
   approval_status text,
   provider_invocation_count integer not null default 0,
   provider_called boolean not null default false,
