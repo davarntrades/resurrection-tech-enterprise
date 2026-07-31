@@ -1612,6 +1612,52 @@ function nextStepHtml(rec, journeyIdx) {
       <p style="margin-top:14px;color:#8a929c">Recommended engagement: <b style="color:#f3f5f7">${esc(rec.name)}</b> · ${esc(rec.duration || "")}. ${esc(rec.outcome || "")}</p>
     </div>`;
 }
+// ---- Governed connector evidence (additive) --------------------------------
+// The 48-Hour Audit assesses a manifest; this section reports what the customer's
+// GOVERNED CONNECTORS actually did, from the same immutable evidence chain that
+// feeds the monthly pack. It is deliberately one section over a normalized
+// projection — not a per-connector document — so a new connector appears here
+// without touching this file.
+function connectorEvidenceHtml(ce) {
+  if (!ce || !ce.available || !ce.totals) return "";
+  const t = ce.totals;
+  const conns = ce.connectors || [];
+  const reg = (ce.register || []).slice(0, 20);
+  const findings = ce.findings || [];
+  const cell = (v) => esc(v == null || v === "" ? "—" : String(v));
+  const short = (h) => (h ? `${String(h).slice(0, 16)}…` : "—");
+  const kpis = [
+    ["Governed connector actions", t.governed_actions || 0],
+    ["Permitted / Blocked / Escalated", `${t.permitted || 0} / ${t.blocked || 0} / ${t.escalated || 0}`],
+    ["Provider invocations", t.provider_invocations || 0],
+    ["Evidence completeness", t.evidence_completeness_pct != null ? `${t.evidence_completeness_pct}%` : "—"],
+  ].map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
+  return `<div class="sec page-break"><span class="eyebrow">Governed connector evidence</span>
+    <h2>Connector executions are part of this same evidence chain.</h2>
+    <p style="margin:0 0 12px">Every execution below reached its provider only after a canonical GuardianOS action, a proposal, and a Runtime Governance decision — and left immutable evidence. The identifiers here are the same ones carried in the monthly evidence pack; there is no separate connector audit trail.</p>
+    <div class="kpis">${kpis}</div>
+    ${conns.length ? `<table><thead><tr><th>Connector</th><th>Type</th><th>Provider</th><th>Requests</th><th>A / B / E</th><th>Provider calls</th><th>Failed closed</th></tr></thead><tbody>${conns.map((x) => `<tr><td>${cell(x.connector_name || x.connector_id)}</td><td class="m">${cell(x.normalized_connector)}${x.normalized_connector === "other" && x.connector_type ? ` (${esc(x.connector_type)})` : ""}</td><td>${cell(x.provider)}</td><td>${x.governed_requests}</td><td>${x.allow} / ${x.block} / ${x.escalate}</td><td>${x.provider_calls}</td><td>${x.failed_closed}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#737373">No governed connector activity was recorded in this window.</p>`}
+    ${reg.length ? `<h3 style="margin-top:18px">Evidence register</h3><table><thead><tr><th>Evidence ID</th><th>Canonical action</th><th>Proposal</th><th>Decision</th><th>Connector / model</th><th>Calls</th><th>Request hash</th></tr></thead><tbody>${reg.map((r) => `<tr><td class="m">${cell(r.evidence_id)}</td><td class="m">${cell(r.canonical_action_id)}</td><td class="m">${cell(r.proposal_id)}</td><td>${cell(r.governance_decision)}</td><td>${cell(r.normalized_connector)} / ${cell(r.model)}</td><td>${r.provider_invocation_count}</td><td class="m">${esc(short(r.request_hash))}</td></tr>`).join("")}</tbody></table>${(ce.register_total || reg.length) > reg.length ? `<p style="color:#737373">Showing ${reg.length} of ${ce.register_total} records. Complete identifiers are preserved in the exported audit data.</p>` : ""}` : ""}
+    ${findings.length ? `<h3 style="margin-top:18px">Integrity findings</h3><table><thead><tr><th>Severity</th><th>Finding</th><th>Detail</th></tr></thead><tbody>${findings.slice(0, 20).map((f) => `<tr><td>${cell(f.severity)}</td><td class="m">${cell(f.kind)}</td><td>${cell(f.detail)}</td></tr>`).join("")}</tbody></table>` : `<div class="warn" style="margin-top:14px">No integrity exceptions: every governed connector execution in this window is attributable to a canonical action, a proposal and a connector in scope.</div>`}
+  </div>`;
+}
+
+function connectorEvidenceMarkdown(ce) {
+  if (!ce || !ce.available || !ce.totals) return [];
+  const t = ce.totals;
+  const L = ["## Governed connector evidence", ""];
+  L.push("Connector executions reached their provider only after a canonical GuardianOS action, a proposal and a Runtime Governance decision, and left immutable evidence — the same chain and the same identifiers as the monthly evidence pack.", "");
+  L.push(`- Governed connector actions: ${t.governed_actions || 0}`);
+  L.push(`- Permitted / Blocked / Escalated: ${t.permitted || 0} / ${t.blocked || 0} / ${t.escalated || 0}`);
+  L.push(`- Provider invocations: ${t.provider_invocations || 0}`);
+  L.push(`- Evidence completeness: ${t.evidence_completeness_pct != null ? t.evidence_completeness_pct + "%" : "—"}`, "");
+  for (const x of ce.connectors || []) {
+    L.push(`- ${x.connector_name || x.connector_id} (${x.normalized_connector}): ${x.governed_requests} governed, ${x.provider_calls} provider call(s), ${x.failed_closed} failed closed`);
+  }
+  L.push("");
+  return L;
+}
+
 function auditHtml(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
@@ -1755,6 +1801,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + counterfactual
     + enabledSec
     + attestationSec
+    + connectorEvidenceHtml(ctx.connector_evidence)
     + recSec
     + signatureHtml(replay, att)
     + `<div class="disc">Generated from the live Runtime Governance engine assessment of the supplied manifest. Tool names, verdicts, Ω domains and evidence hashes are taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms are non-binding and follow deployment review.</div>`);
@@ -2056,6 +2103,7 @@ function auditMarkdown(c, report, perf, replay, ctx, stages) {
     L.push(`- Only catastrophic trajectories were intercepted${blockedCount ? ` — ${blockedCount} of ${rr.length || blockedCount}` : ""}${escN ? `, with ${escN} escalated for human review` : ""}.`);
     L.push(detIdentical ? `- Deterministic replay confirmed identical outcomes (${replay.deterministic}/${replay.checked}).` : `- Verdicts are reproducible on replay.`);
   }
+  for (const line of connectorEvidenceMarkdown(ctx.connector_evidence)) L.push(line);
   L.push(engagementMarkdown(rec));
   L.push(signatureMarkdown(replay, att));
   L.push(``, `---`, `*Generated from the live Runtime Governance engine assessment. Tool names, verdicts and Ω domains taken directly from the engine. Financial-exposure figures are indicative sector estimates; commercial terms non-binding.*`);
@@ -2222,6 +2270,9 @@ module.exports = {
   // lib/runtime/fullaudit.js). auditHtml is self-contained: every section helper
   // it calls is module-scoped, so exporting it reuses the whole generator.
   auditHtml, enterpriseAssessmentHtml, executiveVerdict, recommendEngagement, governanceConfidence,
+  // Governed connector evidence section (additive). Exported so the projection
+  // → audit.pdf composition is testable without running Chromium.
+  connectorEvidenceHtml, connectorEvidenceMarkdown,
 };
 
 if (require.main === module) (async () => {
@@ -2386,6 +2437,11 @@ if (require.main === module) (async () => {
     // Optional explicit override: input.sector short-circuits detection so a
     // caller can pin the sector deterministically regardless of terminology.
     sector: input.sector || (input.customer && input.customer.sector) || undefined,
+    // Optional governed connector evidence for the same engagement, produced by
+    // lib/runtime/connector-audit (rt.connectorAudit.summary). Absent for a
+    // manifest-only audit, in which case the section is omitted entirely and
+    // the document is byte-identical to before.
+    connector_evidence: input.connector_evidence || null,
   };
   const auditHtmlPath = path.join(outDir, "audit.html");
   const auditMdPath = path.join(outDir, "audit.md");

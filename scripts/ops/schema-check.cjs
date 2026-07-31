@@ -37,6 +37,13 @@ const TABLES = [
   "rg_integration_deployments", "rg_integration_usage", "rg_integration_events", "rg_integration_secrets",
   // governed Amazon Bedrock invocation console (supabase/bedrock_invocation_runs.sql)
   "rg_bedrock_invocation_runs", "rg_bedrock_invocation_locks",
+  // governed communication connectors (supabase/communication_connector.sql) and
+  // the Customer Support Assistant (supabase/customer_support_workflow.sql).
+  // Read by the normalized connector audit projection, so a deployment missing
+  // them under-reports connector activity in the monthly pack — worth catching
+  // from the terminal rather than from a thin report.
+  "rg_communication_runs", "rg_communication_run_locks",
+  "rg_customer_support_workflow_runs", "rg_customer_support_workflow_locks",
 ];
 
 async function main() {
