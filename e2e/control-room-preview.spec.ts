@@ -105,8 +105,22 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     // 5) Click Audit pack for that environment.
     await prodEnv.getByRole("button", { name: "Audit pack" }).click();
 
-    // 6) The audit-pack UI is now shown (diagnostics banner confirms the panel + build).
-    await expect(page.getByText(/Control Room diagnostics/)).toBeVisible();
+    // 6) The audit-pack panel is now shown.
+    //
+    // This used to assert on a "Control Room diagnostics" banner. That banner was
+    // TEMPORARY — added in 39ac9d9 for a deployed-site nav investigation and
+    // deliberately deleted in f89886a ("Remove temporary Audit-pack diagnostics —
+    // production-ready Control Room"). The assertion was left behind, so it has
+    // been unsatisfiable ever since: it required debug scaffolding that a
+    // production-ready Control Room is specifically not supposed to render.
+    //
+    // Assert the panel itself instead — a real, permanent element. This is not a
+    // relaxation: the banner proved nothing about the audit pack, and the hard
+    // gate below (audit.pdf row → href shape → application/pdf) is untouched.
+    await expect(
+      page.locator(".radmin-pack").first(),
+      "audit-pack panel did not open for this environment",
+    ).toBeVisible({ timeout: 20_000 });
 
     // 7) The audit.pdf deliverable's Preview link.
     const row = page.locator(".radmin-deliv-row", { hasText: "audit.pdf" }).first();
