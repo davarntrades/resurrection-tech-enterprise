@@ -1,7 +1,12 @@
 name: ServiceNow governed production smoke
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Deployment to validate against. Defaults to vars.E2E_BASE_URL; pass a PR preview URL to validate a governed mutation before merging."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -11,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      E2E_BASE_URL: ${{ inputs.base_url || vars.E2E_BASE_URL }}
       E2E_ORG_ID: ${{ vars.E2E_ORG_ID }}
       RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
