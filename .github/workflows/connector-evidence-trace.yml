@@ -1,0 +1,71 @@
+name: Governed connector evidence — production trace
+
+# MANUAL ONLY. This performs ONE governed Amazon Bedrock invocation and then
+# follows the evidence it produces all the way to the customer-facing monthly
+# artefact. It is deliberately not on push or schedule: the invocation is
+# chargeable, so it runs when someone asks for it and not otherwise.
+#
+#   canonical action → proposal → Runtime Governance → Bedrock invocation
+#     → immutable evidence → connector audit projection
+#     → persisted rg_reports.connector_activity → monthly HTML → monthly PDF
+#
+# Exactly one provider call: the smoke below makes it, the trace step makes
+# none. The job does not retry, so a failure can never turn into a second
+# chargeable invocation.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNTIME_ADMIN_KEY: ${{ secrets.RUNTIME_ADMIN_KEY }}
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+      E2E_ORG_ID: ${{ secrets.E2E_ORG_ID || vars.E2E_ORG_ID }}
+      E2E_ENVIRONMENT_ID: ${{ vars.CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID || vars.E2E_ENVIRONMENT_ID || secrets.E2E_ENVIRONMENT_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Preflight — fail closed before any provider call
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in E2E_BASE_URL RUNTIME_ADMIN_KEY E2E_ORG_ID E2E_ENVIRONMENT_ID; do
+            if [[ -n "${!name:-}" ]]; then echo "$name configured: yes"; else echo "$name configured: no"; missing=1; fi
+          done
+          exit "$missing"
+      - name: Governed Bedrock invocation (exactly one)
+        run: node scripts/runtime/customer-support-production-smoke.cjs
+      - name: Trace the evidence to the monthly artefact (no provider calls)
+        run: node scripts/runtime/connector-evidence-trace.cjs
+      - name: Publish the trace
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/connector-evidence-trace.md ]]; then
+            cat artifacts/connector-evidence-trace.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Governed connector evidence trace" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Failed before a structured trace was produced. Inspect the step logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload the trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connector-evidence-trace
+          path: |
+            artifacts/connector-evidence-trace.json
+            artifacts/customer-support-production-smoke.json
+          if-no-files-found: warn
+          retention-days: 30
