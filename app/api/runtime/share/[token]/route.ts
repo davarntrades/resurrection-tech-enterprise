@@ -2,7 +2,12 @@
  * Serves a shared deliverable if the token is active (not expired / revoked) and
  * the password (if any) matches. The console, engine, and admin API are never
  * exposed here — only the one finished deliverable the operator chose to share.
- *   GET /api/runtime/share/<token>[?pw=<password>]
+ *   GET /api/runtime/share/<token>          (x-share-password header if protected)
+ *
+ * The password is NOT read from the query string. It exists to protect a link
+ * whose URL has leaked — a forwarded email, browser history, a proxy or CDN log.
+ * Carrying it in that same URL would leak it by exactly the route it defends
+ * against, so it must travel in a header instead.
  */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
@@ -12,7 +17,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
-  const pw = new URL(req.url).searchParams.get("pw") || req.headers.get("x-share-password") || "";
+  const pw = req.headers.get("x-share-password") || "";
+  // A link that still carries ?pw= is already compromised: the secret is in the
+  // URL. Refuse it explicitly rather than honouring it, so the operator learns
+  // the link needs re-issuing instead of the weakness persisting silently.
+  if (new URL(req.url).searchParams.has("pw")) {
+    return NextResponse.json({
+      error: "This link carries its password in the URL, which exposes it wherever the URL is logged or forwarded. Send the password in the x-share-password header, and ask the sender to re-issue the link.",
+    }, { status: 400 });
+  }
   const r = await rt.deliverables.resolveShare(token, pw);
   if (!r.ok) {
     const msg = r.error === "expired" ? "This link has expired."
