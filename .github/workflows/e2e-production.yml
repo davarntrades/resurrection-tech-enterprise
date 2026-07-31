@@ -106,6 +106,7 @@ jobs:
         env:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          RUNTIME_OPERATOR_PASSWORD: ${{ secrets.RUNTIME_OPERATOR_PASSWORD }}
         run: |
           set -euo pipefail
           missing=0
@@ -115,12 +116,25 @@ jobs:
           if [[ "$missing" != "0" ]]; then
             echo "::warning::Control Room HTTP Basic Auth is not configured for this run. The Preview E2E will be served a 401 page and its Control Room tests cannot pass. Set the ADMIN_USER and ADMIN_PASSWORD repository secrets to the values the deployment uses."
           fi
+          # Basic Auth only opens /admin/*. The OPERATOR sign-in inside the
+          # Control Room is a second, separate credential. It falls back to
+          # RUNTIME_ADMIN_KEY, which is correct only when the deployment does not
+          # set RUNTIME_OPERATOR_PASSWORD — otherwise sign-in is rejected and the
+          # Control Room tests cannot pass however good the Basic Auth is.
+          if [[ -n "${RUNTIME_OPERATOR_PASSWORD:-}" ]]; then
+            echo "RUNTIME_OPERATOR_PASSWORD configured: yes (operator sign-in uses it)"
+          else
+            echo "RUNTIME_OPERATOR_PASSWORD configured: no (operator sign-in falls back to RUNTIME_ADMIN_KEY)"
+          fi
       - name: Run production Preview E2E
         id: preview_ui_e2e
         run: npm run test:e2e
         env:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # Operator sign-in inside the Control Room. Unset falls back to
+          # RUNTIME_ADMIN_KEY, matching the server's own resolution order.
+          RUNTIME_OPERATOR_PASSWORD: ${{ secrets.RUNTIME_OPERATOR_PASSWORD }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
       # Environment isolation: the governed smokes target DIFFERENT connectors,
       # which live in different environments. Sharing one E2E_ENVIRONMENT_ID

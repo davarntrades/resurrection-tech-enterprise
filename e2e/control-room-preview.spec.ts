@@ -12,7 +12,15 @@ import { test, expect } from "@playwright/test";
  *   RUNTIME_ADMIN_KEY (or RUNTIME_OPERATOR_PASSWORD)   operator login password
  *   E2E_CUSTOMER              customer card name (default "Dry Run Customer")
  */
+// TWO different credentials, deliberately kept apart.
+//   OP_PASSWORD — the operator sign-in inside the Control Room UI. Mirrors the
+//     server's own order: RUNTIME_OPERATOR_PASSWORD, else RUNTIME_ADMIN_KEY.
+//   ADMIN_KEY   — the x-admin-key header on /api/runtime/admin/*, which is only
+//     ever RUNTIME_ADMIN_KEY (adminauth compares it to exactly that).
+// Collapsing them into one constant works right up until a deployment sets an
+// operator password, at which point the API calls start 401ing.
 const OP_PASSWORD = process.env.RUNTIME_OPERATOR_PASSWORD || process.env.RUNTIME_ADMIN_KEY || "";
+const ADMIN_KEY = process.env.RUNTIME_ADMIN_KEY || "";
 const CUSTOMER = process.env.E2E_CUSTOMER || "Dry Run Customer";
 
 test.describe("Control Room — Audit pack → Preview (production)", () => {
@@ -58,7 +66,34 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     if (await password.isVisible().catch(() => false)) {
       await password.fill(OP_PASSWORD);
       await page.getByRole("button", { name: "Sign in" }).click();
-      await expect(controlRoom).toBeVisible({ timeout: 20_000 });
+      // Wait for the sign-in to RESOLVE either way — the authenticated heading,
+      // or the login form's own error. Asserting only on the heading cannot tell
+      // "credentials rejected" apart from "signed in, but this deployment
+      // predates the heading", and those need opposite fixes.
+      const loginError = page.locator(".radmin-err");
+      const tabNav = page.locator("nav.radmin-tabs");
+      await controlRoom.or(loginError).or(tabNav).first()
+        .waitFor({ state: "visible", timeout: 20_000 })
+        .catch(() => { /* fall through to the explicit report below */ });
+
+      if (await loginError.isVisible().catch(() => false)) {
+        throw new Error(
+          "Operator sign-in was REJECTED by the deployment: " +
+          `${(await loginError.innerText().catch(() => "")).trim() || "no message"}. ` +
+          "RUNTIME_ADMIN_KEY reaches the admin API, so the deployment likely sets " +
+          "RUNTIME_OPERATOR_PASSWORD to a different value than this run supplies.",
+        );
+      }
+      if (!(await controlRoom.isVisible().catch(() => false))) {
+        const shell = await tabNav.isVisible().catch(() => false);
+        throw new Error(
+          shell
+            ? "Signed in — the authenticated Control Room shell rendered — but it has no " +
+              "'Operator Control Room' heading. The deployment predates the <h1> fix; redeploy main."
+            : "Sign-in neither succeeded nor reported an error within 20s. Visible page text: " +
+              `${(await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 300) || "<empty>"}`,
+        );
+      }
     }
 
     // 3) Customers tab (exact — avoids matching an overview "View customers →" button).
@@ -78,8 +113,22 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
     // 5) Click Audit pack for that environment.
     await prodEnv.getByRole("button", { name: "Audit pack" }).click();
 
-    // 6) The audit-pack UI is now shown (diagnostics banner confirms the panel + build).
-    await expect(page.getByText(/Control Room diagnostics/)).toBeVisible();
+    // 6) The audit-pack panel is now shown.
+    //
+    // This used to assert on a "Control Room diagnostics" banner. That banner was
+    // TEMPORARY — added in 39ac9d9 for a deployed-site nav investigation and
+    // deliberately deleted in f89886a ("Remove temporary Audit-pack diagnostics —
+    // production-ready Control Room"). The assertion was left behind, so it has
+    // been unsatisfiable ever since: it required debug scaffolding that a
+    // production-ready Control Room is specifically not supposed to render.
+    //
+    // Assert the panel itself instead — a real, permanent element. This is not a
+    // relaxation: the banner proved nothing about the audit pack, and the hard
+    // gate below (audit.pdf row → href shape → application/pdf) is untouched.
+    await expect(
+      page.locator(".radmin-pack").first(),
+      "audit-pack panel did not open for this environment",
+    ).toBeVisible({ timeout: 20_000 });
 
     // 7) The audit.pdf deliverable's Preview link.
     const row = page.locator(".radmin-deliv-row", { hasText: "audit.pdf" }).first();
@@ -102,7 +151,7 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
   test("Gmail Validate reaches Google and persists a terminal health result", async ({ request }) => {
     const orgId = process.env.E2E_ORG_ID || "";
     test.skip(!orgId, "set E2E_ORG_ID to validate Gmail");
-    const headers = { "x-admin-key": OP_PASSWORD, "content-type": "application/json" };
+    const headers = { "x-admin-key": ADMIN_KEY, "content-type": "application/json" };
 
     const beforeResponse = await request.get(
       `/api/runtime/admin/integration-gateway?org_id=${encodeURIComponent(orgId)}`,
