@@ -200,3 +200,26 @@ psql "$SUPABASE_DB_URL" -f supabase/evidence_hash_canonical.sql
 ```
 
 Additive, idempotent, no backfill. Historical evidence is never rewritten.
+## Monthly reporting windows are calendar months
+
+`monthly` covers a **calendar month** — `[1st 00:00 UTC, 1st of next month 00:00 UTC)`.
+
+It was previously a rolling month ending at the instant of generation. Two
+reports generated 40 days apart left a 10-day hole that no report covered; two
+generated 20 days apart counted 10 days twice. Monthly evidence is relied on as
+a complete record of a named month, so the window has to be a property of the
+month rather than of when somebody pressed the button.
+
+The window is half-open, matching the projection's own `[since, until)`
+boundary, so a record on a boundary belongs to exactly one month and consecutive
+months tile exactly.
+
+`daily` and `weekly` are unchanged and remain rolling — "the last 24 hours" is
+an operational question where relative-to-now is what is being asked.
+`quarterly` has the same latent gap monthly had and is **deliberately left
+alone**; it is a separate change with its own blast radius.
+
+> **Behaviour change.** A monthly report generated mid-month now covers the whole
+> calendar month, so its `until` is in the future and it will be re-covered by a
+> later generation in the same month. Reports generated before this change keep
+> the window stored on the row and render exactly as they did.

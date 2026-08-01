@@ -25,6 +25,10 @@ const ENV = "env_prod";
 const OTHER_ENV = "env_stage";
 const SINCE = "2026-06-01T00:00:00.000Z";
 const UNTIL = "2026-07-01T00:00:00.000Z";
+// A reference instant INSIDE the fixture month. windowFor("monthly") returns the
+// calendar month containing the reference, so this selects June — the same
+// window the fixtures were written for.
+const REF_IN_WINDOW = "2026-06-15T00:00:00.000Z";
 
 const connector = (id, org, env, type, name) => store.insert("integration_connectors", {
   id, org_id: org, environment_id: env, type, name, status: "configured", health: "healthy",
@@ -329,7 +333,7 @@ const event = (id, org, env, type, evidence, at) => store.insert("integration_ev
     persistedKeys = Object.keys(row);
     return { ...row, id: "rep_fallback" };
   };
-  const persisted = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: UNTIL, persist: true });
+  const persisted = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: REF_IN_WINDOW, persist: true });
   store.insert = realInsert;
   ok(attempts === 2 && persistedKeys && !persistedKeys.includes("connector_activity"),
     `23a. a missing connector_activity column falls back to persisting without it (attempts ${attempts})`);
@@ -345,7 +349,7 @@ const event = (id, org, env, type, evidence, at) => store.insert("integration_ev
     migratedAttempts += 1; storedRow = row;
     return { ...row, id: "rep_migrated" };
   };
-  const stored = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: UNTIL, persist: true });
+  const stored = await reports.generate({ org_id: ORG, environment_id: ENV, period: "monthly", ref: REF_IN_WINDOW, persist: true });
   store.insert = realInsert;
   ok(migratedAttempts === 1, `24a. a migrated deployment persists in one attempt, with no fallback (attempts ${migratedAttempts})`);
   ok(storedRow && Object.prototype.hasOwnProperty.call(storedRow, "connector_activity")
