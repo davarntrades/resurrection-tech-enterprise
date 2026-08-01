@@ -223,3 +223,30 @@ alone**; it is a separate change with its own blast radius.
 > calendar month, so its `until` is in the future and it will be re-covered by a
 > later generation in the same month. Reports generated before this change keep
 > the window stored on the row and render exactly as they did.
+## Share links
+
+A share link is protected by a **144-bit random token** (`crypto.randomBytes(18)`).
+That token is the control that makes the link unguessable; an optional password
+is a *second* factor for the case the token leaks — a forwarded email, browser
+history, a proxy or CDN log.
+
+Two rules follow from that:
+
+**The password never travels in the URL.** It is read from the
+`x-share-password` header only. Carrying it in the query string would leak it by
+exactly the route it defends against. A request that still supplies `?pw=` is
+rejected with an explanation, so the operator re-issues the link rather than the
+weakness persisting silently.
+
+**It is stored salted, with a work factor** (`scrypt`, per-share salt). An
+unsalted digest of a human-chosen password falls to a rainbow table the moment a
+database leaks, and customers reuse passwords.
+
+Verification accepts **both** the salted format and the older unsalted digest, so
+existing customer links keep working; new shares are always salted. Comparison is
+constant-time in both paths.
+
+> Share links are unauthenticated by design — that is what makes them
+> deliverable to a customer. `RUNTIME_RATE_LIMIT` is unset by default and does
+> not currently throttle this route; with a 144-bit token, guessing is
+> infeasible, but operators expecting hostile traffic should set it.
