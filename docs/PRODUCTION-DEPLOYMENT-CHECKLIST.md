@@ -92,6 +92,61 @@ where not tgisinternal and tgname like '%_no_update';
 -- expect three rows: rg_decisions, rg_integration_events, rg_ops_evidence
 ```
 
+### Runtime assurance status (`supabase/assurance_status.sql`)
+
+Apply after `evidence_append_only.sql`. It creates one read-only function,
+`rg_assurance_append_only()`, which reports which append-only triggers exist,
+whether each is enabled, and whether it genuinely fires BEFORE UPDATE. It
+creates, alters and drops nothing, and execute is granted to `service_role`
+only.
+
+With it applied, **Control Room → Assurance** reports the same facts as the
+`pg_trigger` query above, alongside the two fail-closed environment switches,
+an evidence-hash verification sample, and the latest report's integrity result.
+The panel is read-only: none of these controls can be changed from the UI,
+because a governance control the governed system can switch off from its own
+admin console is not a control.
+
+Each control reports one of four states, and a **verification source** saying
+where that state came from. The split between the two positive states is the
+point — they rest on different strengths of evidence:
+
+| State | Meaning |
+|---|---|
+| **VERIFIED** | Independently confirmed against the system itself — database metadata, or evidence recomputed from what is stored. |
+| **CONFIGURED** | The deployment says so. Self-reported from configuration; nothing independent has corroborated its effect. |
+| **DEGRADED** | Checked, and the control is not in force: absent, disabled, inert, or failing. |
+| **UNKNOWN** | Could not be established. Never means the control is probably present. |
+
+| Control | Verification source | Can reach VERIFIED? |
+|---|---|---|
+| `RUNTIME_REQUIRE_RECORD` | Environment variable | **No** — self-reported |
+| `RUNTIME_REQUIRE_DURABLE` | Environment variable + runtime store state | **No** — self-reported |
+| Append-only enforcement | PostgreSQL (`pg_trigger`) | Yes |
+| Evidence-hash verification | Stored evidence (hash recomputed) | Yes |
+| Latest report integrity | Integrity report | Yes |
+
+A control whose only evidence is self-reported can **never** read VERIFIED —
+enforced in code, not by convention. `RUNTIME_REQUIRE_RECORD` being set tells
+you the deployment intends to fail closed; proving that it does would mean
+inducing a record failure against live traffic, which this panel will not do.
+Read CONFIGURED as "intended", not as "demonstrated".
+
+Without the migration the panel still works — it reports append-only as
+**UNKNOWN**, naming the missing migration. It never assumes the triggers are
+present. `npm run ops:schema-check` reports the missing function as a warning
+rather than a failure, since losing the status surface is a loss of visibility,
+not a loss of enforcement.
+
+Two things the panel deliberately does **not** do:
+
+- It does not verify integrity itself. The hash sample is a status light over
+  the most recent records; the authoritative integrity result is produced when a
+  report is generated.
+- It does not replace the SQL query above for sign-off. The panel reads the
+  database through the application; an auditor checking the control for the
+  first time should confirm it independently.
+
 ## Manual verification (equivalent, from any network)
 
 The same signals are exposed by the public health endpoint (no customer data):
