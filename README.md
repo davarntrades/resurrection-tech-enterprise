@@ -124,3 +124,10 @@ that standard, and apply to all code in this repository.
   those principles, with prioritised findings and an architecture review.
 
 Background: `docs/OPERATIONAL-READINESS.md` (Phase 6 hardening review).
+
+**`docs/security-release/`** — the enterprise security release package: executive
+and technical security assessments, the remediation register, remaining known
+risks, a production readiness statement, a pilot deployment checklist, and a
+claims matrix mapping every public security claim to its implementation. Written
+for enterprise customers, auditors and procurement. Start at
+`docs/security-release/README.md`.
