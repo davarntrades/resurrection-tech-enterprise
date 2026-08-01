@@ -53,12 +53,24 @@ function sourceFiles() {
   return out;
 }
 
-// This file names the forbidden call shapes in order to search for them, so it
-// would match its own patterns. Exclude it — and only it — from the scan.
+// Test suites are excluded from the UPDATE scan, and the reason is narrow
+// enough to state exactly. Every suite in this repository opens with
+//
+//   for (const k of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) delete process.env[k];
+//   process.env.RUNTIME_DATA_DIR = fs.mkdtempSync(…);
+//
+// so `store.update` writes a JSON file in a temp directory and never reaches
+// Postgres. A suite CANNOT trigger the append-only guard, and some must mutate
+// stored evidence to do their job — evidence-hash-verification.test.cjs alters a
+// record precisely to prove the hash check catches it. Excluding them is not a
+// hole: test files are never loaded by the application, so they are not a code
+// path a production write can travel. Assertion 8b below pins that reasoning by
+// requiring every excluded file to actually be a suite that scrubs Supabase.
 const SELF = path.relative(ROOT, __filename);
-const SOURCES = sourceFiles()
-  .map((f) => ({ file: path.relative(ROOT, f), text: fs.readFileSync(f, "utf8") }))
-  .filter((s) => s.file !== SELF);
+const isTestFile = (f) => /\.test\.(c|m)?js$/.test(f) || /\.test\.(c|m)?ts$/.test(f);
+const ALL = sourceFiles().map((f) => ({ file: path.relative(ROOT, f), text: fs.readFileSync(f, "utf8") }));
+const SOURCES = ALL.filter((s) => s.file !== SELF && !isTestFile(s.file));
+const EXCLUDED_TESTS = ALL.filter((s) => s.file !== SELF && isTestFile(s.file));
 
 // ── 1. The migration exists and does what it claims ──────────────────────────
 ok(fs.existsSync(MIGRATION), "1. supabase/evidence_append_only.sql exists");
@@ -103,9 +115,25 @@ for (const c of PROTECTED) {
   const re = new RegExp(`\\.update\\(\\s*["'\`]${c}["'\`]`);
   const offenders = SOURCES.filter((s) => re.test(s.text)).map((s) => s.file);
   ok(offenders.length === 0,
-    `8. no code path calls store.update("${c}", …) — would be rejected by the DB trigger` +
+    `8. no application code path calls store.update("${c}", …) — would be rejected by the DB trigger` +
     (offenders.length ? ` [found in: ${offenders.join(", ")}]` : ""));
 }
+
+// 8b. The exclusion above is only sound while every excluded file really is a
+// suite that scrubs Supabase and writes to a temp file store. A suite that kept
+// its Supabase credentials WOULD reach the trigger, and mutating evidence there
+// would fail against a real project. This assertion is what keeps the exclusion
+// from quietly becoming a hole.
+const leaky = EXCLUDED_TESTS.filter((s) => {
+  const mutates = PROTECTED.some((c) => new RegExp(`\\.update\\(\\s*["'\`]${c}["'\`]`).test(s.text));
+  if (!mutates) return false;
+  const scrubs = /delete\s+process\.env\[|for\s*\(const\s+k\s+of\s*\[[^\]]*SUPABASE/.test(s.text);
+  const tempStore = /RUNTIME_DATA_DIR\s*=\s*fs\.mkdtempSync/.test(s.text);
+  return !(scrubs && tempStore);
+}).map((s) => s.file);
+ok(leaky.length === 0,
+  "8b. every test suite that mutates evidence scrubs Supabase and uses a temp file store, so it cannot reach the trigger" +
+  (leaky.length ? ` [not proven for: ${leaky.join(", ")}]` : ""));
 
 // A direct Supabase update bypassing the store would evade the scan above, so
 // check for it too: `.from("rg_decisions")` style access outside store.js.
