@@ -47,14 +47,17 @@ that are currently opt-in.
 ## Three things to check before relying on this package
 
 1. **Merged code is not a live control.** All six remediations are merged into
-   `main` (PRs #241–#246), but two depend on database migrations applied
-   per-project. `evidence_append_only.sql` is **not yet applied**, so the
-   append-only guard is inert until it is — no amount of merged code changes
-   that. Confirm the deployed commit *and* the migrations. Phase 1 of the Pilot
-   Deployment Checklist gives a per-finding verification command.
+   `main` (PRs #241–#246), and both required migrations are applied to
+   `resurrection-tech-prod` — so all six are live *there*. They are **not** live
+   anywhere else until the migrations are run against that project: migrations
+   are applied per-project and do not travel with a code deploy. Confirm the
+   deployed commit *and* the migrations for whatever deployment you are
+   assessing. Phase 1 of the Pilot Deployment Checklist gives a per-finding
+   verification command.
 2. **Two database migrations are required** and one of them installs triggers
-   that the automated schema check cannot see. Phase 2 of the checklist gives
-   the direct `pg_trigger` query.
+   that the automated schema check cannot see — a project can pass
+   `ops:schema-check` with the append-only guard entirely absent. Phase 2 of the
+   checklist gives the direct `pg_trigger` query that closes that blind spot.
 3. **Two fail-closed environment variables default to off.** Without
    `RUNTIME_REQUIRE_RECORD=1` and `RUNTIME_REQUIRE_DURABLE=1`, the evidence
    guarantee described in these documents is not the behaviour you get.
