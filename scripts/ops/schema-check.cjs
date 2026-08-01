@@ -53,6 +53,8 @@ const TABLES = [
 const COLUMNS = [
   // normalized connector audit projection (supabase/connector_audit_projection.sql)
   { table: "rg_reports", column: "connector_activity", migration: "supabase/connector_audit_projection.sql" },
+  // verifiable connector evidence hashes (supabase/evidence_hash_canonical.sql)
+  { table: "rg_integration_events", column: "evidence_hash_alg", migration: "supabase/evidence_hash_canonical.sql" },
 ];
 
 async function main() {
