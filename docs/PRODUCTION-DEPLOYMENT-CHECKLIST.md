@@ -92,6 +92,36 @@ where not tgisinternal and tgname like '%_no_update';
 -- expect three rows: rg_decisions, rg_integration_events, rg_ops_evidence
 ```
 
+### Runtime assurance status (`supabase/assurance_status.sql`)
+
+Apply after `evidence_append_only.sql`. It creates one read-only function,
+`rg_assurance_append_only()`, which reports which append-only triggers exist,
+whether each is enabled, and whether it genuinely fires BEFORE UPDATE. It
+creates, alters and drops nothing, and execute is granted to `service_role`
+only.
+
+With it applied, **Control Room → Assurance** reports the same facts as the
+`pg_trigger` query above, alongside the two fail-closed environment switches,
+an evidence-hash verification sample, and the latest report's integrity result.
+The panel is read-only: none of these controls can be changed from the UI,
+because a governance control the governed system can switch off from its own
+admin console is not a control.
+
+Without the migration the panel still works — it reports append-only as
+**UNKNOWN**, naming the missing migration. It never assumes the triggers are
+present. `npm run ops:schema-check` reports the missing function as a warning
+rather than a failure, since losing the status surface is a loss of visibility,
+not a loss of enforcement.
+
+Two things the panel deliberately does **not** do:
+
+- It does not verify integrity itself. The hash sample is a status light over
+  the most recent records; the authoritative integrity result is produced when a
+  report is generated.
+- It does not replace the SQL query above for sign-off. The panel reads the
+  database through the application; an auditor checking the control for the
+  first time should confirm it independently.
+
 ## Manual verification (equivalent, from any network)
 
 The same signals are exposed by the public health endpoint (no customer data):

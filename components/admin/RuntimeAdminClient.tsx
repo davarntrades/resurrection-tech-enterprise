@@ -28,7 +28,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "alerts" | "audit";
+type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
 
 export default function RuntimeAdminClient({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -54,7 +54,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["overview", "customers", "onboard", "integrations", "readiness", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -72,6 +72,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
         {tab === "integrations" && <IntegrationGatewayPanel />}
         {tab === "readiness" && <ReadinessPanel />}
+        {tab === "assurance" && <AssurancePanel />}
         {tab === "alerts" && <AlertsPanel />}
         {tab === "audit" && <AuditPanel />}
       </main>
@@ -1265,6 +1266,106 @@ function ReadinessPanel() {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// ── Runtime Assurance Status (read-only) ─────────────────────────────────────
+// Reports whether the platform's assurance controls are actually in force in
+// THIS deployment. There is no control on this panel that changes anything, and
+// that is deliberate: these are configured outside the application (environment
+// variables in the deployment, migrations applied to the database). A governance
+// control the governed system can switch off from its own admin UI is not a
+// control.
+//
+// `unknown` is rendered as its own state, never folded into a warning. The whole
+// point of the panel is to replace "it is probably on" with a reading, so a
+// control whose state could not be established must look different from one that
+// was checked and passed.
+const ASSURANCE_TAG: Record<string, { tag: string; cls: string }> = {
+  verified: { tag: "VERIFIED", cls: "pass" },
+  active: { tag: "ACTIVE", cls: "pass" },
+  inactive: { tag: "INACTIVE", cls: "warn" },
+  degraded: { tag: "DEGRADED", cls: "fail" },
+  unknown: { tag: "UNKNOWN", cls: "unknown" },
+};
+
+function AssurancePanel() {
+  const [data, setData] = useState<any>(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    setErr("");
+    try { setData(await api("assurance")); } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // A failed load must not render as an empty, calm panel — that reads as
+  // "nothing wrong". Show the failure and nothing else.
+  if (err) return <div className="radmin-err">Assurance status unavailable — {err}. Treat every control below as UNKNOWN until this resolves.</div>;
+  if (!data) return <div className="radmin-muted">Reading assurance status…</div>;
+
+  const controls: any[] = data.controls || [];
+  const counts: Record<string, number> = data.counts || {};
+  const notVerified = controls.filter((c) => c.state !== "verified" && c.state !== "active").length;
+
+  return (
+    <section className="radmin-card">
+      <div className="radmin-row">
+        <h2>Runtime assurance status</h2>
+        <span className={`radmin-ready ${notVerified ? "bad" : "ok"}`}>
+          {notVerified ? `${notVerified} NOT CONFIRMED` : "ALL CONFIRMED"}
+        </span>
+        <button className="radmin-btn sm" onClick={load}>Refresh</button>
+      </div>
+      <p className="radmin-muted">
+        Read-only. Whether each assurance control is actually in force in this deployment —
+        store <code>{data.store?.backend}</code>, durable <code>{String(data.store?.durable)}</code>.
+        A control is never reported as present because it ought to be: anything that cannot be
+        established reads <b>UNKNOWN</b>.
+      </p>
+
+      <ul className="radmin-checks">
+        {controls.map((c) => {
+          const t = ASSURANCE_TAG[c.state] || ASSURANCE_TAG.unknown;
+          return (
+            <li key={c.id} className={`radmin-check ${t.cls}`}>
+              <span className="radmin-check-tag">{t.tag}</span>
+              <span className="radmin-check-name">
+                {c.label}
+                {c.env_var ? <><br /><code className="radmin-muted" style={{ fontSize: 10.5 }}>{c.env_var}</code></> : null}
+              </span>
+              <span className="radmin-check-detail radmin-muted">
+                {c.summary}
+                {c.tables ? (
+                  <>
+                    <br />
+                    {Object.entries(c.tables).map(([tbl, v]: [string, any]) => (
+                      <span key={tbl} style={{ marginRight: 12 }}>
+                        {v.protected ? "✓" : "✕"} {tbl}{v.note ? ` (${v.note})` : ""}
+                      </span>
+                    ))}
+                  </>
+                ) : null}
+                {c.counts ? (
+                  <><br />sampled {c.sampled} of {c.total_records} · verified {c.counts.verified} · unverifiable {c.counts.unverifiable} · mismatch {c.counts.mismatch} · no hash {c.counts.absent}</>
+                ) : null}
+                {c.report_id ? (<><br />report <code>{c.report_id}</code> · {c.period} · generated {String(c.generated_at || "").slice(0, 10)}</>) : null}
+                {c.detail ? (<><br /><span style={{ opacity: 0.75 }}>{c.detail}</span></>) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="radmin-row" style={{ marginTop: 16 }}>
+        <span className="radmin-muted">
+          {Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(" · ")} · read {String(data.generated_at || "").slice(0, 19).replace("T", " ")}
+        </span>
+      </div>
+
+      {(data.notes || []).map((n: string, i: number) => (
+        <p key={i} className="radmin-muted" style={{ fontSize: 12, marginTop: 8 }}>{n}</p>
+      ))}
     </section>
   );
 }

@@ -50,6 +50,14 @@ const TABLES = [
 // rg_reports predates the column below, so the table is present and the schema
 // still incomplete. Writes to a missing column fail at runtime, so an additive
 // column is exactly as deploy-blocking as an additive table and belongs here.
+// Additive FUNCTIONS. Like columns, a table check cannot see these, and the
+// assurance panel degrades to UNKNOWN without them rather than failing — which
+// is correct behaviour but easy to miss, so surface it from the terminal too.
+const FUNCTIONS = [
+  { name: "rg_assurance_append_only", migration: "supabase/assurance_status.sql",
+    purpose: "Control Room reads append-only trigger state from database metadata" },
+];
+
 const COLUMNS = [
   // normalized connector audit projection (supabase/connector_audit_projection.sql)
   { table: "rg_reports", column: "connector_activity", migration: "supabase/connector_audit_projection.sql" },
@@ -89,6 +97,19 @@ async function main() {
     else columnErrors.push({ table: `${c.table}.${c.column}`, error: msg });
   }
 
+  // Function probe: call it with no arguments, read-only by construction.
+  // PostgREST answers PGRST202/42883 when it is absent. Reported as a WARNING,
+  // not a failure: the assurance panel degrades to UNKNOWN without it, which is
+  // a loss of visibility rather than a loss of enforcement — and a deploy gate
+  // that blocks on a missing status surface would be disproportionate.
+  const missingFunctions = [];
+  for (const f of FUNCTIONS) {
+    const { error } = await sb.rpc(f.name);
+    if (!error) continue;
+    const msg = String(error.message || error);
+    if (/could not find the function|does not exist|schema cache|PGRST202|42883/i.test(msg)) missingFunctions.push(f);
+  }
+
   console.log(`\nGuardian OS schema check — ${url}\n`);
   console.log(`  present: ${present.length}/${TABLES.length} tables · ${presentColumns.length}/${COLUMNS.length} additive columns`);
   for (const name of presentColumns) console.log(`    ✓ ${name}`);
@@ -110,8 +131,13 @@ async function main() {
     console.log(`\n  OTHER ERRORS (not a missing migration — investigate):`);
     for (const o of other) console.log(`    · ${o.table}: ${o.error}`);
   }
+  if (missingFunctions.length) {
+    console.log(`\n  MISSING FUNCTIONS (${missingFunctions.length}) — WARNING, not a deploy blocker:`);
+    for (const f of missingFunctions) console.log(`    · ${f.name}() — apply ${f.migration} (${f.purpose})`);
+  }
   if (!missing.length && !other.length && !missingColumns.length && !columnErrors.length) {
-    console.log("\n  All tables and additive columns present. Schema is up to date.\n");
+    console.log("\n  All tables and additive columns present. Schema is up to date.");
+    console.log(missingFunctions.length ? "  (See the function warning above.)\n" : "\n");
   }
   process.exit(missing.length || other.length || missingColumns.length || columnErrors.length ? 1 : 0);
 }

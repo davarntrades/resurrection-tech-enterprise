@@ -113,6 +113,11 @@
 .radmin-check.pass .radmin-check-tag { color: var(--ok); background: rgba(63,178,127,0.12); }
 .radmin-check.fail .radmin-check-tag { color: var(--omega); background: rgba(229,72,77,0.12); }
 .radmin-check.warn .radmin-check-tag { color: #d9a441; background: rgba(217,164,65,0.12); }
+/* `unknown` is a first-class assurance state, not a milder warning: it means the
+   control could not be read. It gets its own neutral treatment so it is never
+   mistaken at a glance for either a pass or a failure. */
+.radmin-check.unknown .radmin-check-tag { color: var(--muted, #8a8f98); background: rgba(138,143,152,0.12); }
+.radmin-check.unknown { border-style: dashed; }
 .radmin-check-name { font-size: 13px; }
 .radmin-check-detail { font-family: var(--mono); font-size: 11.5px; word-break: break-word; }
 

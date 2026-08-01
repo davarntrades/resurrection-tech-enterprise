@@ -199,4 +199,80 @@ test.describe("Control Room — Audit pack → Preview (production)", () => {
       persisted_last_checked_at: persisted.last_checked_at || null,
     }));
   });
+
+  /**
+   * Runtime Assurance Status — read-only, against the deployed build.
+   *
+   * Asserted at the API rather than through the UI on purpose: this is a
+   * contract about what the deployment reports, and routing it through a tab
+   * click would make a genuine contract failure indistinguishable from a
+   * rendering hiccup.
+   *
+   * The states themselves are NOT asserted — they legitimately differ per
+   * deployment (a preview has no Supabase, production does). What is asserted is
+   * that every control reports one of the five defined states, that the endpoint
+   * is read-only, and that nothing that could be a secret crosses the boundary.
+   */
+  test("Runtime assurance status is read-only, complete, and leaks no secret", async ({ request }) => {
+    const headers = { "x-admin-key": ADMIN_KEY };
+
+    const res = await request.get("/api/runtime/admin/assurance", { headers });
+    // 503 is a legitimate answer (the panel refuses to imply health it cannot
+    // establish); anything else means the route is missing or unauthorised.
+    expect([200, 503], `assurance endpoint returned HTTP ${res.status()}`).toContain(res.status());
+    if (res.status() === 503) {
+      const body = await res.json();
+      expect(body.error, "a 503 must say what failed").toBeTruthy();
+      return;
+    }
+
+    const body = await res.json();
+    const STATES = ["active", "inactive", "verified", "degraded", "unknown"];
+    const ids = (body.controls || []).map((c: any) => c.id);
+
+    for (const id of ["require_record", "require_durable", "append_only", "evidence_hash", "report_verification"]) {
+      expect(ids, `assurance is missing the ${id} control`).toContain(id);
+    }
+    for (const c of body.controls || []) {
+      expect(STATES, `${c.id} reported an undefined state "${c.state}"`).toContain(c.state);
+      expect(c.summary, `${c.id} reported no summary`).toBeTruthy();
+    }
+
+    // The panel must name the gateway-vs-report distinction, so an operator
+    // cannot read the Integration Gateway event list as an integrity check.
+    const notes = (body.notes || []).join(" ");
+    expect(notes, "the gateway/report distinction is not stated").toMatch(/stored evidence hash only/i);
+    expect(notes, "the panel does not say verification happens in reports").toMatch(/report/i);
+
+    // Nothing resembling a credential may cross this boundary. The switches are
+    // reported as derived states; their VALUES must never appear.
+    const raw = JSON.stringify(body);
+    expect(raw, "an environment variable value was echoed").not.toMatch(/"value"\s*:/);
+    for (const secret of [ADMIN_KEY, OP_PASSWORD, process.env.SUPABASE_SERVICE_ROLE_KEY || ""]) {
+      if (secret && secret.length > 8) {
+        expect(raw.includes(secret), "a secret appeared in the assurance payload").toBe(false);
+      }
+    }
+
+    // Read-only: the route must reject writes rather than quietly accept them.
+    for (const method of ["post", "put", "delete"] as const) {
+      const w = await request[method]("/api/runtime/admin/assurance", { headers, data: {} });
+      expect(
+        w.status(),
+        `${method.toUpperCase()} to the assurance endpoint returned ${w.status()} — it must not be writable`,
+      ).toBeGreaterThanOrEqual(400);
+    }
+
+    // Unauthenticated access must be refused.
+    const anon = await request.get("/api/runtime/admin/assurance");
+    expect(anon.status(), "the assurance endpoint is readable without operator auth").toBe(401);
+
+    console.log(JSON.stringify({
+      event: "assurance_status_acceptance",
+      http_status: res.status(),
+      store: body.store,
+      counts: body.counts,
+      controls: (body.controls || []).map((c: any) => ({ id: c.id, state: c.state })),
+    }));
+  });
 });
