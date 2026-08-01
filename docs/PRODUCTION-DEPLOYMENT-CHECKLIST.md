@@ -59,6 +59,39 @@ npm run runtime:preflight -- --json          # machine-readable, for CI
 `rg_*` tables, RLS, and indexes). The store targets Supabase automatically once the two variables are set —
 no code change.
 
+### Append-only evidence (`supabase/evidence_append_only.sql`)
+
+Apply after `governance_runtime.sql`, `integration_gateway.sql` and `operations_agent.sql`. It installs a
+`before update` trigger on `rg_decisions`, `rg_integration_events` and `rg_ops_evidence`, so an UPDATE
+against an evidence record is rejected with SQLSTATE `55006` **for every database role, including the table
+owner and the service role the application itself uses**. RLS cannot provide this: the service role bypasses
+RLS, and that is the role on the path that matters.
+
+Two things are deliberately true and should be understood before signing off:
+
+- **DELETE is not blocked.** Customer erasure (`lib/runtime/customeradmin.js` `permanentDelete()`) deletes
+  org-scoped evidence as part of GDPR / offboarding. A delete-blocking trigger would break it. Deletion of a
+  `rg_decisions` row is still *detectable* — `verifyChain()` recomputes the per-environment hash chain and
+  reports the first broken `seq`. Deletion from `rg_integration_events` and `rg_ops_evidence` is **not**
+  detectable, because neither table is chained. That gap is real and is not closed by this migration.
+- **Column backfills are blocked too.** Adding a column is fine (`ALTER TABLE` does not fire row triggers),
+  but backfilling one on existing rows is an UPDATE and will be rejected. That is intended; the migration
+  header documents the explicit `disable trigger` → backfill → `enable trigger` procedure.
+
+`npm run runtime:evidence-append-only` verifies the invariants this control depends on — that no application
+code path issues an evidence UPDATE, and that the migration has not grown a DELETE guard. It is static
+analysis, so it runs in CI without a database. It cannot confirm the trigger is installed on a *given*
+project: `scripts/ops/schema-check.cjs` probes tables and columns over PostgREST, which cannot see triggers,
+and probing by attempting a real UPDATE would mean writing to production evidence. Confirm application from
+the SQL editor instead:
+
+```sql
+select tgrelid::regclass as table, tgname
+from pg_trigger
+where not tgisinternal and tgname like '%_no_update';
+-- expect three rows: rg_decisions, rg_integration_events, rg_ops_evidence
+```
+
 ## Manual verification (equivalent, from any network)
 
 The same signals are exposed by the public health endpoint (no customer data):
@@ -91,6 +124,7 @@ Equivalent SQL: `update rg_environments set mode='enforce', mode_changed_at=now(
 
 - [ ] `npm run runtime:preflight` exits **0** (all required checks PASS)
 - [ ] `supabase/governance_runtime.sql` applied to the production project
+- [ ] `supabase/evidence_append_only.sql` applied — the `pg_trigger` query above returns **three** rows
 - [ ] `RUNTIME_REQUIRE_DURABLE=1` set in production
 - [ ] A test onboarding via `/api/runtime/admin/onboard` returns an ingest key (not 401)
 - [ ] Shadow evidence visible on the runtime dashboard
