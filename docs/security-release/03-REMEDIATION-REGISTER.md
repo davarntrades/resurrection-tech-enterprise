@@ -4,12 +4,23 @@
 **Purpose:** Traceable record of every finding raised in the audit, its
 remediation, its verification, and its deployment requirements.
 
-**Delivery status — read this first.** All six remediations are implemented,
-tested and passing CI as open pull requests against `main`. **None is merged as
-of the assessment date.** A customer evaluating a running deployment must
-confirm which of these are present in the build they are assessing; the
-Production Readiness Statement and Pilot Deployment Checklist both treat merge
-and migration application as gating conditions.
+**Delivery status — read this first.** All six remediations are **merged into
+`main`** (PRs #241, #242, #243, #244, #245, #246), each having passed the full
+19-check CI matrix on the exact commit that was merged.
+
+**Code being merged is not the same as a control being live.** Two of the six
+depend on database migrations that must be applied separately to each project:
+
+| Migration | Required by | Status |
+|---|---|---|
+| `supabase/evidence_hash_canonical.sql` | F-02 | Applied to `resurrection-tech-prod` |
+| `supabase/evidence_append_only.sql` | F-03 | **Not yet applied** — the append-only guard is inert until it is |
+
+Until `evidence_append_only.sql` is applied to a given project, evidence tables
+in that project remain alterable in place, exactly as before F-03. The code
+merge changes nothing about that on its own. A customer evaluating a running
+deployment must confirm both the commit **and** the migrations; Phase 1 and
+Phase 2 of the Pilot Deployment Checklist give per-item verification commands.
 
 ---
 

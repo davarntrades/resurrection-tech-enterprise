@@ -63,12 +63,18 @@ twelve detected by specific named assertions.
 A pilot deployment is supported when **all** of the following hold. Each is a
 gate, not a recommendation.
 
-1. **All six remediations are merged and deployed.** As of the statement date
-   they are implemented, tested and green as open pull requests — *not merged*.
-   A deployment lacking them does not meet the terms of this statement.
+1. **All six remediations are merged and deployed.** All six are merged into
+   `main` (PRs #241–#246), each green on the full 19-check CI matrix. Confirm
+   they are present in the *deployed build*, which is a separate question from
+   whether they are on `main`. A deployment lacking them does not meet the terms
+   of this statement.
 2. **Both evidence migrations are applied and verified:**
-   `supabase/evidence_hash_canonical.sql` and `supabase/evidence_append_only.sql`,
-   with the append-only triggers confirmed by direct `pg_trigger` query.
+   `supabase/evidence_hash_canonical.sql` (applied to `resurrection-tech-prod`)
+   and `supabase/evidence_append_only.sql` (**not yet applied** as of the
+   statement date), with the append-only triggers confirmed by direct
+   `pg_trigger` query. Until the second is applied, the append-only control is
+   inert in that project regardless of the merged code — this is the one gate on
+   this list that is currently open.
 3. **`RUNTIME_REQUIRE_RECORD=1` and `RUNTIME_REQUIRE_DURABLE=1` are set.** Both
    default to off. Without them the platform's evidence guarantee is not
    fail-closed, and the Executive and Technical assessments should be read with

@@ -46,10 +46,12 @@ that are currently opt-in.
 
 ## Three things to check before relying on this package
 
-1. **The remediations are open pull requests, not merged code**, as of the
-   package date. Confirm which are present in the build you are assessing —
-   Phase 1 of the Pilot Deployment Checklist gives a per-finding verification
-   command.
+1. **Merged code is not a live control.** All six remediations are merged into
+   `main` (PRs #241–#246), but two depend on database migrations applied
+   per-project. `evidence_append_only.sql` is **not yet applied**, so the
+   append-only guard is inert until it is — no amount of merged code changes
+   that. Confirm the deployed commit *and* the migrations. Phase 1 of the Pilot
+   Deployment Checklist gives a per-finding verification command.
 2. **Two database migrations are required** and one of them installs triggers
    that the automated schema check cannot see. Phase 2 of the checklist gives
    the direct `pg_trigger` query.
