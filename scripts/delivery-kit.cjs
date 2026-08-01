@@ -1618,43 +1618,119 @@ function nextStepHtml(rec, journeyIdx) {
 // feeds the monthly pack. It is deliberately one section over a normalized
 // projection — not a per-connector document — so a new connector appears here
 // without touching this file.
+function connectorEvidenceWindowLine(ce) {
+  const span = ce.activity_span;
+  const until = (ce.window_until || (ce.window && ce.window.until) || "").slice(0, 19).replace("T", " ");
+  const label = ce.window_label || "Reporting window";
+  return span
+    ? `${label} to ${until} — earliest execution ${String(span.first).slice(0, 19).replace("T", " ")}, latest ${String(span.last).slice(0, 19).replace("T", " ")}.`
+    : `${label} to ${until}.`;
+}
+
+/* Governed connector evidence — audit.pdf / audit.html.
+ *
+ * `ce == null` means the caller supplied no connector data at all (the
+ * standalone CLI running a manifest-only audit). Omitting the section is right
+ * there: there is no evidence store to describe.
+ *
+ * Anything else is rendered, INCLUDING an empty register. A platform audit that
+ * silently drops the section when a customer happened to run no connector
+ * actions is indistinguishable from one that lost the evidence — and "no
+ * governed connector activity" is itself a finding an auditor needs stated.
+ */
 function connectorEvidenceHtml(ce) {
-  if (!ce || !ce.available || !ce.totals) return "";
-  const t = ce.totals;
-  const conns = ce.connectors || [];
-  const reg = (ce.register || []).slice(0, 20);
-  const findings = ce.findings || [];
+  if (!ce) return "";
   const cell = (v) => esc(v == null || v === "" ? "—" : String(v));
   const short = (h) => (h ? `${String(h).slice(0, 16)}…` : "—");
+  const ms = (v) => (v == null ? "—" : `${v} ms`);
+  const head = `<div class="sec page-break"><span class="eyebrow">Governed connector evidence</span>
+    <h2>Connector executions are part of this same evidence chain.</h2>`;
+
+  if (ce.available === false) {
+    return `${head}<div class="warn">The governed connector evidence projection could not be built for this audit: ${esc(ce.unavailable_reason || "reason not recorded")}. This section is INCOMPLETE — it does not mean no connector activity occurred.</div></div>`;
+  }
+
+  const t = ce.totals || {};
+  const conns = ce.connectors || [];
+  const display = ce.register_display || 20;
+  const reg = (ce.register || []).slice(-display).reverse();
+  const findings = ce.findings || [];
+  const findDisplay = ce.findings_display || 20;
   const kpis = [
     ["Governed connector actions", t.governed_actions || 0],
     ["Permitted / Blocked / Escalated", `${t.permitted || 0} / ${t.blocked || 0} / ${t.escalated || 0}`],
     ["Provider invocations", t.provider_invocations || 0],
     ["Evidence completeness", t.evidence_completeness_pct != null ? `${t.evidence_completeness_pct}%` : "—"],
   ].map(([k, v]) => `<div class="kpi"><span class="v" style="font-size:18px">${esc(v)}</span><span class="k">${esc(k)}</span></div>`).join("");
-  return `<div class="sec page-break"><span class="eyebrow">Governed connector evidence</span>
-    <h2>Connector executions are part of this same evidence chain.</h2>
+
+  return `${head}
     <p style="margin:0 0 12px">Every execution below reached its provider only after a canonical GuardianOS action, a proposal, and a Runtime Governance decision — and left immutable evidence. The identifiers here are the same ones carried in the monthly evidence pack; there is no separate connector audit trail.</p>
+    <p class="m" style="margin:0 0 12px;color:#737373">${esc(connectorEvidenceWindowLine(ce))}</p>
     <div class="kpis">${kpis}</div>
-    ${conns.length ? `<table><thead><tr><th>Connector</th><th>Type</th><th>Provider</th><th>Requests</th><th>A / B / E</th><th>Provider calls</th><th>Failed closed</th></tr></thead><tbody>${conns.map((x) => `<tr><td>${cell(x.connector_name || x.connector_id)}</td><td class="m">${cell(x.normalized_connector)}${x.normalized_connector === "other" && x.connector_type ? ` (${esc(x.connector_type)})` : ""}</td><td>${cell(x.provider)}</td><td>${x.governed_requests}</td><td>${x.allow} / ${x.block} / ${x.escalate}</td><td>${x.provider_calls}</td><td>${x.failed_closed}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#737373">No governed connector activity was recorded in this window.</p>`}
-    ${reg.length ? `<h3 style="margin-top:18px">Evidence register</h3><table><thead><tr><th>Evidence ID</th><th>Canonical action</th><th>Proposal</th><th>Decision</th><th>Connector / model</th><th>Calls</th><th>Request hash</th></tr></thead><tbody>${reg.map((r) => `<tr><td class="m">${cell(r.evidence_id)}</td><td class="m">${cell(r.canonical_action_id)}</td><td class="m">${cell(r.proposal_id)}</td><td>${cell(r.governance_decision)}</td><td>${cell(r.normalized_connector)} / ${cell(r.model)}</td><td>${r.provider_invocation_count}</td><td class="m">${esc(short(r.request_hash))}</td></tr>`).join("")}</tbody></table>${(ce.register_total || reg.length) > reg.length ? `<p style="color:#737373">Showing ${reg.length} of ${ce.register_total} records. Complete identifiers are preserved in the exported audit data.</p>` : ""}` : ""}
-    ${findings.length ? `<h3 style="margin-top:18px">Integrity findings</h3><table><thead><tr><th>Severity</th><th>Finding</th><th>Detail</th></tr></thead><tbody>${findings.slice(0, 20).map((f) => `<tr><td>${cell(f.severity)}</td><td class="m">${cell(f.kind)}</td><td>${cell(f.detail)}</td></tr>`).join("")}</tbody></table>` : `<div class="warn" style="margin-top:14px">No integrity exceptions: every governed connector execution in this window is attributable to a canonical action, a proposal and a connector in scope.</div>`}
+    ${conns.length ? `<table><thead><tr><th>Connector</th><th>Type</th><th>Provider</th><th>Requests</th><th>A / B / E</th><th>Provider calls</th><th>Failed closed</th></tr></thead><tbody>${conns.map((x) => `<tr><td>${cell(x.connector_name || x.connector_id)}</td><td class="m">${cell(x.normalized_connector)}${x.normalized_connector === "other" && x.connector_type ? ` (${esc(x.connector_type)})` : ""}</td><td>${cell(x.provider)}</td><td>${x.governed_requests}</td><td>${x.allow} / ${x.block} / ${x.escalate}</td><td>${x.provider_calls}</td><td>${x.failed_closed}</td></tr>`).join("")}</tbody></table>` : `<div class="warn">No governed connector activity was recorded in this window. This is a stated result, not an omitted section: no connector reached a provider through the governed path.</div>`}
+    ${reg.length ? `<h3 style="margin-top:18px">Evidence register</h3><table><thead><tr><th>Evidence ID</th><th>Canonical action</th><th>Proposal</th><th>Decision</th><th>Outcome</th><th>Connector / provider / model</th><th>Calls</th><th>Gov / provider / total</th><th>Request hash</th><th>Response hash</th><th>Hash check</th></tr></thead><tbody>${reg.map((r) => `<tr><td class="m">${cell(r.evidence_id)}</td><td class="m">${cell(r.canonical_action_id)}</td><td class="m">${cell(r.proposal_id)}</td><td>${cell(r.governance_decision)}</td><td>${cell(r.execution_outcome)}</td><td>${cell(r.normalized_connector)} / ${cell(r.provider)} / ${cell(r.model)}</td><td>${r.provider_invocation_count}</td><td class="m">${esc(ms(r.governance_latency_ms))} / ${esc(ms(r.provider_latency_ms))} / ${esc(ms(r.total_latency_ms))}</td><td class="m">${esc(short(r.request_hash))}</td><td class="m">${esc(short(r.response_hash))}</td><td>${cell(r.evidence_hash_state)}</td></tr>`).join("")}</tbody></table>${ce.register_note ? `<p style="color:#737373">${esc(ce.register_note)}</p>` : ""}` : ""}
+    ${findings.length ? `<h3 style="margin-top:18px">Integrity findings</h3><table><thead><tr><th>Severity</th><th>Finding</th><th>Detail</th></tr></thead><tbody>${findings.slice(0, findDisplay).map((f) => `<tr><td>${cell(f.severity)}</td><td class="m">${cell(f.kind)}</td><td>${cell(f.detail)}</td></tr>`).join("")}</tbody></table>${ce.findings_note ? `<p style="color:#737373">${esc(ce.findings_note)}</p>` : ""}` : `<div class="warn" style="margin-top:14px">No integrity exceptions: every governed connector execution in this window is attributable to a canonical action, a proposal and a connector in scope.</div>`}
   </div>`;
 }
 
+/* The Markdown twin. Same inputs, same disclosures, same presence/absence
+ * decisions — an auditor handed the .md and an auditor handed the .pdf must not
+ * be able to reach different conclusions about whether connector activity
+ * happened or whether the record was shortened.
+ */
 function connectorEvidenceMarkdown(ce) {
-  if (!ce || !ce.available || !ce.totals) return [];
-  const t = ce.totals;
+  if (!ce) return [];
   const L = ["## Governed connector evidence", ""];
+
+  if (ce.available === false) {
+    L.push(`**INCOMPLETE** — the governed connector evidence projection could not be built for this audit: ${ce.unavailable_reason || "reason not recorded"}. This does not mean no connector activity occurred.`, "");
+    return L;
+  }
+
+  const t = ce.totals || {};
   L.push("Connector executions reached their provider only after a canonical GuardianOS action, a proposal and a Runtime Governance decision, and left immutable evidence — the same chain and the same identifiers as the monthly evidence pack.", "");
+  L.push(`_${connectorEvidenceWindowLine(ce)}_`, "");
   L.push(`- Governed connector actions: ${t.governed_actions || 0}`);
   L.push(`- Permitted / Blocked / Escalated: ${t.permitted || 0} / ${t.blocked || 0} / ${t.escalated || 0}`);
   L.push(`- Provider invocations: ${t.provider_invocations || 0}`);
   L.push(`- Evidence completeness: ${t.evidence_completeness_pct != null ? t.evidence_completeness_pct + "%" : "—"}`, "");
-  for (const x of ce.connectors || []) {
-    L.push(`- ${x.connector_name || x.connector_id} (${x.normalized_connector}): ${x.governed_requests} governed, ${x.provider_calls} provider call(s), ${x.failed_closed} failed closed`);
+
+  const conns = ce.connectors || [];
+  if (!conns.length) {
+    L.push("No governed connector activity was recorded in this window. This is a stated result, not an omitted section: no connector reached a provider through the governed path.", "");
   }
-  L.push("");
+  for (const x of conns) {
+    L.push(`- ${x.connector_name || x.connector_id} (${x.normalized_connector} / ${x.provider || "—"}): ${x.governed_requests} governed, ${x.provider_calls} provider call(s), ${x.failed_closed} failed closed`);
+  }
+  if (conns.length) L.push("");
+
+  const display = ce.register_display || 20;
+  const reg = (ce.register || []).slice(-display).reverse();
+  const dash = (v) => (v == null || v === "" ? "—" : String(v));
+  const shortH = (h) => (h ? `${String(h).slice(0, 16)}…` : "—");
+  const msv = (v) => (v == null ? "—" : `${v}ms`);
+  if (reg.length) {
+    L.push("### Evidence register", "");
+    L.push("| Evidence ID | Canonical action | Proposal | Decision | Outcome | Connector / provider / model | Calls | Gov / provider / total | Request hash | Response hash | Hash check |");
+    L.push("|---|---|---|---|---|---|---|---|---|---|---|");
+    for (const r of reg) {
+      L.push(`| ${dash(r.evidence_id)} | ${dash(r.canonical_action_id)} | ${dash(r.proposal_id)} | ${dash(r.governance_decision)} | ${dash(r.execution_outcome)} | ${dash(r.normalized_connector)} / ${dash(r.provider)} / ${dash(r.model)} | ${r.provider_invocation_count} | ${msv(r.governance_latency_ms)} / ${msv(r.provider_latency_ms)} / ${msv(r.total_latency_ms)} | ${shortH(r.request_hash)} | ${shortH(r.response_hash)} | ${dash(r.evidence_hash_state)} |`);
+    }
+    if (ce.register_note) L.push("", `_${ce.register_note}_`);
+    L.push("");
+  }
+
+  const findings = ce.findings || [];
+  const findDisplay = ce.findings_display || 20;
+  L.push("### Integrity findings", "");
+  if (!findings.length) {
+    L.push("No integrity exceptions: every governed connector execution in this window is attributable to a canonical action, a proposal and a connector in scope.", "");
+  } else {
+    L.push("| Severity | Finding | Detail |", "|---|---|---|");
+    for (const f of findings.slice(0, findDisplay)) L.push(`| ${dash(f.severity)} | ${dash(f.kind)} | ${dash(f.detail)} |`);
+    if (ce.findings_note) L.push("", `_${ce.findings_note}_`);
+    L.push("");
+  }
   return L;
 }
 
