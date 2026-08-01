@@ -107,6 +107,31 @@ The panel is read-only: none of these controls can be changed from the UI,
 because a governance control the governed system can switch off from its own
 admin console is not a control.
 
+Each control reports one of four states, and a **verification source** saying
+where that state came from. The split between the two positive states is the
+point — they rest on different strengths of evidence:
+
+| State | Meaning |
+|---|---|
+| **VERIFIED** | Independently confirmed against the system itself — database metadata, or evidence recomputed from what is stored. |
+| **CONFIGURED** | The deployment says so. Self-reported from configuration; nothing independent has corroborated its effect. |
+| **DEGRADED** | Checked, and the control is not in force: absent, disabled, inert, or failing. |
+| **UNKNOWN** | Could not be established. Never means the control is probably present. |
+
+| Control | Verification source | Can reach VERIFIED? |
+|---|---|---|
+| `RUNTIME_REQUIRE_RECORD` | Environment variable | **No** — self-reported |
+| `RUNTIME_REQUIRE_DURABLE` | Environment variable + runtime store state | **No** — self-reported |
+| Append-only enforcement | PostgreSQL (`pg_trigger`) | Yes |
+| Evidence-hash verification | Stored evidence (hash recomputed) | Yes |
+| Latest report integrity | Integrity report | Yes |
+
+A control whose only evidence is self-reported can **never** read VERIFIED —
+enforced in code, not by convention. `RUNTIME_REQUIRE_RECORD` being set tells
+you the deployment intends to fail closed; proving that it does would mean
+inducing a record failure against live traffic, which this panel will not do.
+Read CONFIGURED as "intended", not as "demonstrated".
+
 Without the migration the panel still works — it reports append-only as
 **UNKNOWN**, naming the missing migration. It never assumes the triggers are
 present. `npm run ops:schema-check` reports the missing function as a warning

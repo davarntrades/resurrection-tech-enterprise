@@ -1282,10 +1282,13 @@ function ReadinessPanel() {
 // point of the panel is to replace "it is probably on" with a reading, so a
 // control whose state could not be established must look different from one that
 // was checked and passed.
+// Four states, and CONFIGURED is deliberately not styled the same as VERIFIED.
+// They rest on different evidence: one is the deployment describing itself, the
+// other is an independent reading of the system. Rendering both green would
+// re-flatten exactly the distinction this panel exists to draw.
 const ASSURANCE_TAG: Record<string, { tag: string; cls: string }> = {
   verified: { tag: "VERIFIED", cls: "pass" },
-  active: { tag: "ACTIVE", cls: "pass" },
-  inactive: { tag: "INACTIVE", cls: "warn" },
+  configured: { tag: "CONFIGURED", cls: "configured" },
   degraded: { tag: "DEGRADED", cls: "fail" },
   unknown: { tag: "UNKNOWN", cls: "unknown" },
 };
@@ -1306,15 +1309,20 @@ function AssurancePanel() {
 
   const controls: any[] = data.controls || [];
   const counts: Record<string, number> = data.counts || {};
-  const notVerified = controls.filter((c) => c.state !== "verified" && c.state !== "active").length;
+  // The headline counts only what is actually WRONG. `configured` is not a
+  // problem, and lumping it in with degraded would push an operator to "fix"
+  // a control that is behaving exactly as designed.
+  const problems = controls.filter((c) => c.state === "degraded").length;
+  const unresolved = controls.filter((c) => c.state === "unknown").length;
 
   return (
     <section className="radmin-card">
       <div className="radmin-row">
         <h2>Runtime assurance status</h2>
-        <span className={`radmin-ready ${notVerified ? "bad" : "ok"}`}>
-          {notVerified ? `${notVerified} NOT CONFIRMED` : "ALL CONFIRMED"}
+        <span className={`radmin-ready ${problems ? "bad" : "ok"}`}>
+          {problems ? `${problems} DEGRADED` : "NONE DEGRADED"}
         </span>
+        {unresolved ? <span className="radmin-ready">{unresolved} UNKNOWN</span> : null}
         <button className="radmin-btn sm" onClick={load}>Refresh</button>
       </div>
       <p className="radmin-muted">
@@ -1324,6 +1332,17 @@ function AssurancePanel() {
         established reads <b>UNKNOWN</b>.
       </p>
 
+      {data.legend ? (
+        <ul className="radmin-legend">
+          {(["verified", "configured", "degraded", "unknown"] as const).map((k) => (
+            <li key={k}>
+              <span className={`radmin-check-tag radmin-legend-tag ${ASSURANCE_TAG[k].cls}`}>{ASSURANCE_TAG[k].tag}</span>
+              <span className="radmin-muted">{data.legend[k]}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <ul className="radmin-checks">
         {controls.map((c) => {
           const t = ASSURANCE_TAG[c.state] || ASSURANCE_TAG.unknown;
@@ -1332,6 +1351,13 @@ function AssurancePanel() {
               <span className="radmin-check-tag">{t.tag}</span>
               <span className="radmin-check-name">
                 {c.label}
+                {/* The source is the point of the two positive states: it tells an
+                    operator WHY the platform believes this, not just that it does. */}
+                <br />
+                <span className="radmin-src" title="Verification source">
+                  {c.verification_source}
+                  {c.independently_verified ? " · independent" : ""}
+                </span>
                 {c.env_var ? <><br /><code className="radmin-muted" style={{ fontSize: 10.5 }}>{c.env_var}</code></> : null}
               </span>
               <span className="radmin-check-detail radmin-muted">

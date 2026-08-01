@@ -8,7 +8,10 @@
  * assurance surface that is wrong in the reassuring direction is worse than no
  * surface at all, because it converts "I should check" into "I checked".
  *
- * Covers, as required: active, inactive, missing, and database-unavailable.
+ * Covers, as required: configured (active), degraded (inactive / not in force),
+ * missing, and database-unavailable — plus the invariant that separates the two
+ * positive states: a control whose evidence is self-reported can never read
+ * VERIFIED, however it is configured.
  *
  * Fixtures and stubs only. No database, no network, no provider call.
  * ============================================================================ */
@@ -20,7 +23,7 @@ process.env.RUNTIME_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "rt-assuran
 const store = require("../../lib/runtime/store");
 const gateway = require("../../lib/runtime/integration-gateway");
 const assurance = require("../../lib/runtime/assurance");
-const { STATE, APPEND_ONLY_TABLES } = assurance;
+const { STATE, SOURCE, APPEND_ONLY_TABLES } = assurance;
 
 let pass = 0, fail = 0; const fails = [];
 const ok = (c, m) => { if (c) pass++; else { fail++; fails.push(m); } };
@@ -54,11 +57,11 @@ const rpcOk = (data) => async () => ({ ok: true, reason: null, detail: null, dat
 const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: detail || null, data: null });
 
 (async () => {
-  // ══ 1. The two switches — ACTIVE ═════════════════════════════════════════
+  // ══ 1. The two switches — CONFIGURED (set) ══════════════════════════════
   await withEnv({ record: "1", durable: "true", rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
     const s = await assurance.status();
-    ok(by(s, "require_record").state === STATE.ACTIVE, "1a. RUNTIME_REQUIRE_RECORD=1 reports active");
-    ok(by(s, "require_durable").state === STATE.ACTIVE, "1b. RUNTIME_REQUIRE_DURABLE=true reports active");
+    ok(by(s, "require_record").state === STATE.CONFIGURED, "1a. RUNTIME_REQUIRE_RECORD=1 reports CONFIGURED, not verified");
+    ok(by(s, "require_durable").state === STATE.CONFIGURED, "1b. RUNTIME_REQUIRE_DURABLE=true reports CONFIGURED, not verified");
     // The value must never cross the boundary, only the derived state.
     const blob = JSON.stringify(s);
     ok(!/"value"\s*:/.test(blob), "1c. no control emits a raw `value` field");
@@ -71,31 +74,31 @@ const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: de
   // path is worse than no panel.
   await withEnv({ record: "yes", durable: "YES", rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
     const s = await assurance.status();
-    ok(by(s, "require_record").state === STATE.ACTIVE, "1e. 'yes' reads as active, matching gateway.js");
-    ok(by(s, "require_durable").state === STATE.ACTIVE, "1f. 'YES' reads as active, case-insensitively");
+    ok(by(s, "require_record").state === STATE.CONFIGURED, "1e. 'yes' reads as configured, matching gateway.js's own parsing");
+    ok(by(s, "require_durable").state === STATE.CONFIGURED, "1f. 'YES' reads as configured, case-insensitively");
   });
 
-  // ══ 2. The two switches — INACTIVE ═══════════════════════════════════════
+  // ══ 2. The two switches — DEGRADED (unset / off / inert) ════════════════
   await withEnv({ rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
     const s = await assurance.status();
-    ok(by(s, "require_record").state === STATE.INACTIVE, "2a. an unset RUNTIME_REQUIRE_RECORD reports inactive");
-    ok(by(s, "require_durable").state === STATE.INACTIVE, "2b. an unset RUNTIME_REQUIRE_DURABLE reports inactive");
-    ok(!/\bactive\b/.test(by(s, "require_record").summary),
-      "2c. the inactive summary does not describe the control as active");
+    ok(by(s, "require_record").state === STATE.DEGRADED, "2a. an unset RUNTIME_REQUIRE_RECORD reports degraded — the control is not in force");
+    ok(by(s, "require_durable").state === STATE.DEGRADED, "2b. an unset RUNTIME_REQUIRE_DURABLE reports degraded");
+    ok(/^Not set\./.test(by(s, "require_record").summary),
+      "2c. the degraded summary opens by saying it is NOT SET, so nobody reads it as a fault");
   });
 
   // A value that is neither empty nor truthy ("0", "off") must not read as on.
   await withEnv({ record: "0", durable: "off", rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
     const s = await assurance.status();
-    ok(by(s, "require_record").state === STATE.INACTIVE, "2d. '0' reads as inactive, not as 'set therefore on'");
-    ok(by(s, "require_durable").state === STATE.INACTIVE, "2e. 'off' reads as inactive");
+    ok(by(s, "require_record").state === STATE.DEGRADED, "2d. '0' reads as degraded, not as 'set therefore on'");
+    ok(by(s, "require_durable").state === STATE.DEGRADED, "2e. 'off' reads as degraded");
   });
 
   // Set-but-non-durable is the combination worth naming rather than flattening.
   await withEnv({ durable: "1", rpc: rpcOk(allTriggers()), backend: "file", durableStore: false }, async () => {
     const s = await assurance.status();
     ok(by(s, "require_durable").state === STATE.DEGRADED,
-      "2f. REQUIRE_DURABLE set while the store is non-durable reports degraded, not active");
+      "2f. REQUIRE_DURABLE set while the store is non-durable reports degraded, not configured");
   });
 
   // ══ 3. Append-only — VERIFIED ════════════════════════════════════════════
@@ -107,10 +110,10 @@ const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: de
       "3c. the verified summary still states that DELETE is permitted, so 'verified' is not read as immutable");
   });
 
-  // ══ 4. Append-only — MISSING (migration never applied) ═══════════════════
+  // ══ 4. Append-only — MISSING migration (a confirmed negative) ══════════
   await withEnv({ rpc: rpcOk([]), backend: "supabase", durableStore: true }, async () => {
     const a = by(await assurance.status(), "append_only");
-    ok(a.state === STATE.INACTIVE, "4a. no triggers at all reports inactive, not unknown and not verified");
+    ok(a.state === STATE.DEGRADED, "4a. no triggers at all reports degraded — a confirmed negative, not unknown and not verified");
     ok(/evidence_append_only\.sql/.test(a.summary), "4b. it names the migration to apply");
     ok(APPEND_ONLY_TABLES.every((t) => a.tables[t].protected === false), "4c. every table is reported unprotected");
   });
@@ -127,14 +130,14 @@ const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: de
   // verified; that is the failure this assertion exists to prevent.
   await withEnv({ rpc: rpcOk(APPEND_ONLY_TABLES.map((t) => trigger(t, { enabled: false }))), backend: "supabase", durableStore: true }, async () => {
     const a = by(await assurance.status(), "append_only");
-    ok(a.state === STATE.INACTIVE, "5c. three DISABLED triggers report inactive, not verified");
+    ok(a.state === STATE.DEGRADED, "5c. three DISABLED triggers report degraded, not verified");
     ok(/DISABLED/i.test(a.tables.rg_decisions.note || ""), "5d. the disabled state is named in the per-table note");
   });
 
   // A trigger that fires AFTER UPDATE blocks nothing, however it is named.
   await withEnv({ rpc: rpcOk(APPEND_ONLY_TABLES.map((t) => trigger(t, { before_update: false }))), backend: "supabase", durableStore: true }, async () => {
     const a = by(await assurance.status(), "append_only");
-    ok(a.state === STATE.INACTIVE, "5e. AFTER UPDATE triggers report inactive — the name is not the control");
+    ok(a.state === STATE.DEGRADED, "5e. AFTER UPDATE triggers report degraded — the name is not the control");
     ok(/BEFORE UPDATE/.test(a.tables.rg_ops_evidence.note || ""), "5f. the wrong-timing reason is stated");
   });
 
@@ -151,7 +154,7 @@ const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: de
   // "no triggers" — absence of a reading is not a reading of absence.
   await withEnv({ rpc: rpcFail("function_missing"), backend: "supabase", durableStore: true }, async () => {
     const a = by(await assurance.status(), "append_only");
-    ok(a.state === STATE.UNKNOWN, "6c. a missing introspection function reports unknown, not inactive");
+    ok(a.state === STATE.UNKNOWN, "6c. a missing introspection function reports unknown, not degraded");
     ok(/assurance_status\.sql/.test(a.summary) && /NOT assumed/i.test(a.summary),
       "6d. it names the migration and states explicitly that presence is not assumed");
   });
@@ -257,12 +260,99 @@ const rpcFail = (reason, detail) => async () => ({ ok: false, reason, detail: de
     ok(/projection unavailable/.test(r.summary), "8h. the underlying reason is carried through");
   });
 
+  // ══ 8b. Verification source, and the invariant it enforces ══════════════
+  // The point of separating `configured` from `verified` is that they rest on
+  // different evidence. That only holds if every control says which, and if the
+  // weaker source structurally cannot produce the stronger word.
+  const EXPECTED_SOURCE = {
+    require_record: SOURCE.ENVIRONMENT,
+    require_durable: SOURCE.ENVIRONMENT_AND_STORE,
+    append_only: SOURCE.POSTGRES_TRIGGER,
+    evidence_hash: SOURCE.EVIDENCE_RECOMPUTE,
+    report_verification: SOURCE.INTEGRITY_REPORT,
+  };
+
+  // Which sources count as independent is hard-coded here on purpose. Comparing
+  // a control against SOURCE.X only proves the two agree — it cannot catch
+  // SOURCE.X itself being relabelled independent, which is the single edit that
+  // would let an environment variable start reporting VERIFIED. These literals
+  // are the fixed point that edit has to fight.
+  const EXPECTED_INDEPENDENCE = {
+    environment: false,
+    "environment+runtime_store": false,
+    postgres_pg_trigger: true,
+    evidence_recompute: true,
+    integrity_report: true,
+  };
+  for (const [id, expected] of Object.entries(EXPECTED_INDEPENDENCE)) {
+    const src = Object.values(SOURCE).find((x) => x.id === id);
+    ok(src && src.independent === expected,
+      `8b-src-${id}. is declared independent=${expected} — self-reported sources must not drift to independent`);
+  }
+  ok(Object.keys(EXPECTED_INDEPENDENCE).length === Object.keys(SOURCE).length,
+    "8b-src. every declared source has a pinned independence expectation, so a new one cannot slip in unclassified");
+
+  await withEnv({ record: "1", durable: "1", rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
+    const s = await assurance.status();
+    for (const c of s.controls) {
+      const expected = EXPECTED_SOURCE[c.id];
+      ok(c.verification_source === expected.label,
+        `8b-${c.id}. states its verification source as "${expected.label}"`);
+      ok(c.verification_source_id === expected.id,
+        `8b-${c.id}. carries a machine-readable source id`);
+    }
+    // The environment-sourced switches are set here and everything else is
+    // healthy, so this is exactly the state where a careless implementation
+    // would promote them to "verified".
+    ok(by(s, "require_record").state === STATE.CONFIGURED && by(s, "require_record").independently_verified === false,
+      "8b-1. a set environment switch is CONFIGURED and explicitly not independently verified");
+    ok(by(s, "require_durable").independently_verified === false,
+      "8b-2. the durable switch is not independently verified either, despite the runtime store cross-check");
+    ok(by(s, "append_only").state === STATE.VERIFIED && by(s, "append_only").independently_verified === true,
+      "8b-3. a database-sourced control that passes IS flagged independently verified");
+    ok(s.controls.filter((c) => c.state === STATE.VERIFIED).every((c) => c.independently_verified),
+      "8b-4. nothing reports VERIFIED without an independent source");
+    ok(s.controls.filter((c) => c.state !== STATE.VERIFIED).every((c) => c.independently_verified === false),
+      "8b-4b. independently_verified is never true for a control that is not verified");
+  });
+
+  // The invariant is enforced in code, not merely observed by the cases above.
+  // Patching a source to claim it is self-reported is the shape a regression
+  // would actually take, and append_only would otherwise be VERIFIED here.
+  //
+  // The guard throws, and status()'s per-check catch turns that into UNKNOWN.
+  // That combination is the point: a programming error in this module degrades
+  // to "could not establish", never to a false pass.
+  {
+    const original = SOURCE.POSTGRES_TRIGGER.independent;
+    SOURCE.POSTGRES_TRIGGER.independent = false;
+    try {
+      await withEnv({ rpc: rpcOk(allTriggers()), backend: "supabase", durableStore: true }, async () => {
+        const a = by(await assurance.status(), "append_only");
+        ok(a.state !== STATE.VERIFIED,
+          "8b-5. VERIFIED is refused when the source is marked self-reported — enforced in code, not by convention");
+        ok(a.state === STATE.UNKNOWN,
+          "8b-6. the refusal degrades to UNKNOWN, so a bug in this module can never read as a passing control");
+      });
+    } finally { SOURCE.POSTGRES_TRIGGER.independent = original; }
+  }
+
   // ══ 9. Whole-panel invariants ═══════════════════════════════════════════
   await withEnv({ rpc: rpcFail("rpc_threw", "boom"), backend: "supabase", durableStore: true }, async () => {
     const s = await assurance.status();
     ok(s.controls.length === 5, "9a. all five controls are reported even when one cannot be established");
     ok(s.controls.every((c) => Object.values(STATE).includes(c.state)),
-      "9b. every control carries one of the five defined states");
+      "9b. every control carries one of the four defined states");
+    ok(!Object.values(STATE).includes("active") && !Object.values(STATE).includes("inactive"),
+      "9b2. the generic active/inactive states are gone — evidence strength is not flattened");
+    ok(s.legend && s.legend.configured && s.legend.verified && s.legend.degraded && s.legend.unknown,
+      "9b3. the payload carries a legend, so a client rendering only the state word cannot lose the distinction");
+    ok(/self-reported/i.test(s.legend.configured) && /independently confirmed/i.test(s.legend.verified),
+      "9b4. the legend states plainly which state is self-reported and which is independent");
+    ok(s.notes.some((n) => /self-reported can never read VERIFIED/i.test(n)),
+      "9b5. the invariant is stated to the reader, not only enforced in code");
+    ok(s.controls.every((c) => typeof c.verification_source === "string" && c.verification_source.length > 0),
+      "9b6. every control names its verification source, including on the failure path");
     ok(s.notes.some((n) => /stored evidence hash only/i.test(n)) && s.notes.some((n) => /report/i.test(n)),
       "9c. the panel states that the gateway event list shows the stored hash only and reports do the verification");
     ok(s.notes.some((n) => /read-only/i.test(n) && /cannot be changed/i.test(n)),

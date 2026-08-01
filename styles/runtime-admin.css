@@ -118,6 +118,18 @@
    mistaken at a glance for either a pass or a failure. */
 .radmin-check.unknown .radmin-check-tag { color: var(--muted, #8a8f98); background: rgba(138,143,152,0.12); }
 .radmin-check.unknown { border-style: dashed; }
+/* `configured` is a POSITIVE state but a weaker one than `verified`: the
+   deployment is describing itself rather than being independently read. Blue
+   rather than green, so the two cannot be conflated at a glance — which is the
+   whole reason the states were split. */
+.radmin-check.configured .radmin-check-tag { color: var(--accent-bright, #4c7dff); background: rgba(76,125,255,0.12); }
+
+/* Verification source — why the platform believes what it is reporting. */
+.radmin-src { font-family: var(--mono); font-size: 10.5px; opacity: 0.8; letter-spacing: 0.02em; }
+
+.radmin-legend { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.radmin-legend li { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline; font-size: 12px; }
+.radmin-legend-tag { display: inline-block; }
 .radmin-check-name { font-size: 13px; }
 .radmin-check-detail { font-family: var(--mono); font-size: 11.5px; word-break: break-word; }
 
