@@ -135,3 +135,28 @@ The first-class `aws-bedrock` connector adds governed Bedrock Runtime,
 Converse/streaming APIs, IAM role assumption, credential validation and
 Bedrock Agent action-group mapping without changing the Runtime Governance
 engine. See [AWS-BEDROCK-CONNECTOR.md](./AWS-BEDROCK-CONNECTOR.md).
+
+## Evidence gaps are never silent
+
+Evidence is written *after* an outcome has already been decided. A store fault
+at that point must not fail the caller a second time — that would turn an
+evidence outage into an availability outage — so `submitEvidenceOrFlag()`
+swallows the error and the governed path continues unchanged.
+
+What it does **not** do is stay quiet. Losing the record of a BLOCK is exactly
+the thing an auditor asks about ("prove you blocked it"), so an evidence gap is
+made as loud as a lost decision, matching the decision path in
+`lib/runtime/gateway.js`:
+
+- a structured `connector_evidence_record_failed` error event, naming the
+  connector, proposal and outcome whose evidence was lost;
+- a counter, via the same `log` ring the health endpoint reports;
+- a `record_failure` alert — already classified **critical** — attributed to
+  the organisation and environment.
+
+Enforcement is unaffected: the caller still receives the refusal. Only the
+observability of the gap changes.
+
+`scripts/runtime/evidence-gap-observability.test.cjs` pins this, including a
+guard that fails if any evidence write reverts to a bare
+`.catch(() => {})`.
