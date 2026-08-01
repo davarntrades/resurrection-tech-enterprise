@@ -11,16 +11,23 @@ remediation, its verification, and its deployment requirements.
 **Code being merged is not the same as a control being live.** Two of the six
 depend on database migrations that must be applied separately to each project:
 
-| Migration | Required by | Status |
+| Migration | Required by | Status in `resurrection-tech-prod` |
 |---|---|---|
-| `supabase/evidence_hash_canonical.sql` | F-02 | Applied to `resurrection-tech-prod` |
-| `supabase/evidence_append_only.sql` | F-03 | **Not yet applied** — the append-only guard is inert until it is |
+| `supabase/evidence_hash_canonical.sql` | F-02 | **Applied** |
+| `supabase/evidence_append_only.sql` | F-03 | **Applied** — all three `_no_update` triggers present and enabled |
 
-Until `evidence_append_only.sql` is applied to a given project, evidence tables
-in that project remain alterable in place, exactly as before F-03. The code
-merge changes nothing about that on its own. A customer evaluating a running
-deployment must confirm both the commit **and** the migrations; Phase 1 and
-Phase 2 of the Pilot Deployment Checklist give per-item verification commands.
+Both are applied to the production project, so all six remediations are live
+there, not merely merged. Schema inventory against that project reports
+**41/41 required tables and 2/2 additive columns** present.
+
+This distinction still matters for **any other** deployment. These migrations
+are applied per-project and are not carried by a code deploy. Until
+`evidence_append_only.sql` runs against a given project, evidence tables in that
+project remain alterable in place exactly as before F-03, however current its
+code is. A customer evaluating a running deployment must confirm the commit
+**and** the migrations; Phase 1 and Phase 2 of the Pilot Deployment Checklist
+give per-item verification commands, including the `pg_trigger` query that the
+automated schema check cannot perform.
 
 ---
 
@@ -106,7 +113,7 @@ mismatch bucket.
 | **Category** | Architectural weakness |
 | **Component** | Persistence layer |
 | **Files changed** | `supabase/evidence_append_only.sql` (new), `package.json`, `docs/PRODUCTION-DEPLOYMENT-CHECKLIST.md` |
-| **Tests** | `scripts/runtime/evidence-append-only.test.cjs` (21) |
+| **Tests** | `scripts/runtime/evidence-append-only.test.cjs` (22) |
 | **Schema change** | Trigger on `rg_decisions`, `rg_integration_events`, `rg_ops_evidence`. No table or column change. |
 | **Runtime behaviour change** | **No** — verified exhaustively; no code path issues an evidence UPDATE |
 | **Backwards compatible** | Yes, with one intended exception: backfilling a column on existing evidence rows is rejected |

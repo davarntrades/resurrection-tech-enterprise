@@ -310,14 +310,27 @@ claim is attached. Not changed.
 ### 3.1 Mutation testing
 
 Assertions in the new test suites were proved non-vacuous by deliberately
-reintroducing each defect and confirming a specific named assertion fails. Twelve
-mutations across the two most recent fixes, all detected:
+reintroducing each defect and confirming a specific named assertion fails.
+Fifteen mutations across the two most recent fixes, all detected:
 
-**F-03, append-only (7/7 detected):** adding `store.update("integration_events", …)`
+**F-03, append-only (10/10 detected):** adding `store.update("integration_events", …)`
 to a library file; the migration growing a `before delete` trigger; a table losing
 its UPDATE trigger; `integration_events` removed from `ORG_CHILD_COLLECTIONS`;
 `store.js` starting to upsert; a module reaching `rg_ops_evidence` directly;
 `lib/ops/evidence.js` gaining an `update()` export.
+
+Three further mutations came from integrating F-02 and F-03 on one tree, which
+surfaced a genuine defect in the guard rather than in the product.
+`evidence-hash-verification.test.cjs` calls `store.update("integration_events", …)`
+deliberately, to prove the hash check catches an altered record — and the guard
+flagged it. That is a false positive: every suite in this repository scrubs the
+Supabase credentials and points `RUNTIME_DATA_DIR` at a temp directory, so
+`store.update` writes a JSON file and cannot reach Postgres, and test files are
+never loaded by the application. The scan was narrowed to application code, and
+assertion 8b now *proves* the exclusion is not a hole by requiring every suite
+that mutates evidence to demonstrably scrub Supabase and use a temp store.
+Verified against a non-test file still being caught, a suite retaining its
+credentials, and a suite writing to a fixed path.
 
 **F-06, truncation (5/5 detected):** cap reverted to keeping the oldest records;
 completeness always claimed; findings truncation note removed; capped count
@@ -335,7 +348,7 @@ test asserted nothing. Pinning the reference date exposed it.
 | `npm run contracts` (full connector + governance contract suite) | green |
 | `npm run ops:test` | 51/51 |
 | `connector-audit` | 47/47 |
-| `evidence-append-only` | 21/21 |
+| `evidence-append-only` | 22/22 |
 | `report-truncation` | 25/25 |
 | `evidence-hash-verification` | 15/15 |
 | `share-password` | 18/18 |

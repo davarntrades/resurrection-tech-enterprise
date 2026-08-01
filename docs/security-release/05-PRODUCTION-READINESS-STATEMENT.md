@@ -68,20 +68,22 @@ gate, not a recommendation.
    they are present in the *deployed build*, which is a separate question from
    whether they are on `main`. A deployment lacking them does not meet the terms
    of this statement.
-2. **Both evidence migrations are applied and verified:**
-   `supabase/evidence_hash_canonical.sql` (applied to `resurrection-tech-prod`)
-   and `supabase/evidence_append_only.sql` (**not yet applied** as of the
-   statement date), with the append-only triggers confirmed by direct
-   `pg_trigger` query. Until the second is applied, the append-only control is
-   inert in that project regardless of the merged code — this is the one gate on
-   this list that is currently open.
+2. **Both evidence migrations are applied and verified.** ✅ *Met for
+   `resurrection-tech-prod`.* `supabase/evidence_hash_canonical.sql` and
+   `supabase/evidence_append_only.sql` are both applied, with all three
+   `_no_update` triggers confirmed present and enabled by direct `pg_trigger`
+   query. Any other project must be checked independently — these migrations do
+   not travel with a code deploy, and until one runs, the append-only control is
+   inert there regardless of how current the code is.
 3. **`RUNTIME_REQUIRE_RECORD=1` and `RUNTIME_REQUIRE_DURABLE=1` are set.** Both
    default to off. Without them the platform's evidence guarantee is not
    fail-closed, and the Executive and Technical assessments should be read with
-   that in mind.
+   that in mind. **This is the principal gate on this list still open.**
 4. **`npm run ops:schema-check` exits 0** against the target project, confirming
-   every required table and additive column is present. A missing connector
-   table under-reports rather than errors (R-5).
+   every required table and additive column is present. ✅ *Met for
+   `resurrection-tech-prod`:* 41/41 tables and 2/2 additive columns. A missing
+   connector table under-reports rather than errors (R-5), which is why this is
+   a gate rather than a diagnostic.
 5. **`npm run runtime:preflight` exits 0.**
 6. **Tenants are named and known to the operator.** Organisation isolation is
    enforced in application code with no second layer (R-2).

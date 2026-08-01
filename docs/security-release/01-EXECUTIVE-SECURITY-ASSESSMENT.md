@@ -175,6 +175,13 @@ deployment, and vendor involvement in operation.
 
 **Not yet supported: unsupervised multi-tenant production** at scale.
 
+All six remediations are merged, and both required database migrations are
+applied to the production project — so the fixes described in this assessment
+are live there rather than merely written. Schema inventory reports 41/41
+required tables and 2/2 additive columns, and all three append-only triggers are
+present and enabled. That is a statement about *one* project: these migrations
+are applied per-project and do not travel with a code deploy.
+
 The gap between those two positions is not the six remediated findings. It is
 tenant isolation depth, evidence chaining for the connector path, and the fact
 that two fail-closed behaviours that an enterprise would expect to be default
