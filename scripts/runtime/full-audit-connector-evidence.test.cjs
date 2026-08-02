@@ -126,6 +126,37 @@ async function connectorEvidence() {
   ]) ok(md.includes(needle), `1m. the Markdown carries the ${label}`);
   ok(/verified/.test(md), "1n. the Markdown carries the hash-verification status");
 
+  // ══ 1b. The column is labelled for what it holds ════════════════════════
+  // governance_decision carries the proposal's LIFECYCLE status ("executed"),
+  // not an Ω verdict. Under a column headed "Decision" an auditor reads
+  // "executed" as the verdict — which is not what it is, and the value cannot
+  // be changed without moving the shared projection and the monthly pack with
+  // it. So the audit renames the column instead.
+  ok(/<th>Lifecycle status<\/th>/.test(html),
+    "1o. the audit's register column is headed 'Lifecycle status', not 'Decision'");
+  ok(!/<th>Decision<\/th>/.test(html),
+    "1p. the misleading 'Decision' heading is gone from the audit register");
+  ok(/\| Lifecycle status \|/.test(md) && !/\| Decision \|/.test(md),
+    "1q. the Markdown register uses the same heading");
+  ok(/not the .{0,3} verdict/i.test(html) && /not the .{0,3} verdict/i.test(md),
+    "1r. both renderers state that lifecycle status is not the verdict");
+  ok(/governance decision log/.test(html) && /governance decision log/.test(md),
+    "1s. both point the reader at where the verdicts and refusals actually are");
+
+  // The constraint on this change: the SHARED projection and the MONTHLY PACK
+  // must be untouched. If the rename leaked into reports.js, the monthly pack
+  // would silently change wording for every existing customer.
+  const monthlyMd = reports.connectorMarkdown(ce).join("\n");
+  const monthlyHtml = reports.connectorHtml(ce, (x) => String(x));
+  ok(/\| Decision \|/.test(monthlyMd),
+    "1t. the MONTHLY pack still heads the column 'Decision' — unchanged by this PR");
+  ok(/<th>Decision<\/th>/.test(monthlyHtml),
+    "1u. the monthly HTML pack is unchanged too");
+  ok(!/Lifecycle status/.test(monthlyMd) && !/Lifecycle status/.test(monthlyHtml),
+    "1v. the new heading did NOT leak into the monthly evidence pack");
+  ok(r0.governance_decision === "executed",
+    "1w. the underlying projection value is unchanged — only the audit's label moved");
+
   // ══ 2. No activity must be STATED, not silently omitted ══════════════════
   const empty = {
     available: true, totals: { governed_actions: 0, permitted: 0, blocked: 0, escalated: 0, provider_invocations: 0 },
