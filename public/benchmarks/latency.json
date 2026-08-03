@@ -1,6 +1,6 @@
 {
   "schema": "rt.benchmark.v1",
-  "generated_utc": "2026-07-27 10:02:41Z",
+  "generated_utc": "2026-08-03 09:58:18Z",
   "environment": {
     "python": "3.12.13",
     "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
@@ -30,125 +30,125 @@
       "steps": 1,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0443,
-      "p95_ms": 0.0528,
-      "p99_ms": 0.0849,
-      "avg_ms": 0.0458,
-      "min_ms": 0.0435,
-      "max_ms": 0.126,
-      "throughput_per_s": 21834.0
+      "p50_ms": 0.056,
+      "p95_ms": 0.0672,
+      "p99_ms": 0.0942,
+      "avg_ms": 0.0579,
+      "min_ms": 0.0547,
+      "max_ms": 0.1491,
+      "throughput_per_s": 17271.0
     },
     "short_2": {
       "steps": 2,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0572,
-      "p95_ms": 0.0659,
-      "p99_ms": 0.1163,
-      "avg_ms": 0.0593,
-      "min_ms": 0.0563,
-      "max_ms": 0.145,
-      "throughput_per_s": 16863.0
+      "p50_ms": 0.073,
+      "p95_ms": 0.0838,
+      "p99_ms": 0.1036,
+      "avg_ms": 0.0745,
+      "min_ms": 0.0716,
+      "max_ms": 0.1518,
+      "throughput_per_s": 13423.0
     },
     "medium_4": {
       "steps": 4,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.1065,
-      "p95_ms": 0.1157,
-      "p99_ms": 0.1238,
-      "avg_ms": 0.1081,
-      "min_ms": 0.1045,
-      "max_ms": 0.2326,
-      "throughput_per_s": 9251.0
+      "p50_ms": 0.1365,
+      "p95_ms": 0.1671,
+      "p99_ms": 0.2332,
+      "avg_ms": 0.142,
+      "min_ms": 0.134,
+      "max_ms": 0.2637,
+      "throughput_per_s": 7042.0
     },
     "long_8": {
       "steps": 8,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.2051,
-      "p95_ms": 0.2157,
-      "p99_ms": 0.2288,
-      "avg_ms": 0.2075,
-      "min_ms": 0.2017,
-      "max_ms": 0.3823,
-      "throughput_per_s": 4819.0
+      "p50_ms": 0.2634,
+      "p95_ms": 0.2779,
+      "p99_ms": 0.2989,
+      "avg_ms": 0.2669,
+      "min_ms": 0.2585,
+      "max_ms": 0.497,
+      "throughput_per_s": 3747.0
     },
     "very_long_16": {
       "steps": 16,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.41,
-      "p95_ms": 0.4214,
-      "p99_ms": 0.442,
-      "avg_ms": 0.4119,
-      "min_ms": 0.4018,
-      "max_ms": 0.8005,
-      "throughput_per_s": 2428.0
+      "p50_ms": 0.5306,
+      "p95_ms": 0.5576,
+      "p99_ms": 0.6885,
+      "avg_ms": 0.5348,
+      "min_ms": 0.5156,
+      "max_ms": 1.4036,
+      "throughput_per_s": 1870.0
     },
     "multi_agent": {
       "steps": 3,
       "rules": 34,
       "iters": 5000,
-      "p50_ms": 0.0824,
-      "p95_ms": 0.0909,
-      "p99_ms": 0.0947,
-      "avg_ms": 0.0834,
-      "min_ms": 0.0812,
-      "max_ms": 0.1254,
-      "throughput_per_s": 11990.0
+      "p50_ms": 0.1061,
+      "p95_ms": 0.1177,
+      "p99_ms": 0.1361,
+      "avg_ms": 0.1081,
+      "min_ms": 0.1041,
+      "max_ms": 0.2086,
+      "throughput_per_s": 9251.0
     }
   },
   "scaling_by_trajectory_length": {
     "1": {
       "steps": 1,
-      "avg_ms": 0.0449
+      "avg_ms": 0.0628
     },
     "2": {
       "steps": 2,
-      "avg_ms": 0.0582
+      "avg_ms": 0.0766
     },
     "4": {
       "steps": 4,
-      "avg_ms": 0.1085
+      "avg_ms": 0.1404
     },
     "8": {
       "steps": 8,
-      "avg_ms": 0.2081
+      "avg_ms": 0.2705
     },
     "16": {
       "steps": 16,
-      "avg_ms": 0.4123
+      "avg_ms": 0.5309
     },
     "32": {
       "steps": 32,
-      "avg_ms": 0.8409
+      "avg_ms": 1.0979
     }
   },
   "scaling_by_domain_count": {
     "1": {
       "domains": 1,
       "rules": 13,
-      "avg_ms": 0.0836,
-      "p95_ms": 0.0911
+      "avg_ms": 0.108,
+      "p95_ms": 0.1178
     },
     "3": {
       "domains": 3,
       "rules": 17,
-      "avg_ms": 0.092,
-      "p95_ms": 0.0995
+      "avg_ms": 0.1186,
+      "p95_ms": 0.1281
     },
     "6": {
       "domains": 6,
       "rules": 25,
-      "avg_ms": 0.1006,
-      "p95_ms": 0.1081
+      "avg_ms": 0.1311,
+      "p95_ms": 0.1409
     },
     "9": {
       "domains": 9,
       "rules": 34,
-      "avg_ms": 0.1119,
-      "p95_ms": 0.16
+      "avg_ms": 0.1398,
+      "p95_ms": 0.1498
     }
   }
 }
