@@ -35,7 +35,11 @@ RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py ./
+# NOTE: this list is explicit, so a NEW runtime module must be added here or the
+# image builds without it. kernel_config.py is imported by app.py at module
+# scope; attest.py is the offline evidence auditor, shipped so an operator can
+# verify an exported chain from inside the container.
+COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
 
 # ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
 # A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,
