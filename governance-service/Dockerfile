@@ -6,12 +6,18 @@ WORKDIR /app
 
 # Pin the engine to a specific commit/tag for reproducible verdicts.
 ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
-# Pinned to the Omega-Sector expansion (PR #9) + sector authorisation-awareness
-# fix (PR #10, 2026-06-05): adds the eight sector OmegaDomain enum values that
-# the deployment sector_rules.py / website resolve, and honours domain-scoped
-# verification flags (payee_verified, operator_confirmed, ...). Bump
-# deliberately so verdicts stay reproducible.
-ARG ENGINE_REF=96ecd39528072057f37ab8975c203171cc12aa53
+# Pinned to the governance kernel (PR #11, 2026-08-07): adds
+# morrison_governance.kernel — the trust boundary (authority quarantine, signed
+# approval artifacts bound to a canonical action hash), semantic capability
+# classification, trusted destination resolution, denial-aware trajectory
+# history, hash-chained evidence with a logic-binding ruleset hash, and
+# independent Ed25519 attestation. app.py imports it, so this ref MUST include
+# it — the build-time `import app` check below fails loudly otherwise.
+#
+# Previously: 96ecd39 (Omega-Sector expansion PR #9 + sector
+# authorisation-awareness PR #10). Bump deliberately so verdicts stay
+# reproducible.
+ARG ENGINE_REF=4fafc688e2dde6da87205cad84e8db67d634e14a
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
