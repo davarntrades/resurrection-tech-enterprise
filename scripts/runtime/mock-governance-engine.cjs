@@ -30,14 +30,63 @@ function evaluate(body = {}) {
   };
 }
 
+// /v1/govern — the ENFORCING endpoint the Control Room now calls. Mirrors the
+// real service's response: GovernanceResult-compatible fields at the top level
+// (so the existing adapters need no change) plus per-step `decisions`, the
+// evidence summary and the resolved identity.
+//
+// The real endpoint honours x-governance-principal/-tenant only alongside the
+// gateway shared secret; this fixture reports which it saw so a client that
+// stops sending them fails visibly here rather than silently degrading to an
+// anonymous principal in production.
+function govern(body = {}, headers = {}) {
+  const base = evaluate(body);
+  const verdict = { ALLOW: "PERMIT", BLOCK: "BLOCK", ESCALATE: "ESCALATE" }[base.verdict] || base.verdict;
+  const gatewayOk = Boolean(headers["x-governance-gateway-auth"]);
+  const principal = gatewayOk ? (headers["x-governance-principal"] || "anonymous") : "anonymous";
+  const tenant = gatewayOk ? (headers["x-governance-tenant"] || "") : "";
+  const decision = {
+    verdict,
+    layer: verdict === "PERMIT" ? "V4" : "A_safe",
+    reason: base.reason,
+    rule: base.metadata.rule,
+    omega_domain: base.omega_domain,
+    action_hash: base.trajectory_hash,
+    capabilities: [],
+    requirement: verdict === "PERMIT" ? "allow" : "approval",
+    authorization: { approved: false, principal, tenant },
+    forged_authority_claims: [],
+    destination: {},
+  };
+  return {
+    ...base,
+    verdict,
+    permitted: verdict === "PERMIT",
+    blocked: verdict === "BLOCK",
+    escalated: verdict === "ESCALATE",
+    layer: decision.layer,
+    decisions: [decision],
+    evidence: { verified: true, records: 1, head: base.trajectory_hash.slice(0, 16), problems: [] },
+    identity: {
+      principal, tenant,
+      source: gatewayOk ? "gateway_verified" : "rejected_untrusted_header",
+      gateway_auth_configured: true,
+    },
+    enforcement: "kernel",
+  };
+}
+
+const ROUTES = ["/v1/evaluate", "/v1/govern", "/v1/assess"];
+
 const server = http.createServer((req, res) => {
   const send = (status, value) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(value)); };
   if (req.method === "GET" && req.url === "/health") return send(200, { ok: true, engine_commit: "hermetic-ci", live_sectors: ["finance"] });
-  if (req.method !== "POST" || !["/v1/evaluate", "/v1/assess"].includes(req.url)) return send(404, { error: "not found" });
+  if (req.method !== "POST" || !ROUTES.includes(req.url)) return send(404, { error: "not found" });
   const chunks = [];
   req.on("data", (chunk) => chunks.push(chunk));
   req.on("end", () => {
     let body = {}; try { body = JSON.parse(Buffer.concat(chunks).toString() || "{}"); } catch {}
+    if (req.url === "/v1/govern") return send(200, govern(body, req.headers));
     return send(200, req.url === "/v1/evaluate" ? evaluate(body) : { ok: true, verdict: "ALLOW" });
   });
 });

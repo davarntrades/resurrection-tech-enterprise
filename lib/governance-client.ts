@@ -256,6 +256,15 @@ export async function evaluateViaGovernance(trajectory: ToolCall[], domains?: st
   // principal, which is why it can never produce an unapproved PERMIT.
   headers["x-governance-principal"] = process.env.GOVERNANCE_PRINCIPAL ?? "public-demo";
   headers["x-governance-tenant"] = process.env.GOVERNANCE_TENANT ?? "demo";
+  // The gateway shared secret MUST accompany the identity headers. Without it
+  // the engine rejects them and falls back to an anonymous principal with an
+  // EMPTY tenant — and an empty tenant silently disables the cross-tenant
+  // comparator, because there is nothing to compare a resource reference
+  // against. Measured: CT-01/CT-02 executed on the demo surface while both
+  // other surfaces blocked them.
+  if (process.env.GOVERNANCE_GATEWAY_SECRET) {
+    headers["x-governance-gateway-auth"] = process.env.GOVERNANCE_GATEWAY_SECRET;
+  }
 
   const body = domains && domains.length ? { trajectory, domains } : { trajectory };
   // /v1/govern is the ENFORCING chokepoint (trust boundary + capability policy

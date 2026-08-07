@@ -6,7 +6,8 @@ WORKDIR /app
 
 # Pin the engine to a specific commit/tag for reproducible verdicts.
 ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
-# Pinned to the governance kernel (PR #11, 2026-08-07): adds
+# Pinned to PR #12 (2026-08-07): deterministic ruleset hash, single-step
+# sensitive-egress guard, fail-closed tenancy — on top of PR #11 which added
 # morrison_governance.kernel — the trust boundary (authority quarantine, signed
 # approval artifacts bound to a canonical action hash), semantic capability
 # classification, trusted destination resolution, denial-aware trajectory
@@ -14,10 +15,10 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # independent Ed25519 attestation. app.py imports it, so this ref MUST include
 # it — the build-time `import app` check below fails loudly otherwise.
 #
-# Previously: 96ecd39 (Omega-Sector expansion PR #9 + sector
+# Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=4fafc688e2dde6da87205cad84e8db67d634e14a
+ARG ENGINE_REF=b1ffd1a1aaa724bd9642f16db44f63c3f7c6beb9
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
