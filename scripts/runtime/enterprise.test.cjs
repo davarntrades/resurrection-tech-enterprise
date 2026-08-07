@@ -68,7 +68,19 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   try {
     rt.log._reset();
     const r = await rt.gateway.govern({ auth: auth2, trajectory: traj, domains: ["finance"] });
-    ok(r.ok === true && r.verdict === "ALLOW", "L2: store outage still returns the verdict (fail-safe, no 500)");
+    // The point of L2 is that a STORE outage does not take down the request
+    // path and does not alter the governance decision. This previously
+    // asserted verdict === "ALLOW", which held only because production
+    // defaulted to shadow mode and shadow returned ALLOW unconditionally — the
+    // trajectory here is `transfer_funds`, which the engine blocks. Production
+    // now defaults to enforce, so assert the property the test is actually
+    // about, and assert it harder: the request succeeds AND the verdict still
+    // tracks the engine rather than being softened by the outage.
+    ok(r.ok === true, "L2: store outage still returns a response (fail-safe, no 500)");
+    ok(r.verdict === r.engine_verdict,
+       "L2: store outage does not alter the governance verdict");
+    ok(r.verdict === "BLOCK",
+       "L2: a blocked trajectory stays BLOCKED through a store outage");
     ok(r.recorded === false && r.record_error, "L2: response flags recorded:false + error");
     ok(rt.log.recent(10).some((e) => e.event === "decision_record_failed"), "L2: the evidence gap is logged loudly (error event)");
     // Fail-closed variant.
