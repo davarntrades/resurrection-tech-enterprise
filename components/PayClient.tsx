@@ -24,6 +24,8 @@ interface PayService {
   recurring: boolean;
   /** Deliberately gated: full-width, visually distinct, never reads as purchasable. */
   gated: boolean;
+  /** One of the three core commercial outcomes — carries the PRIMARY PATHWAY marker. */
+  primaryPathway: boolean;
   gateNote: string;
   ctaLabel: string;
   ctaHref: string;
@@ -39,6 +41,8 @@ interface PayGroup {
   lede: string;
   /** Ordered steps rendered as a progression above the cards. */
   ladder: string[] | null;
+  /** Gold accent, matching the partner pages' .mgp-page theme. */
+  gold: boolean;
   services: PayService[];
 }
 
@@ -87,7 +91,7 @@ export function PayClient({ groups }: { groups: PayGroup[] }) {
   return (
     <>
       {groups.map((g) => (
-        <section className="pay-group" key={g.key} aria-label={g.title}>
+        <section className={`pay-group${g.gold ? " pay-group--gold" : ""}`} key={g.key} aria-label={g.title}>
           <div className="pay-group-head reveal">
             <span className="eyebrow">{g.eyebrow}</span>
             <h3 className="pay-group-title">{g.title}</h3>
@@ -134,9 +138,10 @@ function PayGrid({
     <div className="pay-grid reveal">
       {services.map((s) => (
         <div
-          className={`pay-card${s.online ? "" : " is-invoice"}${s.gated ? " is-gated" : ""}`}
+          className={`pay-card${s.online ? "" : " is-invoice"}${s.gated ? " is-gated" : ""}${s.primaryPathway ? " is-primary" : ""}`}
           key={s.id}
         >
+          {s.primaryPathway && <span className="pay-primary-k-tag">Primary pathway</span>}
           {s.gated && <span className="pay-gated-k">Strategic relationship · by negotiation</span>}
           <div className="pay-card-top">
             <h3>{s.name}</h3>

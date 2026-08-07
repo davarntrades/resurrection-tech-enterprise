@@ -24,6 +24,7 @@ const GROUPS = [
     title: "Primary entry routes",
     lede: "Most engagements follow one ladder. A paid Discovery Workshop is available for organisations scoping earlier.",
     ladder: ["48-Hour Audit", "Limited Pilot", "Enterprise Integration"],
+    gold: false,
   },
   {
     key: "ongoing" as const,
@@ -31,13 +32,16 @@ const GROUPS = [
     title: "Ongoing Governance & Executive Services",
     lede: "Sustained governance once a deployment is live, and executive leadership above it.",
     ladder: null,
+    gold: false,
   },
   {
+    // Gold, matching the .mgp-page theme used across the partner pages.
     key: "partner" as const,
     eyebrow: "Deliver with us",
     title: "Partner & Channel Pathways",
     lede: "For MSSPs, consultancies, and assurance firms preparing to sell and deliver Runtime Governance to their own customers.",
     ladder: null,
+    gold: true,
   },
 ];
 
@@ -55,6 +59,7 @@ export default function Page() {
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
     gated: Boolean(s.gated),
+    primaryPathway: Boolean(s.primaryPathway),
     gateNote: s.gateNote,
     ctaLabel: s.ctaLabel ?? "Request Invoice",
     ctaHref: s.ctaHref ?? "/contact",

@@ -72,6 +72,12 @@ export interface ServiceDef {
   /** Which block of the /pay page this appears under. */
   group: ServiceGroup;
   /**
+   * One of the three core commercial outcomes. Rendered with a PRIMARY PATHWAY
+   * marker and stronger treatment so the supporting services do not compete
+   * with it for attention.
+   */
+  primaryPathway?: boolean;
+  /**
    * Deliberately gated: rendered as a full-width, visually distinct card with
    * no published figure, so it never reads as a packaged service anyone can
    * simply buy. Reserved for negotiated strategic relationships.
