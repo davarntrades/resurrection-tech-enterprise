@@ -37,8 +37,10 @@ export const SERVICES: ServiceDef[] = [
       "A paid architecture and governance review for organisations evaluating Morrison Runtime Governance™. Includes executive briefing, risk mapping, deployment pathways, pilot recommendations, and implementation planning.",
   },
   {
+    // id stays "assessment-deposit" — it keys existing provider metadata and
+    // recorded payments; only the customer-facing name changed.
     id: "assessment-deposit",
-    name: "Runtime Safety Assessment",
+    name: "48-Hour Runtime Governance Audit",
     amountMinor: 10_000_00, // £10,000 deposit
     currency: "gbp",
     kind: "deposit",
@@ -51,7 +53,7 @@ export const SERVICES: ServiceDef[] = [
     gateNote: "Schedule required before payment.",
     buyers: ["CFO", "Chief Risk Officer", "Compliance Officer", "Controller", "Head of AI"],
     blurb:
-      "Reserve a 48-hour Runtime Safety Assessment engagement slot. Deposit is credited against the final engagement fee.",
+      "Reserve a 48-hour Runtime Governance Audit engagement slot. Deposit is credited against the final engagement fee.",
   },
   {
     id: "pilot-deposit",
