@@ -20,6 +20,20 @@ from morrison_governance.kernel import Principal, SecurityContext
 # could read this could mint its own approvals, so it is never echoed by any
 # endpoint (/health reports only whether it is configured).
 APPROVAL_SIGNING_KEY = os.getenv("GOVERNANCE_APPROVAL_KEY", "").encode()
+
+# Evidence sealing uses a DISTINCT key from approval verification. Reusing one
+# key for both would mean the key that seals the audit trail is the same key
+# that mints approvals — compromise of either becomes compromise of both, and
+# the evidence would be sealed by exactly the component it is meant to hold to
+# account. Independent attestation (Ed25519 over the chain head, public-key
+# verified) is configured separately again; see ATTESTATION_PUBLIC_KEY.
+EVIDENCE_SEALING_KEY = os.getenv(
+    "GOVERNANCE_EVIDENCE_KEY", os.getenv("GOVERNANCE_APPROVAL_KEY", "")).encode()
+
+# Public key of the EXTERNAL attestation signer. The service never holds the
+# corresponding private key — it cannot mint its own attestations, which is the
+# property that makes them independent. Hex-encoded raw 32-byte Ed25519 key.
+ATTESTATION_PUBLIC_KEY = os.getenv("GOVERNANCE_ATTESTATION_PUBKEY", "")
 TRUSTED_ISSUERS = frozenset(
     i.strip() for i in os.getenv(
         "GOVERNANCE_TRUSTED_ISSUERS", "security-review,change-board,human-approver"

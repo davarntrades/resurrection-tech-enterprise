@@ -35,8 +35,10 @@ from morrison_governance.result import GovernanceResult
 from morrison_governance.kernel import GovernanceKernel
 from morrison_governance.kernel.evidence import ruleset_hash as logic_ruleset_hash
 from morrison_governance.kernel.hierarchy import audit_hierarchy
+from morrison_governance.kernel.attestation import AnchorLog
 from kernel_config import (
-    APPROVAL_SIGNING_KEY, TOOL_MANIFEST, build_context,
+    APPROVAL_SIGNING_KEY, ATTESTATION_PUBLIC_KEY, EVIDENCE_SEALING_KEY,
+    TOOL_MANIFEST, build_context,
 )
 
 from finance_rules import finance_custom_rules
@@ -230,7 +232,7 @@ def _kernel_for(names: Optional[list[str]], horizon: int) -> GovernanceKernel:
     k = _KERNELS.get(key)
     if k is None:
         k = GovernanceKernel(layer, build_context(),
-                             evidence_key=APPROVAL_SIGNING_KEY,
+                             evidence_key=EVIDENCE_SEALING_KEY,
                              engine_version=ENGINE_COMMIT)
         _KERNELS[key] = k
         for stale in [s for s in _KERNELS if s[2] != key[2]]:
@@ -251,7 +253,7 @@ def _governed_kernel(names: Optional[list[str]], horizon: int,
     return GovernanceKernel(
         layer,
         build_context(principal_id=principal, tenant=tenant, approvals=approvals),
-        evidence_key=APPROVAL_SIGNING_KEY, engine_version=ENGINE_COMMIT)
+        evidence_key=EVIDENCE_SEALING_KEY, engine_version=ENGINE_COMMIT)
 
 
 # ── Assessment layer + catalog (all domains, for the public /v1/assess) ────
@@ -525,6 +527,40 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     return JSONResponse(body)
 
 
+# Shared secret proving a request really came through the authenticating
+# gateway. Identity headers are honoured ONLY when it matches.
+GATEWAY_SECRET = os.getenv("GOVERNANCE_GATEWAY_SECRET", "")
+
+
+def _resolve_identity(request: Request) -> tuple[str, str, str]:
+    """Resolve the acting principal — the one input that must never be
+    caller-controlled.
+
+    The red-team remediation moved identity out of the request body and into
+    gateway-set headers. That is only an improvement if the headers themselves
+    are trustworthy: a gateway that forwards a CLIENT-supplied
+    `x-governance-principal` would hand identity straight back to the caller and
+    re-open the primary finding. So the headers are honoured only when the
+    request also carries the gateway shared secret.
+
+    Fail-closed: without a verified gateway, the request is anonymous and holds
+    no capability grants, so every governed capability escalates rather than
+    silently running as somebody else.
+    """
+    principal = request.headers.get("x-governance-principal", "")
+    tenant = request.headers.get("x-governance-tenant", "")
+    if not GATEWAY_SECRET:
+        # Unconfigured: accept headers but say so loudly in the response and
+        # logs, so a deployment cannot quietly rely on unauthenticated identity.
+        return (principal or "anonymous", tenant, "unauthenticated_header")
+    presented = request.headers.get("x-governance-gateway-auth", "")
+    if hashlib.sha256(presented.encode()).hexdigest() != \
+            hashlib.sha256(GATEWAY_SECRET.encode()).hexdigest():
+        log.warning("identity headers ignored: gateway auth absent or invalid")
+        return ("anonymous", "", "rejected_untrusted_header")
+    return (principal or "anonymous", tenant, "gateway_verified")
+
+
 @app.post("/v1/govern", dependencies=[Depends(require_token)])
 async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
     """ENFORCING endpoint — the production chokepoint.
@@ -540,8 +576,7 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
     any other caller-supplied authority claim.
     """
     t0 = time.perf_counter()
-    principal = request.headers.get("x-governance-principal", "anonymous")
-    tenant = request.headers.get("x-governance-tenant", "")
+    principal, tenant, identity_source = _resolve_identity(request)
     kernel = _governed_kernel(req.domains, req.horizon or HORIZON,
                               principal, tenant)
 
@@ -597,11 +632,44 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             "problems": integrity["problems"],
         },
         "enforcement": "kernel",
+        "identity": {
+            "principal": principal, "tenant": tenant,
+            "source": identity_source,
+            "gateway_auth_configured": bool(GATEWAY_SECRET),
+        },
         "engine_compute_ms": round((time.perf_counter() - t0) * 1000, 3),
     }
     _log_eval_metrics("/v1/govern", body, len(req.trajectory),
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
+
+
+@app.get("/v1/evidence/attestation")
+def evidence_attestation() -> dict:
+    """Everything an auditor needs to verify evidence WITHOUT trusting us.
+
+    Returns the attestation public key this deployment expects (never a private
+    key — the service cannot mint its own attestations, which is the property
+    that makes them independent) plus the verification procedure. Exported
+    chains are verified offline with `attest.py`.
+    """
+    return {
+        "attestation_public_key": ATTESTATION_PUBLIC_KEY or None,
+        "attestation_configured": bool(ATTESTATION_PUBLIC_KEY),
+        "signing_key_held_by_service": False,
+        "evidence_key_separate_from_approval_key": (
+            EVIDENCE_SEALING_KEY != APPROVAL_SIGNING_KEY),
+        "verification": {
+            "keyless": "morrison_governance.kernel.attestation.recompute_chain("
+                       "jsonl) — detects edits, deletions, reordering and any "
+                       "executed-without-PERMIT record, using no key at all",
+            "attested": "attestation.verify_attestation(jsonl, attestation, "
+                        "public_key, ed25519.verify)",
+            "cli": "python3 attest.py verify --chain chain.jsonl "
+                   "--attestation att.json --pubkey <hex>",
+        },
+        "independence_note": AnchorLog.independence_note(),
+    }
 
 
 @app.post("/v1/assess")
