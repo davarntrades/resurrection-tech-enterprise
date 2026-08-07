@@ -31,6 +31,28 @@
 }
 .pay-warn-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0a93f; flex: none; box-shadow: 0 0 8px rgba(214,158,46,0.6); }
 
+/* Grouped engagement blocks — entry routes lead, then ongoing, then partner */
+.pay-group { margin-top: 30px; }
+.pay-group:first-of-type { margin-top: 16px; }
+.pay-group-head { margin-bottom: 4px; }
+.pay-group-title {
+  font-size: clamp(18px, 2.3vw, 23px); color: var(--ink); letter-spacing: -0.015em; margin: 8px 0 0;
+}
+.pay-group-lede { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); max-width: 68ch; }
+
+/* Entry ladder: 48-Hour Audit → Limited Pilot → Enterprise Integration */
+.pay-ladder {
+  list-style: none; margin: 12px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0;
+}
+.pay-ladder li { display: flex; align-items: center; }
+.pay-ladder-arr { color: var(--ink-4); margin: 0 10px; font-size: 13px; }
+.pay-ladder-step {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.03em; color: var(--accent-bright);
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid rgba(76,125,255,0.35); background: rgba(76,125,255,0.07);
+}
+
 /* Service cards */
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
 .pay-card {
@@ -38,6 +60,25 @@
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 20px 22px;
 }
 .pay-card.is-invoice { background: var(--bg); }
+
+/* The three core commercial outcomes. Everything else on the page supports
+   these, so they carry the weight: accent rim, warm ground, and a marker. */
+.pay-card.is-primary {
+  border-color: var(--accent);
+  background:
+    radial-gradient(125% 165% at 0% 0%, rgba(76,125,255,0.10), transparent 58%),
+    var(--panel-2);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 14px 40px -22px var(--accent-glow);
+}
+.pay-card.is-primary.is-invoice { background: radial-gradient(125% 165% at 0% 0%, rgba(76,125,255,0.10), transparent 58%), var(--panel); }
+.pay-primary-k-tag {
+  display: block; margin-bottom: 10px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent-bright);
+}
+.is-primary .pay-card-top h3 { font-size: 16.5px; }
+/* Supporting services step back so they do not compete with the pathways. */
+.pay-card:not(.is-primary):not(.is-gated) .pay-card-top h3 { color: var(--ink-2); }
 .pay-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .pay-card-top h3 { font-size: 15.5px; color: var(--ink); margin: 0; letter-spacing: -0.01em; }
 .pay-amount { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent-bright); white-space: nowrap; }
@@ -78,6 +119,11 @@
   background: rgba(76,125,255,0.10); box-shadow: 0 0 0 1px var(--accent) inset;
 }
 .pay-tier:focus-within { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.pay-tier-rec {
+  margin-left: 8px; padding: 2px 7px; border-radius: 999px;
+  background: rgba(76,125,255,0.18); color: var(--accent-bright);
+  font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+}
 .pay-tier-note { margin: 9px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-3); }
 
 .pay-deposit-note {
@@ -99,6 +145,60 @@
   border: 1px solid rgba(229,72,77,0.4); background: rgba(229,72,77,0.07);
   border-radius: var(--radius-sm); padding: 12px 16px; color: var(--omega); font-size: 13.5px; line-height: 1.5;
 }
+.pay-error.is-standalone { margin-top: 14px; }
+
+/* ---------- Gold: partnership pathways ----------
+   Same tokens as the `.mgp-page` theme on the partner pages, so the partner
+   block and the strategic partnership read as one family with the rest of the
+   site. Redefining the accent cascades to the eyebrow, price, tier chips, the
+   deposit note, and the primary CTA in one place. */
+.pay-group--gold,
+.pay-card.is-gated {
+  --accent: #e0a93f;
+  --accent-bright: #f2c66a;
+  --accent-dim: #6b4f1c;
+  --accent-glow: rgba(224,169,63,0.40);
+}
+.pay-group--gold .eyebrow { color: var(--accent-bright); }
+/* Gold CTA reads premium with dark foil-style text rather than white-on-gold,
+   and the button's hardcoded blue focus rim has to be overridden with it. */
+.pay-group--gold .btn--primary,
+.pay-group--gold .btn--primary .arr { color: #14100a; }
+.pay-group--gold .btn--primary {
+  box-shadow: 0 0 0 1px rgba(224,169,63,0.45), 0 10px 30px -12px var(--accent-glow);
+}
+.pay-group--gold .btn--primary:hover {
+  box-shadow: 0 0 0 1px rgba(242,198,106,0.65), 0 16px 44px -14px var(--accent-glow);
+}
+/* Tier chips carry literal blues in the base rules; restate them in gold. */
+.pay-group--gold .pay-tier.is-selected { background: rgba(224,169,63,0.12); }
+.pay-group--gold .pay-tier-rec { background: rgba(224,169,63,0.20); }
+
+/* Deliberately gated — a negotiated relationship, not a purchasable tier.
+   Spans the row so it never sits beside priced cards as a comparable option. */
+.pay-card.is-gated {
+  grid-column: 1 / -1;
+  border-color: rgba(224,169,63,0.42);
+  background:
+    radial-gradient(120% 160% at 100% 0%, rgba(224,169,63,0.10), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%),
+    var(--panel-2);
+  padding: clamp(22px, 3vw, 30px);
+}
+.pay-gated-k {
+  display: block; margin-bottom: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent-bright);
+}
+.is-gated .pay-card-top h3 { font-size: clamp(17px, 2.2vw, 21px); }
+.is-gated .pay-amount { color: var(--accent-bright); font-weight: 600; }
+.is-gated .pay-card-blurb { max-width: 78ch; font-size: 13.5px; }
+.is-gated .pay-status { border-color: rgba(224,169,63,0.4); color: var(--accent-bright); }
+.is-gated .pay-status-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.is-gated .pay-card-actions { margin-top: 4px; }
+.is-gated .pay-card-actions .btn { flex: 0 1 auto; }
+.btn--gated { border-color: rgba(224,169,63,0.55); color: var(--accent-bright); }
+.btn--gated:hover { border-color: var(--accent); color: #f6d68f; background: rgba(224,169,63,0.08); }
 
 /* Explanation beneath the cards */
 .pay-explain {

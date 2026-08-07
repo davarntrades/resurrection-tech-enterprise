@@ -8,13 +8,47 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Payments",
   description:
-    "Enterprise engagements are contracted and invoiced. Online payment is available for approved deposits, retainers, and pre-agreed payments via Stripe (card) and GoCardless (bank debit).",
+    "Enterprise engagements are contracted and invoiced. Online payment is available for approved deposits, partner onboarding, and pre-agreed payments via Stripe (card) and GoCardless (bank debit). Advisory and executive pathways are arranged on request.",
   alternates: { canonical: "/pay" },
 };
+
+/**
+ * The page leads with the three primary entry routes, then ongoing services,
+ * then partner pathways — so the commercial priority stays legible however
+ * many services the catalogue grows to hold.
+ */
+const GROUPS = [
+  {
+    key: "entry" as const,
+    eyebrow: "Start here",
+    title: "Primary entry routes",
+    lede: "Most engagements follow one ladder. A paid Discovery Workshop is available for organisations scoping earlier.",
+    ladder: ["48-Hour Audit", "Limited Pilot", "Enterprise Integration"],
+    gold: false,
+  },
+  {
+    key: "ongoing" as const,
+    eyebrow: "After deployment",
+    title: "Ongoing Governance & Executive Services",
+    lede: "Sustained governance once a deployment is live, and executive leadership above it.",
+    ladder: null,
+    gold: false,
+  },
+  {
+    // Gold, matching the .mgp-page theme used across the partner pages.
+    key: "partner" as const,
+    eyebrow: "Deliver with us",
+    title: "Partner & Channel Pathways",
+    lede: "For MSSPs, consultancies, and assurance firms preparing to sell and deliver Runtime Governance to their own customers.",
+    ladder: null,
+    gold: true,
+  },
+];
 
 export default function Page() {
   const services = SERVICES.map((s) => ({
     id: s.id,
+    group: s.group,
     name: s.name,
     blurb: s.blurb,
     online: s.online,
@@ -24,8 +58,23 @@ export default function Page() {
     engagementValue: s.engagementValue ?? null,
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
+    gated: Boolean(s.gated),
+    primaryPathway: Boolean(s.primaryPathway),
     gateNote: s.gateNote,
-    tiers: (s.tiers ?? []).map((t) => ({ id: t.id, label: t.label, note: t.note ?? null })),
+    ctaLabel: s.ctaLabel ?? "Request Invoice",
+    ctaHref: s.ctaHref ?? "/contact",
+    tierLegend: s.tierLegend ?? "Choose your deposit",
+    tiers: (s.tiers ?? []).map((t) => ({
+      id: t.id,
+      label: t.label,
+      note: t.note ?? null,
+      recommended: Boolean(t.recommended),
+    })),
+  }));
+
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    services: services.filter((s) => s.group === g.key),
   }));
 
   return (
@@ -36,7 +85,8 @@ export default function Page() {
           <h1 className="pay-h1">Invoicing &amp; Online Payment</h1>
           <p className="pay-lede">
             Enterprise engagements are normally contracted and invoiced. Online payment is
-            available for approved deposits, retainers, or pre-agreed payments.
+            available for approved deposits, partner onboarding, or pre-agreed payments.
+            Advisory and executive pathways are arranged on request.
           </p>
 
           {/* Primary path for enterprise: invoice */}
@@ -57,14 +107,14 @@ export default function Page() {
             Payment does not begin work until scope, contract, and onboarding are confirmed.
           </div>
 
-          {/* Online payment options */}
+          {/* Engagement routes, grouped so the entry ladder stays primary */}
           <div className="section-head reveal" style={{ marginTop: 8 }}>
             <span className="eyebrow">Online payment</span>
-            <h2>Approved deposits, retainers &amp; pre-agreed payments</h2>
+            <h2>Approved deposits, onboarding &amp; pre-agreed payments</h2>
             <p>Payments are handled entirely on the provider&rsquo;s hosted, PCI-compliant pages. Resurrection Tech never sees or stores your card or bank details.</p>
           </div>
 
-          <PayClient services={services} />
+          <PayClient groups={groups} />
 
           <div className="pay-explain reveal">
             <p>
@@ -100,7 +150,7 @@ export default function Page() {
             {[
               ["Credit / Debit Card", "Visa, Mastercard, Amex — processed securely by Stripe."],
               ["Apple Pay", "One-tap on supported Apple devices, via Stripe hosted checkout."],
-              ["GoCardless Direct Debit", "Bank debit for deposits and recurring advisory retainers."],
+              ["GoCardless Direct Debit", "Bank debit for approved deposits and partner onboarding."],
               ["Bank Transfer", "BACS / CHAPS / wire transfer on agreed invoice terms."],
               ["Enterprise Invoice / Purchase Orders", "Net terms, POs, and vendor onboarding for procurement."],
             ].map(([h, p]) => (

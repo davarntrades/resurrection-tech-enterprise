@@ -12,9 +12,16 @@
 export type ProviderId = "stripe" | "gocardless";
 
 /**
- * A selectable deposit amount for a service. When a service defines tiers the
- * buyer chooses which one to pay; the server still owns every amount — the
- * client only sends the tier id.
+ * Which block of the /pay page a service appears under. The page leads with the
+ * three primary entry routes so the commercial priority stays obvious, then
+ * ongoing services, then partner pathways.
+ */
+export type ServiceGroup = "entry" | "ongoing" | "partner";
+
+/**
+ * A selectable amount for a service. When a service defines tiers the buyer
+ * chooses which one to pay; the server still owns every amount — the client
+ * only sends the tier id.
  */
 export interface DepositTier {
   /** Stable id sent by the client, e.g. "5000". */
@@ -25,6 +32,8 @@ export interface DepositTier {
   amountMinor: number;
   /** Short qualifier shown beneath the selection, e.g. "Minimum to reserve a slot". */
   note?: string;
+  /** Marks the tier we recommend; it is pre-selected instead of the first. At most one per service. */
+  recommended?: boolean;
 }
 
 /** Server-side source of truth for what can be paid online and for how much. */
@@ -34,14 +43,16 @@ export interface ServiceDef {
   /**
    * Amount in minor units (pence) actually charged online. null = no fixed
    * online amount (invoice / mandate setup). When `tiers` is set this is the
-   * default (first tier) amount used if the buyer sends no selection.
+   * fallback used if the buyer sends no selection.
    */
   amountMinor: number | null;
-  /** Optional selectable deposit amounts. Omit for single-price services. */
+  /** Optional selectable amounts. Omit for single-price services. */
   tiers?: DepositTier[];
+  /** Legend above the tier selector. Defaults to "Choose your deposit". */
+  tierLegend?: string;
   currency: "gbp";
   /** How this service is normally transacted. */
-  kind: "deposit" | "retainer" | "invoice";
+  kind: "deposit" | "retainer" | "invoice" | "onboarding";
   /** Whether online payment is offered at all. */
   online: boolean;
   /** Online providers allowed for this service (empty = invoice only). */
@@ -58,6 +69,24 @@ export interface ServiceDef {
   statusLabel: string;
   /** Gating note shown beneath the pay/invoice actions, e.g. "Approved engagements only." */
   gateNote: string;
+  /** Which block of the /pay page this appears under. */
+  group: ServiceGroup;
+  /**
+   * One of the three core commercial outcomes. Rendered with a PRIMARY PATHWAY
+   * marker and stronger treatment so the supporting services do not compete
+   * with it for attention.
+   */
+  primaryPathway?: boolean;
+  /**
+   * Deliberately gated: rendered as a full-width, visually distinct card with
+   * no published figure, so it never reads as a packaged service anyone can
+   * simply buy. Reserved for negotiated strategic relationships.
+   */
+  gated?: boolean;
+  /** Offline services only: CTA wording. Defaults to "Request Invoice". */
+  ctaLabel?: string;
+  /** Offline services only: where the CTA points. Defaults to "/contact". */
+  ctaHref?: string;
   /** Typical buyers / decision-makers for this engagement. */
   buyers: string[];
   blurb: string;
@@ -95,7 +124,10 @@ export function checkoutAmountMinor(service: ServiceDef, tier?: DepositTier): nu
 
 /** Provider-facing line-item name, qualified by tier when the buyer picked one. */
 export function checkoutLabel(service: ServiceDef, tier?: DepositTier): string {
-  return tier ? `${service.name} — ${tier.label} deposit` : service.name;
+  if (!tier) return service.name;
+  // Only say "deposit" for products that actually are one — an onboarding fee
+  // paid in full must not read as a deposit on the customer's receipt.
+  return `${service.name} — ${tier.label}${service.isDeposit ? " deposit" : ""}`;
 }
 
 export interface WebhookVerification {
