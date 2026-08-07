@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { CheckoutInput, CheckoutResult, PaymentProvider, PaymentRecord, WebhookVerification } from "./types";
+import { checkoutAmountMinor, checkoutLabel } from "./types";
 
 /**
  * Stripe via the REST API — hosted Checkout only. We send the customer to
@@ -22,8 +23,9 @@ export const stripeProvider: PaymentProvider = {
     return Boolean(process.env.STRIPE_SECRET_KEY);
   },
 
-  async createCheckout({ service, baseUrl, email }: CheckoutInput): Promise<CheckoutResult> {
-    if (service.amountMinor == null) throw new Error("Service has no online amount");
+  async createCheckout({ service, baseUrl, email, tier }: CheckoutInput): Promise<CheckoutResult> {
+    const amountMinor = checkoutAmountMinor(service, tier);
+    if (amountMinor == null) throw new Error("Service has no online amount");
 
     const form = new URLSearchParams();
     form.set("mode", "payment");
@@ -31,9 +33,10 @@ export const stripeProvider: PaymentProvider = {
     form.set("cancel_url", `${baseUrl}/pay/cancel`);
     form.set("line_items[0][quantity]", "1");
     form.set("line_items[0][price_data][currency]", service.currency);
-    form.set("line_items[0][price_data][unit_amount]", String(service.amountMinor));
-    form.set("line_items[0][price_data][product_data][name]", service.name);
+    form.set("line_items[0][price_data][unit_amount]", String(amountMinor));
+    form.set("line_items[0][price_data][product_data][name]", checkoutLabel(service, tier));
     form.set("metadata[serviceType]", service.id);
+    if (tier) form.set("metadata[depositTier]", tier.id);
     if (email) form.set("customer_email", email);
     // Apple Pay / Google Pay are offered automatically on hosted Checkout when
     // enabled in the Stripe dashboard; no card form is built here.

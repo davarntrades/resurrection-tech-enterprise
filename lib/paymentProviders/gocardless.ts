@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { CheckoutInput, CheckoutResult, PaymentProvider, PaymentRecord, WebhookVerification } from "./types";
+import { checkoutAmountMinor, checkoutLabel } from "./types";
 
 /**
  * GoCardless via the REST API — hosted Billing Request Flow only. We create a
@@ -44,13 +45,18 @@ export const gocardlessProvider: PaymentProvider = {
     return Boolean(process.env.GOCARDLESS_ACCESS_TOKEN);
   },
 
-  async createCheckout({ service, baseUrl }: CheckoutInput): Promise<CheckoutResult> {
+  async createCheckout({ service, baseUrl, tier }: CheckoutInput): Promise<CheckoutResult> {
+    const amountMinor = checkoutAmountMinor(service, tier);
     const billingRequest: Record<string, unknown> = {
       mandate_request: { currency: "GBP", scheme: "bacs" },
-      metadata: { serviceType: service.id },
+      metadata: tier ? { serviceType: service.id, depositTier: tier.id } : { serviceType: service.id },
     };
-    if (service.amountMinor != null) {
-      billingRequest.payment_request = { amount: service.amountMinor, currency: "GBP", description: service.name };
+    if (amountMinor != null) {
+      billingRequest.payment_request = {
+        amount: amountMinor,
+        currency: "GBP",
+        description: checkoutLabel(service, tier),
+      };
     }
     const br = await gcPost("/billing_requests", { billing_requests: billingRequest });
     const brId = (br.billing_requests as { id?: string } | undefined)?.id;

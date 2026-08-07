@@ -25,6 +25,7 @@ export default function Page() {
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
     gateNote: s.gateNote,
+    tiers: (s.tiers ?? []).map((t) => ({ id: t.id, label: t.label, note: t.note ?? null })),
   }));
 
   return (

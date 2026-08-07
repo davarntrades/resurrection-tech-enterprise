@@ -1,4 +1,4 @@
-import type { ServiceDef } from "./types";
+import type { DepositTier, ServiceDef } from "./types";
 
 /**
  * Server-side catalogue of what can be paid for. Amounts are authoritative
@@ -7,14 +7,23 @@ import type { ServiceDef } from "./types";
  *
  * Future-proofing: add a new deposit product by appending an entry below.
  * The /pay page renders every entry generically — no page redesign required.
- * Deposit ranges are reserved online at the entry (lower-bound) amount; the
- * full range is shown to the buyer and credited against the final fee.
+ *
+ * Deposit amounts: a service with `tiers` lets the buyer choose which deposit
+ * to pay (the first tier is the default and the lower bound of the range). A
+ * service without `tiers` charges the single `amountMinor`. To turn a
+ * single-price deposit into a choice, add a `tiers` array — nothing else needs
+ * to change. `amountMinor` stays as the fallback when no tier is selected.
  */
 export const SERVICES: ServiceDef[] = [
   {
     id: "discovery-workshop",
     name: "Enterprise Discovery Workshop",
-    amountMinor: 5_000_00, // £5,000 reservation deposit (range £5,000–£15,000)
+    amountMinor: 5_000_00, // default / fallback: lower bound of the range
+    tiers: [
+      { id: "5000", label: "£5,000", amountMinor: 5_000_00, note: "Minimum to reserve a workshop slot." },
+      { id: "10000", label: "£10,000", amountMinor: 10_000_00, note: "Extended scope — multi-team review." },
+      { id: "15000", label: "£15,000", amountMinor: 15_000_00, note: "Full programme — reserves the whole engagement." },
+    ],
     currency: "gbp",
     kind: "deposit",
     online: true,
@@ -47,7 +56,12 @@ export const SERVICES: ServiceDef[] = [
   {
     id: "pilot-deposit",
     name: "Limited Pilot",
-    amountMinor: 25_000_00, // £25,000 reservation deposit (range £25,000–£50,000)
+    amountMinor: 25_000_00, // default / fallback: lower bound of the range
+    tiers: [
+      { id: "25000", label: "£25,000", amountMinor: 25_000_00, note: "Minimum to reserve pilot capacity." },
+      { id: "35000", label: "£35,000", amountMinor: 35_000_00, note: "Priority scheduling and deployment planning." },
+      { id: "50000", label: "£50,000", amountMinor: 50_000_00, note: "Full reservation — largest credit against the pilot fee." },
+    ],
     currency: "gbp",
     kind: "deposit",
     online: true,
@@ -112,4 +126,16 @@ export const SERVICES: ServiceDef[] = [
 
 export function getService(id: string): ServiceDef | undefined {
   return SERVICES.find((s) => s.id === id);
+}
+
+/**
+ * Resolve a client-supplied tier id against the server catalogue.
+ * Returns `undefined` for services without tiers (single-price), and `null`
+ * when a tier id was supplied but does not belong to this service — callers
+ * must reject that rather than silently falling back to another amount.
+ */
+export function getTier(service: ServiceDef, tierId?: string): DepositTier | undefined | null {
+  if (!service.tiers?.length) return undefined;
+  if (!tierId) return service.tiers[0];
+  return service.tiers.find((t) => t.id === tierId) ?? null;
 }

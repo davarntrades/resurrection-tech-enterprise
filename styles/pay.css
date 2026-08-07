@@ -56,6 +56,30 @@
 .pay-status.is-recurring { color: var(--accent-bright); border-color: rgba(76,125,255,0.4); }
 .pay-status.is-recurring .pay-status-dot { background: var(--accent-bright); box-shadow: 0 0 8px var(--accent-glow); }
 .pay-card-blurb { font-size: 13px; line-height: 1.5; color: var(--ink-3); margin: 12px 0 10px; flex: 1; }
+/* Deposit amount selector */
+.pay-tiers { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.pay-tiers[disabled] { opacity: 0.55; }
+.pay-tiers-legend {
+  padding: 0; margin-bottom: 9px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+}
+.pay-tier-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.pay-tier {
+  display: inline-flex; align-items: center; cursor: pointer;
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid var(--line-2); background: var(--bg);
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink-2);
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.pay-tiers:not([disabled]) .pay-tier:hover { border-color: var(--accent); color: var(--ink); }
+.pay-tier input { position: absolute; opacity: 0; width: 0; height: 0; }
+.pay-tier.is-selected {
+  border-color: var(--accent); color: var(--accent-bright);
+  background: rgba(76,125,255,0.10); box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.pay-tier:focus-within { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.pay-tier-note { margin: 9px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-3); }
+
 .pay-deposit-note {
   font-family: var(--mono); font-size: 11px; color: var(--accent-bright); margin: 0 0 14px; letter-spacing: 0.02em;
 }
