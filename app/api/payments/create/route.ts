@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { getProvider } from "@/lib/paymentProviders";
-import { getService } from "@/lib/paymentProviders/services";
+import { getService, getTier } from "@/lib/paymentProviders/services";
 import { SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -12,6 +12,8 @@ const schema = z.object({
   serviceId: z.string().trim().min(1).max(60),
   provider: z.enum(["stripe", "gocardless"]),
   email: z.string().trim().email().max(200).optional(),
+  /** Which deposit amount the buyer chose. Only an id — never an amount. */
+  tierId: z.string().trim().min(1).max(40).optional(),
 });
 
 /**
@@ -36,7 +38,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 422 });
   }
-  const { serviceId, provider, email } = parsed.data;
+  const { serviceId, provider, email, tierId } = parsed.data;
 
   const service = getService(serviceId);
   if (!service || !service.online) {
@@ -46,6 +48,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "That payment method is not available for this service." }, { status: 400 });
   }
 
+  // The tier only selects between server-defined amounts; an unknown id is rejected.
+  const tier = getTier(service, tierId);
+  if (tier === null) {
+    return NextResponse.json({ ok: false, error: "That deposit amount is not available for this service." }, { status: 400 });
+  }
+
   const p = getProvider(provider);
   if (!p || !p.isConfigured()) {
     return NextResponse.json({ ok: false, error: "Online payment is temporarily unavailable. Please request an invoice." }, { status: 503 });
@@ -53,7 +61,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const baseUrl = SITE.url.replace(/\/$/, "");
-    const result = await p.createCheckout({ service, baseUrl, email });
+    const result = await p.createCheckout({ service, baseUrl, email, tier });
     return NextResponse.json({ ok: true, url: result.url, provider });
   } catch (e) {
     console.error("[payments] create failed:", e instanceof Error ? e.message : e);

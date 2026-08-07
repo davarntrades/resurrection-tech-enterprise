@@ -11,12 +11,34 @@
 
 export type ProviderId = "stripe" | "gocardless";
 
+/**
+ * A selectable deposit amount for a service. When a service defines tiers the
+ * buyer chooses which one to pay; the server still owns every amount — the
+ * client only sends the tier id.
+ */
+export interface DepositTier {
+  /** Stable id sent by the client, e.g. "5000". */
+  id: string;
+  /** Display label on the selector, e.g. "£5,000". */
+  label: string;
+  /** Amount in minor units (pence) charged for this tier. */
+  amountMinor: number;
+  /** Short qualifier shown beneath the selection, e.g. "Minimum to reserve a slot". */
+  note?: string;
+}
+
 /** Server-side source of truth for what can be paid online and for how much. */
 export interface ServiceDef {
   id: string;
   name: string;
-  /** Amount in minor units (pence) actually charged online. null = no fixed online amount (invoice / mandate setup). */
+  /**
+   * Amount in minor units (pence) actually charged online. null = no fixed
+   * online amount (invoice / mandate setup). When `tiers` is set this is the
+   * default (first tier) amount used if the buyer sends no selection.
+   */
   amountMinor: number | null;
+  /** Optional selectable deposit amounts. Omit for single-price services. */
+  tiers?: DepositTier[];
   currency: "gbp";
   /** How this service is normally transacted. */
   kind: "deposit" | "retainer" | "invoice";
@@ -45,6 +67,8 @@ export interface CheckoutInput {
   service: ServiceDef;
   baseUrl: string;
   email?: string;
+  /** Resolved deposit tier when the buyer picked one. Amount still comes from the server catalogue. */
+  tier?: DepositTier;
 }
 
 export interface CheckoutResult {
@@ -62,6 +86,16 @@ export interface PaymentRecord {
   currency: string;
   serviceType: string;
   createdAt: string;
+}
+
+/** The amount a checkout should charge: the chosen tier, else the service default. */
+export function checkoutAmountMinor(service: ServiceDef, tier?: DepositTier): number | null {
+  return tier ? tier.amountMinor : service.amountMinor;
+}
+
+/** Provider-facing line-item name, qualified by tier when the buyer picked one. */
+export function checkoutLabel(service: ServiceDef, tier?: DepositTier): string {
+  return tier ? `${service.name} — ${tier.label} deposit` : service.name;
 }
 
 export interface WebhookVerification {
