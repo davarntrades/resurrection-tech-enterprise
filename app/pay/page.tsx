@@ -12,9 +12,39 @@ export const metadata: Metadata = {
   alternates: { canonical: "/pay" },
 };
 
+/**
+ * The page leads with the three primary entry routes, then ongoing services,
+ * then partner pathways — so the commercial priority stays legible however
+ * many services the catalogue grows to hold.
+ */
+const GROUPS = [
+  {
+    key: "entry" as const,
+    eyebrow: "Start here",
+    title: "Primary entry routes",
+    lede: "Most engagements follow one ladder. A paid Discovery Workshop is available for organisations scoping earlier.",
+    ladder: ["48-Hour Audit", "Limited Pilot", "Enterprise Integration"],
+  },
+  {
+    key: "ongoing" as const,
+    eyebrow: "After deployment",
+    title: "Ongoing Governance & Executive Services",
+    lede: "Sustained governance once a deployment is live, and executive leadership above it.",
+    ladder: null,
+  },
+  {
+    key: "partner" as const,
+    eyebrow: "Deliver with us",
+    title: "Partner & Channel Pathways",
+    lede: "For MSSPs, consultancies, and assurance firms preparing to sell and deliver Runtime Governance to their own customers.",
+    ladder: null,
+  },
+];
+
 export default function Page() {
   const services = SERVICES.map((s) => ({
     id: s.id,
+    group: s.group,
     name: s.name,
     blurb: s.blurb,
     online: s.online,
@@ -24,6 +54,7 @@ export default function Page() {
     engagementValue: s.engagementValue ?? null,
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
+    gated: Boolean(s.gated),
     gateNote: s.gateNote,
     ctaLabel: s.ctaLabel ?? "Request Invoice",
     ctaHref: s.ctaHref ?? "/contact",
@@ -34,6 +65,11 @@ export default function Page() {
       note: t.note ?? null,
       recommended: Boolean(t.recommended),
     })),
+  }));
+
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    services: services.filter((s) => s.group === g.key),
   }));
 
   return (
@@ -66,14 +102,14 @@ export default function Page() {
             Payment does not begin work until scope, contract, and onboarding are confirmed.
           </div>
 
-          {/* Online payment options */}
+          {/* Engagement routes, grouped so the entry ladder stays primary */}
           <div className="section-head reveal" style={{ marginTop: 8 }}>
             <span className="eyebrow">Online payment</span>
             <h2>Approved deposits, onboarding &amp; pre-agreed payments</h2>
             <p>Payments are handled entirely on the provider&rsquo;s hosted, PCI-compliant pages. Resurrection Tech never sees or stores your card or bank details.</p>
           </div>
 
-          <PayClient services={services} />
+          <PayClient groups={groups} />
 
           <div className="pay-explain reveal">
             <p>

@@ -12,6 +12,13 @@
 export type ProviderId = "stripe" | "gocardless";
 
 /**
+ * Which block of the /pay page a service appears under. The page leads with the
+ * three primary entry routes so the commercial priority stays obvious, then
+ * ongoing services, then partner pathways.
+ */
+export type ServiceGroup = "entry" | "ongoing" | "partner";
+
+/**
  * A selectable amount for a service. When a service defines tiers the buyer
  * chooses which one to pay; the server still owns every amount — the client
  * only sends the tier id.
@@ -62,6 +69,14 @@ export interface ServiceDef {
   statusLabel: string;
   /** Gating note shown beneath the pay/invoice actions, e.g. "Approved engagements only." */
   gateNote: string;
+  /** Which block of the /pay page this appears under. */
+  group: ServiceGroup;
+  /**
+   * Deliberately gated: rendered as a full-width, visually distinct card with
+   * no published figure, so it never reads as a packaged service anyone can
+   * simply buy. Reserved for negotiated strategic relationships.
+   */
+  gated?: boolean;
   /** Offline services only: CTA wording. Defaults to "Request Invoice". */
   ctaLabel?: string;
   /** Offline services only: where the CTA points. Defaults to "/contact". */

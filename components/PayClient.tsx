@@ -22,6 +22,8 @@ interface PayService {
   engagementValue: string | null;
   isDeposit: boolean;
   recurring: boolean;
+  /** Deliberately gated: full-width, visually distinct, never reads as purchasable. */
+  gated: boolean;
   gateNote: string;
   ctaLabel: string;
   ctaHref: string;
@@ -30,18 +32,29 @@ interface PayService {
   tierLegend: string;
 }
 
+interface PayGroup {
+  key: string;
+  eyebrow: string;
+  title: string;
+  lede: string;
+  /** Ordered steps rendered as a progression above the cards. */
+  ladder: string[] | null;
+  services: PayService[];
+}
+
 const PROVIDER_LABEL: Record<ProviderId, string> = {
   stripe: "Pay by Card · Stripe",
   gocardless: "Bank Debit · GoCardless",
 };
 
-export function PayClient({ services }: { services: PayService[] }) {
+export function PayClient({ groups }: { groups: PayGroup[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Chosen tier per service; defaults to the recommended one, else the lowest.
   const [tier, setTier] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      services
+      groups
+        .flatMap((g) => g.services)
         .filter((s) => s.tiers.length > 0)
         .map((s) => [s.id, (s.tiers.find((t) => t.recommended) ?? s.tiers[0]).id]),
     ),
@@ -72,9 +85,59 @@ export function PayClient({ services }: { services: PayService[] }) {
   }
 
   return (
+    <>
+      {groups.map((g) => (
+        <section className="pay-group" key={g.key} aria-label={g.title}>
+          <div className="pay-group-head reveal">
+            <span className="eyebrow">{g.eyebrow}</span>
+            <h3 className="pay-group-title">{g.title}</h3>
+            {g.ladder && (
+              <ol className="pay-ladder" aria-label="Engagement ladder">
+                {g.ladder.map((step, i) => (
+                  <li key={step}>
+                    {i > 0 && <span className="pay-ladder-arr" aria-hidden="true">→</span>}
+                    <span className="pay-ladder-step">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <p className="pay-group-lede">{g.lede}</p>
+          </div>
+          <PayGrid
+            services={g.services}
+            busy={busy}
+            tier={tier}
+            setTier={setTier}
+            pay={pay}
+          />
+        </section>
+      ))}
+      {error && <div className="pay-error is-standalone" role="alert">{error}</div>}
+    </>
+  );
+}
+
+function PayGrid({
+  services,
+  busy,
+  tier,
+  setTier,
+  pay,
+}: {
+  services: PayService[];
+  busy: string | null;
+  tier: Record<string, string>;
+  setTier: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  pay: (serviceId: string, provider: ProviderId) => void;
+}) {
+  return (
     <div className="pay-grid reveal">
       {services.map((s) => (
-        <div className={`pay-card${s.online ? "" : " is-invoice"}`} key={s.id}>
+        <div
+          className={`pay-card${s.online ? "" : " is-invoice"}${s.gated ? " is-gated" : ""}`}
+          key={s.id}
+        >
+          {s.gated && <span className="pay-gated-k">Strategic relationship · by negotiation</span>}
           <div className="pay-card-top">
             <h3>{s.name}</h3>
             <span className="pay-amount">{s.priceLabel}</span>
@@ -127,13 +190,14 @@ export function PayClient({ services }: { services: PayService[] }) {
                 </button>
               ))
             ) : (
-              <Link href={s.ctaHref} className="btn btn--ghost btn--sm">{s.ctaLabel} <span className="arr">→</span></Link>
+              <Link href={s.ctaHref} className={`btn btn--ghost btn--sm${s.gated ? " btn--gated" : ""}`}>
+                {s.ctaLabel} <span className="arr">→</span>
+              </Link>
             )}
           </div>
           <p className="pay-gate"><span className="pay-gate-lock" aria-hidden="true" />{s.gateNote}</p>
         </div>
       ))}
-      {error && <div className="pay-error" role="alert">{error}</div>}
     </div>
   );
 }

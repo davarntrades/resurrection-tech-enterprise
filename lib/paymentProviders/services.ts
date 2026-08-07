@@ -5,37 +5,21 @@ import type { DepositTier, ServiceDef } from "./types";
  * here — the client never sends an amount. Enterprise engagements default to
  * invoice; online deposits reserve capacity and accelerate onboarding.
  *
- * Future-proofing: add a new deposit product by appending an entry below.
- * The /pay page renders every entry generically — no page redesign required.
+ * Order matters: the /pay page renders entries in the order below, within the
+ * block named by each entry's `group`. The three primary entry routes lead so
+ * the commercial priority stays obvious no matter how many services are added.
  *
- * Deposit amounts: a service with `tiers` lets the buyer choose which deposit
- * to pay (the first tier is the default and the lower bound of the range). A
- * service without `tiers` charges the single `amountMinor`. To turn a
- * single-price deposit into a choice, add a `tiers` array — nothing else needs
- * to change. `amountMinor` stays as the fallback when no tier is selected.
+ * Future-proofing: add a new product by appending an entry with a `group`.
+ * The page renders every entry generically — no page redesign required.
+ *
+ * Amounts: a service with `tiers` lets the buyer choose which amount to pay
+ * (the recommended tier is pre-selected, else the lowest). A service without
+ * `tiers` charges the single `amountMinor`. To turn a single-price service
+ * into a choice, add a `tiers` array — nothing else needs to change.
+ * `amountMinor` stays as the fallback when no tier is selected.
  */
 export const SERVICES: ServiceDef[] = [
-  {
-    id: "discovery-workshop",
-    name: "Enterprise Discovery Workshop",
-    amountMinor: 5_000_00, // default / fallback: lower bound of the range
-    tiers: [
-      { id: "5000", label: "£5,000", amountMinor: 5_000_00, note: "Minimum to reserve a workshop slot." },
-      { id: "10000", label: "£10,000", amountMinor: 10_000_00, note: "Extended scope — multi-team review." },
-      { id: "15000", label: "£15,000", amountMinor: 15_000_00, note: "Full programme — reserves the whole engagement." },
-    ],
-    currency: "gbp",
-    kind: "deposit",
-    online: true,
-    providers: ["stripe", "gocardless"],
-    isDeposit: true,
-    priceLabel: "£5,000–£15,000 deposit",
-    statusLabel: "Online payment enabled",
-    gateNote: "Schedule required before payment.",
-    buyers: ["Head of AI", "Innovation Director", "CTO"],
-    blurb:
-      "A paid architecture and governance review for organisations evaluating Morrison Runtime Governance™. Includes executive briefing, risk mapping, deployment pathways, pilot recommendations, and implementation planning.",
-  },
+  // ── Primary entry routes ────────────────────────────────────────────────
   {
     // id stays "assessment-deposit" — it keys existing provider metadata and
     // recorded payments; only the customer-facing name changed.
@@ -44,6 +28,7 @@ export const SERVICES: ServiceDef[] = [
     amountMinor: 10_000_00, // £10,000 deposit
     currency: "gbp",
     kind: "deposit",
+    group: "entry",
     online: true,
     providers: ["stripe", "gocardless"],
     isDeposit: true,
@@ -66,6 +51,7 @@ export const SERVICES: ServiceDef[] = [
     ],
     currency: "gbp",
     kind: "deposit",
+    group: "entry",
     online: true,
     providers: ["stripe", "gocardless"],
     isDeposit: true,
@@ -78,34 +64,12 @@ export const SERVICES: ServiceDef[] = [
       "Reserve a Limited Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
   },
   {
-    id: "partner-onboarding",
-    name: "Managed Governance Partner™ Onboarding",
-    // Not a deposit: this is the onboarding engagement fee itself, paid in
-    // full. Fallback matches the recommended tier below.
-    amountMinor: 35_000_00,
-    tiers: [
-      { id: "25000", label: "£25,000", amountMinor: 25_000_00, note: "Entry onboarding — architecture review and deployment planning." },
-      { id: "35000", label: "£35,000", amountMinor: 35_000_00, recommended: true, note: "Recommended — full enablement to sell and deliver." },
-      { id: "50000", label: "£50,000", amountMinor: 50_000_00, note: "Extended onboarding — multi-team enablement and co-branded material." },
-    ],
-    tierLegend: "Choose your onboarding",
-    currency: "gbp",
-    kind: "onboarding",
-    online: true,
-    providers: ["stripe", "gocardless"],
-    priceLabel: "£25,000–£50,000 onboarding",
-    statusLabel: "Online payment enabled",
-    gateNote: "Partnership approval required before payment.",
-    buyers: ["MSSP Leadership", "Consultancy Practice Lead", "Head of Cyber / Assurance", "Channel & Alliances Director"],
-    blurb:
-      "A strategic onboarding engagement that prepares an MSSP, consultancy, or assurance firm to sell and deliver Runtime Governance before introducing it to customers. Covers technical architecture review, deployment and integration planning, sales enablement, and co-branded material. Not a discount on enterprise pricing — customer engagements continue through the standard ladder.",
-  },
-  {
     id: "enterprise-integration",
     name: "Enterprise Integration",
     amountMinor: null,
     currency: "gbp",
     kind: "invoice",
+    group: "entry",
     online: false,
     providers: [],
     priceLabel: "Custom",
@@ -116,11 +80,38 @@ export const SERVICES: ServiceDef[] = [
       "Custom-scoped deployment of Morrison Runtime Governance™ within enterprise environments. Pricing determined after architecture review, governance mapping, integration requirements, and deployment scope.",
   },
   {
+    // Not one of the three primary routes, but a genuine entry point for
+    // organisations scoping earlier — sits after the ladder, not above it.
+    id: "discovery-workshop",
+    name: "Enterprise Discovery Workshop",
+    amountMinor: 5_000_00, // default / fallback: lower bound of the range
+    tiers: [
+      { id: "5000", label: "£5,000", amountMinor: 5_000_00, note: "Minimum to reserve a workshop slot." },
+      { id: "10000", label: "£10,000", amountMinor: 10_000_00, note: "Extended scope — multi-team review." },
+      { id: "15000", label: "£15,000", amountMinor: 15_000_00, note: "Full programme — reserves the whole engagement." },
+    ],
+    currency: "gbp",
+    kind: "deposit",
+    group: "entry",
+    online: true,
+    providers: ["stripe", "gocardless"],
+    isDeposit: true,
+    priceLabel: "£5,000–£15,000 deposit",
+    statusLabel: "Online payment enabled",
+    gateNote: "Schedule required before payment.",
+    buyers: ["Head of AI", "Innovation Director", "CTO"],
+    blurb:
+      "A paid architecture and governance review for organisations evaluating Morrison Runtime Governance™. Includes executive briefing, risk mapping, deployment pathways, pilot recommendations, and implementation planning.",
+  },
+
+  // ── Ongoing governance & executive services ─────────────────────────────
+  {
     id: "annual-governance-license",
     name: "Annual Runtime Governance™ License",
     amountMinor: null,
     currency: "gbp",
     kind: "invoice",
+    group: "ongoing",
     online: false,
     providers: [],
     engagementValue: "£75,000–£500,000+ / yr",
@@ -137,6 +128,7 @@ export const SERVICES: ServiceDef[] = [
     amountMinor: null,
     currency: "gbp",
     kind: "retainer",
+    group: "ongoing",
     online: false,
     providers: [],
     priceLabel: "From £5,000 / mo",
@@ -155,6 +147,7 @@ export const SERVICES: ServiceDef[] = [
     amountMinor: null,
     currency: "gbp",
     kind: "retainer",
+    group: "ongoing",
     online: false,
     providers: [],
     priceLabel: "£35,000–£120,000 / mo",
@@ -171,6 +164,7 @@ export const SERVICES: ServiceDef[] = [
     amountMinor: null,
     currency: "gbp",
     kind: "retainer",
+    group: "ongoing",
     online: false,
     providers: [],
     priceLabel: "£50,000–£150,000 / mo",
@@ -187,16 +181,45 @@ export const SERVICES: ServiceDef[] = [
     amountMinor: null,
     currency: "gbp",
     kind: "invoice",
+    group: "ongoing",
+    // Deliberately gated: no published figure, full-width treatment, and copy
+    // that reads as a negotiated relationship rather than a purchasable tier.
+    gated: true,
     online: false,
     providers: [],
-    // Deliberately no published figure — terms are set during commercial review.
     priceLabel: "Commercial review",
-    statusLabel: "Minimum annual commitment",
-    gateNote: "Commercial review · minimum annual commitment.",
+    statusLabel: "By commercial review · minimum annual commitment",
+    gateNote: "Engagement opens with a commercial and governance review, not a price list.",
     ctaLabel: "Discuss Strategic Partnership",
-    buyers: ["Frontier AI Labs", "Foundation Model Providers", "AI Infrastructure Platforms", "Sovereign AI Programmes"],
+    buyers: ["Frontier AI Labs", "Foundation Model Providers", "AI Infrastructure Platforms", "Sovereign AI Programmes", "Autonomous Agent Platforms"],
     blurb:
-      "Strategic governance engagement for frontier AI labs, foundation model providers, AI infrastructure platforms, autonomous agent platforms, and sovereign AI programmes. Scope may include model-release governance, safety-operations integration, runtime deployment controls, planner validation, strategic roadmap development, and executive governance.",
+      "Strategic governance engagement for frontier AI labs, foundation model providers, AI infrastructure platforms, autonomous agent platforms, and sovereign AI programmes. Scope may include model-release governance, safety-operations integration, runtime deployment controls, planner validation, strategic roadmap development, and executive governance. This is a negotiated strategic relationship — scope, terms, and minimum annual commitment are set directly, not selected from a package.",
+  },
+
+  // ── Partner & channel pathways ──────────────────────────────────────────
+  {
+    id: "partner-onboarding",
+    name: "Managed Governance Partner™ Onboarding",
+    // Not a deposit: this is the onboarding engagement fee itself, paid in
+    // full. Fallback matches the recommended tier below.
+    amountMinor: 35_000_00,
+    tiers: [
+      { id: "25000", label: "£25,000", amountMinor: 25_000_00, note: "Entry onboarding — architecture review and deployment planning." },
+      { id: "35000", label: "£35,000", amountMinor: 35_000_00, recommended: true, note: "Recommended — full enablement to sell and deliver." },
+      { id: "50000", label: "£50,000", amountMinor: 50_000_00, note: "Extended onboarding — multi-team enablement and co-branded material." },
+    ],
+    tierLegend: "Choose your onboarding",
+    currency: "gbp",
+    kind: "onboarding",
+    group: "partner",
+    online: true,
+    providers: ["stripe", "gocardless"],
+    priceLabel: "£25,000–£50,000 onboarding",
+    statusLabel: "Online payment enabled",
+    gateNote: "Partnership approval required before payment.",
+    buyers: ["MSSP Leadership", "Consultancy Practice Lead", "Head of Cyber / Assurance", "Channel & Alliances Director"],
+    blurb:
+      "A strategic onboarding engagement that prepares an MSSP, consultancy, or assurance firm to sell and deliver Runtime Governance before introducing it to customers. Covers technical architecture review, deployment and integration planning, sales enablement, and co-branded material. Not a discount on enterprise pricing — customer engagements continue through the standard ladder.",
   },
 ];
 
