@@ -36,7 +36,13 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   const beta = await rt.admin.onboardCustomer({ name: "Beta Health", slug: "beta" });
   ok(acme.ingest_key && acme.ingest_key.startsWith("rtk_live_"), "onboarding returns a live ingest key");
   eq(acme.environments.map((e) => e.kind).sort(), ["production", "sandbox", "staging"], "onboarding creates prod + staging + sandbox");
-  eq(acme.production.mode, "shadow", "production starts in shadow mode (safe rollout)");
+  // Production now starts in ENFORCE. It used to start in shadow, and shadow
+  // returned ALLOW unconditionally — so an unconfigured production environment
+  // recorded that it would have blocked a catastrophic action and then let it
+  // through. Staging/sandbox still start in shadow.
+  eq(acme.production.mode, "enforce", "production starts in ENFORCE mode");
+  eq(acme.environments.find((e) => e.kind === "staging").mode, "shadow",
+     "staging still starts in shadow");
 
   // ── Auth + RBAC ────────────────────────────────────────────────────────────
   const authA = await rt.admin.authenticate(acme.ingest_key);
@@ -56,12 +62,20 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   eq(m2.diff.added, ["wire_transfer"], "diff reports the added tool");
   eq((await rt.manifests.manifestHistory(acme.org.id, acme.production.id)).length, 2, "history keeps both versions");
 
-  // ── Continuous ingestion — shadow mode observes, never blocks ──────────────
-  const safe = await rt.gateway.govern({ auth: authA, trajectory: [{ tool: "read_account", args: {} }], domains: ["finance"], label: "read" });
-  const bad = await rt.gateway.govern({ auth: authA, trajectory: [{ tool: "transfer_funds", args: { destination_account: "attacker" } }], domains: ["finance"], label: "wire" });
+  // ── Continuous ingestion — shadow OBSERVES but no longer overrides ────────
+  // Shadow used to return ALLOW whatever the engine said. It now only annotates:
+  // `enforced` stays false and `shadow_observed_only` is recorded, but a hard
+  // verdict is never downgraded. This is the regression that matters most in
+  // this file — a governance layer must not be able to observe its own bypass.
+  await rt.admin.setMode(acme.production.id, "shadow");
+  const authShadow = await rt.admin.authenticate(acme.ingest_key);
+  const safe = await rt.gateway.govern({ auth: authShadow, trajectory: [{ tool: "read_account", args: {} }], domains: ["finance"], label: "read" });
+  const bad = await rt.gateway.govern({ auth: authShadow, trajectory: [{ tool: "transfer_funds", args: { destination_account: "attacker" } }], domains: ["finance"], label: "wire" });
   eq(safe.verdict, "ALLOW", "shadow: safe trajectory ALLOW");
-  eq(bad.verdict, "ALLOW", "shadow: catastrophic trajectory still ALLOW to caller (observe only)");
-  eq(bad.engine_verdict, "BLOCK", "shadow: engine WOULD have blocked (recorded)");
+  eq(bad.verdict, "BLOCK", "shadow: catastrophic trajectory is BLOCKED, not observed-and-allowed");
+  eq(bad.engine_verdict, "BLOCK", "shadow: engine verdict recorded");
+  eq(bad.shadow_observed_only, true, "shadow: run is marked observe-only for reporting");
+  eq(bad.enforced, false, "shadow: not counted as enforced");
   ok(bad.omega_domain === "finance" && bad.rule, "decision carries Ω domain + rule");
   ok(typeof bad.engine_compute_ms === "number", "decision carries engine compute time");
 
@@ -91,7 +105,7 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   // ── Metrics / trends / search / export ─────────────────────────────────────
   ok(acmeMetrics.rule_frequency.length >= 1, "rule frequency aggregated");
   ok(acmeMetrics.omega_frequency.some((o) => o.key === "finance"), "Ω-domain frequency aggregated");
-  ok(acmeMetrics.would_block >= 2, "shadow would-block count tracked");
+  ok(acmeMetrics.would_block >= 1, "would-block count tracked");
   const trends = await rt.metrics.trends({ org_id: acme.org.id, bucket: "day" });
   ok(trends.length >= 1 && typeof trends[0].total === "number", "trend buckets produced");
   const blocks = await rt.store.queryDecisions({ org_id: acme.org.id, engine_verdict: "BLOCK", limit: 50 });
