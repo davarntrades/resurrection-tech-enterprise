@@ -30,6 +30,11 @@ APPROVAL_SIGNING_KEY = os.getenv("GOVERNANCE_APPROVAL_KEY", "").encode()
 EVIDENCE_SEALING_KEY = os.getenv(
     "GOVERNANCE_EVIDENCE_KEY", os.getenv("GOVERNANCE_APPROVAL_KEY", "")).encode()
 
+# True when GOVERNANCE_EVIDENCE_KEY was not set and the approval key was reused.
+EVIDENCE_KEY_IS_FALLBACK = (
+    not os.getenv("GOVERNANCE_EVIDENCE_KEY", "")
+    and bool(os.getenv("GOVERNANCE_APPROVAL_KEY", "")))
+
 # Public key of the EXTERNAL attestation signer. The service never holds the
 # corresponding private key — it cannot mint its own attestations, which is the
 # property that makes them independent. Hex-encoded raw 32-byte Ed25519 key.
@@ -195,3 +200,107 @@ def build_context(principal_id: str = "agent-svc", tenant: str = "acme",
         tool_manifest=TOOL_MANIFEST,
         policy_values=POLICY_VALUES,
     )
+
+
+# ── Startup secret validation ───────────────────────────────────────────
+# Which secrets are load-bearing, what breaks without each, and whether the
+# service may boot. The red team proved that an unset GOVERNANCE_APPROVAL_KEY
+# let an attacker mint approvals that verified (HMAC over an empty key is still
+# a valid HMAC), so "missing secret" is a security state, not a config nit.
+
+REQUIRED_SECRETS = {
+    "GOVERNANCE_APPROVAL_KEY": (
+        "verifies approval artifacts. Absent → approval verification is "
+        "DISABLED and no approval-based PERMIT can be produced (fail-closed): "
+        "every approvable capability escalates and legitimate work stalls."),
+    "GOVERNANCE_EVIDENCE_KEY": (
+        "seals the evidence chain. Absent → falls back to the approval key, so "
+        "the key sealing the audit trail is the key minting approvals; if it is "
+        "also absent, records are hash-chained but unsigned."),
+    "GOVERNANCE_GATEWAY_SECRET": (
+        "authenticates the identity headers. Absent → x-governance-principal "
+        "and x-governance-tenant are believed unverified, so any caller "
+        "holding GOVERNANCE_TOKEN can impersonate any principal or tenant."),
+}
+
+RECOMMENDED_SECRETS = {
+    "GOVERNANCE_ATTESTATION_PUBKEY": (
+        "public key of the external attestation notary. Absent → evidence can "
+        "be verified for content integrity but not independently attested."),
+}
+
+
+def _is_production() -> bool:
+    """Deployed-environment detection.
+
+    Railway sets RAILWAY_ENVIRONMENT_NAME on every deploy. GOVERNANCE_ENV is an
+    explicit override for other platforms. Local runs and CI match neither, so
+    they are not forced to hold production secrets.
+    """
+    explicit = (os.getenv("GOVERNANCE_ENV") or "").strip().lower()
+    if explicit:
+        return explicit in ("production", "prod", "live")
+    railway = (os.getenv("RAILWAY_ENVIRONMENT_NAME") or "").strip().lower()
+    return railway in ("production", "prod", "live")
+
+
+def secrets_status() -> dict:
+    """Report which load-bearing secrets are configured, and the consequences.
+
+    Reported on /health so an operator can read enforcement state off the
+    running process instead of trusting the deployment's word for it.
+    """
+    missing_required = [k for k in REQUIRED_SECRETS if not os.getenv(k, "").strip()]
+    missing_recommended = [k for k in RECOMMENDED_SECRETS
+                           if not os.getenv(k, "").strip()]
+    return {
+        "production": _is_production(),
+        "approval_verification_enabled": bool(APPROVAL_SIGNING_KEY),
+        "evidence_sealing_enabled": bool(EVIDENCE_SEALING_KEY),
+        "evidence_key_is_approval_key_fallback": EVIDENCE_KEY_IS_FALLBACK,
+        "gateway_identity_enforced": bool(
+            os.getenv("GOVERNANCE_GATEWAY_SECRET", "").strip()),
+        "external_attestation_configured": bool(ATTESTATION_PUBLIC_KEY),
+        "missing_required": missing_required,
+        "missing_recommended": missing_recommended,
+        "degraded": bool(missing_required),
+        "consequences": {k: REQUIRED_SECRETS[k] for k in missing_required},
+    }
+
+
+class InsecureConfiguration(RuntimeError):
+    """Raised at startup when a production deployment is missing a
+    load-bearing secret."""
+
+
+def validate_secrets_or_raise() -> dict:
+    """Startup gate.
+
+    In production: refuse to boot when a load-bearing secret is missing. A
+    governance service that cannot verify approvals or authenticate identity is
+    not a degraded governance service — it is one whose central guarantees do
+    not hold, and booting it invites a false sense of assurance.
+
+    Outside production: boot, but return the degraded status so /health and the
+    logs say plainly which guarantees are off. Every affected control still
+    fails CLOSED at runtime regardless of environment.
+
+    GOVERNANCE_ALLOW_INSECURE_STARTUP=1 overrides the refusal. It exists for
+    break-glass and for exercising the degraded path deliberately; it is logged
+    loudly and surfaced on /health so it cannot be set and forgotten.
+    """
+    status = secrets_status()
+    if not status["degraded"]:
+        return status
+    override = (os.getenv("GOVERNANCE_ALLOW_INSECURE_STARTUP", "")
+                .strip().lower() in ("1", "true", "yes", "on"))
+    status["insecure_startup_override"] = override
+    if status["production"] and not override:
+        detail = "\n".join(f"  · {k}: {REQUIRED_SECRETS[k]}"
+                           for k in status["missing_required"])
+        raise InsecureConfiguration(
+            "refusing to start: production deployment is missing load-bearing "
+            f"governance secrets:\n{detail}\n"
+            "Set them, or set GOVERNANCE_ALLOW_INSECURE_STARTUP=1 to boot "
+            "knowingly degraded (every affected control still fails closed).")
+    return status

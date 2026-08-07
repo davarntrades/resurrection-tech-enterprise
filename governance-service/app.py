@@ -38,7 +38,7 @@ from morrison_governance.kernel.hierarchy import audit_hierarchy
 from morrison_governance.kernel.attestation import AnchorLog
 from kernel_config import (
     APPROVAL_SIGNING_KEY, ATTESTATION_PUBLIC_KEY, EVIDENCE_SEALING_KEY,
-    TOOL_MANIFEST, build_context,
+    TOOL_MANIFEST, build_context, secrets_status, validate_secrets_or_raise,
 )
 
 from finance_rules import finance_custom_rules
@@ -294,6 +294,21 @@ def _rate_ok(ip: str) -> bool:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _layer_for(None, HORIZON)  # warm the default layer at startup
+    # Startup secret gate. In production a missing load-bearing secret raises
+    # and the service does not start; elsewhere it boots degraded and says so.
+    # Either way the affected controls fail CLOSED at runtime.
+    st = validate_secrets_or_raise()
+    if st.get("degraded"):
+        log.error(
+            "GOVERNANCE DEGRADED — missing %s. %s",
+            ", ".join(st["missing_required"]),
+            "; ".join(f"{k}: {v}" for k, v in st["consequences"].items()))
+        if st.get("insecure_startup_override"):
+            log.error("GOVERNANCE_ALLOW_INSECURE_STARTUP is set — booting a "
+                      "production deployment with missing secrets ON PURPOSE")
+    if st.get("evidence_key_is_approval_key_fallback"):
+        log.warning("GOVERNANCE_EVIDENCE_KEY is unset — the evidence chain is "
+                    "sealed with the APPROVAL key; set a distinct value")
     _assess_layer_and_catalog()  # warm the assessment catalog
     log.info(f"governance service ready (engine warm, timeout={EVAL_TIMEOUT_S}s)")
     yield
@@ -480,6 +495,11 @@ def health() -> dict:
             "governance_token_fp": _tok_fp(AUTH_TOKEN),
             "token_source_env": "GOVERNANCE_TOKEN",
         },
+        # Which load-bearing secrets are actually configured on THIS process,
+        # and what is switched off without each. GOVERNANCE_TOKEN alone does not
+        # make the trust boundary hold: it authenticates the calling service,
+        # not the identity headers, and it has nothing to do with approvals.
+        "secrets": secrets_status(),
     }
 
 
