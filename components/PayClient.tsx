@@ -9,6 +9,7 @@ interface PayTier {
   id: string;
   label: string;
   note: string | null;
+  recommended: boolean;
 }
 interface PayService {
   id: string;
@@ -22,8 +23,9 @@ interface PayService {
   isDeposit: boolean;
   recurring: boolean;
   gateNote: string;
-  /** Selectable deposit amounts. Empty for single-price services. */
+  /** Selectable amounts. Empty for single-price services. */
   tiers: PayTier[];
+  tierLegend: string;
 }
 
 const PROVIDER_LABEL: Record<ProviderId, string> = {
@@ -34,9 +36,13 @@ const PROVIDER_LABEL: Record<ProviderId, string> = {
 export function PayClient({ services }: { services: PayService[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Chosen deposit tier per service; defaults to the first (lowest) tier.
+  // Chosen tier per service; defaults to the recommended one, else the lowest.
   const [tier, setTier] = useState<Record<string, string>>(() =>
-    Object.fromEntries(services.filter((s) => s.tiers.length > 0).map((s) => [s.id, s.tiers[0].id])),
+    Object.fromEntries(
+      services
+        .filter((s) => s.tiers.length > 0)
+        .map((s) => [s.id, (s.tiers.find((t) => t.recommended) ?? s.tiers[0]).id]),
+    ),
   );
 
   async function pay(serviceId: string, provider: ProviderId) {
@@ -81,7 +87,7 @@ export function PayClient({ services }: { services: PayService[] }) {
           <p className="pay-card-blurb">{s.blurb}</p>
           {s.tiers.length > 0 && (
             <fieldset className="pay-tiers" disabled={busy !== null}>
-              <legend className="pay-tiers-legend">Choose your deposit</legend>
+              <legend className="pay-tiers-legend">{s.tierLegend}</legend>
               <div className="pay-tier-options">
                 {s.tiers.map((t) => (
                   <label
@@ -96,6 +102,7 @@ export function PayClient({ services }: { services: PayService[] }) {
                       onChange={() => setTier((prev) => ({ ...prev, [s.id]: t.id }))}
                     />
                     {t.label}
+                    {t.recommended && <span className="pay-tier-rec">Recommended</span>}
                   </label>
                 ))}
               </div>

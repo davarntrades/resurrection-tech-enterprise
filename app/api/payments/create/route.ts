@@ -51,7 +51,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   // The tier only selects between server-defined amounts; an unknown id is rejected.
   const tier = getTier(service, tierId);
   if (tier === null) {
-    return NextResponse.json({ ok: false, error: "That deposit amount is not available for this service." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "That amount is not available for this service." }, { status: 400 });
   }
 
   const p = getProvider(provider);

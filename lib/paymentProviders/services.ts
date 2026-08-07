@@ -78,6 +78,29 @@ export const SERVICES: ServiceDef[] = [
       "Reserve a Limited Pilot engagement. Deposit secures pilot capacity and deployment planning and is credited against the final pilot fee.",
   },
   {
+    id: "partner-onboarding",
+    name: "Managed Governance Partner™ Onboarding",
+    // Not a deposit: this is the onboarding engagement fee itself, paid in
+    // full. Fallback matches the recommended tier below.
+    amountMinor: 35_000_00,
+    tiers: [
+      { id: "25000", label: "£25,000", amountMinor: 25_000_00, note: "Entry onboarding — architecture review and deployment planning." },
+      { id: "35000", label: "£35,000", amountMinor: 35_000_00, recommended: true, note: "Recommended — full enablement to sell and deliver." },
+      { id: "50000", label: "£50,000", amountMinor: 50_000_00, note: "Extended onboarding — multi-team enablement and co-branded material." },
+    ],
+    tierLegend: "Choose your onboarding",
+    currency: "gbp",
+    kind: "onboarding",
+    online: true,
+    providers: ["stripe", "gocardless"],
+    priceLabel: "£25,000–£50,000 onboarding",
+    statusLabel: "Online payment enabled",
+    gateNote: "Partnership approval required before payment.",
+    buyers: ["MSSP Leadership", "Consultancy Practice Lead", "Head of Cyber / Assurance", "Channel & Alliances Director"],
+    blurb:
+      "A strategic onboarding engagement that prepares an MSSP, consultancy, or assurance firm to sell and deliver Runtime Governance before introducing it to customers. Covers technical architecture review, deployment and integration planning, sales enablement, and co-branded material. Not a discount on enterprise pricing — customer engagements continue through the standard ladder.",
+  },
+  {
     id: "enterprise-integration",
     name: "Enterprise Integration",
     amountMinor: null,
@@ -138,6 +161,11 @@ export function getService(id: string): ServiceDef | undefined {
  */
 export function getTier(service: ServiceDef, tierId?: string): DepositTier | undefined | null {
   if (!service.tiers?.length) return undefined;
-  if (!tierId) return service.tiers[0];
+  if (!tierId) return defaultTier(service) as DepositTier;
   return service.tiers.find((t) => t.id === tierId) ?? null;
+}
+
+/** The tier pre-selected on the card: the recommended one, else the lowest. */
+export function defaultTier(service: ServiceDef): DepositTier | undefined {
+  return service.tiers?.find((t) => t.recommended) ?? service.tiers?.[0];
 }
