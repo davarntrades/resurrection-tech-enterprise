@@ -250,9 +250,19 @@ export async function evaluateViaGovernance(trajectory: ToolCall[], domains?: st
 
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (process.env.GOVERNANCE_TOKEN) headers.authorization = `Bearer ${process.env.GOVERNANCE_TOKEN}`;
+  // Identity for the governed decision. The service NEVER reads a principal or
+  // tenant from the request body — only from these gateway-set headers — so a
+  // caller cannot assert its own identity. The demo runs as an unprivileged
+  // principal, which is why it can never produce an unapproved PERMIT.
+  headers["x-governance-principal"] = process.env.GOVERNANCE_PRINCIPAL ?? "public-demo";
+  headers["x-governance-tenant"] = process.env.GOVERNANCE_TENANT ?? "demo";
 
   const body = domains && domains.length ? { trajectory, domains } : { trajectory };
-  const res = await fetch(`${base.replace(/\/$/, "")}/v1/evaluate`, {
+  // /v1/govern is the ENFORCING chokepoint (trust boundary + capability policy
+  // + trusted destinations + action binding + hash-chained evidence).
+  // /v1/evaluate remains available but is advisory-only: it returns the raw
+  // engine verdict with no trust boundary, so surfaces must not use it.
+  const res = await fetch(`${base.replace(/\/$/, "")}/v1/govern`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),

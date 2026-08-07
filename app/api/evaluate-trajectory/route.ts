@@ -69,6 +69,25 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   } catch (err) {
     console.warn("[evaluate-trajectory] governance service unavailable, using heuristic fallback:", (err as Error).message);
     result = evaluateTrajectory(parsed.data.trajectory);
+
+    // FAIL-CLOSED on degraded evaluation.
+    //
+    // The red-team surface-parity check found that this fallback could return
+    // a PERMIT produced by the in-process heuristic — a different engine, with
+    // none of the production Ω rules, none of the trust boundary and none of
+    // the capability policy — while the UI rendered it as an ordinary "ALLOW".
+    // A governance demo must never show a permit that the real engine did not
+    // issue. When degraded, the strongest thing we may claim is "cannot
+    // establish safety", so a heuristic PERMIT is downgraded to ESCALATE.
+    if (result.verdict === "PERMIT") {
+      result = {
+        ...result,
+        verdict: "ESCALATE",
+        reason:
+          "Governance service unavailable — evaluated by the in-process heuristic, " +
+          "which cannot establish that this trajectory is safe. Fail-closed: not permitted.",
+      };
+    }
   }
 
   // Surface the evaluation source to the UI so a heuristic fallback is never

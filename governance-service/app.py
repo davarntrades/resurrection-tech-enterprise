@@ -32,6 +32,12 @@ from pydantic import BaseModel, Field
 
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.result import GovernanceResult
+from morrison_governance.kernel import GovernanceKernel
+from morrison_governance.kernel.evidence import ruleset_hash as logic_ruleset_hash
+from morrison_governance.kernel.hierarchy import audit_hierarchy
+from kernel_config import (
+    APPROVAL_SIGNING_KEY, TOOL_MANIFEST, build_context,
+)
 
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
@@ -75,10 +81,23 @@ ENGINE_COMMIT = _engine_commit()
 
 
 def _ruleset_hash(rules) -> str:
-    """Deterministic fingerprint of the exact Ω ruleset that produced a verdict:
-    sorted '{domain}:{name}' of every loaded rule, sha256-hashed. With
-    engine_commit + the engine's trajectory_hash, this is everything needed to
-    reproduce and independently verify a decision."""
+    """Deterministic fingerprint of the exact Ω ruleset that produced a verdict.
+
+    SECURITY: this now binds the executable policy LOGIC (bytecode, constants,
+    referenced globals and closure values of every rule's `check`), not just
+    sorted '{domain}:{name}'. The name-only formula was blind to a rule being
+    silently neutered — replacing a check with `lambda s: False` left the
+    attestation byte-identical while the verdict flipped BLOCK → PERMIT.
+
+    `_ruleset_hash_names()` is retained separately for backwards-compatible
+    comparison with attestations issued before this change.
+    """
+    return logic_ruleset_hash(rules)
+
+
+def _ruleset_hash_names(rules) -> str:
+    """Legacy name-only fingerprint (pre-remediation). Reported alongside the
+    logic-binding hash so historic attestations remain comparable."""
     canon = "\n".join(sorted(f"{r.domain.value}:{r.name}" for r in rules))
     return hashlib.sha256(canon.encode()).hexdigest()
 
@@ -89,6 +108,8 @@ def _attestation(layer, horizon: int) -> dict:
     return {
         "engine_commit": ENGINE_COMMIT,
         "ruleset_hash": _ruleset_hash(layer.rules),
+        "ruleset_hash_algorithm": "logic-binding-v2",
+        "ruleset_hash_names_only": _ruleset_hash_names(layer.rules),
         "service_version": SERVICE_VERSION,
         "horizon": horizon,
     }
@@ -191,6 +212,46 @@ def _layer_for(names: Optional[list[str]], horizon: int) -> GovernanceLayer:
             _LAYERS.pop(k, None)
         log.info(f"built GovernanceLayer domains={key[0]} horizon={horizon} rules={len(layer.rules)} dynamic={len(dyn)} gen={gen}")
     return layer
+
+
+# ── Governance kernel (the trust boundary around the engine) ──────────────
+# One kernel per (domains, horizon) — it is the component that enforces the
+# trust boundary, capability policy, trusted destinations, denial-aware
+# trajectory history, action binding and hash-chained evidence. A fresh
+# per-request SecurityContext is attached on every evaluation so one caller's
+# identity and approvals never leak into another's.
+_KERNELS: dict[tuple, GovernanceKernel] = {}
+
+
+def _kernel_for(names: Optional[list[str]], horizon: int) -> GovernanceKernel:
+    layer = _layer_for(names, horizon)
+    key = (tuple(d.value for d in _domains_from(names)), horizon,
+           dynamic_rules.generation())
+    k = _KERNELS.get(key)
+    if k is None:
+        k = GovernanceKernel(layer, build_context(),
+                             evidence_key=APPROVAL_SIGNING_KEY,
+                             engine_version=ENGINE_COMMIT)
+        _KERNELS[key] = k
+        for stale in [s for s in _KERNELS if s[2] != key[2]]:
+            _KERNELS.pop(stale, None)
+    return k
+
+
+def _governed_kernel(names: Optional[list[str]], horizon: int,
+                     principal: str, tenant: str,
+                     approvals: tuple = ()) -> GovernanceKernel:
+    """A kernel bound to THIS request's authenticated identity.
+
+    In production `principal`/`tenant`/`approvals` come from the verified
+    session (JWT / mTLS / SSO) and the approval service — never from the
+    request body. The HTTP layer must not accept them as user input.
+    """
+    layer = _layer_for(names, horizon)
+    return GovernanceKernel(
+        layer,
+        build_context(principal_id=principal, tenant=tenant, approvals=approvals),
+        evidence_key=APPROVAL_SIGNING_KEY, engine_version=ENGINE_COMMIT)
 
 
 # ── Assessment layer + catalog (all domains, for the public /v1/assess) ────
@@ -376,6 +437,12 @@ def _deployment_identity() -> dict:
     }
 
 
+def _hierarchy_report() -> dict:
+    """Which layers are actually load-bearing for the running configuration."""
+    layer = _layer_for(None, HORIZON)
+    return audit_hierarchy(layer, _kernel_for(None, HORIZON))
+
+
 @app.get("/health")
 def health() -> dict:
     default = _layer_for(None, HORIZON)
@@ -388,7 +455,12 @@ def health() -> dict:
         "default_domains": [d.value for d in DEFAULT_DOMAINS],
         "live_sectors": live_sector_ids(),
         "horizon": HORIZON,
-        "hierarchy": ["A_safe", "V2", "V3", "V4", "V4+", "V5", "V5+"],
+        # HONEST hierarchy reporting. The previous static list advertised
+        # ["A_safe","V2","V3","V4","V4+","V5","V5+"] as enforced; V4 was inert
+        # (no admissibility checks configured) and V4+/V5/V5+ are opt-in APIs
+        # never called on the execution path. This is now introspected.
+        "hierarchy": _hierarchy_report()["enforced"],
+        "hierarchy_audit": _hierarchy_report(),
         "extended_rules": sorted(EXTENDED_RULES),
         "attestation": _attestation(default, HORIZON),
         # Where this engine's dynamic Ω policies come from, and — in a sovereign
@@ -449,6 +521,85 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
     body["engine_compute_ms"] = compute_ms
     _log_eval_metrics("/v1/evaluate-step", body, 1,
+                      round((time.perf_counter() - t0) * 1000, 1))
+    return JSONResponse(body)
+
+
+@app.post("/v1/govern", dependencies=[Depends(require_token)])
+async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
+    """ENFORCING endpoint — the production chokepoint.
+
+    Unlike /v1/evaluate (which returns an advisory engine verdict), this runs
+    the full GovernanceKernel: caller authority is quarantined, capabilities are
+    resolved semantically, destinations are resolved from trusted config, denied
+    attempts stay in the trajectory, the decision is bound to a canonical action
+    hash, and every decision is sealed into a hash-chained evidence log.
+
+    Identity comes from headers the authenticating gateway sets — NEVER from the
+    request body. A body field named `principal` or `tenant` is quarantined like
+    any other caller-supplied authority claim.
+    """
+    t0 = time.perf_counter()
+    principal = request.headers.get("x-governance-principal", "anonymous")
+    tenant = request.headers.get("x-governance-tenant", "")
+    kernel = _governed_kernel(req.domains, req.horizon or HORIZON,
+                              principal, tenant)
+
+    decisions: list[dict] = []
+    try:
+        for step in req.trajectory:
+            d = kernel.authorize({"tool": step.tool, "args": step.args})
+            decisions.append(d.as_dict())
+            if d.permitted:
+                # Nothing is executed here: the service is a decision plane.
+                # The caller's runtime executes only on a PERMIT and must
+                # re-present the action hash, so the binding check still
+                # applies at the point of execution. The prefix is advanced so
+                # step N+1 is evaluated against the real trajectory rather than
+                # in isolation.
+                kernel.record_remote_execution(d)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _eval_error(exc, "govern")
+
+    terminal = decisions[-1] if decisions else {}
+    integrity = kernel.integrity()
+    # The top-level fields mirror GovernanceResult.to_dict() so the existing
+    # Next.js adapter (lib/governance-client.ts) consumes this endpoint without
+    # a shape change — the surfaces get kernel enforcement for free.
+    body = {
+        "verdict": terminal.get("verdict"),
+        "permitted": terminal.get("verdict") == "PERMIT",
+        "blocked": terminal.get("verdict") == "BLOCK",
+        "escalated": terminal.get("verdict") == "ESCALATE",
+        "requires_human_review": terminal.get("verdict") == "ESCALATE",
+        "layer": terminal.get("layer", ""),
+        "reason": terminal.get("reason", ""),
+        "omega_domain": terminal.get("omega_domain"),
+        "trajectory_hash": terminal.get("action_hash", ""),
+        "reachability_distance": None,
+        "metadata": {
+            "rule": terminal.get("rule"),
+            "capabilities": terminal.get("capabilities", []),
+            "requirement": terminal.get("requirement"),
+            "forged_authority_claims": terminal.get("forged_authority_claims", []),
+            "destination": terminal.get("destination", {}),
+        },
+        "decisions": decisions,
+        "steps": [s.model_dump() for s in req.trajectory],
+        "attestation": _attestation(_layer_for(req.domains, req.horizon or HORIZON),
+                                    req.horizon or HORIZON),
+        "evidence": {
+            "verified": integrity["evidence_verified"],
+            "records": integrity["records"],
+            "head": integrity["head"],
+            "problems": integrity["problems"],
+        },
+        "enforcement": "kernel",
+        "engine_compute_ms": round((time.perf_counter() - t0) * 1000, 3),
+    }
+    _log_eval_metrics("/v1/govern", body, len(req.trajectory),
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
 
