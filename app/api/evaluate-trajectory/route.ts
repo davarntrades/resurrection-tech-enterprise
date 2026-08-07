@@ -82,7 +82,12 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
     if (result.verdict === "PERMIT") {
       result = {
         ...result,
-        verdict: "ESCALATE",
+        // "INCONCLUSIVE" is this UI's existing representation of "needs human
+        // review" — `mapVerdict` in governance-client.ts already folds the
+        // engine's ESCALATE into it. Reuse that rather than widening `Verdict`,
+        // so every consumer that already handles the three-state contract keeps
+        // working and the demo renders this as review-required, not ALLOW.
+        verdict: "INCONCLUSIVE",
         reason:
           "Governance service unavailable — evaluated by the in-process heuristic, " +
           "which cannot establish that this trajectory is safe. Fail-closed: not permitted.",
