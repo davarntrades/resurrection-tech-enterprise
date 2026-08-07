@@ -32,6 +32,7 @@ import json
 import sys
 
 from morrison_governance import GovernanceLayer, OmegaDomain
+from morrison_governance.kernel.evidence import ruleset_hash as logic_ruleset_hash
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
 from domain_rules import domain_custom_rules
@@ -54,10 +55,14 @@ _FIELDS = ("verdict", "omega_domain", "trajectory_hash", "ruleset_hash")
 
 
 def _ruleset_hash(rules) -> str:
-    """Identical formula to the service's app._ruleset_hash (kept local so this
-    tool has no FastAPI dependency). A test asserts the two agree end-to-end."""
-    canon = "\n".join(sorted(f"{r.domain.value}:{r.name}" for r in rules))
-    return hashlib.sha256(canon.encode()).hexdigest()
+    """Identical formula to the service's app._ruleset_hash (kept dependency-light
+    so this tool needs no FastAPI). A test asserts the two agree end-to-end.
+
+    This now delegates to the logic-binding hash: the previous name-only formula
+    could not detect a rule being silently neutered, so a replay would happily
+    "verify" a verdict produced by different logic under the same rule names.
+    """
+    return logic_ruleset_hash(rules)
 
 
 def _layer(domains, horizon) -> GovernanceLayer:

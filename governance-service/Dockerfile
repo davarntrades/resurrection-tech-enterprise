@@ -6,12 +6,18 @@ WORKDIR /app
 
 # Pin the engine to a specific commit/tag for reproducible verdicts.
 ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
-# Pinned to the Omega-Sector expansion (PR #9) + sector authorisation-awareness
-# fix (PR #10, 2026-06-05): adds the eight sector OmegaDomain enum values that
-# the deployment sector_rules.py / website resolve, and honours domain-scoped
-# verification flags (payee_verified, operator_confirmed, ...). Bump
-# deliberately so verdicts stay reproducible.
-ARG ENGINE_REF=96ecd39528072057f37ab8975c203171cc12aa53
+# Pinned to the governance kernel (PR #11, 2026-08-07): adds
+# morrison_governance.kernel — the trust boundary (authority quarantine, signed
+# approval artifacts bound to a canonical action hash), semantic capability
+# classification, trusted destination resolution, denial-aware trajectory
+# history, hash-chained evidence with a logic-binding ruleset hash, and
+# independent Ed25519 attestation. app.py imports it, so this ref MUST include
+# it — the build-time `import app` check below fails loudly otherwise.
+#
+# Previously: 96ecd39 (Omega-Sector expansion PR #9 + sector
+# authorisation-awareness PR #10). Bump deliberately so verdicts stay
+# reproducible.
+ARG ENGINE_REF=4fafc688e2dde6da87205cad84e8db67d634e14a
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
@@ -29,7 +35,11 @@ RUN git clone --filter=blob:none --no-checkout "${ENGINE_REPO}" /tmp/engine \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py ./
+# NOTE: this list is explicit, so a NEW runtime module must be added here or the
+# image builds without it. kernel_config.py is imported by app.py at module
+# scope; attest.py is the offline evidence auditor, shipped so an operator can
+# verify an exported chain from inside the container.
+COPY app.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
 
 # ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
 # A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,
