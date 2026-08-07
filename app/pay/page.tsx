@@ -8,7 +8,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Payments",
   description:
-    "Enterprise engagements are contracted and invoiced. Online payment is available for approved deposits, retainers, and pre-agreed payments via Stripe (card) and GoCardless (bank debit).",
+    "Enterprise engagements are contracted and invoiced. Online payment is available for approved deposits, partner onboarding, and pre-agreed payments via Stripe (card) and GoCardless (bank debit). Advisory and executive pathways are arranged on request.",
   alternates: { canonical: "/pay" },
 };
 
@@ -25,6 +25,8 @@ export default function Page() {
     isDeposit: Boolean(s.isDeposit),
     recurring: Boolean(s.recurring),
     gateNote: s.gateNote,
+    ctaLabel: s.ctaLabel ?? "Request Invoice",
+    ctaHref: s.ctaHref ?? "/contact",
     tierLegend: s.tierLegend ?? "Choose your deposit",
     tiers: (s.tiers ?? []).map((t) => ({
       id: t.id,
@@ -42,7 +44,8 @@ export default function Page() {
           <h1 className="pay-h1">Invoicing &amp; Online Payment</h1>
           <p className="pay-lede">
             Enterprise engagements are normally contracted and invoiced. Online payment is
-            available for approved deposits, retainers, or pre-agreed payments.
+            available for approved deposits, partner onboarding, or pre-agreed payments.
+            Advisory and executive pathways are arranged on request.
           </p>
 
           {/* Primary path for enterprise: invoice */}
@@ -66,7 +69,7 @@ export default function Page() {
           {/* Online payment options */}
           <div className="section-head reveal" style={{ marginTop: 8 }}>
             <span className="eyebrow">Online payment</span>
-            <h2>Approved deposits, retainers &amp; pre-agreed payments</h2>
+            <h2>Approved deposits, onboarding &amp; pre-agreed payments</h2>
             <p>Payments are handled entirely on the provider&rsquo;s hosted, PCI-compliant pages. Resurrection Tech never sees or stores your card or bank details.</p>
           </div>
 
@@ -106,7 +109,7 @@ export default function Page() {
             {[
               ["Credit / Debit Card", "Visa, Mastercard, Amex — processed securely by Stripe."],
               ["Apple Pay", "One-tap on supported Apple devices, via Stripe hosted checkout."],
-              ["GoCardless Direct Debit", "Bank debit for deposits and recurring advisory retainers."],
+              ["GoCardless Direct Debit", "Bank debit for approved deposits and partner onboarding."],
               ["Bank Transfer", "BACS / CHAPS / wire transfer on agreed invoice terms."],
               ["Enterprise Invoice / Purchase Orders", "Net terms, POs, and vendor onboarding for procurement."],
             ].map(([h, p]) => (

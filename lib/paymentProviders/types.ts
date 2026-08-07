@@ -62,6 +62,10 @@ export interface ServiceDef {
   statusLabel: string;
   /** Gating note shown beneath the pay/invoice actions, e.g. "Approved engagements only." */
   gateNote: string;
+  /** Offline services only: CTA wording. Defaults to "Request Invoice". */
+  ctaLabel?: string;
+  /** Offline services only: where the CTA points. Defaults to "/contact". */
+  ctaHref?: string;
   /** Typical buyers / decision-makers for this engagement. */
   buyers: string[];
   blurb: string;

@@ -23,6 +23,8 @@ interface PayService {
   isDeposit: boolean;
   recurring: boolean;
   gateNote: string;
+  ctaLabel: string;
+  ctaHref: string;
   /** Selectable amounts. Empty for single-price services. */
   tiers: PayTier[];
   tierLegend: string;
@@ -125,7 +127,7 @@ export function PayClient({ services }: { services: PayService[] }) {
                 </button>
               ))
             ) : (
-              <Link href="/contact" className="btn btn--ghost btn--sm">Request Invoice</Link>
+              <Link href={s.ctaHref} className="btn btn--ghost btn--sm">{s.ctaLabel} <span className="arr">→</span></Link>
             )}
           </div>
           <p className="pay-gate"><span className="pay-gate-lock" aria-hidden="true" />{s.gateNote}</p>
