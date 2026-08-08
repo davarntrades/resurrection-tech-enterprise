@@ -640,6 +640,19 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             "requirement": terminal.get("requirement"),
             "forged_authority_claims": terminal.get("forged_authority_claims", []),
             "destination": terminal.get("destination", {}),
+            # MEASURED latency for this decision. `eval_time_ms` is the key the
+            # site's demo reads; it now carries the END-TO-END governed decision
+            # cost, not the Ω-engine compute alone.
+            #
+            # /v1/evaluate returned the engine's own eval_time_ms, which was the
+            # whole story when the engine was the whole governance path. Under
+            # the kernel it is ~2% of the work — quoting it would advertise
+            # ~0.01 ms for a decision that actually takes ~0.4 ms. The engine
+            # figure is kept alongside so the split stays visible.
+            "eval_time_ms": terminal.get("decision_time_ms"),
+            "decision_time_ms": terminal.get("decision_time_ms"),
+            "engine_time_ms": terminal.get("engine_time_ms"),
+            "eval_number": len(decisions),
         },
         "decisions": decisions,
         "steps": [s.model_dump() for s in req.trajectory],
