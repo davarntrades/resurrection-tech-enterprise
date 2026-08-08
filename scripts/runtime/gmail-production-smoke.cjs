@@ -15,6 +15,7 @@
 
 const fs = require("node:fs");
 const crypto = require("node:crypto");
+const { classifyRefusal } = require("./governance-refusal-class.cjs");
 
 const requiredEnv = ["E2E_BASE_URL", "RUNTIME_ADMIN_KEY", "E2E_ORG_ID", "E2E_ENVIRONMENT_ID", "GMAIL_SMOKE_RECIPIENT"];
 for (const name of requiredEnv) {
@@ -148,6 +149,15 @@ const query = (extra = "") => `${baseUrl}/api/runtime/admin/communication?org_id
     : ["blocked", "rejected"].includes(run.status) || ["blocked", "denied", "unavailable"].includes(String(run.governance_decision)) ? "blocked"
       : run.status === "awaiting_approval" ? "escalated" : "incomplete";
   report.production_smoke_outcome = outcome;
+  // `outcome` deliberately keeps collapsing every refusal into "blocked": it
+  // feeds the fail-closed gate, and an unreached engine must never read as
+  // anything softer than a block. But the JSON artefact is also the audit
+  // record, and "the engine refused this on rule X" and "the engine was never
+  // reached" are not the same fact. This carries that distinction alongside,
+  // without loosening the gate.
+  report.governance_refusal_class = outcome === "permitted"
+    ? "none"
+    : classifyRefusal(report).class;
 
   const required = [
     "communication_run_id", "canonical_action_id", "canonical_action_type", "channel", "provider",
@@ -210,8 +220,34 @@ const query = (extra = "") => `${baseUrl}/api/runtime/admin/communication?org_id
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 
   if (failures.length) {
+    // WHY the governance layer refused, not just THAT it refused.
+    //
+    // This check was habitually red and the log said only "blocked" with no
+    // rule, verdict or reason — so nobody could tell a genuine governance
+    // refusal from a misconfigured environment without opening the Job Summary
+    // artifact. An unactionable red check is one people learn to ignore, and
+    // then it hides the run that matters.
+    //
+    // `governance_rule` and `governance_verdict` were already collected; they
+    // were simply never printed to the console the CI log shows.
     console.error(`\nGmail production smoke outcome: ${outcome}`);
     console.error(`Runtime Governance decision: ${report.runtime_governance_decision}`);
+    console.error(`Governance verdict: ${report.governance_verdict || "not recorded"}`);
+    console.error(`Governance rule: ${report.governance_rule || "none recorded"}`);
+    console.error(`Governance reason: ${run.governance_reason || run.reason || "not recorded"}`);
+    console.error(`Approval status: ${run.approval_status || "not recorded"}`);
+    console.error(`Connector health: ${run.connector_health || "not recorded"}`);
+    // Distinguishes the three causes that look identical from outside:
+    //   BLOCKED    governance refused on a rule              -> a policy question
+    //   ESCALATED  awaiting operator approval                -> a workflow question
+    //   UNAVAILABLE engine unreachable / connector unhealthy  -> an infra question
+    //
+    // Ordering is load-bearing and lives in governance-refusal-class.cjs: the
+    // decision field reads "blocked" for BOTH a policy refusal and an engine
+    // outage, so infrastructure must be ruled out first or every outage is
+    // reported as a policy decision. That is not hypothetical — it is what the
+    // failing preview-e2e runs actually were.
+    console.error(`Likely cause: ${classifyRefusal(report).label}`);
     console.error(`Safe failure reason: ${report.safe_failure_reason || "not recorded"}`);
     console.error(`Gmail invocation count: ${report.provider_invocation_count}`);
     console.error(`Email delivered: ${report.email_delivered}`);

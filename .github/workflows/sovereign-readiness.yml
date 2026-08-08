@@ -84,6 +84,8 @@ jobs:
         run: npm run runtime:control-room-latency
       - name: Latency label/field drift
         run: npm run runtime:latency-labels
+      - name: Gmail smoke diagnostics contract
+        run: npm run runtime:gmail-smoke-diagnostics
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite
