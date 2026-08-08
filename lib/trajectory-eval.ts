@@ -60,9 +60,28 @@ export interface EvalResult {
   /** Audit fields populated only by the real engine path (undefined for the heuristic). */
   trajectoryHash?: string;
   reachabilityDistance?: number | null;
-  /** Real engine timing from GovernanceResult.metadata (engine path only). */
+  /** Measured governance timing from /v1/govern metadata (engine path only).
+   *
+   *  `evalTimeMs` is the END-TO-END governed decision cost. Under the kernel it
+   *  is NOT the same thing the pre-kernel /v1/evaluate endpoint reported: that
+   *  field carried the Ω reachability compute alone, which is ~2% of the work,
+   *  so displaying it as "latency" understated a real decision by roughly 50x.
+   *  `engineTimeMs` keeps the Ω compute visible alongside it so the split is
+   *  legible rather than implied.
+   *
+   *  Every field is optional. A service that predates the stage instrumentation
+   *  returns fewer of them, and the UI must degrade rather than render zeros —
+   *  an absent measurement is not a measurement of zero. */
   evalTimeMs?: number;
   evalNumber?: number;
+  /** Ω reachability compute alone, as the engine self-reports it. */
+  engineTimeMs?: number;
+  /** Explicit end-to-end decision cost. Usually equal to `evalTimeMs`. */
+  decisionTimeMs?: number;
+  /** Per-stage breakdown measured inside the kernel, in milliseconds.
+   *  Keys are kernel stage names plus `unattributed`. Present only when the
+   *  governance service is new enough to report it. */
+  stageTimingsMs?: Record<string, number>;
   /** Structured human-review card for ESCALATE verdicts (engine path only):
    *  what was generated, who must review it, who has authority, the next step,
    *  and the execution status. */

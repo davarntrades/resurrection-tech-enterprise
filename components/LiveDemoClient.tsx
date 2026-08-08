@@ -909,9 +909,36 @@ interface CustomResult {
   reachabilityDistance?: number | null;
   evalTimeMs?: number;
   evalNumber?: number;
+  engineTimeMs?: number;
+  decisionTimeMs?: number;
+  stageTimingsMs?: Record<string, number>;
   /** Which evaluator produced this verdict — the real engine or the fallback. */
   source?: "morrison" | "heuristic";
 }
+
+/** Human labels for the kernel stage names reported by /v1/govern. */
+const STAGE_LABELS: Record<string, string> = {
+  canonicalization: "Canonicalization",
+  trust_boundary: "Trust boundary",
+  capability_classification: "Capability classification",
+  destination_resolution: "Destination resolution",
+  approval_verification: "Approval verification",
+  trajectory_analysis: "Trajectory analysis (Ω engine)",
+  policy_evaluation: "Policy evaluation",
+  evidence_sealing: "Evidence sealing",
+  unattributed: "Unattributed",
+};
+
+/**
+ * Stages of the full request that this demo does NOT measure.
+ *
+ * The demo issues a governance DECISION; it never calls Gmail or AWS Bedrock.
+ * Showing these as 0 ms would read as "the provider call was instant", which is
+ * false. They are rendered explicitly as "unmeasured" instead, and become real
+ * numbers only when the end-to-end harness runs with genuine provider
+ * credentials.
+ */
+const UNMEASURED_STAGES = ["Provider call", "Provider response"] as const;
 
 function mapVerdict(v: string): Decision {
   return v === "BLOCK" ? "BLOCK" : v === "PERMIT" ? "ALLOW" : "ESCALATE";
@@ -1002,6 +1029,9 @@ function CustomEval({
         reachabilityDistance: data.reachabilityDistance,
         evalTimeMs: data.evalTimeMs,
         evalNumber: data.evalNumber,
+        engineTimeMs: data.engineTimeMs,
+        decisionTimeMs: data.decisionTimeMs,
+        stageTimingsMs: data.stageTimingsMs,
         source: data.source,
       };
       setResult(cr);
@@ -1145,22 +1175,81 @@ function CustomEval({
                 </div>
               )}
 
+              {/* Measured governance latency.
+                *
+                * Every field is rendered only when the service actually
+                * reported it. A missing measurement is omitted, never shown as
+                * 0 ms — the whole point of this panel is that the numbers are
+                * measured, so a fabricated zero would undermine it.
+                *
+                * This block is verdict-independent: a BLOCK still took real
+                * time to decide, and showing its latency does not imply the
+                * action ran. Execution status is stated by the verdict card
+                * above, which this does not touch. */}
               {result.evalTimeMs !== undefined && (() => {
                 const benchAvg = benchAvgForSteps(result.steps.length);
                 const delta = Math.round((result.evalTimeMs! - benchAvg) * 1000) / 1000;
+                const stages = result.stageTimingsMs
+                  ? Object.entries(result.stageTimingsMs).sort((a, b) => b[1] - a[1])
+                  : [];
+                const stageTotal = stages.reduce((sum, [, v]) => sum + v, 0);
                 return (
                   <div className="rgx-cv-latency">
                     <div className="rgx-cv-lat-main">
-                      <span className="rgx-k">Runtime latency</span>
+                      <span className="rgx-k">Governed decision latency</span>
                       <span className="rgx-cv-lat-v">{result.evalTimeMs} ms</span>
                       <span className="rgx-cv-lat-tag">measured · this evaluation</span>
                     </div>
                     <div className="rgx-cv-lat-cmp">
-                      <span><b>This evaluation</b> {result.evalTimeMs} ms</span>
+                      <span><b>Governed decision</b> {result.evalTimeMs} ms</span>
+                      {result.engineTimeMs !== undefined && (
+                        <span title="Ω reachability compute alone — a fraction of the full governed decision">
+                          <b>Engine compute</b> {result.engineTimeMs} ms
+                        </span>
+                      )}
+                      {result.decisionTimeMs !== undefined
+                        && result.decisionTimeMs !== result.evalTimeMs && (
+                        <span><b>Decision time</b> {result.decisionTimeMs} ms</span>
+                      )}
                       <span><b>Benchmark avg (CI env)</b> {benchAvg} ms</span>
                       <span><b>Δ</b> {delta >= 0 ? "+" : ""}{delta} ms</span>
                       {result.evalNumber !== undefined && <span><b>Eval #</b> {result.evalNumber}</span>}
                     </div>
+
+                    {stages.length > 0 && (
+                      <details className="rgx-cv-lat-stages">
+                        <summary>Stage breakdown ({stages.length} stages · {Math.round(stageTotal * 10000) / 10000} ms)</summary>
+                        <table className="rgx-cv-lat-table">
+                          <tbody>
+                            {stages.map(([key, ms]) => (
+                              <tr key={key}>
+                                <td>{STAGE_LABELS[key] ?? key}</td>
+                                <td className="rgx-cv-lat-num">{Math.round(ms * 10000) / 10000} ms</td>
+                                <td className="rgx-cv-lat-num">
+                                  {stageTotal > 0 ? `${Math.round((ms / stageTotal) * 1000) / 10}%` : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                            {/* Stated explicitly rather than omitted: a reader
+                              * comparing this to a full request waterfall must
+                              * see that the provider legs were not measured
+                              * here, not infer it from their absence. */}
+                            {UNMEASURED_STAGES.map((label) => (
+                              <tr key={label} className="rgx-cv-lat-unmeasured">
+                                <td>{label}</td>
+                                <td className="rgx-cv-lat-num">unmeasured</td>
+                                <td className="rgx-cv-lat-num">—</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="rgx-cv-lat-note">
+                          This demo measures a governance decision. It does not call Gmail or
+                          AWS Bedrock, so provider latency is reported as unmeasured rather
+                          than as zero.
+                        </p>
+                      </details>
+                    )}
                   </div>
                 );
               })()}
