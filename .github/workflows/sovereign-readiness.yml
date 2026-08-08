@@ -82,6 +82,8 @@ jobs:
         run: npm run runtime:demo-latency
       - name: Control Room latency telemetry
         run: npm run runtime:control-room-latency
+      - name: Gmail smoke diagnostics contract
+        run: npm run runtime:gmail-smoke-diagnostics
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite
