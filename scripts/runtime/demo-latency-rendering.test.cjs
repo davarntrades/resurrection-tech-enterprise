@@ -245,6 +245,35 @@ function testComponentDeclaresHonestUnmeasuredStages() {
     "component does not read latency from the advisory endpoint");
 }
 
+function testReferenceBenchmarkLabelIsAccurateAndSelfExplaining() {
+  // A buyer sees "this evaluation 0.7058 ms" next to a reference of
+  // 0.3975 ms and asks why they differ. The label must answer that without
+  // a hover, and must not claim a statistic the data is not.
+  const src = fs.readFileSync(path.join(ROOT, "components/LiveDemoClient.tsx"), "utf8");
+  const bench = JSON.parse(fs.readFileSync(path.join(ROOT, "public/benchmarks/latency.json"), "utf8"));
+  const single = bench.classes.single_step;
+
+  ok(/Reference \(CI avg/.test(src),
+    "reference is labelled as a CI average, not a bare 'benchmark'");
+  ok(!/Benchmark avg \(CI env\)/.test(src),
+    "the old ambiguous label must be gone");
+  // The displayed figure is avg_ms, so the label must NOT say p50 — p50_ms is
+  // a different number and claiming it would be false.
+  ok(!/Reference benchmark p50|CI p50|p50\)/.test(src),
+    "must not label an average as a p50");
+  ok(single.avg_ms !== single.p50_ms,
+    "avg and p50 genuinely differ, so the distinction matters",
+    { avg: single.avg_ms, p50: single.p50_ms });
+
+  ok(/Δ vs reference/.test(src), "delta states what it is measured against");
+  ok(/n=\$\{benchRef\.iters\}/.test(src),
+    "sample size is derived from the data, not hardcoded");
+  ok(/rgx-cv-lat-note/.test(src) && /different hardware/.test(src),
+    "the explanation is rendered on the page, not only in a tooltip (mobile has no hover)");
+  ok(/not a regression/.test(src),
+    "the note tells the reader a difference is expected");
+}
+
 function testStageLabelsCoverEveryKernelStage() {
   const src = fs.readFileSync(path.join(ROOT, "components/LiveDemoClient.tsx"), "utf8");
   for (const stage of ["canonicalization", "trust_boundary", "capability_classification",
@@ -269,6 +298,7 @@ testVerdictMappingUnchangedAcrossAllVerdicts();
 testLatencyIsReportedForBlockWithoutImplyingExecution();
 testInconclusiveIsNotPresentedAsSuccess();
 testComponentDeclaresHonestUnmeasuredStages();
+testReferenceBenchmarkLabelIsAccurateAndSelfExplaining();
 testStageLabelsCoverEveryKernelStage();
 
 console.log(`\ndemo-latency-rendering: ${pass} passed, ${fail} failed`);

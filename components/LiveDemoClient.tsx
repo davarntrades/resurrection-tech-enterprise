@@ -945,11 +945,30 @@ function mapVerdict(v: string): Decision {
 }
 
 /** Closest benchmark class avg (ms) for a given trajectory length. */
-function benchAvgForSteps(n: number): number {
-  const classes = Object.values((BENCH as { classes: Record<string, { steps: number; avg_ms: number }> }).classes);
+type BenchClass = { steps: number; avg_ms: number; p50_ms?: number; iters?: number };
+
+/**
+ * Closest reference benchmark class for a trajectory of `n` steps.
+ *
+ * Returns the whole class, not just the mean, so the UI can state HOW the
+ * reference was produced. A single live evaluation and this figure are two
+ * different measurements, and a reader comparing them deserves to know why
+ * they differ:
+ *
+ *   · different machine — the reference is measured on the CI/build runner,
+ *     not on the server answering this request
+ *   · different statistic — an average over many iterations, not one run
+ *   · warm vs cold — the reference is taken after warmup; a live evaluation
+ *     may include first-call costs
+ *
+ * `public/benchmarks/latency.json` says so itself: "Representative figures,
+ * not a production guarantee."
+ */
+function benchRefForSteps(n: number): BenchClass {
+  const classes = Object.values((BENCH as { classes: Record<string, BenchClass> }).classes);
   let best = classes[0];
   for (const c of classes) if (Math.abs(c.steps - n) < Math.abs(best.steps - n)) best = c;
-  return best.avg_ms;
+  return best;
 }
 
 function CustomEval({
@@ -1187,8 +1206,14 @@ function CustomEval({
                 * action ran. Execution status is stated by the verdict card
                 * above, which this does not touch. */}
               {result.evalTimeMs !== undefined && (() => {
-                const benchAvg = benchAvgForSteps(result.steps.length);
+                const benchRef = benchRefForSteps(result.steps.length);
+                const benchAvg = benchRef.avg_ms;
                 const delta = Math.round((result.evalTimeMs! - benchAvg) * 1000) / 1000;
+                // Sample size comes from the data, so the label cannot drift
+                // out of step with a regenerated benchmark file.
+                const refLabel = benchRef.iters
+                  ? `Reference (CI avg, n=${benchRef.iters})`
+                  : "Reference (CI avg)";
                 const stages = result.stageTimingsMs
                   ? Object.entries(result.stageTimingsMs).sort((a, b) => b[1] - a[1])
                   : [];
@@ -1211,10 +1236,29 @@ function CustomEval({
                         && result.decisionTimeMs !== result.evalTimeMs && (
                         <span><b>Decision time</b> {result.decisionTimeMs} ms</span>
                       )}
-                      <span><b>Benchmark avg (CI env)</b> {benchAvg} ms</span>
-                      <span><b>Δ</b> {delta >= 0 ? "+" : ""}{delta} ms</span>
+                      <span title={
+                        `Average of ${benchRef.iters ?? "many"} iterations measured on the CI/build `
+                        + `machine, not on this server. A single live evaluation and this average `
+                        + `are two different measurements, so they are not expected to match.`
+                      }>
+                        <b>{refLabel}</b> {benchAvg} ms
+                      </span>
+                      <span title="This evaluation minus the reference average. A positive value is expected on different hardware and does not indicate a regression.">
+                        <b>Δ vs reference</b> {delta >= 0 ? "+" : ""}{delta} ms
+                      </span>
                       {result.evalNumber !== undefined && <span><b>Eval #</b> {result.evalNumber}</span>}
                     </div>
+
+                    {/* Stated in the page, not only in a tooltip: this demo is
+                      * read on phones, where nothing hovers. Without it a
+                      * reader sees two latency numbers that disagree and has
+                      * no way to learn why. */}
+                    <p className="rgx-cv-lat-note">
+                      The reference is an average of {benchRef.iters ?? "many"} warm iterations
+                      measured on the CI/build machine — different hardware, and an average
+                      rather than a single run. It is a comparison point, not a target: a live
+                      evaluation differing from it is expected, not a regression.
+                    </p>
 
                     {stages.length > 0 && (
                       <details className="rgx-cv-lat-stages">
