@@ -69,10 +69,31 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
   const rule = (g.metadata?.rule as string | undefined) ?? undefined;
   const meta = metaFor(rule, g.omega_domain);
 
-  // Real engine timing (GovernanceResult.metadata) — pass through to the UI.
-  const evalTimeMs = typeof g.metadata?.eval_time_ms === "number" ? (g.metadata.eval_time_ms as number) : undefined;
-  const evalNumber = typeof g.metadata?.eval_number === "number" ? (g.metadata.eval_number as number) : undefined;
-  const timing = { evalTimeMs, evalNumber };
+  // Measured governance timing from /v1/govern metadata — passed through to
+  // the UI unchanged. Each field is read independently and stays `undefined`
+  // when absent or non-numeric: an older service reports fewer of them, and a
+  // missing measurement must never surface as 0 ms.
+  const num = (v: unknown): number | undefined =>
+    typeof v === "number" && Number.isFinite(v) ? v : undefined;
+
+  const evalTimeMs = num(g.metadata?.eval_time_ms);
+  const evalNumber = num(g.metadata?.eval_number);
+  const engineTimeMs = num(g.metadata?.engine_time_ms);
+  const decisionTimeMs = num(g.metadata?.decision_time_ms);
+
+  // Stage breakdown. Non-numeric entries are dropped rather than coerced, so a
+  // malformed payload cannot inject a fabricated 0 ms row into a published
+  // latency waterfall.
+  const rawStages = g.metadata?.stage_timings_ms;
+  let stageTimingsMs: Record<string, number> | undefined;
+  if (rawStages && typeof rawStages === "object" && !Array.isArray(rawStages)) {
+    const entries = Object.entries(rawStages as Record<string, unknown>)
+      .map(([k, v]) => [k, num(v)] as const)
+      .filter((e): e is readonly [string, number] => e[1] !== undefined);
+    if (entries.length) stageTimingsMs = Object.fromEntries(entries);
+  }
+
+  const timing = { evalTimeMs, evalNumber, engineTimeMs, decisionTimeMs, stageTimingsMs };
 
   // Real engine signals, surfaced inside the existing explanation field (no new UI fields).
   const distance = g.reachability_distance;

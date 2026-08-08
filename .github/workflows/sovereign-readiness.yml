@@ -78,6 +78,8 @@ jobs:
         run: npm run runtime:engagement-stage
       - name: Assessment submission contract
         run: npm run runtime:assessment-submission
+      - name: Live demo latency rendering
+        run: npm run runtime:demo-latency
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite
