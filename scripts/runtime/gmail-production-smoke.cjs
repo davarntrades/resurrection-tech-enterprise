@@ -210,8 +210,33 @@ const query = (extra = "") => `${baseUrl}/api/runtime/admin/communication?org_id
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 
   if (failures.length) {
+    // WHY the governance layer refused, not just THAT it refused.
+    //
+    // This check was habitually red and the log said only "blocked" with no
+    // rule, verdict or reason — so nobody could tell a genuine governance
+    // refusal from a misconfigured environment without opening the Job Summary
+    // artifact. An unactionable red check is one people learn to ignore, and
+    // then it hides the run that matters.
+    //
+    // `governance_rule` and `governance_verdict` were already collected; they
+    // were simply never printed to the console the CI log shows.
     console.error(`\nGmail production smoke outcome: ${outcome}`);
     console.error(`Runtime Governance decision: ${report.runtime_governance_decision}`);
+    console.error(`Governance verdict: ${report.governance_verdict || "not recorded"}`);
+    console.error(`Governance rule: ${report.governance_rule || "none recorded"}`);
+    console.error(`Governance reason: ${run.governance_reason || run.reason || "not recorded"}`);
+    console.error(`Approval status: ${run.approval_status || "not recorded"}`);
+    console.error(`Connector health: ${run.connector_health || "not recorded"}`);
+    // Distinguishes the three causes that look identical from outside:
+    //   BLOCKED    governance refused on a rule            -> a policy question
+    //   ESCALATED  awaiting operator approval              -> a workflow question
+    //   UNAVAILABLE engine unreachable / connector unhealthy -> an infra question
+    const cause =
+      String(report.runtime_governance_decision) === "blocked" ? "GOVERNANCE REFUSED (policy) — see rule above"
+      : ["escalated", "pending", "awaiting_approval"].includes(String(run.approval_status)) ? "AWAITING OPERATOR APPROVAL (workflow), not a policy refusal"
+      : ["unavailable", "denied"].includes(String(report.runtime_governance_decision)) ? "GOVERNANCE OR CONNECTOR UNAVAILABLE (infrastructure)"
+      : "UNCLASSIFIED — inspect the fields above";
+    console.error(`Likely cause: ${cause}`);
     console.error(`Safe failure reason: ${report.safe_failure_reason || "not recorded"}`);
     console.error(`Gmail invocation count: ${report.provider_invocation_count}`);
     console.error(`Email delivered: ${report.email_delivered}`);
