@@ -164,7 +164,10 @@ function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
     ["Shadow", p.shadow ?? 0],
     ["Live runtime evaluations", Number(p.evaluations ?? 0).toLocaleString()],
     ["Live catastrophic actions prevented", p.blocked ?? 0, "omega"],
-    ["Live avg latency", p.avg_latency_ms != null ? `${p.avg_latency_ms}ms` : "—"],
+    // Backed by overview.avg_latency_ms -> latency.engine_compute_ms.mean,
+    // which is the SERVICE HANDLER mean, not the governed decision. "Live
+    // avg latency" read as governance latency and was ~10x too large for it.
+    ["Live avg service handler", p.avg_latency_ms != null ? `${p.avg_latency_ms}ms` : "—"],
     ["Reports generated", p.reports ?? 0],
     ["Published audit packs", p.audit_packs ?? 0],
     ["Active alerts (24h)", p.active_alerts ?? 0, p.active_alerts > 0 ? "warn" : undefined],
