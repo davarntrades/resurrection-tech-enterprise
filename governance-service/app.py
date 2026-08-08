@@ -652,6 +652,15 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             "eval_time_ms": terminal.get("decision_time_ms"),
             "decision_time_ms": terminal.get("decision_time_ms"),
             "engine_time_ms": terminal.get("engine_time_ms"),
+            # Per-stage breakdown of the terminal decision, measured inside the
+            # kernel on this request. Published latency waterfalls are built
+            # from this rather than from an external estimate, so the stage
+            # percentages describe the code that actually ran.
+            "stage_timings_ms": terminal.get("stage_timings_ms", {}),
+            # Summed across every step, so a multi-step trajectory reports the
+            # whole governed cost rather than only its last hop.
+            "trajectory_decision_time_ms": round(
+                sum(float(d.get("decision_time_ms") or 0.0) for d in decisions), 4),
             "eval_number": len(decisions),
         },
         "decisions": decisions,
