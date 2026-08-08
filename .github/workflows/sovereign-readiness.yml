@@ -82,6 +82,8 @@ jobs:
         run: npm run runtime:demo-latency
       - name: Control Room latency telemetry
         run: npm run runtime:control-room-latency
+      - name: Latency label/field drift
+        run: npm run runtime:latency-labels
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite
