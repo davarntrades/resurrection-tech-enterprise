@@ -86,6 +86,8 @@ jobs:
         run: npm run runtime:latency-labels
       - name: Gmail smoke diagnostics contract
         run: npm run runtime:gmail-smoke-diagnostics
+      - name: Evidence schema contract (written columns exist in a migration)
+        run: npm run ops:evidence-schema-contract
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite

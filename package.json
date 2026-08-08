@@ -57,6 +57,7 @@
     "runtime:sovereign-readiness": "node scripts/runtime/sovereign-readiness.test.cjs && node scripts/runtime/sovereign-connectors.integration.test.cjs",
     "runtime:publish-audit": "node scripts/runtime/publish-audit.cjs",
     "test:e2e": "playwright test",
+    "ops:evidence-schema-contract": "node scripts/ops/evidence-schema-contract.test.cjs",
     "ops:schema-check": "node scripts/ops/schema-check.cjs",
     "guardian": "node bin/guardian.cjs",
     "sovereign:test": "node scripts/sovereign/sovereign.test.cjs",

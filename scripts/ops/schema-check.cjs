@@ -63,6 +63,18 @@ const COLUMNS = [
   { table: "rg_reports", column: "connector_activity", migration: "supabase/connector_audit_projection.sql" },
   // verifiable connector evidence hashes (supabase/evidence_hash_canonical.sql)
   { table: "rg_integration_events", column: "evidence_hash_alg", migration: "supabase/evidence_hash_canonical.sql" },
+  // Ops evidence hash chain (supabase/ops_evidence_chain.sql). These shipped in
+  // application code with no migration, and because writes throw rather than
+  // degrade, their absence failed EVERY governed action at the evidence step —
+  // surfacing through a broad catch as "Runtime Governance unavailable". A
+  // missing column here is a production outage, not a cosmetic gap.
+  { table: "rg_ops_evidence", column: "seq", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "prev_hash", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "record_hash", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "hash_alg", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "ruleset_hash", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "engine_commit", migration: "supabase/ops_evidence_chain.sql" },
+  { table: "rg_ops_evidence", column: "provider", migration: "supabase/ops_evidence_chain.sql" },
 ];
 
 async function main() {
