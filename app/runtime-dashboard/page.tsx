@@ -18,7 +18,7 @@ type Summary = {
   rule_frequency: Freq[];
   omega_frequency: Freq[];
 };
-type Decision = { created_at: string; verdict: string; engine_verdict: string; omega_domain?: string; rule?: string; engine_compute_ms?: number; environment_kind?: string; mode?: string };
+type Decision = { created_at: string; verdict: string; engine_verdict: string; omega_domain?: string; rule?: string; engine_compute_ms?: number; decision_time_ms?: number; engine_time_ms?: number; environment_kind?: string; mode?: string };
 
 export default function RuntimeDashboard() {
   const [key, setKey] = useState("");
@@ -67,7 +67,7 @@ export default function RuntimeDashboard() {
               {kpi(v.ALLOW, `Allow (${v.allow_pct}%)`, "#3fb950")}
               {kpi(v.ESCALATE, `Escalate (${v.escalate_pct}%)`, "#d29922")}
               {kpi(v.BLOCK, `Block (${v.block_pct}%)`, "#f85149")}
-              {kpi((summary.latency.engine_compute_ms.mean ?? "—") + "ms", "Avg engine")}
+              {kpi((summary.latency.engine_compute_ms.mean ?? "—") + "ms", "Avg service handler")}
               {kpi(summary.would_block, "Would-block (shadow)")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
