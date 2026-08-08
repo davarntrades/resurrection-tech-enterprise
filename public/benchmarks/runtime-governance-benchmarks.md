@@ -1,11 +1,11 @@
 # Morrison Runtime Governance — Latency Benchmark Report
 
-Generated: 2026-08-08 00:08:08Z
+Generated: 2026-08-08 12:44:50Z
 
 ## Environment
 
-- Python: 3.11.15
-- Platform: Linux-6.18.5-fc-v20-x86_64-with-glibc2.39
+- Python: 3.12.13
+- Platform: Linux-6.17.0-1020-azure-x86_64-with-glibc2.39
 - Processor: x86_64
 - Logical CPUs: 4
 - Single-threaded, measured on this CI/build environment. Representative figures, not a production-hardware guarantee.
@@ -16,32 +16,32 @@ Configuration: horizon 3, 96 Ω rules across 9 domains; 800 iterations per class
 
 | Class | Steps | p50 (ms) | p95 (ms) | p99 (ms) | avg (ms) | throughput (eval/s) |
 |---|---|---|---|---|---|---|
-| Single-step | 1 | 0.415 | 0.5167 | 0.6548 | 0.4286 | 2333 |
-| Short (2) | 2 | 0.9164 | 1.0 | 1.3514 | 0.9321 | 1073 |
-| Medium (4) | 4 | 2.7028 | 2.9566 | 4.5437 | 2.7542 | 363 |
-| Long (8) | 8 | 6.0274 | 6.5481 | 7.0321 | 6.087 | 164 |
-| Very long (16) | 16 | 12.9523 | 15.0519 | 16.0692 | 13.2353 | 76 |
-| Multi-agent (joint) | 3 | 1.8434 | 2.0121 | 2.4771 | 1.8685 | 535 |
+| Single-step | 1 | 0.3953 | 0.4257 | 0.4603 | 0.3975 | 2516 |
+| Short (2) | 2 | 0.968 | 1.0138 | 1.0706 | 0.974 | 1027 |
+| Medium (4) | 4 | 3.0624 | 3.149 | 3.2678 | 3.0743 | 325 |
+| Long (8) | 8 | 7.1253 | 7.2799 | 7.3801 | 7.1418 | 140 |
+| Very long (16) | 16 | 15.1657 | 15.4518 | 16.6814 | 15.2238 | 66 |
+| Multi-agent (joint) | 3 | 2.0361 | 2.1148 | 2.1765 | 2.0446 | 489 |
 
 ## Scaling by trajectory length (avg ms)
 
 | Steps | avg (ms) |
 |---|---|
-| 1 | 0.417 |
-| 2 | 0.9317 |
-| 4 | 2.739 |
-| 8 | 6.1064 |
-| 16 | 12.7554 |
-| 32 | 26.4833 |
+| 1 | 0.4023 |
+| 2 | 0.9982 |
+| 4 | 3.0928 |
+| 8 | 7.1221 |
+| 16 | 15.1554 |
+| 32 | 31.2642 |
 
 ## Scaling by domain / rule count (4-step trajectory)
 
 | Domains | Rules | avg (ms) | p95 (ms) |
 |---|---|---|---|
-| 1 | 75 | 2.55 | 2.8728 |
-| 3 | 79 | 2.6343 | 3.0435 |
-| 6 | 87 | 2.7274 | 3.0677 |
-| 9 | 96 | 2.7346 | 2.9245 |
+| 1 | 75 | 2.7391 | 2.8051 |
+| 3 | 79 | 2.8335 | 2.9108 |
+| 6 | 87 | 2.9301 | 3.0081 |
+| 9 | 96 | 3.077 | 3.1438 |
 
 ## Methodology
 
