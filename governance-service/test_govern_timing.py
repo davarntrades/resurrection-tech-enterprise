@@ -36,6 +36,16 @@ import app as service  # noqa: E402
 
 CLIENT = TestClient(service.app)
 
+# `app.py` enables Bearer auth on protected routes whenever GOVERNANCE_TOKEN is
+# set. These tests must work in BOTH configurations: unset (as CI runs them)
+# and set (as a developer shell often has it exported for the Node suites).
+# Without this the suite passes in CI and fails locally with a 401 that looks
+# like a governance defect rather than a missing header.
+AUTH_HEADERS = (
+    {"Authorization": f"Bearer {os.environ['GOVERNANCE_TOKEN']}"}
+    if os.environ.get("GOVERNANCE_TOKEN") else {}
+)
+
 # The eight kernel pipeline stages, plus the explicitly-labelled remainder.
 EXPECTED_STAGES = {
     "canonicalization",
@@ -59,7 +69,8 @@ CASES = [
 
 
 def _govern(trajectory):
-    res = CLIENT.post("/v1/govern", json={"trajectory": trajectory})
+    res = CLIENT.post("/v1/govern", json={"trajectory": trajectory},
+                      headers=AUTH_HEADERS)
     assert res.status_code == 200, res.text
     return res.json()
 
