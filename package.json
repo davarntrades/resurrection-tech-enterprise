@@ -79,6 +79,7 @@
     "runtime:evidence-append-only": "node scripts/runtime/evidence-append-only.test.cjs",
     "runtime:demo-latency": "node scripts/runtime/demo-latency-rendering.test.cjs",
     "runtime:control-room-latency": "node scripts/runtime/control-room-latency.test.cjs",
+    "runtime:latency-labels": "node scripts/runtime/latency-label-drift.test.cjs",
     "runtime:report-truncation": "node scripts/runtime/report-truncation.test.cjs",
     "runtime:report-window": "node scripts/runtime/report-window.test.cjs",
     "runtime:share-password": "node scripts/runtime/share-password.test.cjs",
