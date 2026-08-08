@@ -860,7 +860,7 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
         <Stat label="Escalate" value={v.ESCALATE ?? 0} tone="warn" trend={trendOf(v.ESCALATE ?? 0, pv.ESCALATE, false)} />
         <Stat label="Block" value={v.BLOCK ?? 0} tone="omega" trend={trendOf(v.BLOCK ?? 0, pv.BLOCK, false)} />
         <Stat label="Would-block (shadow)" value={s.would_block ?? 0} trend={trendOf(s.would_block ?? 0, data.previous?.would_block, false)} />
-        <Stat label="Engine p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
+        <Stat label="Service handler p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
       </div>
       <div className="radmin-charts radmin-anim" key={win}>
         <VolumeChart series={data.trends} />
@@ -920,7 +920,19 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
       <div className="radmin-muted" style={{ fontSize: 11, margin: "2px 0 8px" }}>{rows ? `${count} decision${count === 1 ? "" : "s"}` : "Searching…"}</div>
       <div className="radmin-table-wrap">
         <table className="radmin-table">
-          <thead><tr><th>Time</th><th>Verdict</th><th>Engine</th><th>Ω</th><th>Rule</th><th>ms</th></tr></thead>
+          {/* Four separate timing columns, because they measure four different
+            * things. `engine_compute_ms` used to be the only one shown, under
+            * the heading "ms", while the KPI above described it as an engine
+            * average — it is actually the whole service handler. `?? "—"` (not `||`)
+            * throughout, so a genuine 0 renders as 0 and only a truly absent
+            * value shows a dash. */}
+          <thead><tr>
+            <th>Time</th><th>Verdict</th><th>Engine</th><th>Ω</th><th>Rule</th>
+            <th title="The governed decision: the kernel pipeline that produced this verdict">Governed decision</th>
+            <th title="Ω reachability compute alone — a fraction of the governed decision">Engine compute</th>
+            <th title="Whole service handler, as /v1/govern reports it">Service handler</th>
+            <th title="Node → service → Node, including network">Round trip</th>
+          </tr></thead>
           <tbody>
             {(rows || []).map((d: any, i: number) => (
               <tr key={i}>
@@ -929,10 +941,13 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
                 <td className="radmin-muted">{d.engine_verdict}</td>
                 <td>{d.omega_domain || "—"}</td>
                 <td className="radmin-muted">{d.rule || "—"}</td>
-                <td>{d.engine_compute_ms ?? "—"}</td>
+                <td>{d.decision_time_ms ?? "—"}</td>
+                <td className="radmin-muted">{d.engine_time_ms ?? "—"}</td>
+                <td className="radmin-muted">{d.engine_compute_ms ?? "—"}</td>
+                <td className="radmin-muted">{d.round_trip_ms ?? "—"}</td>
               </tr>
             ))}
-            {rows && !rows.length && <tr><td colSpan={6} className="radmin-muted">No matching decisions.</td></tr>}
+            {rows && !rows.length && <tr><td colSpan={9} className="radmin-muted">No matching decisions.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1024,7 +1039,7 @@ function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () =
                 <div><span>Would-block</span><code>{te.would_block ?? 0}</code></div>
                 <div><span>Enforced</span><code>{String(te.enforced)}</code></div>
                 <div><span>Human review</span><code>{te.human_review ?? 0}</code></div>
-                <div><span>Mean / p95 ms</span><code>{te.latency?.engine_compute_ms?.mean ?? "—"} / {te.latency?.engine_compute_ms?.p95 ?? "—"}</code></div>
+                <div><span>Service handler mean / p95</span><code>{te.latency?.engine_compute_ms?.mean ?? "—"} / {te.latency?.engine_compute_ms?.p95 ?? "—"}</code></div>
               </div>
               <FreqBars title="Rules triggered" rows={te.rules} color="#6f97ff" />
               <FreqBars title="Ω domains" rows={te.omega} color="#d9a441" info={OMEGA_TIP} />

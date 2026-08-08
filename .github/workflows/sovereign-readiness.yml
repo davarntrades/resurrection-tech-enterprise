@@ -80,6 +80,8 @@ jobs:
         run: npm run runtime:assessment-submission
       - name: Live demo latency rendering
         run: npm run runtime:demo-latency
+      - name: Control Room latency telemetry
+        run: npm run runtime:control-room-latency
       - name: Operations regression suite and schema contracts
         run: npm run ops:test
       - name: Existing sovereign suite

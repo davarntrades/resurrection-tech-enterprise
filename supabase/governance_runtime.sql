@@ -130,6 +130,33 @@ create index if not exists rg_dec_hash_idx      on public.rg_decisions(trajector
 create index if not exists rg_dec_id_idx        on public.rg_decisions(id);            -- indexed replay lookup (item 4)
 create index if not exists rg_dec_ruleset_idx   on public.rg_decisions(ruleset_hash);  -- provenance / drift queries
 
+-- ── Measured governance timing (additive) ────────────────────────────────────
+-- `engine_compute_ms` above is the SERVICE HANDLER wall clock returned by
+-- /v1/govern — identity resolution, kernel construction, every step, integrity
+-- and attestation. It is NOT the Ω engine compute its name suggests, and it is
+-- bound into the decision hash chain (store.chainCore), so it cannot be
+-- renamed or repurposed without invalidating every historical entry.
+--
+-- These columns record the finer measurements the kernel now reports, so the
+-- Control Room can separate four genuinely different things instead of
+-- presenting one of them under a misleading name:
+--
+--   engine_time_ms              Ω reachability compute alone
+--   decision_time_ms            the governed decision (kernel pipeline)
+--   engine_compute_ms (above)   whole service handler
+--   round_trip_ms     (above)   Node → service → Node, including network
+--
+-- Additive and nullable by design: a deployment that has not applied this
+-- migration keeps recording decisions, and store.appendDecision degrades by
+-- dropping these fields and registering a pending migration rather than
+-- failing the write (see the rg_provisioning incident that
+-- scripts/ops/schema-resilience.test.cjs locks down).
+alter table public.rg_decisions add column if not exists decision_time_ms            double precision;
+alter table public.rg_decisions add column if not exists engine_time_ms              double precision;
+alter table public.rg_decisions add column if not exists trajectory_decision_time_ms double precision;
+alter table public.rg_decisions add column if not exists eval_number                 integer;
+alter table public.rg_decisions add column if not exists stage_timings_ms            jsonb;
+
 -- ── Server-side aggregation (item 3) ─────────────────────────────────────────
 -- SQL count()/group by + percentile_cont, so metrics are correct at ANY scale
 -- and immune to the PostgREST 1000-row response cap that truncated in-app
