@@ -43,6 +43,7 @@
 @import "./mgp.css";
 @import "./portal.css";
 @import "./report.css";
+@import "./frontier-lab.css";
 @import "./pathways.css";
 
 @tailwind components;

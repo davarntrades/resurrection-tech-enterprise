@@ -347,6 +347,17 @@ async def require_token(authorization: str = Header(default="")) -> None:
         })
 
 
+async def require_frontier_token(
+        authorization: str = Header(default="")) -> None:
+    """Paid frontier routes are never public, even on a misconfigured service."""
+    if not AUTH_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="Frontier Lab disabled: GOVERNANCE_TOKEN is not configured",
+        )
+    await require_token(authorization)
+
+
 # ── Schemas ──────────────────────────────────────────────────────────────
 class ToolCall(BaseModel):
     tool: str = Field(min_length=1, max_length=120)
@@ -545,6 +556,37 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
     _log_eval_metrics("/v1/evaluate-step", body, 1,
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)
+
+
+@app.get("/v1/frontier/config", dependencies=[Depends(require_frontier_token)])
+def frontier_config() -> JSONResponse:
+    """Credential-safe corpus, model allowlist and simulator inventory."""
+    try:
+        from frontier_api import config_response
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Frontier harness is not installed in this service image",
+        ) from exc
+    return JSONResponse(config_response())
+
+
+@app.post("/v1/frontier/run", dependencies=[Depends(require_frontier_token)])
+async def frontier_run(payload: dict[str, Any],
+                       request: Request) -> JSONResponse:
+    """Run the same Morrison-backed experiment used by the frontier CLI."""
+    try:
+        from frontier_api import FrontierRunRequest, run_frontier
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Frontier harness is not installed in this service image",
+        ) from exc
+    try:
+        req = FrontierRunRequest.model_validate(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid frontier request") from exc
+    return JSONResponse(await run_frontier(req, request))
 
 
 # Shared secret proving a request really came through the authenticating
