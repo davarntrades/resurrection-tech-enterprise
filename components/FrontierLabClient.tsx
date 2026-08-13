@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
-type Provider = { provider: "anthropic" | "openai"; status: "READY" | "NOT_CONFIGURED"; model: string | null; missing: string[] };
+type ProviderName = "anthropic" | "openai" | "huggingface";
+type Provider = { provider: ProviderName; status: "READY" | "NOT_CONFIGURED"; model: string | null; models: string[]; missing: string[] };
 type Scenario = { id: string; version: string; title: string; user_task: string; untrusted_content: string; untrusted_content_type: string; safe_control: boolean };
 type Tool = { name: string; description: string };
 type Config = { providers: Provider[]; scenarios: Scenario[]; domains: string[]; tools: Tool[]; limits: { max_runs: number; max_content_chars: number; max_task_chars: number; timeout_seconds: number } };
@@ -62,7 +63,8 @@ function executionReached(row: RecordRow, scenario?: Scenario) { return scenario
 export default function FrontierLabClient() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
-  const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
+  const [provider, setProvider] = useState<ProviderName>("anthropic");
+  const [model, setModel] = useState("");
   const [scenarioId, setScenarioId] = useState("clean_control_001");
   const [domain, setDomain] = useState("broad");
   const [runs, setRuns] = useState(1);
@@ -80,7 +82,7 @@ export default function FrontierLabClient() {
       const data = await api("/api/frontier/config") as Config;
       setConfig(data); setAuthed(true);
       const firstReady = data.providers.find((item) => item.status === "READY");
-      if (firstReady) setProvider(firstReady.provider);
+      if (firstReady) { setProvider(firstReady.provider); setModel(firstReady.models?.[0] || firstReady.model || ""); }
     } catch (e) {
       setAuthed((e as Error & { status?: number }).status === 401 ? false : true);
       setError((e as Error).message);
@@ -117,10 +119,10 @@ export default function FrontierLabClient() {
   };
 
   const runTest = async () => {
-    if (!selectedProvider?.model || selectedProvider.status !== "READY") return;
+    if (!model || selectedProvider?.status !== "READY") return;
     setBusy(true); setError(""); setResponse(null); setActiveTrial(0); setCompletedStages([]);
     try {
-      const body: Record<string, unknown> = { provider, model: selectedProvider.model, scenario_id: scenarioId, runs, domain };
+      const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, runs, domain };
       if (isCustom) { body.custom_user_task = customTask; body.custom_untrusted_content = customContent; }
       const data = await api("/api/frontier/run", { method: "POST", body: JSON.stringify(body) }) as RunResponse;
       setResponse(data); setCompletedStages(data.stages || []); persistHistory(data);
@@ -148,11 +150,11 @@ export default function FrontierLabClient() {
       <section className="flab-grid">
         <div className="flab-panel flab-controls">
           <div className="flab-section-title">Experiment configuration</div>
-          <label>Provider<select value={provider} onChange={(e) => setProvider(e.target.value as "anthropic" | "openai")}>
+          <label>Provider<select value={provider} onChange={(e) => { const next = e.target.value as ProviderName; setProvider(next); const entry = config?.providers.find((item) => item.provider === next); setModel(entry?.models?.[0] || entry?.model || ""); }}>
             {config?.providers.map((item) => <option key={item.provider} value={item.provider}>{pretty(item.provider)} · {item.status === "READY" ? "READY" : "NOT CONFIGURED"}</option>)}
           </select></label>
           <div className={`flab-health ${selectedProvider?.status === "READY" ? "ready" : "off"}`}><span>{pretty(provider)}</span><strong>{selectedProvider?.status === "READY" ? "READY" : "NOT CONFIGURED"}</strong></div>
-          <label>Model<select value={selectedProvider?.model || ""} disabled><option>{selectedProvider?.model || "Provider not configured"}</option></select></label>
+          <label>Model<select value={model} disabled={!selectedProvider?.models?.length} onChange={(e) => setModel(e.target.value)}>{selectedProvider?.models?.length ? selectedProvider.models.map((item) => <option key={item} value={item}>{item}</option>) : <option>Provider not configured</option>}</select></label>
           <label>Governance domain<select value={domain} onChange={(e) => setDomain(e.target.value)}>{config?.domains.map((item) => <option key={item} value={item}>{DOMAIN_LABEL[item] || pretty(item)}</option>)}</select></label>
           <label>Attack / scenario<select value={scenarioId} onChange={(e) => setScenarioId(e.target.value)}>{config?.scenarios.map((item) => <option key={item.id} value={item.id}>{item.title} · v{item.version}</option>)}</select></label>
           <label>Trials<select value={runs} onChange={(e) => setRuns(Number(e.target.value))}>{Array.from({ length: config?.limits.max_runs || 1 }, (_, i) => i + 1).map((n) => <option key={n}>{n}</option>)}</select></label>

@@ -18,7 +18,7 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=ebc132f16e80dc42f18e02a66228cbc15bc0ad71
+ARG ENGINE_REF=c10a2f35e7be475d26ea4b494bb251e175bcd0d2
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
