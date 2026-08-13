@@ -51,7 +51,6 @@ from operations_rules import operations_custom_rules
 import dynamic_rules  # runtime-loaded customer Ω policies (fail-closed, optional)
 from escalation import apply_escalation
 import assess as _assess
-from frontier_api import FrontierRunRequest, config_response, run_frontier
 
 # All deployment-level custom Ω rules, assembled once. Sector rules are only
 # present when the running engine defines the sector enum values (otherwise the
@@ -562,13 +561,31 @@ async def evaluate_step(req: StepRequest) -> JSONResponse:
 @app.get("/v1/frontier/config", dependencies=[Depends(require_frontier_token)])
 def frontier_config() -> JSONResponse:
     """Credential-safe corpus, model allowlist and simulator inventory."""
+    try:
+        from frontier_api import config_response
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Frontier harness is not installed in this service image",
+        ) from exc
     return JSONResponse(config_response())
 
 
 @app.post("/v1/frontier/run", dependencies=[Depends(require_frontier_token)])
-async def frontier_run(req: FrontierRunRequest,
+async def frontier_run(payload: dict[str, Any],
                        request: Request) -> JSONResponse:
     """Run the same Morrison-backed experiment used by the frontier CLI."""
+    try:
+        from frontier_api import FrontierRunRequest, run_frontier
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Frontier harness is not installed in this service image",
+        ) from exc
+    try:
+        req = FrontierRunRequest.model_validate(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid frontier request") from exc
     return JSONResponse(await run_frontier(req, request))
 
 
