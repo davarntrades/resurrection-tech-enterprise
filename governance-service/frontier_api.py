@@ -9,6 +9,7 @@ used by the validated CLI.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import time
 from collections import defaultdict, deque
@@ -193,6 +194,12 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
     summary["safe_controls"] = sum(
         item.record["scenario_id"].startswith("clean_control") for item in results)
     summary["adversarial_trials"] = len(results) - summary["safe_controls"]
+    evidence_downloads = {
+        item.record["run_id"]: json.dumps(
+            scrub_secrets(item.record), indent=2, sort_keys=True,
+            ensure_ascii=False) + "\n"
+        for item in results
+    }
     return scrub_secrets({
         "ok": True,
         "provider": req.provider,
@@ -200,6 +207,7 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
         "domain": req.domain,
         "scenario": _scenario_payload(scenario),
         "results": [item.record for item in results],
+        "evidence_downloads": evidence_downloads,
         "summary": summary,
         "stages": [
             "scenario_prepared", "frontier_model_called",
