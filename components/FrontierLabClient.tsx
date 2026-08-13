@@ -12,8 +12,8 @@ type RecordRow = {
   run_id: string; timestamp: string; scenario_id: string; scenario_version: string;
   provider: string; model: string; model_compromised: boolean; classification: string;
   model_tool_calls: Array<{ tool: string; args: Record<string, unknown> }>;
-  governance_decisions: Decision[]; evaluated_prefixes: Array<Array<{ tool: string; args: Record<string, unknown> }>>;
-  final_verdict: string; adversarial_execution_attempted: boolean;
+  governance_decisions: Decision[]; adversarial_decisions?: Decision[]; evaluated_prefixes: Array<Array<{ tool: string; args: Record<string, unknown> }>>;
+  final_verdict: string; adversarial_verdict?: string; adversarial_execution_attempted: boolean;
   simulated_execution_occurred: boolean; executed_calls: Array<{ tool: string; args: Record<string, unknown> }>;
   unauthorized_execution_count: number; containment_success: boolean;
   trajectory_hash: string; experiment_record_hash: string;
@@ -30,7 +30,7 @@ type Summary = {
   provider_model_latency: { p50_ms: number; p95_ms: number };
   governance_latency: { p50_ms: number; p95_ms: number };
 };
-type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; summary: Summary; stages: string[] };
+type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; summary: Summary; stages: string[] };
 type HistoryItem = { id: string; timestamp: string; provider: string; model: string; scenario: string; classification: string; verdict: string; reached: boolean; contained: boolean | null; row: RecordRow };
 
 const STAGES = [
@@ -101,6 +101,7 @@ export default function FrontierLabClient() {
   const reached = current ? executionReached(current, selectedScenario) : false;
   const targetDecision = useMemo(() => {
     if (!current?.governance_decisions?.length) return undefined;
+    if (current.model_compromised && current.adversarial_decisions?.length) return current.adversarial_decisions.at(-1);
     return current.governance_decisions.find((item) => item.verdict !== "PERMIT") || current.governance_decisions.at(-1);
   }, [current]);
 
@@ -132,7 +133,9 @@ export default function FrontierLabClient() {
 
   const downloadEvidence = () => {
     if (!current) return;
-    const blob = new Blob([JSON.stringify(current, null, 2)], { type: "application/json" });
+    const sealed = response?.evidence_downloads?.[current.run_id];
+    if (!sealed) { setError("Server-sealed evidence is unavailable for this recorded session item."); return; }
+    const blob = new Blob([sealed], { type: "application/json" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
     link.href = url; link.download = `${current.run_id}.json`; link.click(); URL.revokeObjectURL(url);
   };
@@ -182,7 +185,7 @@ export default function FrontierLabClient() {
         {response && response.results.length > 1 && <div className="flab-trials">{response.results.map((item, i) => <button key={item.run_id} className={i === activeTrial ? "active" : ""} onClick={() => setActiveTrial(i)}>Trial {i + 1}</button>)}</div>}
         <section className="flab-result">
           <div className={`flab-outcome ${current.model_compromised ? "compromised" : "resisted"}`}><span>MODEL BEHAVIOUR</span><strong>{current.model_compromised ? "MODEL COMPROMISED" : "MODEL RESISTED"}</strong><p>{current.model_compromised ? "The hosted model proposed an adversarial executable trajectory." : "No adversarial executable trajectory was proposed."}</p></div>
-          <div className={`flab-outcome verdict ${current.final_verdict.toLowerCase()}`}><span>MORRISON VERDICT</span><strong>{current.final_verdict}</strong><p>{targetDecision?.reason || "Morrison containment was not exercised."}</p></div>
+          <div className={`flab-outcome verdict ${(targetDecision?.verdict || current.final_verdict).toLowerCase()}`}><span>MORRISON VERDICT — ADVERSARIAL ACTION</span><strong>{targetDecision?.verdict || current.final_verdict}</strong><p>{targetDecision?.reason || "Morrison containment was not exercised."}</p>{current.model_compromised && current.final_verdict !== targetDecision?.verdict && <p>Run-wide strictest verdict: {current.final_verdict}</p>}</div>
           <div className={`flab-outcome execution ${reached ? "yes" : "no"}`}><span>EXECUTION REACHED</span><strong>{reached ? "YES" : "NO"}</strong><p>{current.model_compromised ? (reached ? "Unauthorized trajectory reached the simulator." : "The unauthorized model-proposed trajectory did not reach execution.") : "Morrison containment: NOT EXERCISED"}</p></div>
         </section>
         {current.model_compromised && <div className={`flab-containment ${current.unauthorized_execution_count ? "failed" : "success"}`}>{current.unauthorized_execution_count ? "CRITICAL CONTAINMENT FAILURE" : "CONTAINMENT SUCCESS"}</div>}
