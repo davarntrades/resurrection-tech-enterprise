@@ -20,6 +20,29 @@ frontier harness. It does not implement a second evaluator.
 
 The CLI remains unchanged and uses the same `run_experiment()` implementation.
 
+## Continuous governed sessions
+
+The **Continuous Session** tab adds server-owned iteration without adding a
+second policy engine. Railway calls the configured provider on each turn,
+normalizes every proposed action, and submits it to the same
+`RuntimeGovernanceMiddleware` and persistent per-session Morrison kernel before
+the deterministic simulator can run.
+
+- **Shadow** records `WOULD_PERMIT`, `WOULD_BLOCK`, and `WOULD_ESCALATE` while
+  allowing the inert simulator workflow to continue. It is policy observation,
+  not containment.
+- **Guarded Pilot** enforces capabilities selected by Morrison's existing
+  manifest and holds escalated actions for operator denial or termination.
+- **Enforced** applies the existing Morrison decision to every executable
+  proposal. A block is returned to the model for replanning by default.
+
+The authenticated session endpoints are `/v1/frontier/session*` on Railway and
+same-origin `/api/frontier/session*` proxies on Vercel. Polling is used for live
+updates so the browser never owns the authoritative loop. Operator approval is
+not exposed until the service can mint a signature bound to the exact session,
+step, action, arguments, operator and expiry; denial and continue-without-action
+remain available and fail closed.
+
 ## Deployment configuration
 
 On Railway (`governance-service`):
@@ -34,6 +57,11 @@ On Railway (`governance-service`):
 - optional `FRONTIER_MAX_RUNS`, `FRONTIER_MAX_CONTENT_CHARS`,
   `FRONTIER_MAX_TASK_CHARS`, `FRONTIER_TIMEOUT_S`,
   `FRONTIER_RATE_PER_MINUTE`
+- optional `FRONTIER_SESSION_DEFAULT_STEPS`, `FRONTIER_SESSION_MAX_STEPS`,
+  `FRONTIER_SESSION_DEFAULT_RUNTIME_S`, `FRONTIER_SESSION_MAX_RUNTIME_S`, and
+  `FRONTIER_MAX_CONCURRENT_SESSIONS`
+- `FRONTIER_SESSION_DB_PATH=/data/frontier_sessions.sqlite3` with a Railway
+  persistent volume mounted at `/data` for restart-durable session history
 
 On Vercel:
 
@@ -43,16 +71,19 @@ On Vercel:
   (`RUNTIME_OPERATOR_PASSWORD` / `RUNTIME_ADMIN_KEY` and
   `RUNTIME_SESSION_SECRET`)
 - optional `FRONTIER_UI_RATE_LIMIT` and `FRONTIER_PROXY_TIMEOUT_MS`
+- optional `FRONTIER_SESSION_UI_RATE_LIMIT`
 
 Provider keys must never be configured with a `NEXT_PUBLIC_` prefix.
 
 ## Evidence and persistence
 
-Every response contains the sealed experiment record and can be downloaded as
-sanitized JSON. The UI retains the most recent records in browser session
-storage only. No new database was introduced; Railway's filesystem is
-ephemeral, so long-term institutional retention should use the existing
-evidence-store architecture in a later, separately reviewed change.
+Every single-run response contains the sealed experiment record. Continuous
+sessions additionally seal every step into a previous-hash chain and seal a
+session root containing the terminal step and Morrison evidence head. The UI
+exports sanitized JSON or text. Session snapshots use SQLite on Railway; they
+are restart-durable only when `FRONTIER_SESSION_DB_PATH` points into a mounted
+persistent volume. Without that volume the UI explicitly labels persistence as
+process-local, and completed evidence should be exported before redeployment.
 
 ## Safety boundary
 

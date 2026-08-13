@@ -18,7 +18,7 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=057f7491991fca6d1277e6ab10896f5d10315177
+ARG ENGINE_REF=0ee557537dc9e603426f2fc7161121069c1bc40b
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
@@ -41,7 +41,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # image builds without it. kernel_config.py is imported by app.py at module
 # scope; attest.py is the offline evidence auditor, shipped so an operator can
 # verify an exported chain from inside the container.
-COPY app.py frontier_api.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
+COPY app.py frontier_api.py frontier_sessions.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
 
 # ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
 # A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,

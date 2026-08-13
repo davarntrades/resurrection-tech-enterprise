@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import ContinuousFrontierSession from "@/components/ContinuousFrontierSession";
 
 type ProviderName = "anthropic" | "openai" | "huggingface";
 type Provider = { provider: ProviderName; status: "READY" | "NOT_CONFIGURED"; model: string | null; models: string[]; missing: string[] };
 type Scenario = { id: string; version: string; title: string; user_task: string; untrusted_content: string; untrusted_content_type: string; safe_control: boolean };
 type Tool = { name: string; description: string };
-type Config = { providers: Provider[]; scenarios: Scenario[]; domains: string[]; tools: Tool[]; limits: { max_runs: number; max_content_chars: number; max_task_chars: number; timeout_seconds: number } };
+export type FrontierConfig = { providers: Provider[]; scenarios: Scenario[]; domains: string[]; tools: Tool[]; limits: { max_runs: number; max_content_chars: number; max_task_chars: number; timeout_seconds: number; session_default_steps?: number; session_max_steps?: number; session_default_runtime_seconds?: number; session_max_runtime_seconds?: number }; session_modes?: Array<{ id: "shadow" | "guarded_pilot" | "enforced"; title: string; description: string }> };
 type Decision = { verdict: string; layer?: string; rule?: string | null; reason?: string; omega_domain?: string | null; latency_ms?: number; executed?: boolean; proposed?: { tool: string; args: Record<string, unknown> }; trajectory_hash?: string };
 type RecordRow = {
   run_id: string; timestamp: string; scenario_id: string; scenario_version: string;
@@ -62,7 +63,8 @@ function executionReached(row: RecordRow, scenario?: Scenario) { return scenario
 
 export default function FrontierLabClient() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [config, setConfig] = useState<Config | null>(null);
+  const [config, setConfig] = useState<FrontierConfig | null>(null);
+  const [labMode, setLabMode] = useState<"single" | "continuous">("single");
   const [provider, setProvider] = useState<ProviderName>("anthropic");
   const [model, setModel] = useState("");
   const [scenarioId, setScenarioId] = useState("clean_control_001");
@@ -79,7 +81,7 @@ export default function FrontierLabClient() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const data = await api("/api/frontier/config") as Config;
+      const data = await api("/api/frontier/config") as FrontierConfig;
       setConfig(data); setAuthed(true);
       const firstReady = data.providers.find((item) => item.status === "READY");
       if (firstReady) { setProvider(firstReady.provider); setModel(firstReady.models?.[0] || firstReady.model || ""); }
@@ -89,6 +91,9 @@ export default function FrontierLabClient() {
     }
   }, []);
   useEffect(() => { loadConfig(); }, [loadConfig]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("session")) setLabMode("continuous");
+  }, []);
   useEffect(() => {
     try { setHistory(JSON.parse(sessionStorage.getItem("frontier_lab_history") || "[]")); } catch { /* session history is optional */ }
   }, []);
@@ -142,6 +147,16 @@ export default function FrontierLabClient() {
 
   if (authed === null) return <div className="flab flab-center">Checking operator session…</div>;
   if (!authed) return <div className="flab"><LoginGate onLogin={loadConfig} /></div>;
+  if (labMode === "continuous" && config) return (
+    <main className="flab">
+      <header className="flab-top">
+        <div><div className="flab-eyebrow">Resurrection Tech™ · Operator surface</div><h1>Frontier Containment Lab</h1><p>Persistent governed model sessions through Morrison Runtime Governance.</p></div>
+        <div className="flab-safe"><span>SIMULATED</span>No real-world side effects</div>
+      </header>
+      <div className="flab-mode-toggle"><button onClick={() => setLabMode("single")}>Single Run</button><button className="active">Continuous Session</button></div>
+      <ContinuousFrontierSession config={config} />
+    </main>
+  );
 
   return (
     <main className="flab">
@@ -149,6 +164,7 @@ export default function FrontierLabClient() {
         <div><div className="flab-eyebrow">Resurrection Tech™ · Operator surface</div><h1>Frontier Containment Lab</h1><p>Hosted model compromise testing through Morrison Runtime Governance.</p></div>
         <div className="flab-safe"><span>SIMULATED</span>No real-world side effects</div>
       </header>
+      <div className="flab-mode-toggle"><button className="active">Single Run</button><button onClick={() => setLabMode("continuous")}>Continuous Session</button></div>
 
       <section className="flab-grid">
         <div className="flab-panel flab-controls">

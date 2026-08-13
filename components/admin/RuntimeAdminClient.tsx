@@ -28,7 +28,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
+type Tab = "overview" | "sessions" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
 
 export default function RuntimeAdminClient({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -54,7 +54,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["overview", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "sessions", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -68,6 +68,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
 
       <main className="radmin-main">
         {tab === "overview" && <OverviewPanel onOpenCustomers={() => setTab("customers")} />}
+        {tab === "sessions" && <GovernedSessionsPanel />}
         {tab === "customers" && <CustomersPanel />}
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
         {tab === "integrations" && <IntegrationGatewayPanel />}
@@ -78,6 +79,47 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
       </main>
     </div>
   );
+}
+
+function GovernedSessionsPanel() {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [persistence, setPersistence] = useState<any>(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    setErr("");
+    try {
+      const response = await fetch("/api/frontier/session", {
+        credentials: "same-origin", cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setSessions(data.sessions || []); setPersistence(data.persistence || null);
+    } catch (reason) { setErr((reason as Error).message); }
+  }, []);
+  useEffect(() => { load(); const timer = window.setInterval(load, 5000); return () => window.clearInterval(timer); }, [load]);
+  if (err) return <div className="radmin-err">{err}</div>;
+  return <section className="radmin-card">
+    <div className="radmin-row"><h2>Governed agent sessions</h2><span style={{ flex: 1 }} /><a className="radmin-btn" href="/lab">Open Frontier Lab</a><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
+    <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
+    {persistence?.volume_required && <div className="radmin-err">Session history is process-local until a Railway volume is mounted at the configured database path.</div>}
+    {!sessions.length ? <div className="radmin-empty">No governed sessions recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Status</th></tr></thead>
+      <tbody>{sessions.map((session) => {
+        const steps = session.steps || [];
+        const risky = [...steps].reverse().find((step: any) => step.morrison_decision?.verdict !== "PERMIT");
+        const last = steps.at(-1);
+        return <tr key={session.session_id}>
+          <td><a href={`/lab?session=${encodeURIComponent(session.session_id)}`}><code>{session.session_id}</code></a></td>
+          <td>{String(session.mode || "").replaceAll("_", " ")}</td>
+          <td>{session.provider}<br /><span className="radmin-muted">{session.model}</span></td>
+          <td>{session.current_step} / {session.max_steps}</td>
+          <td>{risky?.normalized_call?.tool || "—"}</td>
+          <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
+          <td>{String(session.status || "").replaceAll("_", " ")}</td>
+        </tr>;
+      })}</tbody>
+    </table></div>}
+  </section>;
 }
 
 // ── Login ────────────────────────────────────────────────────────────────────
@@ -614,909 +656,61 @@ function LifecyclePanel({ lc }: { lc: any }) {
   );
 }
 
-function CustomerCard({ o, onChange, defaultOpen }: { o: any; onChange: () => void; defaultOpen: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const b = o.badges || {};
-  const lc = o.lifecycle;
-  return (
-    <section className="radmin-card">
-      <button className="radmin-cust-head" onClick={() => setOpen(!open)}>
-        <span className="radmin-cust-left">
-          <span className={`radmin-chev${open ? " open" : ""}`}>▸</span>
-          <span className="radmin-cust-name">{o.name}</span>
-          {lc?.signals?.engagement_stage_label && <span className="radmin-badge accent">{lc.signals.engagement_stage_label}</span>}
-          {b.enterprise_ready && <span className="radmin-badge ok">Enterprise Ready</span>}
-          {(b.modes || []).map((m: string, i: number) => <span key={i} className={`radmin-badge${m === "enforce" ? " accent" : ""}`}>{m === "enforce" ? "Enforce" : "Shadow"}</span>)}
-        </span>
-        <span className="radmin-cust-right">
-          <MiniSpark points={b.spark} />
-          {lc?.state && <span className="radmin-badge" title={lc.next_action?.label || ""}>{lc.state}</span>}
-          <span className="radmin-muted radmin-cust-evals">{Number(b.evaluations ?? 0).toLocaleString()} evals</span>
-          {b.blocked > 0 && <span className="radmin-badge omega">{b.blocked} blocked</span>}
-          <span className={`radmin-pill ${o.status === "active" ? "ok" : ""}`}>{o.plan || "pilot"}</span>
-        </span>
-      </button>
-      {open && (
-        <div className="radmin-cust-body">
-          <code className="radmin-muted">{o.id}</code>
-          <EngagementControl org={o} onChange={onChange} />
-          <LifecyclePanel lc={lc} />
-          <CustomerBadges b={o.badges} />
-          <EvidenceHubControl org={o} />
-          <RecommendationsControl org={o} />
-          <CustomerNotifyControl org={o} />
-          {(o.environments || []).map((e: any) => (
-            <EnvRow key={e.id} org={o} env={e} onChange={onChange} />
-          ))}
-          <ArchiveControl org={o} onChange={onChange} />
-        </div>
-      )}
-    </section>
-  );
-}
+function CustomerCar…15646 tokens truncated…able
+  proposal. A block is returned to the model for replanning by default.
 
-// Operator-only: archive (pause) a customer. Preserves all evidence; reversible.
-function ArchiveControl({ org, onChange }: { org: any; onChange: () => void }) {
-  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
-  const archive = async () => {
-    if (!window.confirm(`Archive ${org.name}?\n\nThe customer is removed from the active list, ingest credentials are disabled and notifications stop. All evidence, reports, packs, recommendations and engagement history are preserved. You can restore later.`)) return;
-    setBusy(true); setNote("");
-    try {
-      const d = await api("archive", { method: "POST", body: JSON.stringify({ org_id: org.id, action: "archive" }) });
-      if (d.error) setNote(`✗ ${d.error}`); else onChange();
-    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
-  };
-  return (
-    <div className="radmin-row" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line-2)", justifyContent: "flex-end", gap: 8 }}>
-      {note && <span className="radmin-muted" style={{ fontSize: 11 }}>{note}</span>}
-      <button className="radmin-btn sm" disabled={busy} onClick={archive} title="Pause this customer — reversible; preserves all evidence">
-        {busy ? "…" : "Archive customer"}
-      </button>
-    </div>
-  );
-}
+The authenticated session endpoints are `/v1/frontier/session*` on Railway and
+same-origin `/api/frontier/session*` proxies on Vercel. Polling is used for live
+updates so the browser never owns the authoritative loop. Operator approval is
+not exposed until the service can mint a signature bound to the exact session,
+step, action, arguments, operator and expiry; denial and continue-without-action
+remain available and fail closed.
 
-// Operator-only: PERMANENT deletion of a (test) organisation. Two gates — a
-// dependency preview and typing the exact org name/slug — then fail-closed delete.
-function DeleteControl({ org, onDeleted }: { org: any; onDeleted: () => void }) {
-  const [stage, setStage] = useState<"idle" | "preview">("idle");
-  const [preview, setPreview] = useState<any>(null);
-  const [typed, setTyped] = useState(""); const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
-  const openPreview = async () => {
-    setBusy(true); setNote(""); setTyped("");
-    try { const d = await api(`delete-customer?org_id=${encodeURIComponent(org.id)}`); setPreview(d.preview); setStage("preview"); }
-    catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
-  };
-  const matches = typed.trim() === org.name || (org.slug && typed.trim() === org.slug);
-  const doDelete = async () => {
-    if (!matches) return;
-    setBusy(true); setNote("");
-    try {
-      const d = await api("delete-customer", { method: "POST", body: JSON.stringify({ org_id: org.id, confirm: typed.trim() }) });
-      if (d.error) setNote(`✗ ${d.error}${d.failed_step ? ` (at ${d.failed_step})` : ""}`);
-      else onDeleted();
-    } catch (e: any) { setNote(`✗ ${e.message}`); } finally { setBusy(false); }
-  };
-  if (stage === "idle") {
-    return (
-      <div className="radmin-row" style={{ marginTop: 8, justifyContent: "flex-end", gap: 8 }}>
-        {note && <span className="radmin-muted" style={{ fontSize: 11 }}>{note}</span>}
-        <button className="radmin-btn sm" disabled={busy} onClick={openPreview} style={{ borderColor: "rgba(229,72,77,.5)", color: "#e5484d" }}>Delete permanently</button>
-      </div>
-    );
-  }
-  const c = preview?.counts || {};
-  const rows: [string, number][] = [
-    ["Environments", c.environments], ["Credentials", c.api_keys], ["Evaluations", c.decisions],
-    ["Reports", c.reports], ["Audit packs", c.audit_packs], ["Deliverables", c.deliverables],
-    ["Secure shares", c.shares], ["Evidence Hub", c.hubs], ["Recommendations", c.recommendations],
-    ["Engagements", c.engagements],
-  ];
-  return (
-    <div style={{ marginTop: 10, padding: "12px 14px", border: "1px solid rgba(229,72,77,.5)", borderRadius: 9, background: "rgba(229,72,77,.06)" }}>
-      <div style={{ color: "#e5484d", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Permanent deletion — irreversible</div>
-      <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 8 }}>
-        This deletes {preview?.total_records ?? 0} organisation-scoped records. The operator audit trail ({preview?.preserved?.operator_audit_entries ?? 0} entries) is preserved.
-      </div>
-      <ul style={{ listStyle: "none", padding: 0, margin: "0 0 10px", display: "flex", flexWrap: "wrap", gap: "2px 16px" }}>
-        {rows.map(([k, v]) => <li key={k} className="radmin-muted" style={{ fontSize: 11 }}>{k}: <span style={{ color: "var(--ink2, #aab2bd)" }}>{v ?? 0}</span></li>)}
-      </ul>
-      <div className="radmin-muted" style={{ fontSize: 11, marginBottom: 4 }}>Type <b style={{ color: "var(--ink, #f3f5f7)" }}>{org.name}</b>{org.slug ? <> or <b style={{ color: "var(--ink, #f3f5f7)" }}>{org.slug}</b></> : null} to confirm:</div>
-      <div className="radmin-row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="exact organisation name or slug" autoFocus />
-        <button className="radmin-btn sm" disabled={!matches || busy} onClick={doDelete} style={{ borderColor: "rgba(229,72,77,.6)", color: matches ? "#e5484d" : undefined }}>{busy ? "Deleting…" : "Delete permanently"}</button>
-        <button className="radmin-btn sm" disabled={busy} onClick={() => { setStage("idle"); setNote(""); }}>Cancel</button>
-      </div>
-      {note && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 6 }}>{note}</div>}
-    </div>
-  );
-}
+## Deployment configuration
 
-// Operator-only: archived customers, restorable. Hidden when none.
-function ArchivedSection({ refreshToken, onRestore }: { refreshToken: number; onRestore: () => void }) {
-  const [items, setItems] = useState<any[] | null>(null);
-  const [open, setOpen] = useState(false); const [busy, setBusy] = useState("");
-  const load = useCallback(async () => {
-    try { const d = await api("archive?archived=1"); setItems(d.archived || []); } catch { setItems([]); }
-  }, []);
-  useEffect(() => { load(); }, [load, refreshToken]);
-  const restore = async (org: any) => {
-    setBusy(org.id);
-    try { await api("archive", { method: "POST", body: JSON.stringify({ org_id: org.id, action: "restore" }) }); await load(); onRestore(); }
-    catch { /* ignore */ } finally { setBusy(""); }
-  };
-  if (!items || !items.length) return null;
-  return (
-    <div style={{ marginTop: 18 }}>
-      <button className="radmin-btn sm" onClick={() => setOpen((o) => !o)}>
-        {open ? "▾" : "▸"} Archived customers ({items.length})
-      </button>
-      {open && (
-        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-          {items.map((a) => (
-            <div key={a.id} style={{ padding: "10px 12px", border: "1px solid var(--line-2)", borderRadius: 9, background: "var(--bg-1, #0b0d10)" }}>
-              <div className="radmin-row" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                <span>
-                  <span style={{ color: "var(--ink, #f3f5f7)", fontSize: 13 }}>{a.name}</span>
-                  <span className="radmin-muted" style={{ fontSize: 11, marginLeft: 8 }}>
-                    archived {a.archived_at ? String(a.archived_at).slice(0, 10) : "—"} · preserved: {a.preserved.reports} reports · {a.preserved.audit_packs} packs · {a.preserved.recommendations} recs
-                  </span>
-                </span>
-                <button className="radmin-btn sm primary" disabled={busy === a.id} onClick={() => restore(a)}>{busy === a.id ? "…" : "Restore"}</button>
-              </div>
-              <DeleteControl org={a} onDeleted={() => { load(); onRestore(); }} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+On Railway (`governance-service`):
 
-function EnvRow({ org, env, onChange }: { org: any; env: any; onChange: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState<null | "evidence" | "reports" | "audit" | "keys">(null);
-  const [newKey, setNewKey] = useState("");
-  const [newKeyWarn, setNewKeyWarn] = useState("");
-  const enforce = env.mode === "enforce";
+- `GOVERNANCE_TOKEN`
+- `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` and/or
+  `OPENAI_API_KEY` and `OPENAI_MODEL`
+- `HF_TOKEN` and comma-separated `HF_MODELS` for Hugging Face Inference
+  Providers. Model IDs are a server-side allowlist; arbitrary endpoints are
+  never accepted. `HF_TEMPERATURE` is optional and defaults to `0`.
+  `FRONTIER_PROVIDER_TIMEOUT_S` bounds the remote inference request.
+- optional `FRONTIER_MAX_RUNS`, `FRONTIER_MAX_CONTENT_CHARS`,
+  `FRONTIER_MAX_TASK_CHARS`, `FRONTIER_TIMEOUT_S`,
+  `FRONTIER_RATE_PER_MINUTE`
+- optional `FRONTIER_SESSION_DEFAULT_STEPS`, `FRONTIER_SESSION_MAX_STEPS`,
+  `FRONTIER_SESSION_DEFAULT_RUNTIME_S`, `FRONTIER_SESSION_MAX_RUNTIME_S`, and
+  `FRONTIER_MAX_CONCURRENT_SESSIONS`
+- `FRONTIER_SESSION_DB_PATH=/data/frontier_sessions.sqlite3` with a Railway
+  persistent volume mounted at `/data` for restart-durable session history
 
-  const toggle = async () => {
-    const to = enforce ? "shadow" : "enforce";
-    if (to === "enforce" && !window.confirm(`Enable ENFORCEMENT on ${org.name} / ${env.kind}?\n\nUnsafe trajectories will start being BLOCKED on the next evaluate call.`)) return;
-    setBusy(true);
-    try { await api("set-mode", { method: "POST", body: JSON.stringify({ environment_id: env.id, mode: to }) }); onChange(); }
-    catch (e: any) { alert(e.message); } finally { setBusy(false); }
-  };
-  const rotate = async () => {
-    if (!window.confirm("Rotate the ingest key for this environment? The old key keeps working until you revoke it; a new key is issued now.")) return;
-    setBusy(true);
-    try { const d = await api("keys", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, label: `${env.kind} ingest` }) }); setNewKey(d.key); setNewKeyWarn(d.warning || ""); setOpen("keys"); }
-    catch (e: any) { alert(e.message); } finally { setBusy(false); }
-  };
+On Vercel:
 
-  return (
-    <div className={`radmin-env${enforce ? " enforcing" : ""}`}>
-      <div className="radmin-env-head">
-        <div className="radmin-env-id">
-          <span className="radmin-env-kind">{env.kind}</span>
-          <code className="radmin-muted">{env.id}</code>
-        </div>
-        <div className="radmin-env-actions">
-          <button className={`radmin-toggle${enforce ? " on" : ""}`} disabled={busy} onClick={toggle} title="Shadow ⇄ Enforce">
-            <span className="radmin-toggle-knob" />
-            <span className="radmin-toggle-label">{enforce ? "ENFORCE" : "SHADOW"}</span>
-          </button>
-          <button className="radmin-btn sm" onClick={() => setOpen(open === "evidence" ? null : "evidence")}>Evidence</button>
-          <button className="radmin-btn sm" onClick={() => setOpen(open === "reports" ? null : "reports")}>Reports</button>
-          <button className="radmin-btn sm" onClick={() => setOpen(open === "audit" ? null : "audit")}>Audit pack</button>
-          <button className="radmin-btn sm" disabled={busy} onClick={rotate}>Rotate key</button>
-        </div>
-      </div>
-      {open === "keys" && newKey && (
-        <div className="radmin-env-body"><KeyReveal label="New ingest key (shown once)" value={newKey} warning={newKeyWarn} /></div>
-      )}
-      {open === "evidence" && <div className="radmin-env-body"><EvidenceView org={org} env={env} /></div>}
-      {open === "reports" && <div className="radmin-env-body"><ReportsView org={org} env={env} /></div>}
-      {open === "audit" && <div className="radmin-env-body"><DeliverablesView org={org} env={env} /></div>}
-    </div>
-  );
-}
+- `GOVERNANCE_URL`
+- matching `GOVERNANCE_TOKEN`
+- existing Runtime Control Room authentication variables
+  (`RUNTIME_OPERATOR_PASSWORD` / `RUNTIME_ADMIN_KEY` and
+  `RUNTIME_SESSION_SECRET`)
+- optional `FRONTIER_UI_RATE_LIMIT` and `FRONTIER_PROXY_TIMEOUT_MS`
+- optional `FRONTIER_SESSION_UI_RATE_LIMIT`
 
-// ── Evidence ─────────────────────────────────────────────────────────────────
-const WINDOWS: Array<[string, string]> = [["all", "All time"], ["24h", "Last 24h"], ["7d", "7 days"], ["30d", "30 days"]];
-// pct change vs previous; goodUp=true means an increase is "good" (green).
-function trendOf(cur: number, prev: number | null | undefined, goodUp: boolean) {
-  if (prev == null || prev === 0) return null;
-  const pct = Math.round(((cur - prev) / prev) * 100);
-  if (pct === 0) return null;
-  return { pct, good: pct > 0 === goodUp };
-}
-function EvidenceView({ org, env }: { org: any; env: any }) {
-  const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
-  const [win, setWin] = useState("7d");
-  const load = useCallback(async () => {
-    setErr("");
-    try { setData(await api(`evidence?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}&limit=25&window=${win}`)); }
-    catch (e: any) { setErr(e.message); }
-  }, [org.id, env.id, win]);
-  useEffect(() => { load(); }, [load]);
-  if (err) return <div className="radmin-err">{err}</div>;
-  if (!data) return <div className="radmin-muted">Loading evidence…</div>;
-  const s = data.summary || {}; const v = s.verdicts || {}; const lat = s.latency?.engine_compute_ms || {};
-  const pv = data.previous?.verdicts || {}; const plat = data.previous?.latency?.engine_compute_ms || {};
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `evidence-${org.slug || org.id}-${env.kind}.json`; a.click(); URL.revokeObjectURL(a.href);
-  };
-  return (
-    <div className="radmin-evidence">
-      <div className="radmin-windows">
-        {WINDOWS.map(([w, label]) => (
-          <button key={w} className={`radmin-win${win === w ? " on" : ""}`} onClick={() => setWin(w)}>{label}</button>
-        ))}
-        {data.previous && <span className="radmin-muted radmin-win-note">▲▼ vs previous period</span>}
-      </div>
-      <div className="radmin-stats">
-        <Stat label="Total" value={s.total ?? 0} trend={trendOf(s.total ?? 0, data.previous?.total, true)} />
-        <Stat label="Allow" value={v.ALLOW ?? 0} tone="ok" trend={trendOf(v.ALLOW ?? 0, pv.ALLOW, true)} />
-        <Stat label="Escalate" value={v.ESCALATE ?? 0} tone="warn" trend={trendOf(v.ESCALATE ?? 0, pv.ESCALATE, false)} />
-        <Stat label="Block" value={v.BLOCK ?? 0} tone="omega" trend={trendOf(v.BLOCK ?? 0, pv.BLOCK, false)} />
-        <Stat label="Would-block (shadow)" value={s.would_block ?? 0} trend={trendOf(s.would_block ?? 0, data.previous?.would_block, false)} />
-        <Stat label="Service handler p95" value={lat.p95 != null ? `${lat.p95}ms` : "—"} trend={lat.p95 != null && plat.p95 != null ? trendOf(lat.p95, plat.p95, false) : null} />
-      </div>
-      <div className="radmin-charts radmin-anim" key={win}>
-        <VolumeChart series={data.trends} />
-        <RatioBar allow={v.ALLOW ?? 0} escalate={v.ESCALATE ?? 0} block={v.BLOCK ?? 0} />
-        <LatencySpark series={data.trends} />
-        <FreqBars title="Top rules" rows={s.rule_frequency} color="#6f97ff" />
-        <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" info={OMEGA_TIP} />
-      </div>
-      <div className="radmin-row"><span className="radmin-muted">Evidence export</span><button className="radmin-btn sm" onClick={exportJson}>Export window JSON</button></div>
-      <DecisionSearch org={org} env={env} />
-    </div>
-  );
-}
+Provider keys must never be configured with a `NEXT_PUBLIC_` prefix.
 
-// Decision search — the MSSP query surface ("every BLOCK event for Customer A
-// over the last month", without the CLI). Auto-runs; filters narrow it down.
-function DecisionSearch({ org, env }: { org: any; env: any }) {
-  const [verdict, setVerdict] = useState(""); const [omega, setOmega] = useState(""); const [rule, setRule] = useState("");
-  const [since, setSince] = useState(""); const [until, setUntil] = useState(""); const [q, setQ] = useState("");
-  const [rows, setRows] = useState<any[] | null>(null); const [count, setCount] = useState(0);
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  const qs = useCallback(() => {
-    const p = new URLSearchParams({ org_id: org.id, environment_id: env.id, limit: "500" });
-    if (verdict) p.set("verdict", verdict);
-    if (omega) p.set("omega_domain", omega);
-    if (rule) p.set("rule", rule);
-    if (since) p.set("since", new Date(since).toISOString());
-    if (until) p.set("until", new Date(until + "T23:59:59").toISOString());
-    if (q) p.set("q", q);
-    return p.toString();
-  }, [org.id, env.id, verdict, omega, rule, since, until, q]);
-  const search = useCallback(async () => {
-    setBusy(true); setErr("");
-    try { const d = await api(`decisions?${qs()}`); setRows(d.decisions || []); setCount(d.count || 0); }
-    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
-  }, [qs]);
-  useEffect(() => { search(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const lastMonth = () => {
-    const d = new Date(); const u = d.toISOString().slice(0, 10);
-    d.setMonth(d.getMonth() - 1); setSince(d.toISOString().slice(0, 10)); setUntil(u); setVerdict("BLOCK");
-  };
-  return (
-    <div className="radmin-search">
-      <div className="radmin-search-bar">
-        <select className="radmin-select" value={verdict} onChange={(e) => setVerdict(e.target.value)}>
-          <option value="">Any verdict</option>{["ALLOW", "ESCALATE", "BLOCK"].map((x) => <option key={x} value={x}>{x}</option>)}
-        </select>
-        <span className="radmin-search-omega"><input className="radmin-select" placeholder="Ω domain" value={omega} onChange={(e) => setOmega(e.target.value)} /><Info tip={OMEGA_TIP} /></span>
-        <input className="radmin-select" placeholder="Rule" value={rule} onChange={(e) => setRule(e.target.value)} />
-        <input className="radmin-select" type="date" value={since} onChange={(e) => setSince(e.target.value)} title="From" />
-        <input className="radmin-select" type="date" value={until} onChange={(e) => setUntil(e.target.value)} title="To" />
-        <button className="radmin-btn sm primary" disabled={busy} onClick={search}>{busy ? "…" : "Search"}</button>
-        <button className="radmin-btn sm" onClick={lastMonth} title="Preset: BLOCK events, last month">BLOCK · last month</button>
-        <a className="radmin-btn sm" href={`/api/runtime/admin/decisions?${qs()}&format=csv`}>Export CSV</a>
-      </div>
-      {err && <div className="radmin-err">{err}</div>}
-      <div className="radmin-muted" style={{ fontSize: 11, margin: "2px 0 8px" }}>{rows ? `${count} decision${count === 1 ? "" : "s"}` : "Searching…"}</div>
-      <div className="radmin-table-wrap">
-        <table className="radmin-table">
-          {/* Four separate timing columns, because they measure four different
-            * things. `engine_compute_ms` used to be the only one shown, under
-            * the heading "ms", while the KPI above described it as an engine
-            * average — it is actually the whole service handler. `?? "—"` (not `||`)
-            * throughout, so a genuine 0 renders as 0 and only a truly absent
-            * value shows a dash. */}
-          <thead><tr>
-            <th>Time</th><th>Verdict</th><th>Engine</th><th>Ω</th><th>Rule</th>
-            <th title="The governed decision: the kernel pipeline that produced this verdict">Governed decision</th>
-            <th title="Ω reachability compute alone — a fraction of the governed decision">Engine compute</th>
-            <th title="Whole service handler, as /v1/govern reports it">Service handler</th>
-            <th title="Node → service → Node, including network">Round trip</th>
-          </tr></thead>
-          <tbody>
-            {(rows || []).map((d: any, i: number) => (
-              <tr key={i}>
-                <td>{(d.created_at || "").replace("T", " ").slice(0, 19)}</td>
-                <td><span className={`radmin-verdict ${String(d.verdict).toLowerCase()}`}>{d.verdict}</span></td>
-                <td className="radmin-muted">{d.engine_verdict}</td>
-                <td>{d.omega_domain || "—"}</td>
-                <td className="radmin-muted">{d.rule || "—"}</td>
-                <td>{d.decision_time_ms ?? "—"}</td>
-                <td className="radmin-muted">{d.engine_time_ms ?? "—"}</td>
-                <td className="radmin-muted">{d.engine_compute_ms ?? "—"}</td>
-                <td className="radmin-muted">{d.round_trip_ms ?? "—"}</td>
-              </tr>
-            ))}
-            {rows && !rows.length && <tr><td colSpan={9} className="radmin-muted">No matching decisions.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+## Evidence and persistence
 
-// ── Reports ──────────────────────────────────────────────────────────────────
-function ReportsView({ org, env }: { org: any; env: any }) {
-  const [reports, setReports] = useState<any[] | null>(null);
-  const [period, setPeriod] = useState("monthly"); const [month, setMonth] = useState("");
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  const load = useCallback(async () => {
-    setErr("");
-    try { const d = await api(`reports?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}${month ? `&month=${month}` : ""}`); setReports(d.reports || []); }
-    catch (e: any) { setErr(e.message); }
-  }, [org.id, env.id, month]);
-  useEffect(() => { load(); }, [load]);
-  const generate = async (p?: string) => {
-    setBusy(true); setErr("");
-    try { await api("reports", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: p || period }) }); setMonth(""); await load(); }
-    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
-  };
-  return (
-    <div>
-      <div className="radmin-row" style={{ margin: "0 0 4px" }}>
-        <span className="radmin-muted">Generate</span>
-        <select value={period} onChange={(e) => setPeriod(e.target.value)} className="radmin-select">
-          {["daily", "weekly", "monthly", "quarterly"].map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <button className="radmin-btn sm primary" disabled={busy} onClick={() => generate()}>{busy ? "Generating…" : "Generate report"}</button>
-        <span style={{ flex: 1 }} />
-        <span className="radmin-muted">History</span>
-        <input className="radmin-select" style={{ width: 130 }} type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-        {month && <button className="radmin-btn sm" onClick={() => setMonth("")}>Clear</button>}
-      </div>
-      {err && <div className="radmin-err">{err}</div>}
-      {!reports ? <div className="radmin-muted">Loading…</div>
-        : !reports.length ? <div className="radmin-muted">No reports{month ? " for this month" : " yet"}. Use <b>Generate report</b> above.</div>
-          : <div className="radmin-repcards">{reports.map((r: any) => <ReportCard key={r.id} r={r} onRegenerate={() => generate(r.period)} regenBusy={busy} />)}</div>}
-    </div>
-  );
-}
+Every single-run response contains the sealed experiment record. Continuous
+sessions additionally seal every step into a previous-hash chain and seal a
+session root containing the terminal step and Morrison evidence head. The UI
+exports sanitized JSON or text. Session snapshots use SQLite on Railway; they
+are restart-durable only when `FRONTIER_SESSION_DB_PATH` points into a mounted
+persistent volume. Without that volume the UI explicitly labels persistence as
+process-local, and completed evidence should be exported before redeployment.
 
-const RISK_TONE: Record<string, string> = { High: "omega", Medium: "warn", Low: "ok" };
-function ReportCard({ r, onRegenerate, regenBusy }: { r: any; onRegenerate: () => void; regenBusy: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState(""); const [busy, setBusy] = useState(false);
-  const ex = r.summary?.executive || {}; const te = r.summary?.technical || {};
-  const t = r.totals || {};
-  const fileUrl = (fmt: string) => `/api/runtime/admin/reports/file?id=${encodeURIComponent(r.id)}&format=${fmt}`;
-  const share = async () => {
-    setBusy(true);
-    try { const d = await api("reports/share", { method: "POST", body: JSON.stringify({ id: r.id, expires_in_days: 7 }) }); setShareUrl(d.url); }
-    catch (e: any) { alert(e.message); } finally { setBusy(false); }
-  };
-  return (
-    <div className="radmin-repcard">
-      <button className="radmin-repcard-head" onClick={() => setOpen(!open)}>
-        <span className="radmin-repcard-left">
-          <span className={`radmin-chev${open ? " open" : ""}`}>▸</span>
-          <span className="radmin-pill">{r.period}</span>
-          <span className="radmin-repcard-date">{(r.generated_at || r.created_at || "").slice(0, 10)}</span>
-          {ex.risk && <span className={`radmin-badge ${RISK_TONE[ex.risk] || "ghost"}`}>{ex.risk} risk</span>}
-        </span>
-        <span className="radmin-repcard-metrics">
-          <span style={{ color: "#3fb27f" }}>{t.ALLOW ?? 0} A</span>
-          <span style={{ color: "#d9a441" }}>{t.ESCALATE ?? 0} E</span>
-          <span style={{ color: "#e5484d" }}>{t.BLOCK ?? 0} B</span>
-          <span className="radmin-muted">· {r.trajectories ?? 0} evals</span>
-        </span>
-      </button>
-      {open && (
-        <div className="radmin-repcard-body">
-          <p className="radmin-repcard-headline">{r.headline}</p>
-          <div className="radmin-repcols">
-            <section>
-              <h4>Executive summary</h4>
-              <p><b>Overall posture.</b> {ex.posture}</p>
-              <p><b>Risk level.</b> <span className={`radmin-badge ${RISK_TONE[ex.risk] || "ghost"}`}>{ex.risk}</span></p>
-              <p><b>Key findings</b></p><ul>{(ex.key_findings || []).map((x: string, i: number) => <li key={i}>{x}</li>)}</ul>
-              <p><b>Business impact.</b> {ex.business_impact}</p>
-              <p><b>Recommended actions</b></p><ul>{(ex.recommended_actions || []).map((x: string, i: number) => <li key={i}>{x}</li>)}</ul>
-            </section>
-            <section>
-              <h4>Technical summary</h4>
-              <div className="radmin-kv">
-                <div><span>Decisions</span><code>{te.decisions ?? 0}</code></div>
-                <div><span>Would-block</span><code>{te.would_block ?? 0}</code></div>
-                <div><span>Enforced</span><code>{String(te.enforced)}</code></div>
-                <div><span>Human review</span><code>{te.human_review ?? 0}</code></div>
-                <div><span>Service handler mean / p95</span><code>{te.latency?.engine_compute_ms?.mean ?? "—"} / {te.latency?.engine_compute_ms?.p95 ?? "—"}</code></div>
-              </div>
-              <FreqBars title="Rules triggered" rows={te.rules} color="#6f97ff" />
-              <FreqBars title="Ω domains" rows={te.omega} color="#d9a441" info={OMEGA_TIP} />
-              <p className="radmin-muted" style={{ fontSize: 11, marginTop: 8 }}>Evidence: {te.evidence_ref}</p>
-            </section>
-          </div>
-          <div className="radmin-repcard-actions">
-            <a className="radmin-btn sm" href={fileUrl("html")}>Download HTML</a>
-            <a className="radmin-btn sm" href={fileUrl("md")}>Download MD</a>
-            <a className="radmin-btn sm" href={fileUrl("json")}>Download JSON</a>
-            <button className="radmin-btn sm primary" disabled={busy} onClick={share}>{busy ? "…" : "Share securely"}</button>
-            <button className="radmin-btn sm" disabled={regenBusy} onClick={onRegenerate}>Regenerate</button>
-          </div>
-          {shareUrl && <KeyReveal label="Secure link — expires in 7 days, revocable" value={shareUrl} />}
-        </div>
-      )}
-    </div>
-  );
-}
+## Safety boundary
 
-// ── Audit pack / Deliverables (Secure Delivery) ──────────────────────────────
-function DeliverablesView({ org, env }: { org: any; env: any }) {
-  const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
-  const [shares, setShares] = useState<Record<string, string>>({}); const [busyId, setBusyId] = useState("");
-  const [shareTok, setShareTok] = useState<Record<string, string>>({}); // token per deliverable (for delivery)
-  const [emailTo, setEmailTo] = useState<Record<string, string>>({}); const [emailBusyId, setEmailBusyId] = useState("");
-  const [emailNote, setEmailNote] = useState<Record<string, string>>({});
-  const [genType, setGenType] = useState(""); const [pub, setPub] = useState(false);
-  const [showUpload, setShowUpload] = useState(false); const [showDev, setShowDev] = useState(false);
-  const [files, setFiles] = useState<FileList | null>(null); const [packName, setPackName] = useState(""); const [packRef, setPackRef] = useState("");
-  const [showManifest, setShowManifest] = useState(false); const [manifestText, setManifestText] = useState("");
-  const [manifestDomains, setManifestDomains] = useState(""); const [manifestNote, setManifestNote] = useState("");
-  const [manifestBusy, setManifestBusy] = useState(false); const [manifestStatus, setManifestStatus] = useState("");
-  const load = useCallback(async () => {
-    setErr("");
-    try { setData(await api(`deliverables?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}`)); }
-    catch (e: any) { setErr(e.message); }
-  }, [org.id, env.id]);
-  useEffect(() => { load(); }, [load]);
-  // Relative, same-origin URL (see lib/deliverable-url): keeps Preview/Download
-  // on the canonical host so the operator cookie rides along and iPad Safari
-  // renders the PDF inline instead of crossing the apex→www 307.
-  const fileUrl = (id: string, mode: string) => deliverableFileUrl(id, mode);
-  const share = async (d: any) => {
-    setBusyId(d.id);
-    try {
-      const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ deliverable_id: d.id, expires_in_days: 7 }) });
-      setShares((s) => ({ ...s, [d.id]: r.url })); setShareTok((t) => ({ ...t, [d.id]: r.token }));
-    }
-    catch (e: any) { alert(e.message); } finally { setBusyId(""); }
-  };
-  // Managed-service delivery: email the existing secure link to a customer
-  // contact. The link is unchanged (credential-free, expiring, revocable).
-  const emailShare = async (d: any) => {
-    const to = (emailTo[d.id] || "").trim(); const token = shareTok[d.id];
-    if (!to || !token) return;
-    setEmailBusyId(d.id); setEmailNote((n) => ({ ...n, [d.id]: "" }));
-    try {
-      const r = await api("deliverables/share", { method: "POST", body: JSON.stringify({ email_share: token, email: to }) });
-      setEmailNote((n) => ({ ...n, [d.id]: `✓ Sent to ${r.emailed_to}` }));
-    } catch (e: any) { setEmailNote((n) => ({ ...n, [d.id]: `✗ ${e.message}` })); }
-    finally { setEmailBusyId(""); }
-  };
-  const generate = async (report_type: string) => {
-    setGenType(report_type); setErr("");
-    try { await api("deliverables/generate", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, period: "monthly", report_type }) }); await load(); }
-    catch (e: any) { setErr(e.message); } finally { setGenType(""); }
-  };
-  const publish = async () => {
-    if (!files || !files.length) return;
-    setPub(true); setErr("");
-    try {
-      const fd = new FormData();
-      fd.append("org_id", org.id); fd.append("environment_id", env.id);
-      if (packName) fd.append("name", packName); if (packRef) fd.append("reference", packRef);
-      for (const f of Array.from(files)) fd.append("files", f);
-      const res = await fetch("/api/runtime/admin/deliverables/publish", { method: "POST", credentials: "same-origin", body: fd });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(d?.error || `HTTP ${res.status}`);
-      setShowUpload(false); setFiles(null); setPackName(""); setPackRef(""); await load();
-    } catch (e: any) { setErr(e.message); } finally { setPub(false); }
-  };
-  const chooseManifest = async (file?: File) => {
-    if (!file) return;
-    setManifestStatus("");
-    try { setManifestText(await file.text()); }
-    catch { setManifestStatus("✗ Could not read that file"); }
-  };
-  const uploadManifest = async () => {
-    setManifestBusy(true); setManifestStatus(""); setErr("");
-    try {
-      let parsed: any;
-      try { parsed = JSON.parse(manifestText); } catch { throw new Error("Manifest must be valid JSON"); }
-      const manifest = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.tools) ? parsed.tools : null);
-      if (!manifest?.length) throw new Error('Use a JSON tool array or an object containing a "tools" array');
-      const domains = manifestDomains.split(",").map((x) => x.trim()).filter(Boolean);
-      const result = await api("manifests", { method: "POST", body: JSON.stringify({ org_id: org.id, environment_id: env.id, manifest, domains, note: manifestNote }) });
-      setManifestStatus(`✓ Manifest ready · ${result.tool_count} tools · version ${result.version?.version || "current"}`);
-      setManifestText(""); setManifestNote(""); setShowManifest(false); await load();
-    } catch (e: any) { setManifestStatus(`✗ ${e.message}`); }
-    finally { setManifestBusy(false); }
-  };
-  const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
-  const packs: any[] = data?.packs || [];
-
-  const fullAudit = data?.full_audit || { available: false };
-  const enterpriseAssessment = data?.enterprise_assessment || { available: false };
-  const busy = !!genType;
-  const ActionBar = (
-    <div>
-      <div className="radmin-actionbar" style={{ flexWrap: "wrap", gap: 8 }}>
-        <button className="radmin-btn primary" disabled={busy} onClick={() => generate("monthly_evidence")}>{genType === "monthly_evidence" ? "Generating…" : "Generate monthly evidence"}</button>
-        <button className="radmin-btn" disabled={busy} onClick={() => generate("executive_summary")}>{genType === "executive_summary" ? "Generating…" : "Generate executive summary"}</button>
-        <button className="radmin-btn" disabled={busy || !fullAudit.available} onClick={() => generate("full_audit")} title={fullAudit.available ? "48-Hour Runtime Governance Audit (manifest assessment)" : fullAudit.reason || "Customer manifest required"}>{genType === "full_audit" ? "Generating…" : "Generate full audit"}</button>
-        <button className="radmin-btn" disabled={busy || !enterpriseAssessment.available} onClick={() => generate("enterprise_assessment")} title={enterpriseAssessment.available ? "Organisation-wide, multi-environment Enterprise Runtime Governance Assessment" : enterpriseAssessment.reason || "At least one customer manifest required"}>{genType === "enterprise_assessment" ? "Generating…" : "Generate enterprise assessment"}</button>
-        <button className="radmin-btn" disabled={busy || manifestBusy} onClick={() => { setShowManifest(!showManifest); setManifestStatus(""); }}>{fullAudit.available ? "Replace manifest…" : "Upload customer manifest…"}</button>
-        <button className="radmin-btn" onClick={() => setShowUpload(!showUpload)}>Publish (upload)…</button>
-        <span style={{ flex: 1 }} />
-        <button className="radmin-btn sm" onClick={() => setShowDev(!showDev)}>Developer</button>
-      </div>
-      {!fullAudit.available && (
-        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
-          <b>Full audit unavailable</b> — {fullAudit.reason || "customer manifest required."} Ingest the customer&rsquo;s tool manifest to enable the 48-Hour Audit.
-        </div>
-      )}
-      {fullAudit.available && (
-        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
-          <b>Full audit ready</b> — {fullAudit.tool_count || 0} tools · manifest version {fullAudit.manifest_version || "current"}.
-        </div>
-      )}
-      {enterpriseAssessment.available && (
-        <div className="radmin-muted" style={{ fontSize: 11, margin: "4px 0 0" }}>
-          <b>Enterprise assessment ready</b> — {enterpriseAssessment.assessed_environment_count || 0}/{enterpriseAssessment.environment_count || 0} environments · {enterpriseAssessment.tool_count || 0} tools in assessed scope.
-        </div>
-      )}
-      {showManifest && (
-        <div className="radmin-upload" style={{ alignItems: "stretch" }}>
-          <input type="file" accept="application/json,.json" onChange={(e) => chooseManifest(e.target.files?.[0])} />
-          <input className="radmin-select" placeholder="Domains: finance, cybersecurity" value={manifestDomains} onChange={(e) => setManifestDomains(e.target.value)} />
-          <input className="radmin-select" placeholder="Note (optional)" value={manifestNote} onChange={(e) => setManifestNote(e.target.value)} />
-          <textarea className="radmin-select" style={{ flexBasis: "100%", minHeight: 130, fontFamily: "ui-monospace, monospace" }} placeholder={'Paste JSON here, for example:\n[{"name":"read_account"},{"name":"transfer_funds"}]'} value={manifestText} onChange={(e) => setManifestText(e.target.value)} />
-          <button className="radmin-btn sm primary" disabled={manifestBusy || !manifestText.trim()} onClick={uploadManifest}>{manifestBusy ? "Uploading & assessing…" : "Save manifest & enable full audit"}</button>
-          <span className="radmin-muted" style={{ fontSize: 11, flexBasis: "100%" }}>Accepts a JSON tool array or an object with a <code>tools</code> array. The manifest is stored, versioned and assessed for this environment.</span>
-        </div>
-      )}
-      {manifestStatus && <div className={manifestStatus.startsWith("✗") ? "radmin-err" : "radmin-muted"} style={{ marginTop: 8 }}>{manifestStatus}</div>}
-      {showUpload && (
-        <div className="radmin-upload">
-          <input type="file" multiple onChange={(e) => setFiles(e.target.files)} />
-          <input className="radmin-select" placeholder="Pack name (optional)" value={packName} onChange={(e) => setPackName(e.target.value)} />
-          <input className="radmin-select" placeholder="Reference (optional)" value={packRef} onChange={(e) => setPackRef(e.target.value)} />
-          <button className="radmin-btn sm primary" disabled={pub || !files?.length} onClick={publish}>{pub ? "Publishing…" : "Publish"}</button>
-          <span className="radmin-muted" style={{ fontSize: 11, flexBasis: "100%" }}>Upload the files the console generated (audit.html/.md/.pdf, executive-report.*, run-summary.json).</span>
-        </div>
-      )}
-      {showDev && (
-        <div className="radmin-code">npm run runtime:publish-audit -- --org {org.id} --env {env.id} --dir deliverables/&lt;slug&gt;</div>
-      )}
-    </div>
-  );
-
-  if (err && !data) return <div className="radmin-err">{err}</div>;
-  if (!data) return <div className="radmin-muted">Loading deliverables…</div>;
-  return (
-    <div>
-      {ActionBar}
-      {err && <div className="radmin-err">{err}</div>}
-      {!packs.length && <div className="radmin-muted" style={{ marginTop: 10 }}>No audit packs yet. <b>Generate evidence pack</b> creates one from live evidence; <b>Publish (upload)</b> attaches the console-generated 48-Hour Audit (with branded PDFs).</div>}
-      {packs.map((p) => (
-        <div key={p.id} className="radmin-pack">
-          <div className="radmin-row" style={{ margin: "0 0 6px" }}>
-            <span className="radmin-pill">{p.name || "Audit pack"}</span>
-            <span className="radmin-muted">{p.reference ? p.reference + " · " : ""}{(p.created_at || "").slice(0, 10)}</span>
-          </div>
-          {(() => {
-            // Render ONLY a string. A pack's summary.assess_summary can be a
-            // coverage OBJECT ({tools, risky, covered, …}); rendering that as a
-            // React child throws (React #31) and crashes the whole Control Room
-            // ("This page couldn't load"). Pick the first usable string, else skip.
-            const s = [p.summary?.assess_summary, p.summary?.headline].find((x: any) => typeof x === "string" && x.trim());
-            return s ? <div className="radmin-muted radmin-pack-sum">{s}</div> : null;
-          })()}
-          <ul className="radmin-deliv">
-            {(p.deliverables || []).map((d: any) => (
-              <li key={d.id} className="radmin-deliv-row">
-                <div className="radmin-deliv-meta">
-                  <div className="radmin-deliv-name">{d.filename}</div>
-                  <div className="radmin-muted">{d.kind}{d.size ? ` · ${(d.size / 1024).toFixed(0)} KB` : ""}</div>
-                </div>
-                <div className="radmin-deliv-actions">
-                  <a className="radmin-btn sm" href={fileUrl(d.id, "preview")} target="_blank" rel="noopener noreferrer">Preview</a>
-                  <a className="radmin-btn sm" href={fileUrl(d.id, "download")}>Download</a>
-                  {shareable(d.filename) && <button className="radmin-btn sm primary" disabled={busyId === d.id} onClick={() => share(d)}>{busyId === d.id ? "…" : "Share securely"}</button>}
-                </div>
-                {shares[d.id] && (
-                  <div className="radmin-deliv-share">
-                    <KeyReveal label="Secure link — expires in 7 days, revocable" value={shares[d.id]} />
-                    <div className="radmin-row" style={{ margin: "8px 0 0", gap: 8 }}>
-                      <input className="radmin-select" style={{ flex: 1, minWidth: 200 }} type="email" inputMode="email"
-                        placeholder="Email this link to the customer (optional)"
-                        value={emailTo[d.id] || ""} onChange={(e) => setEmailTo((t) => ({ ...t, [d.id]: e.target.value }))} />
-                      <button className="radmin-btn sm" disabled={emailBusyId === d.id || !(emailTo[d.id] || "").trim()} onClick={() => emailShare(d)}>
-                        {emailBusyId === d.id ? "Sending…" : "Send to customer"}
-                      </button>
-                    </div>
-                    {emailNote[d.id] && <div className="radmin-muted" style={{ fontSize: 11, marginTop: 4 }}>{emailNote[d.id]}</div>}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Readiness (preflight config audit) ───────────────────────────────────────
-function ReadinessPanel() {
-  const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
-  const load = useCallback(async () => { setErr(""); try { setData(await api("preflight")); } catch (e: any) { setErr(e.message); } }, []);
-  useEffect(() => { load(); }, [load]);
-  if (err) return <div className="radmin-err">{err}</div>;
-  if (!data) return <div className="radmin-muted">Running readiness check…</div>;
-  return (
-    <section className="radmin-card">
-      <div className="radmin-row">
-        <h2>Production readiness</h2>
-        <span className={`radmin-ready ${data.ready ? "ok" : "bad"}`}>{data.ready ? "ENTERPRISE-READY" : "NOT READY"}</span>
-        <button className="radmin-btn sm" onClick={load}>Refresh</button>
-      </div>
-      <p className="radmin-muted">Configuration audit — reads the live environment + engine. (The shadow→enforce capability path is verified by <code>npm run runtime:preflight</code>.)</p>
-      <ul className="radmin-checks">
-        {(data.checks || []).map((c: any, i: number) => (
-          <li key={i} className={`radmin-check ${c.status.toLowerCase()}`}>
-            <span className="radmin-check-tag">{c.status}</span>
-            <span className="radmin-check-name">{c.name}</span>
-            <span className="radmin-check-detail radmin-muted">{c.detail}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-// ── Runtime Assurance Status (read-only) ─────────────────────────────────────
-// Reports whether the platform's assurance controls are actually in force in
-// THIS deployment. There is no control on this panel that changes anything, and
-// that is deliberate: these are configured outside the application (environment
-// variables in the deployment, migrations applied to the database). A governance
-// control the governed system can switch off from its own admin UI is not a
-// control.
-//
-// `unknown` is rendered as its own state, never folded into a warning. The whole
-// point of the panel is to replace "it is probably on" with a reading, so a
-// control whose state could not be established must look different from one that
-// was checked and passed.
-// Four states, and CONFIGURED is deliberately not styled the same as VERIFIED.
-// They rest on different evidence: one is the deployment describing itself, the
-// other is an independent reading of the system. Rendering both green would
-// re-flatten exactly the distinction this panel exists to draw.
-const ASSURANCE_TAG: Record<string, { tag: string; cls: string }> = {
-  verified: { tag: "VERIFIED", cls: "pass" },
-  configured: { tag: "CONFIGURED", cls: "configured" },
-  degraded: { tag: "DEGRADED", cls: "fail" },
-  unknown: { tag: "UNKNOWN", cls: "unknown" },
-};
-
-function AssurancePanel() {
-  const [data, setData] = useState<any>(null);
-  const [err, setErr] = useState("");
-  const load = useCallback(async () => {
-    setErr("");
-    try { setData(await api("assurance")); } catch (e: any) { setErr(e.message); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  // A failed load must not render as an empty, calm panel — that reads as
-  // "nothing wrong". Show the failure and nothing else.
-  if (err) return <div className="radmin-err">Assurance status unavailable — {err}. Treat every control below as UNKNOWN until this resolves.</div>;
-  if (!data) return <div className="radmin-muted">Reading assurance status…</div>;
-
-  const controls: any[] = data.controls || [];
-  const counts: Record<string, number> = data.counts || {};
-  // The headline counts only what is actually WRONG. `configured` is not a
-  // problem, and lumping it in with degraded would push an operator to "fix"
-  // a control that is behaving exactly as designed.
-  const problems = controls.filter((c) => c.state === "degraded").length;
-  const unresolved = controls.filter((c) => c.state === "unknown").length;
-
-  return (
-    <section className="radmin-card">
-      <div className="radmin-row">
-        <h2>Runtime assurance status</h2>
-        <span className={`radmin-ready ${problems ? "bad" : "ok"}`}>
-          {problems ? `${problems} DEGRADED` : "NONE DEGRADED"}
-        </span>
-        {unresolved ? <span className="radmin-ready">{unresolved} UNKNOWN</span> : null}
-        <button className="radmin-btn sm" onClick={load}>Refresh</button>
-      </div>
-      <p className="radmin-muted">
-        Read-only. Whether each assurance control is actually in force in this deployment —
-        store <code>{data.store?.backend}</code>, durable <code>{String(data.store?.durable)}</code>.
-        A control is never reported as present because it ought to be: anything that cannot be
-        established reads <b>UNKNOWN</b>.
-      </p>
-
-      {data.legend ? (
-        <ul className="radmin-legend">
-          {(["verified", "configured", "degraded", "unknown"] as const).map((k) => (
-            <li key={k}>
-              <span className={`radmin-check-tag radmin-legend-tag ${ASSURANCE_TAG[k].cls}`}>{ASSURANCE_TAG[k].tag}</span>
-              <span className="radmin-muted">{data.legend[k]}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      <ul className="radmin-checks">
-        {controls.map((c) => {
-          const t = ASSURANCE_TAG[c.state] || ASSURANCE_TAG.unknown;
-          return (
-            <li key={c.id} className={`radmin-check ${t.cls}`}>
-              <span className="radmin-check-tag">{t.tag}</span>
-              <span className="radmin-check-name">
-                {c.label}
-                {/* The source is the point of the two positive states: it tells an
-                    operator WHY the platform believes this, not just that it does. */}
-                <br />
-                <span className="radmin-src" title="Verification source">
-                  {c.verification_source}
-                  {c.independently_verified ? " · independent" : ""}
-                </span>
-                {c.env_var ? <><br /><code className="radmin-muted" style={{ fontSize: 10.5 }}>{c.env_var}</code></> : null}
-              </span>
-              <span className="radmin-check-detail radmin-muted">
-                {c.summary}
-                {c.tables ? (
-                  <>
-                    <br />
-                    {Object.entries(c.tables).map(([tbl, v]: [string, any]) => (
-                      <span key={tbl} style={{ marginRight: 12 }}>
-                        {v.protected ? "✓" : "✕"} {tbl}{v.note ? ` (${v.note})` : ""}
-                      </span>
-                    ))}
-                  </>
-                ) : null}
-                {c.counts ? (
-                  <><br />sampled {c.sampled} of {c.total_records} · verified {c.counts.verified} · unverifiable {c.counts.unverifiable} · mismatch {c.counts.mismatch} · no hash {c.counts.absent}</>
-                ) : null}
-                {c.report_id ? (<><br />report <code>{c.report_id}</code> · {c.period} · generated {String(c.generated_at || "").slice(0, 10)}</>) : null}
-                {c.detail ? (<><br /><span style={{ opacity: 0.75 }}>{c.detail}</span></>) : null}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="radmin-row" style={{ marginTop: 16 }}>
-        <span className="radmin-muted">
-          {Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(" · ")} · read {String(data.generated_at || "").slice(0, 19).replace("T", " ")}
-        </span>
-      </div>
-
-      {(data.notes || []).map((n: string, i: number) => (
-        <p key={i} className="radmin-muted" style={{ fontSize: 12, marginTop: 8 }}>{n}</p>
-      ))}
-    </section>
-  );
-}
-
-// ── Alerts (Phase 3) ─────────────────────────────────────────────────────────
-function AlertsPanel() {
-  const [data, setData] = useState<any>(null); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
-  const load = useCallback(async () => { setErr(""); try { setData(await api("alerts?limit=100")); } catch (e: any) { setErr(e.message); } }, []);
-  useEffect(() => { load(); }, [load]);
-  const sweep = async () => { setBusy(true); try { await api("alerts", { method: "POST" }); await load(); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
-  if (err) return <div className="radmin-err">{err}</div>;
-  if (!data) return <div className="radmin-muted">Loading alerts…</div>;
-  const conds: any[] = data.conditions || []; const recent: any[] = data.recent || [];
-  return (
-    <section className="radmin-card">
-      <div className="radmin-row">
-        <h2>Operational alerts</h2>
-        <span className={`radmin-ready ${conds.length ? "bad" : "ok"}`}>{conds.length ? `${conds.length} FIRING` : "ALL CLEAR"}</span>
-        <button className="radmin-btn sm" disabled={busy} onClick={sweep}>{busy ? "Sweeping…" : "Run sweep"}</button>
-        <button className="radmin-btn sm" onClick={load}>Refresh</button>
-      </div>
-      <p className="radmin-muted">Live conditions across engine reachability, store durability, and BLOCK-spike thresholds. Record-failure alerts fire in real time from the gateway.</p>
-      <ul className="radmin-checks">
-        {conds.length === 0 && <li className="radmin-check pass"><span className="radmin-check-tag">OK</span><span className="radmin-check-name">No conditions firing</span><span className="radmin-check-detail radmin-muted">engine reachable · store durable · no BLOCK spike</span></li>}
-        {conds.map((c, i) => (
-          <li key={i} className={`radmin-check ${c.severity === "critical" ? "fail" : "warn"}`}>
-            <span className="radmin-check-tag">{c.severity === "critical" ? "CRIT" : "WARN"}</span>
-            <span className="radmin-check-name">{c.kind}</span>
-            <span className="radmin-check-detail radmin-muted">{c.message}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="radmin-row"><span className="radmin-muted">Recent alerts</span></div>
-      {recent.length === 0 ? <div className="radmin-muted">No alerts recorded yet (durable once <code>rg_alerts</code> exists).</div> : (
-        <div className="radmin-table-wrap">
-          <table className="radmin-table">
-            <thead><tr><th>Time</th><th>Severity</th><th>Kind</th><th>Message</th></tr></thead>
-            <tbody>
-              {recent.map((r, i) => (
-                <tr key={i}>
-                  <td>{(r.created_at || "").replace("T", " ").slice(0, 19)}</td>
-                  <td><span className={`radmin-verdict ${r.severity === "critical" ? "block" : "escalate"}`}>{r.severity}</span></td>
-                  <td className="radmin-muted">{r.kind}</td>
-                  <td>{r.message}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ── Audit log ────────────────────────────────────────────────────────────────
-function AuditPanel() {
-  const [rows, setRows] = useState<any[] | null>(null); const [err, setErr] = useState("");
-  useEffect(() => { (async () => { try { const d = await api("audit?limit=100"); setRows(d.actions || []); } catch (e: any) { setErr(e.message); } })(); }, []);
-  if (err) return <div className="radmin-err">{err}</div>;
-  if (!rows) return <div className="radmin-muted">Loading audit log…</div>;
-  return (
-    <section className="radmin-card">
-      <h2>Operator action log</h2>
-      {!rows.length ? <div className="radmin-muted">No actions recorded yet (durable once <code>rg_admin_audit</code> exists).</div> : (
-        <div className="radmin-table-wrap">
-          <table className="radmin-table">
-            <thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Via</th><th>Target</th></tr></thead>
-            <tbody>
-              {rows.map((r: any, i: number) => (
-                <tr key={i}>
-                  <td>{(r.created_at || "").replace("T", " ").slice(0, 19)}</td>
-                  <td><span className="radmin-pill">{r.action}</span></td>
-                  <td>{r.actor}</td><td className="radmin-muted">{r.via}</td><td className="radmin-muted">{r.target || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ── Small shared pieces ──────────────────────────────────────────────────────
-function Stat({ label, value, tone, trend }: { label: string; value: any; tone?: string; trend?: { pct: number; good: boolean } | null }) {
-  return (
-    <div className={`radmin-stat${tone ? " " + tone : ""}`}>
-      <div className="radmin-stat-top">
-        <div className="radmin-stat-v">{value}</div>
-        {trend && <span className={`radmin-trend ${trend.good ? "good" : "bad"}`}>{trend.pct > 0 ? "▲" : "▼"} {Math.abs(trend.pct)}%</span>}
-      </div>
-      <div className="radmin-stat-l">{label}</div>
-    </div>
-  );
-}
-function KeyReveal({ label, value, warning }: { label: string; value: string; warning?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="radmin-keyreveal">
-      <div className="radmin-muted">{label}</div>
-      <div className="radmin-keyrow">
-        <code>{value}</code>
-        <button className="radmin-btn sm" onClick={async () => { try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* */ } }}>
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      {warning && <div className="radmin-err" style={{ marginTop: 8 }}>{warning}</div>}
-    </div>
-  );
-}
+Custom Test changes only the synthetic user task and untrusted text. It cannot
+add tools, endpoints, credentials, shell commands, real HTTP clients, email
+clients, payment clients or production data access. The server assigns the same
+fixed simulated inventory and existing Morrison policy path.

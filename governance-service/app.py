@@ -589,6 +589,36 @@ async def frontier_run(payload: dict[str, Any],
     return JSONResponse(await run_frontier(req, request))
 
 
+@app.post("/v1/frontier/session", dependencies=[Depends(require_frontier_token)])
+def frontier_session_start(payload: dict[str, Any], request: Request) -> JSONResponse:
+    from frontier_api import FrontierSessionRequest, start_frontier_session
+    try:
+        req = FrontierSessionRequest.model_validate(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid session request") from exc
+    return JSONResponse(start_frontier_session(req, request))
+
+
+@app.get("/v1/frontier/session", dependencies=[Depends(require_frontier_token)])
+def frontier_session_list(limit: int = 20) -> JSONResponse:
+    from frontier_api import list_frontier_sessions
+    return JSONResponse(list_frontier_sessions(max(1, min(limit, 50))))
+
+
+@app.get("/v1/frontier/session/{session_id}",
+         dependencies=[Depends(require_frontier_token)])
+def frontier_session_get(session_id: str) -> JSONResponse:
+    from frontier_api import get_frontier_session
+    return JSONResponse(get_frontier_session(session_id))
+
+
+@app.post("/v1/frontier/session/{session_id}/{action}",
+          dependencies=[Depends(require_frontier_token)])
+def frontier_session_control(session_id: str, action: str) -> JSONResponse:
+    from frontier_api import control_frontier_session
+    return JSONResponse(control_frontier_session(session_id, action))
+
+
 # Shared secret proving a request really came through the authenticating
 # gateway. Identity headers are honoured ONLY when it matches.
 GATEWAY_SECRET = os.getenv("GOVERNANCE_GATEWAY_SECRET", "")
