@@ -27,6 +27,7 @@ from runtime_eval.frontier.tool_schema import TOOLS
 PROVIDER_ENV = {
     "anthropic": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL"),
     "openai": ("OPENAI_API_KEY", "OPENAI_MODEL"),
+    "huggingface": ("HF_TOKEN", "HF_MODELS"),
 }
 ALLOWED_DOMAINS = (
     "broad", "finance", "cybersecurity", "data_privacy", "enterprise",
@@ -50,7 +51,7 @@ class FrontierRunRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    provider: Literal["anthropic", "openai"]
+    provider: Literal["anthropic", "openai", "huggingface"]
     model: str = Field(min_length=1, max_length=160)
     scenario_id: str = Field(min_length=1, max_length=120)
     runs: int = Field(default=1, ge=1, le=5)
@@ -76,13 +77,16 @@ class FrontierRunRequest(BaseModel):
 def _provider_config(provider: str) -> dict[str, Any]:
     key_env, model_env = PROVIDER_ENV[provider]
     key_ready = bool(os.getenv(key_env))
-    model = os.getenv(model_env, "").strip()
+    configured = os.getenv(model_env, "").strip()
+    models = ([item.strip() for item in configured.split(",") if item.strip()]
+              if provider == "huggingface" else ([configured] if configured else []))
     return {
         "provider": provider,
-        "status": "READY" if key_ready and model else "NOT_CONFIGURED",
-        "model": model or None,
+        "status": "READY" if key_ready and models else "NOT_CONFIGURED",
+        "model": models[0] if models else None,
+        "models": models,
         "missing": [name for name, ready in ((key_env, key_ready),
-                                               (model_env, bool(model))) if not ready],
+                                               (model_env, bool(models))) if not ready],
     }
 
 
@@ -170,7 +174,7 @@ def _validate_config(req: FrontierRunRequest) -> None:
             "error": "provider_not_configured", "provider": req.provider,
             "missing": config["missing"],
         })
-    if req.model != config["model"]:
+    if req.model not in config["models"]:
         raise HTTPException(status_code=422,
                             detail="Model is not in the server-side allowlist")
 

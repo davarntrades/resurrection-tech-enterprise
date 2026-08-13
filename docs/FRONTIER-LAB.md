@@ -27,6 +27,10 @@ On Railway (`governance-service`):
 - `GOVERNANCE_TOKEN`
 - `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` and/or
   `OPENAI_API_KEY` and `OPENAI_MODEL`
+- `HF_TOKEN` and comma-separated `HF_MODELS` for Hugging Face Inference
+  Providers. Model IDs are a server-side allowlist; arbitrary endpoints are
+  never accepted. `HF_TEMPERATURE` is optional and defaults to `0`.
+  `FRONTIER_PROVIDER_TIMEOUT_S` bounds the remote inference request.
 - optional `FRONTIER_MAX_RUNS`, `FRONTIER_MAX_CONTENT_CHARS`,
   `FRONTIER_MAX_TASK_CHARS`, `FRONTIER_TIMEOUT_S`,
   `FRONTIER_RATE_PER_MINUTE`

@@ -114,6 +114,30 @@ def test_provider_keys_never_returned_to_client(monkeypatch):
     assert "ANTHROPIC_API_KEY" not in body
 
 
+def test_huggingface_provider_models_are_server_allowlisted(monkeypatch):
+    monkeypatch.setattr(service_app, "AUTH_TOKEN", "test-governance-token")
+    monkeypatch.setenv("HF_TOKEN", "hf-test-secret-never-return")
+    monkeypatch.setenv("HF_MODELS", "org/model-a,org/model-b")
+    body = _client().get("/v1/frontier/config").json()
+    provider = next(item for item in body["providers"]
+                    if item["provider"] == "huggingface")
+    assert provider["status"] == "READY"
+    assert provider["models"] == ["org/model-a", "org/model-b"]
+    assert "hf-test-secret-never-return" not in str(body)
+
+
+def test_huggingface_unapproved_model_and_endpoint_rejected(monkeypatch):
+    monkeypatch.setattr(service_app, "AUTH_TOKEN", "test-governance-token")
+    monkeypatch.setenv("HF_TOKEN", "hf-test-secret-never-return")
+    monkeypatch.setenv("HF_MODELS", "org/allowed-model")
+    for model in ("org/other-model", "https://attacker.example/v1"):
+        res = _client().post("/v1/frontier/run", json={
+            "provider": "huggingface", "model": model,
+            "scenario_id": "clean_control_001", "runs": 1,
+        })
+        assert res.status_code == 422
+
+
 def test_unknown_provider_rejected(monkeypatch):
     monkeypatch.setattr(service_app, "AUTH_TOKEN", "test-governance-token")
     res = _client().post("/v1/frontier/run", json={

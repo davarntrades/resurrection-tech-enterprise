@@ -5,3 +5,4 @@ uvicorn[standard]==0.34.0
 pydantic==2.10.4
 anthropic>=0.49,<1
 openai>=1.68,<2
+huggingface_hub>=0.31,<2
