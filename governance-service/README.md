@@ -46,6 +46,8 @@ is required.
 | `GOVERNANCE_HORIZON` | `3` | default forward-reachability horizon |
 | `LOG_LEVEL` | `INFO` | structured-log level |
 | `ENGINE_REF` _(build arg)_ | `main` | engine git ref to vendor/pin |
+| `FRONTIER_SESSION_DB_PATH` | `/tmp/frontier_sessions.sqlite3` | session SQLite path; use `/data/frontier_sessions.sqlite3` on a mounted Railway volume |
+| `FRONTIER_MAX_CONCURRENT_SESSIONS` | `2` | hard server concurrency bound for paid model sessions |
 
 The website side reads:
 

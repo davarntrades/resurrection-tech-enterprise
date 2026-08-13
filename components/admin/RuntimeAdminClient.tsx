@@ -28,7 +28,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "overview" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
+type Tab = "overview" | "sessions" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
 
 export default function RuntimeAdminClient({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -54,7 +54,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["overview", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "sessions", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -68,6 +68,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
 
       <main className="radmin-main">
         {tab === "overview" && <OverviewPanel onOpenCustomers={() => setTab("customers")} />}
+        {tab === "sessions" && <GovernedSessionsPanel />}
         {tab === "customers" && <CustomersPanel />}
         {tab === "onboard" && <OnboardPanel onDone={() => setTab("customers")} />}
         {tab === "integrations" && <IntegrationGatewayPanel />}
@@ -78,6 +79,47 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
       </main>
     </div>
   );
+}
+
+function GovernedSessionsPanel() {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [persistence, setPersistence] = useState<any>(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    setErr("");
+    try {
+      const response = await fetch("/api/frontier/session", {
+        credentials: "same-origin", cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setSessions(data.sessions || []); setPersistence(data.persistence || null);
+    } catch (reason) { setErr((reason as Error).message); }
+  }, []);
+  useEffect(() => { load(); const timer = window.setInterval(load, 5000); return () => window.clearInterval(timer); }, [load]);
+  if (err) return <div className="radmin-err">{err}</div>;
+  return <section className="radmin-card">
+    <div className="radmin-row"><h2>Governed agent sessions</h2><span style={{ flex: 1 }} /><a className="radmin-btn" href="/lab">Open Frontier Lab</a><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
+    <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
+    {persistence?.volume_required && <div className="radmin-err">Session history is process-local until a Railway volume is mounted at the configured database path.</div>}
+    {!sessions.length ? <div className="radmin-empty">No governed sessions recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Status</th></tr></thead>
+      <tbody>{sessions.map((session) => {
+        const steps = session.steps || [];
+        const risky = [...steps].reverse().find((step: any) => step.morrison_decision?.verdict !== "PERMIT");
+        const last = steps.at(-1);
+        return <tr key={session.session_id}>
+          <td><a href={`/lab?session=${encodeURIComponent(session.session_id)}`}><code>{session.session_id}</code></a></td>
+          <td>{String(session.mode || "").replaceAll("_", " ")}</td>
+          <td>{session.provider}<br /><span className="radmin-muted">{session.model}</span></td>
+          <td>{session.current_step} / {session.max_steps}</td>
+          <td>{risky?.normalized_call?.tool || "—"}</td>
+          <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
+          <td>{String(session.status || "").replaceAll("_", " ")}</td>
+        </tr>;
+      })}</tbody>
+    </table></div>}
+  </section>;
 }
 
 // ── Login ────────────────────────────────────────────────────────────────────
