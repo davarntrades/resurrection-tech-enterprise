@@ -92,6 +92,10 @@ async function main() {
     psql("scripts/runtime/level2-schema-verification.sql", "schema-verification.jsonl");
     metadata.steps.at(-1).status = "PASS";
 
+    metadata.steps.push({ id: "target_empty", status: "RUNNING" });
+    psql("scripts/runtime/level2-target-safety.sql", "target-safety.jsonl");
+    metadata.steps.at(-1).status = "PASS";
+
     metadata.steps.push({ id: "fixtures", status: "RUNNING" });
     psql("scripts/runtime/level2-fixture-setup.sql", "fixture-setup.jsonl");
     fixturesCreated = true;
