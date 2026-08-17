@@ -28,6 +28,8 @@ jobs:
         run: |
           mkdir -p artifacts
           npm audit --json > artifacts/npm-audit.json || true
+          npm ls next postcss sharp brace-expansion js-yaml nanoid --all --json > artifacts/npm-audit-tree.json || true
+          npm audit fix --dry-run --json > artifacts/npm-audit-fix-dry-run.json || true
           node - <<'NODE'
           const fs = require('node:fs');
           const audit = JSON.parse(fs.readFileSync('artifacts/npm-audit.json','utf8'));
@@ -38,6 +40,15 @@ jobs:
             const via = (v.via || []).map(x => typeof x === 'string' ? x : `${x.source || ''}:${x.title || ''}`).join(' | ');
             console.log(`AUDIT ${v.severity.toUpperCase()} ${name} direct=${!!v.isDirect} range=${v.range || ''} fix=${JSON.stringify(v.fixAvailable)} via=${via}`);
           }
+          const tree = JSON.parse(fs.readFileSync('artifacts/npm-audit-tree.json','utf8'));
+          function walk(node, chain=[]) {
+            for (const [name, dep] of Object.entries(node.dependencies || {})) {
+              const next = [...chain, `${name}@${dep.version || 'unknown'}`];
+              if (['next','postcss','sharp','brace-expansion','js-yaml','nanoid'].includes(name)) console.log(`TREE ${next.join(' > ')}`);
+              walk(dep, next);
+            }
+          }
+          walk(tree);
           NODE
 
       - name: Upload dependency audit evidence
@@ -45,7 +56,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: general-production-npm-audit
-          path: artifacts/npm-audit.json
+          path: |
+            artifacts/npm-audit.json
+            artifacts/npm-audit-tree.json
+            artifacts/npm-audit-fix-dry-run.json
           if-no-files-found: error
           retention-days: 30
 
