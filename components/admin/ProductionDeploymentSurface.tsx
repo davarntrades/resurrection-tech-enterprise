@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const MODES = ["SHADOW", "GUARDED_PILOT", "ENFORCED", "PRODUCTION", "SOVEREIGN"] as const;
+const RESOURCE_CLASSES = ["CANARY", "STAGING", "PRODUCTION", "SOVEREIGN"] as const;
+const BLAST_RADII = ["inert", "contained", "limited", "production", "sovereign", "unknown"] as const;
 
 async function jsonFetch(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
@@ -35,6 +37,12 @@ export default function ProductionDeploymentSurface() {
   const [providerRefs, setProviderRefs] = useState("");
   const [preflight, setPreflight] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [resourceId, setResourceId] = useState("");
+  const [resourceType, setResourceType] = useState("");
+  const [resourceRef, setResourceRef] = useState("");
+  const [resourceClass, setResourceClass] = useState<(typeof RESOURCE_CLASSES)[number]>("CANARY");
+  const [blastRadius, setBlastRadius] = useState<(typeof BLAST_RADII)[number]>("inert");
+  const [resourceNote, setResourceNote] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -51,6 +59,7 @@ export default function ProductionDeploymentSurface() {
   const env = useMemo(() => catalog?.environments?.find((e: any) => e.id === environmentId), [catalog, environmentId]);
   const active = useMemo(() => catalog?.profiles?.find((p: any) => p.environment_id === environmentId), [catalog, environmentId]);
   const org = useMemo(() => catalog?.orgs?.find((o: any) => o.id === env?.org_id), [catalog, env]);
+  const resources = useMemo(() => (catalog?.resources || []).filter((r: any) => r.environment_id === environmentId), [catalog, environmentId]);
 
   if (!catalog && !production && !error) return null;
   if (error) return <section className="radmin-card"><div className="radmin-err">Production readiness unavailable — {error}. Treat posture as UNKNOWN.</div></section>;
@@ -76,6 +85,42 @@ export default function ProductionDeploymentSurface() {
     } catch (e: any) {
       setPreflight(e.data?.readiness || null); setError(e.message || "deployment operation failed");
     } finally { setBusy(false); }
+  }
+
+  function editResource(resource: any) {
+    setResourceId(resource.id || "");
+    setResourceType(resource.resource_type || "");
+    setResourceRef(resource.resource_ref || "");
+    setResourceClass(resource.classification || "CANARY");
+    setBlastRadius(resource.blast_radius || "unknown");
+    setResourceNote("");
+  }
+
+  function clearResource() {
+    setResourceId(""); setResourceType(""); setResourceRef(""); setResourceClass("CANARY"); setBlastRadius("inert");
+  }
+
+  async function saveResource() {
+    if (!env || !resourceType.trim() || !resourceRef.trim()) return;
+    setBusy(true); setResourceNote("");
+    try {
+      await jsonFetch("/api/runtime/admin/deployment", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "resource_upsert",
+          environment_id: env.id,
+          resource_id: resourceId || undefined,
+          resource_type: resourceType,
+          resource_ref: resourceRef,
+          classification: resourceClass,
+          blast_radius: blastRadius,
+        }),
+      });
+      setResourceNote("Saved with server-derived tenant scope.");
+      clearResource();
+      await load();
+    } catch (e: any) { setResourceNote(e.message || "resource classification failed"); }
+    finally { setBusy(false); }
   }
 
   const sovereignState = profile === "SOVEREIGN" ? preflight?.sovereign : null;
@@ -107,14 +152,14 @@ export default function ProductionDeploymentSurface() {
       <div className="radmin-row" style={{ alignItems: "center", flexWrap: "wrap" }}>
         <div>
           <h3 style={{ margin: 0 }}>Enable Sovereign Deployment</h3>
-          <div className="radmin-muted">Guided activation derives secure defaults and asks only for customer-owned infrastructure references. Runtime facts such as local-engine placement, customer data-plane ownership and egress verification are measured/attested by backend preflight — this form cannot self-certify them.</div>
+          <div className="radmin-muted">Guided activation derives secure defaults and asks only for customer-owned infrastructure references. Runtime facts are measured or attested by backend preflight; this form cannot self-certify them.</div>
         </div>
         {active && <span className="radmin-pill" style={{ marginLeft: "auto" }}>Current: {active.profile} · {active.status}</span>}
       </div>
 
       <div className="radmin-form" style={{ marginTop: 12 }}>
         <label>1. Environment
-          <select className="radmin-select" value={environmentId} onChange={(e) => { setEnvironmentId(e.target.value); setPreflight(null); }}>
+          <select className="radmin-select" value={environmentId} onChange={(e) => { setEnvironmentId(e.target.value); setPreflight(null); clearResource(); }}>
             {(catalog?.environments || []).map((e: any) => <option key={e.id} value={e.id}>{catalog?.orgs?.find((o: any) => o.id === e.org_id)?.name || e.org_id} · {e.name || e.kind} · {e.id}</option>)}
           </select>
         </label>
@@ -133,7 +178,7 @@ export default function ProductionDeploymentSurface() {
           <label>Approved provider endpoint references
             <input className="radmin-select" value={providerRefs} onChange={(e) => setProviderRefs(e.target.value)} placeholder="customer endpoint refs, comma-separated" />
           </label>
-          <div className="radmin-muted">Target environment must also prove: GUARDIAN_PROFILE=sovereign_private, GUARDIAN_CUSTOMER_DATA_PLANE=1, GUARDIAN_LOCAL_ENGINE=1, GUARDIAN_PROVIDER_ENDPOINTS_VERIFIED=1, GUARDIAN_EGRESS_VERIFIED=1, and a recovery/rollback path. Missing proof remains UNKNOWN/BLOCKED.</div>
+          <div className="radmin-muted">The target must separately prove its sovereign_private data plane, local engine, endpoint provenance, restricted egress and recovery/rollback path. Missing proof remains UNKNOWN/BLOCKED.</div>
         </>}
       </div>
 
@@ -149,15 +194,41 @@ export default function ProductionDeploymentSurface() {
         <div className="radmin-row"><b>{profile} POSTURE</b><span style={{ color: tone(preflight.status), fontWeight: 700 }}>{preflight.status}</span><span className="radmin-muted">{preflight.checked_at}</span></div>
         <ul className="radmin-checks">{(preflight.checks || []).map((c: any) => <li key={c.id} className={`radmin-check ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : "warn"}`}><span className="radmin-check-tag">{c.status}</span><span className="radmin-check-name">{c.name}</span><span className="radmin-check-detail radmin-muted">{c.detail}</span></li>)}</ul>
         {sovereignState && <div className="radmin-kv">
-          <div><span>Data residency</span><code>{sovereignState.data_residency}</code></div>
-          <div><span>Secrets</span><code>{sovereignState.secrets}</code></div>
-          <div><span>Governance engine</span><code>{sovereignState.governance_engine}</code></div>
-          <div><span>Evidence</span><code>{sovereignState.evidence}</code></div>
-          <div><span>Outbound telemetry</span><code>{sovereignState.outbound_telemetry}</code></div>
-          <div><span>External control plane</span><code>{sovereignState.external_control_plane_dependency}</code></div>
-          <div><span>Fail-closed</span><code>{sovereignState.fail_closed}</code></div>
-          <div><span>Network egress</span><code>{sovereignState.network_egress}</code></div>
+          <div><span>Data residency</span><code>{sovereignState.data_residency}</code></div><div><span>Secrets</span><code>{sovereignState.secrets}</code></div>
+          <div><span>Governance engine</span><code>{sovereignState.governance_engine}</code></div><div><span>Evidence</span><code>{sovereignState.evidence}</code></div>
+          <div><span>Outbound telemetry</span><code>{sovereignState.outbound_telemetry}</code></div><div><span>External control plane</span><code>{sovereignState.external_control_plane_dependency}</code></div>
+          <div><span>Fail-closed</span><code>{sovereignState.fail_closed}</code></div><div><span>Network egress</span><code>{sovereignState.network_egress}</code></div>
         </div>}
+      </div>}
+
+      <hr style={{ border: 0, borderTop: "1px solid var(--line-2)", margin: "18px 0" }} />
+      <div>
+        <h3 style={{ marginBottom: 3 }}>Safe target classification</h3>
+        <div className="radmin-muted">Label real workflow targets so an operator can distinguish inert/canary resources from production or sovereign blast radius. This does not grant permission; Morrison governance remains authoritative.</div>
+      </div>
+      <div className="radmin-form" style={{ marginTop: 12 }}>
+        <label>Resource type
+          <input className="radmin-select" value={resourceType} onChange={(e) => setResourceType(e.target.value)} placeholder="mailbox, bucket, IAM role, queue…" />
+        </label>
+        <label>Resource reference
+          <input className="radmin-select" value={resourceRef} onChange={(e) => setResourceRef(e.target.value)} placeholder="approved non-secret resource identifier" />
+        </label>
+        <label>Classification
+          <select className="radmin-select" value={resourceClass} onChange={(e) => setResourceClass(e.target.value as any)}>{RESOURCE_CLASSES.map((x) => <option key={x}>{x}</option>)}</select>
+        </label>
+        <label>Blast radius
+          <select className="radmin-select" value={blastRadius} onChange={(e) => setBlastRadius(e.target.value as any)}>{BLAST_RADII.map((x) => <option key={x}>{x}</option>)}</select>
+        </label>
+      </div>
+      <div className="radmin-row" style={{ marginTop: 8, gap: 8 }}>
+        <button className="radmin-btn primary" disabled={busy || !env || !resourceType.trim() || !resourceRef.trim()} onClick={saveResource}>{resourceId ? "Update classification" : "Add classification"}</button>
+        {resourceId && <button className="radmin-btn" disabled={busy} onClick={clearResource}>Cancel edit</button>}
+        {resourceNote && <span className="radmin-muted">{resourceNote}</span>}
+      </div>
+      {!!resources.length && <div className="radmin-table-wrap" style={{ marginTop: 10 }}>
+        <table className="radmin-table"><thead><tr><th>Resource</th><th>Class</th><th>Blast radius</th><th>Environment</th><th /></tr></thead>
+          <tbody>{resources.map((r: any) => <tr key={r.id}><td><b>{r.resource_type}</b><br /><code className="radmin-muted">{r.resource_ref}</code></td><td>{r.classification}</td><td>{r.blast_radius || "unknown"}</td><td><code>{r.environment_id}</code></td><td><button className="radmin-btn sm" onClick={() => editResource(r)}>Edit</button></td></tr>)}</tbody>
+        </table>
       </div>}
     </section>
   );
