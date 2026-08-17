@@ -5,11 +5,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# TEMPORARY release-candidate permission: the final step may promote only the
-# already-tested package-lock.json on this same hard-coded branch. This is
-# removed immediately after promotion; no source file is writable by the step.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deterministic:
@@ -66,16 +63,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Apply compatible dependency remediation candidate
+      - name: Verify compatible dependency remediation remains clean
         shell: bash
         run: |
           set -euo pipefail
-          npm audit fix
           npm audit --audit-level=high
           cp package-lock.json artifacts/package-lock.remediated.json
           npm ls next postcss sharp brace-expansion js-yaml nanoid --all
 
-      - name: Upload compatible dependency candidate
+      - name: Upload committed dependency evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -158,26 +154,6 @@ jobs:
 
       - name: Production build
         run: npm run build
-
-      - name: Promote validated dependency lockfile only
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/general-production-readiness' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- package-lock.json; then
-            echo "Compatible dependency lockfile is already committed; nothing to promote."
-            exit 0
-          fi
-          cp package-lock.json /tmp/package-lock.remediated.json
-          git fetch origin agent/general-production-readiness
-          git checkout -B agent/general-production-readiness origin/agent/general-production-readiness
-          cp /tmp/package-lock.remediated.json package-lock.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git diff --cached --quiet && exit 0
-          git commit -m "Apply compatible dependency security updates"
-          git push origin HEAD:agent/general-production-readiness
 
       - name: Stop hermetic governance engine
         if: always()
