@@ -1,0 +1,86 @@
+name: General Production Readiness Validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    name: Production readiness contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOVERNANCE_URL: http://127.0.0.1:18791
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Start hermetic governance engine
+        shell: bash
+        run: |
+          nohup node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
+          echo $! > mock-engine.pid
+          for i in {1..50}; do
+            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then exit 0; fi
+            sleep 0.1
+          done
+          cat mock-engine.log
+          exit 1
+
+      - name: General production readiness contracts
+        run: npm run runtime:production-readiness-test
+
+      - name: Production profile fail-closed gates
+        run: node scripts/runtime/production-profile-gates.test.cjs
+
+      - name: Tenant isolation live contract
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GPR_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.GPR_TEST_SUPABASE_ANON_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.GPR_TEST_SUPABASE_JWT_SECRET }}
+          PRODUCTION_RLS_TEST_ORG_A: ${{ secrets.GPR_TEST_ORG_A }}
+          PRODUCTION_RLS_TEST_ORG_B: ${{ secrets.GPR_TEST_ORG_B }}
+        run: |
+          if [[ -n "$NEXT_PUBLIC_SUPABASE_URL" && -n "$SUPABASE_ANON_KEY" && -n "$SUPABASE_JWT_SECRET" && -n "$PRODUCTION_RLS_TEST_ORG_A" && -n "$PRODUCTION_RLS_TEST_ORG_B" ]]; then
+            npm run runtime:tenant-isolation-contract
+          else
+            echo "NOT VALIDATED: disposable live RLS target secrets are not configured."
+            echo "This step intentionally does not fall back to resurrection-tech-prod."
+          fi
+
+      - name: Existing runtime gateway regression
+        run: npm run runtime:test
+
+      - name: Runtime hardening and isolation
+        run: npm run runtime:harden && npm run runtime:isolation
+
+      - name: Contracts
+        run: npm run contracts
+
+      - name: Operations regression
+        run: npm run ops:test
+
+      - name: Sovereign regression
+        run: npm run sovereign:ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Stop hermetic governance engine
+        if: always()
+        shell: bash
+        run: test -f mock-engine.pid && kill "$(cat mock-engine.pid)" 2>/dev/null || true
