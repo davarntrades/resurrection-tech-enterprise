@@ -22,15 +22,14 @@ function safeConfig(input: unknown) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return {};
   const allowed = new Set([
     "sovereign_profile", "customer_environment_ref", "secret_store_ref",
-    "customer_secret_store", "evidence_store_ref", "governance_engine_location",
-    "local_engine", "provider_endpoint_refs", "approved_egress", "rollback_path_ref",
-    "audit_export_ref", "notes",
+    "customer_secret_store", "evidence_store_ref", "provider_endpoint_refs",
+    "approved_egress", "rollback_path_ref", "audit_export_ref", "notes",
   ]);
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
     if (!allowed.has(key)) continue;
-    // This surface stores references/configuration only. Raw credentials belong
-    // in the customer-controlled secret store and must never land here.
+    // Store references/configuration only. Raw credentials belong in the
+    // customer-controlled secret store and never land in deployment_profiles.
     if (/secret|token|password|credential/i.test(key) && !/(ref|store)/i.test(key)) continue;
     out[key] = value;
   }
@@ -49,10 +48,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     definitions: rt.deploymentProfiles.DEFINITIONS,
     sovereign_defaults: rt.deploymentProfiles.SOVEREIGN_DEFAULTS,
-    orgs,
-    environments,
-    profiles,
-    resources,
+    orgs, environments, profiles, resources,
   });
 }
 
@@ -66,7 +62,7 @@ export async function POST(req: NextRequest) {
   const profile = String(body.profile || "");
   if (!org_id || !environment_id || !profile) return NextResponse.json({ error: "org_id, environment_id and profile are required" }, { status: 400 });
   const config = safeConfig(body.config);
-  const actor = authz.actor || "control_room";
+  const actor = authz.identity || "control_room";
 
   try {
     if (action === "draft") {
