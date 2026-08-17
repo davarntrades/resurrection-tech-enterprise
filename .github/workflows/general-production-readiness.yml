@@ -12,7 +12,7 @@ jobs:
   deterministic:
     name: Production readiness contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
       GOVERNANCE_URL: http://127.0.0.1:18791
     steps:
@@ -63,6 +63,24 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Apply compatible dependency remediation candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit fix
+          npm audit --audit-level=high
+          cp package-lock.json artifacts/package-lock.remediated.json
+          npm ls next postcss sharp brace-expansion js-yaml nanoid --all
+
+      - name: Upload compatible dependency candidate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: general-production-dependency-candidate
+          path: artifacts/package-lock.remediated.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Start hermetic governance engine
         shell: bash
         run: |
@@ -89,6 +107,9 @@ jobs:
 
       - name: Control Room readiness state contracts
         run: npm run runtime:control-room-states
+
+      - name: Production smoke diagnostic classification
+        run: node scripts/runtime/production-smoke-classify.test.cjs
 
       - name: Sovereign outage architectural simulation
         run: npm run runtime:sovereign-outage-test -- --simulated
