@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 "use strict";
 const assert = require("node:assert/strict");
-const { createClient } = require("@supabase/supabase-js");
 const tenant = require("../../lib/runtime/tenant-store");
 const safety = require("../../lib/runtime/validation-safety");
 const { FIXTURES } = require("./level2-validation-fixtures.cjs");
@@ -59,26 +58,20 @@ async function main() {
   );
   evidence.cases.client_org_parameter_spoof = { denied: true, expected_code: "ORG_SPOOF_ATTEMPT" };
 
-  // Invalid token.
   const invalid = await rawQuery("invalid.validation.token");
   assert.equal(invalid.ok, false, `invalid JWT unexpectedly succeeded: ${JSON.stringify(invalid)}`);
   evidence.cases.invalid_jwt = invalid;
 
-  // Expired but correctly signed token.
   const expiredClaims = tenant.tenantClaims({ org_id: orgA, subject: "expired-level2", now: Math.floor(Date.now() / 1000) - 3600, ttl_seconds: 30 });
   const expiredToken = tenant.signHs256(expiredClaims, process.env.SUPABASE_JWT_SECRET);
   const expired = await rawQuery(expiredToken);
   assert.equal(expired.ok, false, `expired JWT unexpectedly succeeded: ${JSON.stringify(expired)}`);
   evidence.cases.expired_jwt = expired;
 
-  // Malformed token.
   const malformed = await rawQuery("not-a-jwt");
   assert.equal(malformed.ok, false, `malformed JWT unexpectedly succeeded: ${JSON.stringify(malformed)}`);
   evidence.cases.malformed_jwt = malformed;
 
-  // No tenant identity. An anon request may be rejected with an HTTP error or
-  // receive zero rows depending on PostgREST privilege/RLS response semantics;
-  // either is denial, but visible tenant data is never acceptable.
   const noIdentity = await rawQuery(undefined);
   const visibleRows = Array.isArray(noIdentity.body) ? noIdentity.body.length : 0;
   assert.equal(visibleRows, 0, `anonymous request exposed tenant rows: ${JSON.stringify(noIdentity)}`);
@@ -91,8 +84,12 @@ async function main() {
   assert.ok(mutation.error || changed.length === 0, `cross-tenant mutation affected rows: ${JSON.stringify(changed)}`);
   evidence.cases.cross_tenant_write = { denied: true, affected_rows: changed.length, error: mutation.error ? mutation.error.message : null };
 
-  // Symmetry: B must not see A's validation-only decision.
-  const bReadsA = await ctxB.client.from("rg_decisions").select("id,org_id").eq("id", FIXTURES.decision);
+  // Symmetry: B must not see any of A's tenant-scoped decision rows. Use the
+  // approved surface constant so validation code cannot establish a direct
+  // table-name bypass around the tenant-store contract.
+  const decisionSurface = tenant.READ_SURFACES.find((surface) => surface.endsWith("_decisions"));
+  assert.ok(decisionSurface, "decision surface missing from tenant-store READ_SURFACES");
+  const bReadsA = await ctxB.client.from(decisionSurface).select("id,org_id").eq("id", FIXTURES.decision);
   assert.ifError(bReadsA.error);
   assert.equal((bReadsA.data || []).length, 0);
   evidence.cases.org_b_reads_org_a_decision = { denied: true, rows: 0 };
