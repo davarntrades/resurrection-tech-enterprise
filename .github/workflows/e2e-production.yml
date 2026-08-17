@@ -1,8 +1,8 @@
 name: E2E — Control Room Preview (production)
 
 # Automatic gate: reproduces Customers → Dry Run Customer → Audit pack → Preview
-# on the LIVE site (WebKit / Safari engine), then runs one governed Customer Support
-# production smoke and publishes a structured evidence report.
+# on the LIVE site (WebKit / Safari engine), then runs governed production smokes
+# and publishes structured evidence. A governance outage remains a hard failure.
 on:
   push:
     branches: [main]
@@ -65,10 +65,6 @@ jobs:
             done
           fi
 
-          # A commit that only touches workflows or docs may produce no deployment
-          # of its own. That must not fail the gate: the running application on
-          # the default branch is still the correct target. Purely additive — this
-          # only fires where the SHA lookup above already came up empty.
           if [[ -z "$candidate" ]]; then
             candidate="$({
               gh api --paginate -H "Accept: application/vnd.github+json" \
@@ -113,11 +109,6 @@ jobs:
             fi
           done
           exit "$missing"
-      # /admin/* sits behind HTTP Basic Auth (proxy.ts). Without these the browser
-      # is served a 401 "Authentication required" page and every Control Room test
-      # fails on a locator timeout that says nothing about the cause. Reported
-      # separately from the gating preflight above so a missing admin credential
-      # can never silently skip the governed smokes, which do not need it.
       - name: Report Control Room Basic Auth configuration
         shell: bash
         env:
@@ -133,11 +124,6 @@ jobs:
           if [[ "$missing" != "0" ]]; then
             echo "::warning::Control Room HTTP Basic Auth is not configured for this run. The Preview E2E will be served a 401 page and its Control Room tests cannot pass. Set the ADMIN_USER and ADMIN_PASSWORD repository secrets to the values the deployment uses."
           fi
-          # Basic Auth only opens /admin/*. The OPERATOR sign-in inside the
-          # Control Room is a second, separate credential. It falls back to
-          # RUNTIME_ADMIN_KEY, which is correct only when the deployment does not
-          # set RUNTIME_OPERATOR_PASSWORD — otherwise sign-in is rejected and the
-          # Control Room tests cannot pass however good the Basic Auth is.
           if [[ -n "${RUNTIME_OPERATOR_PASSWORD:-}" ]]; then
             echo "RUNTIME_OPERATOR_PASSWORD configured: yes (operator sign-in uses it)"
           else
@@ -149,17 +135,8 @@ jobs:
         env:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          # Operator sign-in inside the Control Room. Unset falls back to
-          # RUNTIME_ADMIN_KEY, matching the server's own resolution order.
           RUNTIME_OPERATOR_PASSWORD: ${{ secrets.RUNTIME_OPERATOR_PASSWORD }}
           E2E_CUSTOMER: ${{ vars.E2E_CUSTOMER || 'Dry Run Customer' }}
-      # Environment isolation: the governed smokes target DIFFERENT connectors,
-      # which live in different environments. Sharing one E2E_ENVIRONMENT_ID
-      # meant pointing it at the Gmail connector's environment silently broke
-      # the Customer Support smoke, which needs the Bedrock connector.
-      #
-      # Defaults to E2E_ENVIRONMENT_ID so behaviour is unchanged until
-      # CUSTOMER_SUPPORT_SMOKE_ENVIRONMENT_ID is set deliberately.
       - name: Run governed Customer Support production smoke
         id: customer_support_smoke
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
@@ -185,6 +162,22 @@ jobs:
               echo "Inspect the URL resolution, safe preflight and smoke-step logs for the exact non-secret failure."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Classify Customer Support smoke outcome
+        if: always()
+        shell: bash
+        run: |
+          classification="$(node scripts/runtime/production-smoke-classify.cjs artifacts/customer-support-production-smoke.json)"
+          echo "$classification"
+          {
+            echo
+            echo "### Customer Support diagnostic class"
+            echo
+            echo '```json'
+            echo "$classification"
+            echo '```'
+            echo
+            echo "Diagnostic classification never changes the smoke result. GOVERNANCE_UNAVAILABLE remains a failed gate."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload production smoke report
         if: always()
         uses: actions/upload-artifact@v4
@@ -193,11 +186,6 @@ jobs:
           path: artifacts/customer-support-production-smoke.json
           if-no-files-found: warn
           retention-days: 30
-      # ── Governed Gmail delivery ────────────────────────────────────────────
-      # Deliberately NOT a skip-when-unset step: a governed-delivery gate that
-      # silently passes when unconfigured is worse than no gate. The preflight
-      # FAILS the job when GMAIL_SMOKE_ENABLED is on and anything required is
-      # missing, and states plainly in the summary when it is off.
       - name: Gmail governed smoke preflight
         id: gmail_preflight
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
@@ -250,11 +238,25 @@ jobs:
               echo
               echo "**NOT VALIDATED** — \`GMAIL_SMOKE_ENABLED\` is not set for this repository."
               echo
-              echo "Governed Gmail delivery has not been proven by this run. Provision the Gmail"
-              echo "connector, set the required configuration, then set the repository variable"
-              echo "\`GMAIL_SMOKE_ENABLED=true\` to make this gate enforcing."
+              echo "Governed Gmail delivery has not been proven by this run."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Classify Gmail smoke outcome
+        if: always()
+        shell: bash
+        run: |
+          classification="$(node scripts/runtime/production-smoke-classify.cjs artifacts/gmail-production-smoke.json)"
+          echo "$classification"
+          {
+            echo
+            echo "### Gmail diagnostic class"
+            echo
+            echo '```json'
+            echo "$classification"
+            echo '```'
+            echo
+            echo "Diagnostic classification never changes the smoke result. GOVERNANCE_UNAVAILABLE remains a failed gate."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload governed Gmail smoke report
         if: always()
         uses: actions/upload-artifact@v4
