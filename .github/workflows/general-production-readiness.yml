@@ -12,7 +12,7 @@ jobs:
   deterministic:
     name: Production readiness contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       GOVERNANCE_URL: http://127.0.0.1:18791
     steps:
@@ -22,6 +22,32 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
+      - name: Capture dependency audit evidence
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          npm audit --json > artifacts/npm-audit.json || true
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const audit = JSON.parse(fs.readFileSync('artifacts/npm-audit.json','utf8'));
+          const meta = audit.metadata?.vulnerabilities || {};
+          console.log('npm audit vulnerability counts:', JSON.stringify(meta));
+          for (const [name, v] of Object.entries(audit.vulnerabilities || {})) {
+            if (!['high','critical'].includes(v.severity)) continue;
+            const via = (v.via || []).map(x => typeof x === 'string' ? x : `${x.source || ''}:${x.title || ''}`).join(' | ');
+            console.log(`AUDIT ${v.severity.toUpperCase()} ${name} direct=${!!v.isDirect} range=${v.range || ''} fix=${JSON.stringify(v.fixAvailable)} via=${via}`);
+          }
+          NODE
+
+      - name: Upload dependency audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: general-production-npm-audit
+          path: artifacts/npm-audit.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Start hermetic governance engine
         shell: bash
@@ -39,7 +65,19 @@ jobs:
         run: npm run runtime:production-readiness-test
 
       - name: Production profile fail-closed gates
-        run: node scripts/runtime/production-profile-gates.test.cjs
+        run: npm run runtime:production-profile-gates
+
+      - name: Destructive validation safety guards
+        run: npm run runtime:validation-safety
+
+      - name: Source-health state semantics
+        run: npm run runtime:source-health-states
+
+      - name: Control Room readiness state contracts
+        run: npm run runtime:control-room-states
+
+      - name: Sovereign outage architectural simulation
+        run: npm run runtime:sovereign-outage-test -- --simulated
 
       - name: Tenant isolation live contract
         env:
