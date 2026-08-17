@@ -1,0 +1,33 @@
+name: Backup package 2026-08-17
+
+on:
+  push:
+    branches:
+      - backup-package/2026-08-17
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create exact source archive
+        run: git archive --format=zip --output=resurrection-tech-enterprise-2026-08-17.zip 6b851c6fff9ebdab861053bc5cb482e101dc85a6
+
+      - name: Create portable Git bundle
+        run: git bundle create resurrection-tech-enterprise-2026-08-17.bundle --all
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resurrection-tech-enterprise-2026-08-17
+          path: |
+            resurrection-tech-enterprise-2026-08-17.zip
+            resurrection-tech-enterprise-2026-08-17.bundle
+          retention-days: 90
