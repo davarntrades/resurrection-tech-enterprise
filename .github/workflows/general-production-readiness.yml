@@ -111,6 +111,9 @@ jobs:
       - name: Production smoke diagnostic classification
         run: node scripts/runtime/production-smoke-classify.test.cjs
 
+      - name: Governance engine diagnostic classes
+        run: node scripts/runtime/engine-diagnostics.test.cjs
+
       - name: Sovereign outage architectural simulation
         run: npm run runtime:sovereign-outage-test -- --simulated
 
