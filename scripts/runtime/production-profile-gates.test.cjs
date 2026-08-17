@@ -4,11 +4,13 @@ const assert = require("node:assert/strict");
 const { wrapGovernanceGateway } = require("../../lib/runtime/production-governance-runtime");
 const deployment = require("../../lib/runtime/deployment-profiles");
 const readiness = require("../../lib/runtime/production-readiness");
+const tenantStore = require("../../lib/runtime/tenant-store");
 const store = require("../../lib/runtime/store");
 
 (async () => {
-  // Direct govern path: an active production environment cannot return ALLOW
-  // from a non-durable backend, and the underlying decision path is not called.
+  const originalScope = tenantStore.assertRuntimeScope;
+  tenantStore.assertRuntimeScope = async ({ org_id, environment_id }) => ({ ok: true, org_id, environment_id });
+
   let calls = 0;
   const mockStore = {
     durable: () => false,
@@ -19,21 +21,24 @@ const store = require("../../lib/runtime/store");
   assert.equal(blocked.verdict, "BLOCK");
   assert.equal(calls, 0);
 
-  // Even on a durable backend, an unrecorded decision is converted to BLOCK.
   mockStore.durable = () => true;
   const unrecorded = wrapGovernanceGateway({ govern: async () => ({ ok: true, verdict: "ALLOW", recorded: false, decision_id: null }) }, mockStore);
   const blockedGap = await unrecorded.govern({ auth: { org: { id: "org_a" }, environment: { id: "env_a", mode: "enforce" } }, trajectory: [{ tool: "x" }] });
   assert.equal(blockedGap.verdict, "BLOCK");
   assert.equal(blockedGap.recorded, false);
 
-  // Pilot compatibility: no active hardened profile means the existing result
-  // passes through byte-for-byte in meaning.
+  tenantStore.assertRuntimeScope = async () => { throw new Error("RLS denied"); };
+  const scopeDenied = wrapGovernanceGateway({ govern: async () => ({ ok: true, verdict: "ALLOW", recorded: true, decision_id: "d2" }) }, mockStore);
+  const blockedScope = await scopeDenied.govern({ auth: { org: { id: "org_a" }, environment: { id: "env_a", mode: "enforce" } }, trajectory: [{ tool: "x" }] });
+  assert.equal(blockedScope.verdict, "BLOCK");
+  assert.match(blockedScope.reason, /tenant\/environment boundary/);
+
   mockStore.findOneOptional = async () => null;
   const pilotBase = { ok: true, verdict: "ALLOW", recorded: false, decision_id: null };
   const pilot = wrapGovernanceGateway({ govern: async () => pilotBase }, mockStore);
   assert.deepEqual(await pilot.govern({ auth: { org: { id: "org_a" }, environment: { id: "env_a" } }, trajectory: [{ tool: "x" }] }), pilotBase);
+  tenantStore.assertRuntimeScope = originalScope;
 
-  // Activation cannot create a production state when preflight is BLOCKED.
   const originals = {
     findOne: store.findOne, findOneOptional: store.findOneOptional,
     insert: store.insert, update: store.update,
@@ -57,5 +62,5 @@ const store = require("../../lib/runtime/store");
   readiness.productionReadiness = originals.productionReadiness;
   readiness.sovereignReadiness = originals.sovereignReadiness;
 
-  console.log("PASS production profile gates fail closed and pilot path remains compatible");
-})().catch((error) => { console.error("FAIL production profile gates:", error); process.exit(1); });
+  console.log("PASS production profile gates fail closed, tenant scope is enforced, and pilot path remains compatible");
+})().catch((error) => { tenantStore.assertRuntimeScope = originalScope; console.error("FAIL production profile gates:", error); process.exit(1); });
