@@ -109,6 +109,36 @@ jobs:
             fi
           done
           exit "$missing"
+      - name: Probe Runtime Governance service
+        id: governance_service_probe
+        continue-on-error: true
+        env:
+          GOVERNANCE_URL: ${{ secrets.PRODUCTION_GOVERNANCE_URL || vars.PRODUCTION_GOVERNANCE_URL }}
+          GOVERNANCE_TOKEN: ${{ secrets.PRODUCTION_GOVERNANCE_TOKEN }}
+          GOVERNANCE_GATEWAY_SECRET: ${{ secrets.PRODUCTION_GOVERNANCE_GATEWAY_SECRET }}
+        run: node scripts/runtime/governance-service-probe.cjs
+      - name: Publish governance service diagnostic
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/governance-service-probe.md ]]; then
+            cat artifacts/governance-service-probe.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Runtime Governance service probe"
+              echo
+              echo "No structured probe report was generated."
+              echo "Probe outcome: ${{ steps.governance_service_probe.outcome }}"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload governance service diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-service-probe
+          path: artifacts/governance-service-probe.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Report Control Room Basic Auth configuration
         shell: bash
         env:
