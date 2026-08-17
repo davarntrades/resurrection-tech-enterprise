@@ -7,8 +7,9 @@ const readiness = require("../../lib/runtime/production-readiness");
 const tenantStore = require("../../lib/runtime/tenant-store");
 const store = require("../../lib/runtime/store");
 
+const originalScope = tenantStore.assertRuntimeScope;
+
 (async () => {
-  const originalScope = tenantStore.assertRuntimeScope;
   tenantStore.assertRuntimeScope = async ({ org_id, environment_id }) => ({ ok: true, org_id, environment_id });
 
   let calls = 0;
@@ -63,4 +64,8 @@ const store = require("../../lib/runtime/store");
   readiness.sovereignReadiness = originals.sovereignReadiness;
 
   console.log("PASS production profile gates fail closed, tenant scope is enforced, and pilot path remains compatible");
-})().catch((error) => { tenantStore.assertRuntimeScope = originalScope; console.error("FAIL production profile gates:", error); process.exit(1); });
+})().catch((error) => {
+  tenantStore.assertRuntimeScope = originalScope;
+  console.error("FAIL production profile gates:", error);
+  process.exit(1);
+});
