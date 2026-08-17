@@ -6,7 +6,13 @@ const engine = require("../../lib/runtime/engine");
 (async () => {
   const started = Date.now();
   const configuration = engine.configuration();
-  const result = await engine.health();
+  const health = await engine.health();
+  const evaluation = health.ok
+    ? await engine.evaluate([{ tool: "read_logs", args: { diagnostic_probe: true } }], ["enterprise"], 1)
+    : { ok: false, code: "HEALTH_PREREQUISITE_FAILED", error: "health probe failed; evaluation probe not attempted" };
+
+  const healthOk = health.ok === true;
+  const evaluationOk = evaluation.ok === true && !!evaluation.json;
   const report = {
     generated_at: new Date().toISOString(),
     probe_scope: "ci_runner_to_governance_service",
@@ -16,13 +22,22 @@ const engine = require("../../lib/runtime/engine");
     bearer_token_configured: configuration.bearer_token_configured,
     gateway_secret_configured: configuration.gateway_secret_configured,
     timeout_ms: configuration.timeout_ms,
-    reachable: result.ok === true,
-    http_status: result.status || null,
-    diagnostic_code: result.ok === true ? "GOVERNANCE_HEALTHY" : result.code || "GOVERNANCE_UNAVAILABLE",
-    error: result.ok === true ? null : result.error || null,
+    health: {
+      reachable: healthOk,
+      http_status: health.status || null,
+      diagnostic_code: healthOk ? "GOVERNANCE_HEALTHY" : health.code || "GOVERNANCE_UNAVAILABLE",
+      error: healthOk ? null : health.error || null,
+    },
+    advisory_evaluation: {
+      reachable: evaluationOk,
+      http_status: evaluation.status || null,
+      diagnostic_code: evaluationOk ? "GOVERNANCE_EVALUATE_REACHABLE" : evaluation.code || "GOVERNANCE_EVALUATE_UNAVAILABLE",
+      verdict: evaluationOk ? evaluation.json.verdict || null : null,
+      error: evaluationOk ? null : evaluation.error || null,
+    },
     latency_ms: Date.now() - started,
-    result: result.ok === true ? "passed" : "failed",
-    note: "This proves CI-runner reachability only. The production application boundary remains authoritative and is validated by the governed production smoke.",
+    result: healthOk && evaluationOk ? "passed" : "failed",
+    note: "This proves CI-runner reachability of /health and the advisory /v1/evaluate path only. The production application boundary remains authoritative and is validated by the governed production smoke.",
   };
 
   fs.mkdirSync("artifacts", { recursive: true });
@@ -33,12 +48,14 @@ const engine = require("../../lib/runtime/engine");
       "## Runtime Governance service probe",
       "",
       `**Result:** ${report.result.toUpperCase()}`,
-      `**Diagnostic class:** ${report.diagnostic_code}`,
       `**Endpoint source:** ${report.endpoint_source}`,
       `**Endpoint host:** ${report.endpoint_host || "not configured"}`,
-      `**HTTP status:** ${report.http_status ?? "not reached"}`,
+      `**Health:** ${report.health.diagnostic_code} (HTTP ${report.health.http_status ?? "not reached"})`,
+      `**Advisory /v1/evaluate:** ${report.advisory_evaluation.diagnostic_code} (HTTP ${report.advisory_evaluation.http_status ?? "not reached"})`,
+      `**Advisory verdict:** ${report.advisory_evaluation.verdict || "not returned"}`,
+      `**Bearer token configured in this probe:** ${report.bearer_token_configured}`,
       `**Latency (ms):** ${report.latency_ms}`,
-      `**Error:** ${report.error || "none"}`,
+      `**Error:** ${report.advisory_evaluation.error || report.health.error || "none"}`,
       "",
       report.note,
       "",
@@ -46,7 +63,7 @@ const engine = require("../../lib/runtime/engine");
   );
 
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-  if (!result.ok) process.exit(1);
+  if (report.result !== "passed") process.exit(1);
 })().catch((error) => {
   console.error(error.stack || error.message || error);
   process.exit(1);
