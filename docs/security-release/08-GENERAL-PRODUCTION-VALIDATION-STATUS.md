@@ -9,6 +9,14 @@ This document is additive. It does not replace or rewrite the 1 August 2026 secu
 
 ## Current position
 
+The remaining work has been reduced to three operational validation classes:
+
+1. **Disposable migrated Supabase/Postgres proof** — live RLS, connector-chain destructive tests, live source-health states and Production preflight.
+2. **Representative `sovereign_private` proof** — customer-owned boundary, restricted egress and vendor-outage survivability.
+3. **Live Runtime Governance credential/deployment wiring** — the hosted governance service is reachable, but the authenticated evaluation path is currently not proven from production.
+
+Everything that can safely be converted into deterministic code/tests/fixtures without those targets has been prepared.
+
 ### CODE VERIFIED
 
 The release candidate has substantial deterministic/internal verification for the implemented General Production Readiness architecture, including:
@@ -16,8 +24,7 @@ The release candidate has substantial deterministic/internal verification for th
 - production-readiness contracts;
 - production profile activation/fail-closed gates;
 - runtime gateway tests;
-- runtime hardening;
-- runtime isolation;
+- runtime hardening and isolation;
 - engineering contracts;
 - operations regression;
 - sovereign contracts and connector integration;
@@ -27,9 +34,11 @@ The release candidate has substantial deterministic/internal verification for th
 - deterministic source-health semantics;
 - deterministic Control Room READY/DEGRADED/BLOCKED/UNKNOWN rendering contracts;
 - destructive validation target guards;
-- simulated sovereign vendor-dependency refusal.
+- simulated sovereign vendor-dependency refusal;
+- governance-engine transport/auth/HTTP diagnostic classes;
+- zero-current npm audit findings from a fresh `npm ci` on the committed remediated lockfile.
 
-No Morrison Runtime Governance policy/kernel/reachability/execution semantic was changed by the validation-preparation work.
+No Morrison Runtime Governance policy/kernel/reachability/execution semantic was changed by the validation-preparation or diagnostic work.
 
 ### LIVE VALIDATION PENDING
 
@@ -47,7 +56,7 @@ The following Level-2 evidence still requires an authorised disposable migrated 
 - actual Production preflight on the migrated controlled target;
 - real Control Room state forcing against that target.
 
-The authoritative machine-readable list is `LIVE-VALIDATION-PENDING.json`.
+The authoritative machine-readable list is `LIVE-VALIDATION-PENDING.json` and the shortest execution path is `09-LAST-MILE-VALIDATION-RUNBOOK.md`.
 
 ### SOVEREIGN TARGET VALIDATION PENDING
 
@@ -95,9 +104,9 @@ The local simulated outage harness is intentionally labelled simulation and is n
 
 **Historical status:** Open as of 1 August 2026.
 
-**Remediation implementation:** Production/Sovereign wrappers require hardened invariants and validated preflight before activation/execution. Non-durable evidence, failed scope proof, unrecorded ALLOW and blocked readiness fail closed.
+**Remediation implementation:** Production/Sovereign wrappers require hardened invariants and validated preflight before activation/execution. Non-durable evidence, failed scope proof, unrecorded ALLOW and blocked readiness fail closed. Production readiness also requires `GOVERNANCE_TOKEN` rather than treating a health-only engine response as sufficient authenticated readiness.
 
-**Code verification completed:** production profile gates, runtime regression, governance-unavailable connector contracts and live production-smoke evidence that provider boundaries were not reached while governance was unavailable.
+**Code verification completed:** production profile gates, runtime regression, governance diagnostic contracts and live production-smoke evidence that provider boundaries were not reached while governance was unavailable.
 
 **Live verification still required:** target Production preflight and remaining controlled fault matrix on the migrated disposable environment.
 
@@ -117,21 +126,36 @@ The local simulated outage harness is intentionally labelled simulation and is n
 
 ## Production E2E status
 
-The existing production E2E remains an enforcing gate. Recent evidence showed:
+The existing production E2E remains an enforcing gate. Current evidence establishes:
 
-- the basic Control Room production browser checks passed;
-- Gmail direct connector validation reached Google;
-- governed Gmail and Customer Support execution failed before a governance verdict;
-- no Gmail or Bedrock provider execution occurred;
-- the failure was classified at the governance-infrastructure boundary.
+- the basic Control Room production browser checks pass;
+- Gmail direct connector validation reaches Google;
+- governed Gmail and Customer Support execution fail closed before provider execution;
+- no Gmail or Bedrock provider execution occurs while governance is unavailable;
+- the configured hosted Runtime Governance service responds `200` on `/health` from the CI runner;
+- the advisory `/v1/evaluate` path responds `401` when no governance bearer token is supplied;
+- the CI diagnostic run that produced the 401 had no governance bearer token configured.
 
-This is evidence of fail-closed behavior, **not** a green production E2E. The workflow now emits an explicit diagnostic class (`GOVERNANCE_UNAVAILABLE`, `AUTH_FAILURE`, `PROVIDER_FAILURE`, or `APPLICATION_REGRESSION`) without changing pass/fail semantics.
+This materially narrows the live red E2E from a generic service outage to an **authentication/deployment-wiring investigation**. It does not prove that Vercel Production lacks or has an incorrect `GOVERNANCE_TOKEN`, because the connected Vercel tooling does not expose environment-variable values. That deployment credential must be verified against the governance service's accepted token and then the existing governed smoke must be rerun.
+
+The workflow accepts both `GOVERNANCE_TOKEN` and `PRODUCTION_GOVERNANCE_TOKEN` secret naming for its non-authoritative CI service probe. The production application remains authoritative.
+
+A governance authentication failure remains a failed gate; it is never converted into a pass.
 
 ## Dependency review status
 
-CI now captures the complete npm audit JSON, dependency tree and an `npm audit fix --dry-run --json` remediation plan as evidence. Dependency changes are only accepted when they are narrowly compatible and the full non-live validation remains green.
+The six earlier high-severity npm audit findings have been remediated without `--force` or a major-version upgrade. The tested lockfile was committed only after the complete General Production readiness gate passed, and a subsequent fresh `npm ci` reported:
 
-See `DEPENDENCY-SECURITY-REVIEW.md` for the reviewed advisory set.
+```text
+info: 0
+low: 0
+moderate: 0
+high: 0
+critical: 0
+total: 0
+```
+
+See `DEPENDENCY-SECURITY-REVIEW.md` for the package-by-package review and compatibility result.
 
 ## Level model
 
@@ -151,10 +175,11 @@ When authorised disposable infrastructure is available, the intended flow is:
 2. export the guarded disposable-target metadata/secrets;
 3. run `npm run runtime:level2-live-validation`;
 4. run/complete the live Control Room state matrix;
-5. run `npm run runtime:sovereign-preflight -- --json` on representative `sovereign_private` infrastructure;
-6. run `npm run runtime:sovereign-outage-test -- --target` only on that representative boundary;
-7. verify the final PR workflows;
-8. update documents 04–07 with dated evidence-backed status changes only if the proof passes.
+5. verify the Production governance token/deployment wiring and rerun the live governed smokes;
+6. run `npm run runtime:sovereign-preflight -- --json` on representative `sovereign_private` infrastructure;
+7. run `npm run runtime:sovereign-outage-test -- --target` only on that representative boundary;
+8. verify the final PR workflows;
+9. update documents 04–07 with dated evidence-backed status changes only if the proof passes.
 
 Until then the release claim remains:
 
