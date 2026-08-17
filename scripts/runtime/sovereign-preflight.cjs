@@ -3,25 +3,16 @@
 
 const rt = require("../../lib/runtime");
 const json = process.argv.includes("--json");
-
-function arg(name) {
-  const i = process.argv.indexOf(name);
-  return i >= 0 ? process.argv[i + 1] : null;
-}
+function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
 
 function render(result) {
-  if (json) {
-    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-    return;
-  }
+  if (json) { process.stdout.write(JSON.stringify(result, null, 2) + "\n"); return; }
   console.log("\nGuardian OS — Sovereign Preflight");
   console.log("=================================");
   console.log(`SOVEREIGN_POSTURE: ${result.status}`);
   console.log(`Verified: ${result.checked_at}`);
   console.log("");
-  for (const c of result.checks || []) {
-    console.log(`${String(c.status).padEnd(7)} ${String(c.name).padEnd(30)} ${c.detail || ""}`);
-  }
+  for (const c of result.checks || []) console.log(`${String(c.status).padEnd(7)} ${String(c.name).padEnd(30)} ${c.detail || ""}`);
   if (result.sovereign) {
     console.log("\nSovereign boundary:");
     for (const [k, v] of Object.entries(result.sovereign)) console.log(`  ${k}: ${v}`);
@@ -31,9 +22,9 @@ function render(result) {
 
 (async () => {
   const result = await rt.productionReadiness.sovereignReadiness({
-    sovereign_profile: arg("--profile") || "sovereign",
+    sovereign_profile: arg("--profile") || "sovereign_private",
     customer_secret_store: arg("--secret-store") || process.env.GUARDIAN_CUSTOMER_SECRET_STORE,
-    local_engine: process.argv.includes("--local-engine") || process.env.GUARDIAN_LOCAL_ENGINE === "1",
+    customer_evidence_store: arg("--evidence-store") || process.env.GUARDIAN_CUSTOMER_EVIDENCE_STORE,
   });
   render(result);
   process.exit(result.ready ? 0 : 1);
