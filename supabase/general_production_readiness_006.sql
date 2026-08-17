@@ -1,6 +1,6 @@
 -- General Production Readiness — final database control snapshot.
--- Makes application of the least-privilege grant migration observable by the
--- same readiness engine consumed by CLI + Control Room.
+-- Makes application of least-privilege grants + report-integrity migration
+-- observable by the same readiness engine consumed by CLI + Control Room.
 
 create or replace function public.rg_production_controls()
 returns jsonb
@@ -15,6 +15,7 @@ declare
   append_only_present boolean;
   chain_schema boolean;
   least_privilege boolean;
+  report_integrity boolean;
 begin
   select coalesce(bool_and(c.relrowsecurity), false) into rls_effective
   from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -47,18 +48,23 @@ begin
     and not has_table_privilege('authenticated','public.rg_integration_secrets','SELECT')
     and not has_table_privilege('authenticated','public.rg_reports','UPDATE');
 
+  report_integrity := exists(
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='rg_reports' and column_name='integrity'
+  );
+
   return jsonb_build_object(
-    'rls_enabled', rls_effective,
+    -- The existing JS preflight's RLS PASS now also depends on least privilege.
+    'rls_enabled', rls_effective and least_privilege,
     'tenant_policies_present', policies_present,
     'tenant_claim_function', to_regprocedure('public.rg_claim_org_id()') is not null,
     'tenant_least_privilege', least_privilege,
     'connector_chain_schema', chain_schema,
     'append_only_controls', append_only_present,
-    'deployment_profiles', to_regclass('public.rg_deployment_profiles') is not null,
+    -- Migration PASS also requires the integrity envelope used by evidence packs.
+    'deployment_profiles', (to_regclass('public.rg_deployment_profiles') is not null) and report_integrity,
     'runtime_resources', to_regclass('public.rg_runtime_resources') is not null,
-    'report_integrity_column', exists(
-      select 1 from information_schema.columns where table_schema='public' and table_name='rg_reports' and column_name='integrity'
-    ),
+    'report_integrity_column', report_integrity,
     'source_health', public.rg_source_health()
   );
 end $$;
