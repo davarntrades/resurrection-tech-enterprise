@@ -114,8 +114,8 @@ jobs:
         continue-on-error: true
         env:
           GOVERNANCE_URL: ${{ secrets.PRODUCTION_GOVERNANCE_URL || vars.PRODUCTION_GOVERNANCE_URL }}
-          GOVERNANCE_TOKEN: ${{ secrets.PRODUCTION_GOVERNANCE_TOKEN }}
-          GOVERNANCE_GATEWAY_SECRET: ${{ secrets.PRODUCTION_GOVERNANCE_GATEWAY_SECRET }}
+          GOVERNANCE_TOKEN: ${{ secrets.GOVERNANCE_TOKEN || secrets.PRODUCTION_GOVERNANCE_TOKEN }}
+          GOVERNANCE_GATEWAY_SECRET: ${{ secrets.GOVERNANCE_GATEWAY_SECRET || secrets.PRODUCTION_GOVERNANCE_GATEWAY_SECRET }}
         run: node scripts/runtime/governance-service-probe.cjs
       - name: Publish governance service diagnostic
         if: always()
