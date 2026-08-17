@@ -6,17 +6,14 @@ const MODES = ["SHADOW", "GUARDED_PILOT", "ENFORCED", "PRODUCTION", "SOVEREIGN"]
 
 async function jsonFetch(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
-    credentials: "same-origin",
-    cache: "no-store",
+    credentials: "same-origin", cache: "no-store",
     headers: { "content-type": "application/json", ...(options.headers || {}) },
     ...options,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error: any = new Error(data.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    error.data = data;
-    throw error;
+    error.status = response.status; error.data = data; throw error;
   }
   return data;
 }
@@ -41,22 +38,16 @@ export default function ProductionDeploymentSurface() {
 
   const load = useCallback(async () => {
     try {
-      const [c, p] = await Promise.all([
-        jsonFetch("/api/runtime/admin/deployment"),
-        jsonFetch("/api/runtime/admin/preflight"),
-      ]);
+      const [c, p] = await Promise.all([jsonFetch("/api/runtime/admin/deployment"), jsonFetch("/api/runtime/admin/preflight")]);
       setCatalog(c); setProduction(p); setError("");
       if (!environmentId && c.environments?.length) setEnvironmentId(c.environments[0].id);
     } catch (e: any) {
-      // Before operator login this page shares the Control Room route. Do not
-      // turn the login screen into an error wall.
       if (e.status === 401) return;
       setError(e.message || "readiness unavailable");
     }
   }, [environmentId]);
 
   useEffect(() => { load(); }, [load]);
-
   const env = useMemo(() => catalog?.environments?.find((e: any) => e.id === environmentId), [catalog, environmentId]);
   const active = useMemo(() => catalog?.profiles?.find((p: any) => p.environment_id === environmentId), [catalog, environmentId]);
   const org = useMemo(() => catalog?.orgs?.find((o: any) => o.id === env?.org_id), [catalog, env]);
@@ -65,13 +56,11 @@ export default function ProductionDeploymentSurface() {
   if (error) return <section className="radmin-card"><div className="radmin-err">Production readiness unavailable — {error}. Treat posture as UNKNOWN.</div></section>;
 
   const config = profile === "SOVEREIGN" ? {
-    sovereign_profile: "sovereign",
+    sovereign_profile: "sovereign_private",
     customer_environment_ref: environmentId,
     secret_store_ref: secretStoreRef,
     customer_secret_store: secretStoreRef,
     evidence_store_ref: evidenceStoreRef,
-    governance_engine_location: "local",
-    local_engine: true,
     provider_endpoint_refs: providerRefs.split(",").map((x) => x.trim()).filter(Boolean),
   } : {};
 
@@ -83,11 +72,9 @@ export default function ProductionDeploymentSurface() {
         method: "POST",
         body: JSON.stringify({ action: kind, org_id: env.org_id, environment_id: env.id, profile, config }),
       });
-      setPreflight(result.readiness || null);
-      await load();
+      setPreflight(result.readiness || null); await load();
     } catch (e: any) {
-      setPreflight(e.data?.readiness || null);
-      setError(e.message || "deployment operation failed");
+      setPreflight(e.data?.readiness || null); setError(e.message || "deployment operation failed");
     } finally { setBusy(false); }
   }
 
@@ -100,9 +87,7 @@ export default function ProductionDeploymentSurface() {
           <div className="radmin-muted">Backend preflight is authoritative. A UI selection cannot create a READY production state.</div>
         </div>
         <span style={{ flex: 1 }} />
-        <span className="radmin-ready" style={{ borderColor: tone(production?.status), color: tone(production?.status) }}>
-          PRODUCTION {production?.status || "UNKNOWN"}
-        </span>
+        <span className="radmin-ready" style={{ borderColor: tone(production?.status), color: tone(production?.status) }}>PRODUCTION {production?.status || "UNKNOWN"}</span>
         <button className="radmin-btn sm" onClick={load}>Refresh</button>
       </div>
 
@@ -112,10 +97,7 @@ export default function ProductionDeploymentSurface() {
       </div>
 
       <div className="radmin-kv" style={{ marginTop: 12 }}>
-        {(production?.checks || []).filter((c: any) => [
-          "tenant_isolation", "durable_evidence", "decision_chain", "connector_chain",
-          "migrations", "engine_reachability", "alert_routing", "rollback_readiness", "source_health",
-        ].includes(c.id)).map((c: any) => (
+        {(production?.checks || []).filter((c: any) => ["tenant_isolation","durable_evidence","fail_closed_evidence","decision_chain","connector_chain","migrations","engine_reachability","alert_routing","rollback_readiness","source_health"].includes(c.id)).map((c: any) => (
           <div key={c.id}><span>{c.name}</span><code style={{ color: tone(c.status) }}>{c.status}</code></div>
         ))}
         <div><span>Last verified</span><code>{production?.checked_at || "UNKNOWN"}</code></div>
@@ -125,7 +107,7 @@ export default function ProductionDeploymentSurface() {
       <div className="radmin-row" style={{ alignItems: "center", flexWrap: "wrap" }}>
         <div>
           <h3 style={{ margin: 0 }}>Enable Sovereign Deployment</h3>
-          <div className="radmin-muted">Guided activation derives secure defaults; only customer-controlled infrastructure references are requested.</div>
+          <div className="radmin-muted">Guided activation derives secure defaults and asks only for customer-owned infrastructure references. Runtime facts such as local-engine placement, customer data-plane ownership and egress verification are measured/attested by backend preflight — this form cannot self-certify them.</div>
         </div>
         {active && <span className="radmin-pill" style={{ marginLeft: "auto" }}>Current: {active.profile} · {active.status}</span>}
       </div>
@@ -138,8 +120,7 @@ export default function ProductionDeploymentSurface() {
         </label>
         <label>2. Deployment profile
           <select className="radmin-select" value={profile} onChange={(e) => { setProfile(e.target.value as any); setPreflight(null); }}>
-            <option value="SOVEREIGN">Sovereign</option>
-            <option value="PRODUCTION">Production</option>
+            <option value="SOVEREIGN">Sovereign</option><option value="PRODUCTION">Production</option>
           </select>
         </label>
         {profile === "SOVEREIGN" && <>
@@ -147,11 +128,12 @@ export default function ProductionDeploymentSurface() {
             <input className="radmin-select" value={secretStoreRef} onChange={(e) => setSecretStoreRef(e.target.value)} placeholder="e.g. customer-vault://guardian/runtime" />
           </label>
           <label>Customer evidence-store reference
-            <input className="radmin-select" value={evidenceStoreRef} onChange={(e) => setEvidenceStoreRef(e.target.value)} placeholder="e.g. customer://evidence/guardian" />
+            <input className="radmin-select" value={evidenceStoreRef} onChange={(e) => setEvidenceStoreRef(e.target.value)} placeholder="e.g. customer-db://guardian/evidence" />
           </label>
           <label>Approved provider endpoint references
             <input className="radmin-select" value={providerRefs} onChange={(e) => setProviderRefs(e.target.value)} placeholder="customer endpoint refs, comma-separated" />
           </label>
+          <div className="radmin-muted">Target environment must also prove: GUARDIAN_PROFILE=sovereign_private, GUARDIAN_CUSTOMER_DATA_PLANE=1, GUARDIAN_LOCAL_ENGINE=1, GUARDIAN_PROVIDER_ENDPOINTS_VERIFIED=1, GUARDIAN_EGRESS_VERIFIED=1, and a recovery/rollback path. Missing proof remains UNKNOWN/BLOCKED.</div>
         </>}
       </div>
 
@@ -165,11 +147,7 @@ export default function ProductionDeploymentSurface() {
       {error && <div className="radmin-err" style={{ marginTop: 10 }}>{error}</div>}
       {preflight && <div style={{ marginTop: 14 }}>
         <div className="radmin-row"><b>{profile} POSTURE</b><span style={{ color: tone(preflight.status), fontWeight: 700 }}>{preflight.status}</span><span className="radmin-muted">{preflight.checked_at}</span></div>
-        <ul className="radmin-checks">
-          {(preflight.checks || []).map((c: any) => <li key={c.id} className={`radmin-check ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : "warn"}`}>
-            <span className="radmin-check-tag">{c.status}</span><span className="radmin-check-name">{c.name}</span><span className="radmin-check-detail radmin-muted">{c.detail}</span>
-          </li>)}
-        </ul>
+        <ul className="radmin-checks">{(preflight.checks || []).map((c: any) => <li key={c.id} className={`radmin-check ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : "warn"}`}><span className="radmin-check-tag">{c.status}</span><span className="radmin-check-name">{c.name}</span><span className="radmin-check-detail radmin-muted">{c.detail}</span></li>)}</ul>
         {sovereignState && <div className="radmin-kv">
           <div><span>Data residency</span><code>{sovereignState.data_residency}</code></div>
           <div><span>Secrets</span><code>{sovereignState.secrets}</code></div>
