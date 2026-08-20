@@ -1,1 +1,0 @@
-Temporary note: Qwen3.8 refusal-removed FP8 should be served through a dedicated OpenAI-compatible vLLM endpoint. Configure the hosted frontier service to use that endpoint rather than Hugging Face Inference Providers. This file exists to keep the deployment requirement explicit while endpoint credentials remain server-side only.
