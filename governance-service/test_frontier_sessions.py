@@ -112,6 +112,68 @@ def test_block_returns_denial_and_replans(session_client, monkeypatch):
     assert [step["morrison_decision"]["verdict"] for step in final["steps"]] == [
         "BLOCK", "PERMIT"]
     assert [step["execution_occurred"] for step in final["steps"]] == [False, True]
+    assert final["value_impact"]["workflow_continuity"]["preserved"] is True
+
+
+def test_session_value_impact_is_sealed_and_cannot_change_verdict(
+        session_client, monkeypatch):
+    client, _ = session_client
+    started, _ = _start(client, monkeypatch, [
+        {"tool": "transfer_funds", "args": {
+            "amount": 100000, "destination_account": "synthetic"}},
+    ])
+    session_id = started["session_id"]
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        held = client.get(f"/v1/frontier/session/{session_id}").json()["session"]
+        if held["status"] == "review_required":
+            break
+        time.sleep(0.01)
+    client.post(f"/v1/frontier/session/{session_id}/deny", json={})
+    final = _wait_final(client, session_id)
+    impact = final["value_impact"]
+    assert impact["direct_simulated_exposure_prevented"] == 100000
+    assert impact["measurement_type"] == "illustrative"
+    assert impact["measured_facts"]["unauthorized_executions"] == 0
+    assert final["steps"][0]["morrison_decision"]["verdict"] == "ESCALATE"
+    assert final["steps"][0]["execution_occurred"] is False
+    assert final["session_evidence_record"]["value_impact"] == impact
+    assert final["evidence_verified"] is True
+
+
+def test_regulatory_context_is_source_versioned_and_runtime_read_only(
+        session_client, monkeypatch):
+    client, _ = session_client
+    started, _ = _start(client, monkeypatch, [{
+        "tool": "read_customer_record", "args": {"customer_id": "C-999"}},
+        None,
+    ], organization_profile={
+        "organization_id": "configured-test-organization",
+        "jurisdictions": ["UK"],
+        "sector": "unknown",
+        "annual_global_turnover": None,
+        "data_categories": ["personal_data"],
+        "regulated_entities": [],
+        "frameworks_enabled": ["uk_gdpr"],
+        "ai_system_classification": {"eu_ai_act": "unknown"},
+        "entity_classifications": {"uk_gdpr_penalty_tier": "higher"},
+        "contractual_frameworks": [],
+    })
+    final = _wait_final(client, started["session_id"])
+    context = final["regulatory_exposure"]
+    uk = next(row for row in context["frameworks"]
+              if row["framework_id"] == "uk_gdpr")
+    assert uk["applicability"] == "CONFIRMED_BY_CONFIGURATION"
+    assert uk["calculation"]["available"] is False
+    assert "INSUFFICIENT INFORMATION" in uk["calculation"]["reason"]
+    assert uk["source"]["authority"] == "Information Commissioner's Office"
+    assert uk["profile_version"] == "1.0"
+    assert context["statutory_maxima_aggregation"] == \
+        "NOT_SUMMED_ACROSS_FRAMEWORKS"
+    assert final["steps"][0]["morrison_decision"]["verdict"] == "BLOCK"
+    assert final["steps"][0]["execution_occurred"] is False
+    assert final["session_evidence_record"]["regulatory_exposure"] == context
+    assert final["evidence_verified"] is True
 
 
 def test_escalate_holds_and_deny_resumes(session_client, monkeypatch):
@@ -183,6 +245,22 @@ def test_shadow_records_policy_exposure_without_calling_it_containment(
     assert final["steps"][0]["shadow_decision"] == "WOULD_BLOCK"
     assert final["steps"][0]["execution_occurred"] is True
     assert final["summary"]["policy_exposures"] == 1
+    assert final["summary"]["containment_events"] == 0
+
+
+def test_shadow_monetary_exposure_is_identified_not_prevented(
+        session_client, monkeypatch):
+    client, _ = session_client
+    started, _ = _start(client, monkeypatch, [{
+        "tool": "transfer_funds", "args": {
+            "amount": 100000, "destination_account": "synthetic"}}, None,
+    ], mode="shadow")
+    final = _wait_final(client, started["session_id"])
+    impact = final["value_impact"]
+    assert impact["direct_simulated_exposure_identified"] == 100000
+    assert impact["direct_simulated_exposure_prevented"] is None
+    assert impact["would_guarded_pilot_intervene"] is True
+    assert final["steps"][0]["execution_occurred"] is True
     assert final["summary"]["containment_events"] == 0
 
 

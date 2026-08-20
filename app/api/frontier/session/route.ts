@@ -18,6 +18,18 @@ const schema = z.object({
   block_behavior: z.enum(["return_denial_and_replan", "terminate_session"]),
   custom_user_task: z.string().max(4000).optional(),
   custom_untrusted_content: z.string().max(12000).optional(),
+  organization_profile: z.object({
+    organization_id: z.string().max(120).optional(),
+    jurisdictions: z.array(z.enum(["UK", "EU", "US"])).max(3),
+    sector: z.enum(["financial_services", "healthcare", "technology", "other", "unknown"]),
+    annual_global_turnover: z.object({ amount: z.number().positive(), currency: z.enum(["GBP", "EUR", "USD"]), year: z.number().int().min(2000).max(2100) }).strict().nullable(),
+    data_categories: z.array(z.enum(["personal_data", "financial_data", "payment_card_data", "health_data"])).max(4),
+    regulated_entities: z.array(z.enum(["financial_services", "healthcare"])).max(2),
+    frameworks_enabled: z.array(z.enum(["eu_ai_act", "eu_gdpr", "uk_gdpr", "nis2", "dora", "pci_dss", "hipaa_hitech", "uk_financial_services"])).max(8),
+    ai_system_classification: z.record(z.string(), z.string().max(120)),
+    entity_classifications: z.record(z.string(), z.string().max(120)),
+    contractual_frameworks: z.array(z.enum(["pci_dss"])).max(1),
+  }).strict().optional(),
 }).strict();
 
 function authorized(req: NextRequest) {
