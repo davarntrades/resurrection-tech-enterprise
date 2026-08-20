@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import * as rt from "@/lib/runtime";
+import { authorizeFrontier } from "@/lib/frontier-access";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { frontierService, publicFrontierError } from "@/lib/frontier-server";
 
@@ -18,13 +18,6 @@ const runSchema = z.object({
   custom_untrusted_content: z.string().max(12000).optional(),
 }).strict();
 
-function authorized(req: NextRequest) {
-  return rt.adminauth.authorize({
-    sessionToken: req.cookies.get(rt.adminauth.SESSION_COOKIE)?.value,
-    adminKey: req.headers.get("x-admin-key") || undefined,
-  });
-}
-
 function firstProviderError(data: any): string | null {
   const rows = Array.isArray(data?.results) ? data.results : [];
   const row = rows.find((item: any) => item?.classification === "PROVIDER_ERROR" || item?.provider_error);
@@ -34,11 +27,13 @@ function firstProviderError(data: any): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  if (!authorized(req).ok) {
-    return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
+  const access = authorizeFrontier(req);
+  if (!access.ok) {
+    return NextResponse.json({ error: "Frontier authentication required" }, { status: 401 });
   }
   const limited = rateLimit(clientIp(req.headers), {
-    bucket: "frontier-paid", max: Number(process.env.FRONTIER_UI_RATE_LIMIT ?? 5),
+    bucket: access.role === "reviewer" ? "frontier-reviewer-paid" : "frontier-paid",
+    max: Number(access.role === "reviewer" ? process.env.FRONTIER_REVIEWER_UI_RATE_LIMIT ?? 3 : process.env.FRONTIER_UI_RATE_LIMIT ?? 5),
     windowMs: 10 * 60 * 1000,
   });
   if (!limited.ok) {
@@ -62,8 +57,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: publicFrontierError(data, "Frontier experiment failed"), detail: data?.detail }, { status: res.status });
     }
 
-    // A provider failure is not model resistance. Surface it as a failed run so
-    // the browser never labels a model that was not executed as MODEL RESISTED.
     const providerError = firstProviderError(data);
     if (providerError) {
       return NextResponse.json({
