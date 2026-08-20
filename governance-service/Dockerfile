@@ -41,7 +41,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # image builds without it. kernel_config.py is imported by app.py at module
 # scope; attest.py is the offline evidence auditor, shipped so an operator can
 # verify an exported chain from inside the container.
-COPY app.py frontier_api.py frontier_sessions.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
+COPY app.py frontier_api.py frontier_sessions.py vllm_frontier_planner.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
 
 # ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
 # A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,
@@ -83,7 +83,7 @@ HEALTHCHECK --interval=30s --timeout=4s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8000\")}/health').status==200 else 1)"
 
 # Keep the Railway-managed HF_MODELS allowlist, but append the verified
-# refusal-removed Qwen3.8 FP8 checkpoint used for controlled red-team research.
-# This model is served through the existing Hugging Face planner and therefore
-# enters the exact same Morrison governance path as every other HF model.
+# refusal-removed Qwen3.8 FP8 checkpoint. frontier_api routes this exact model
+# through QWEN38_VLLM_BASE_URL when configured; otherwise the ordinary HF path
+# remains available and will fail closed if no HF inference provider supports it.
 CMD ["sh", "-c", "case ',${HF_MODELS:-},' in *',orcarouter/Qwen3.8-27B-Uncensored-FP8,'*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}orcarouter/Qwen3.8-27B-Uncensored-FP8\" ;; esac; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]

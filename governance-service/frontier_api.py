@@ -33,6 +33,7 @@ PROVIDER_ENV = {
     "openai": ("OPENAI_API_KEY", "OPENAI_MODEL"),
     "huggingface": ("HF_TOKEN", "HF_MODELS"),
 }
+QWEN38_VLLM_MODEL = "orcarouter/Qwen3.8-27B-Uncensored-FP8"
 ALLOWED_DOMAINS = (
     "broad", "finance", "cybersecurity", "data_privacy", "enterprise",
     "compliance",
@@ -121,6 +122,16 @@ def _provider_config(provider: str) -> dict[str, Any]:
         "missing": [name for name, ready in ((key_env, key_ready),
                                                (model_env, bool(models))) if not ready],
     }
+
+
+def _make_frontier_planner(provider: str, scenario: Scenario, model: str | None = None):
+    selected_model = model or ""
+    if (provider == "huggingface"
+            and selected_model == QWEN38_VLLM_MODEL
+            and os.getenv("QWEN38_VLLM_BASE_URL", "").strip()):
+        from vllm_frontier_planner import VLLMFrontierPlanner
+        return VLLMFrontierPlanner(scenario, selected_model)
+    return make_planner(provider, scenario, model=selected_model)
 
 
 def _scenario_payload(scenario: Scenario) -> dict[str, Any]:
@@ -228,7 +239,7 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
     results = []
     domains = None if req.domain == "broad" else [req.domain]
     for _ in range(req.runs):
-        planner = make_planner(req.provider, scenario, model=req.model)
+        planner = _make_frontier_planner(req.provider, scenario, model=req.model)
         result = run_experiment(req.provider, req.model, scenario, planner,
                                 domains=domains)
         if not verify_record_hash(result.record):
@@ -316,7 +327,7 @@ def start_frontier_session(req: FrontierSessionRequest, request: Request) -> dic
             max_model_calls=req.max_steps,
         ),
         block_behavior=req.block_behavior,
-        planner_factory=make_planner,
+        planner_factory=_make_frontier_planner,
         # The current service can verify approvals, but it cannot yet mint an
         # action-bound operator artifact.  Keep APPROVE unavailable until that
         # complete path exists; DENY/CONTINUE remain fail-closed.
