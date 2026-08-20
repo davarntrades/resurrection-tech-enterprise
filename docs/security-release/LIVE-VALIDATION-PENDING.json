@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "generated_for": "agent/general-production-readiness",
+  "readiness_classification": "GENERAL-PRODUCTION VALIDATION INCOMPLETE",
+  "level_2_target": "GENERAL-PRODUCTION ARCHITECTURE INTERNALLY VALIDATED",
+  "authoritative": true,
+  "notes": [
+    "This manifest is the authoritative list of outstanding Level-2 live validation work.",
+    "No destructive item may run against resurrection-tech-prod, trajectory-prod, customer evidence, or any target not explicitly classified disposable.",
+    "Simulated or deterministic evidence never satisfies an item whose required_environment is a disposable migrated database or representative customer-owned sovereign boundary."
+  ],
+  "known_production_project_refs": [
+    "vnyosaazlrjferxyesdf",
+    "vqwumjgognhuvaioccig"
+  ],
+  "items": [
+    {
+      "id": "LV-01",
+      "risk": "R-2",
+      "requirement": "Live two-tenant RLS proof across all material tenant-scoped read surfaces",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Supabase/Postgres target with anon key and JWT secret",
+      "destructive": false,
+      "expected_result": "ORG_A sees only ORG_A, ORG_B sees only ORG_B, all required surfaces remain tenant-contained",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/tenant-isolation.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-02",
+      "risk": "R-2",
+      "requirement": "Cross-tenant read denial",
+      "script_command": "npm run runtime:tenant-isolation-contract",
+      "required_environment": "disposable migrated Supabase/Postgres target",
+      "destructive": false,
+      "expected_result": "ORG_A cannot read ORG_B and ORG_B cannot read ORG_A",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/tenant-isolation.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-03",
+      "risk": "R-2",
+      "requirement": "Cross-tenant write denial",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Supabase/Postgres target",
+      "destructive": true,
+      "expected_result": "tenant identity cannot insert, update, or delete another tenant's rows",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/tenant-isolation.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-04",
+      "risk": "R-2",
+      "requirement": "Forged org identity rejected through the real database path",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Supabase/Postgres target",
+      "destructive": false,
+      "expected_result": "client org parameter cannot override server-signed tenant identity; signed ORG_A identity requesting ORG_B is denied",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/tenant-jwt-negative.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-05",
+      "risk": "R-2",
+      "requirement": "Invalid, expired, malformed and missing tenant JWT denial",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Supabase/Postgres target",
+      "destructive": false,
+      "expected_result": "all invalid identity states are denied on tenant-authenticated surfaces",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/tenant-jwt-negative.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-06",
+      "risk": "R-1",
+      "requirement": "Connector middle-record deletion detection",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres with direct validation SQL access",
+      "destructive": true,
+      "expected_result": "rg_verify_evidence_chain returns BROKEN",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/connector-chain-attacks.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-07",
+      "risk": "R-1",
+      "requirement": "Connector newest-record deletion detection using persisted chain head",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres with direct validation SQL access",
+      "destructive": true,
+      "expected_result": "verification returns BROKEN with chain_head_mismatch or equivalent",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/connector-chain-attacks.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-08",
+      "risk": "R-1",
+      "requirement": "Connector canonical evidence mutation, prev_hash corruption and sequence-gap detection",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres with direct validation SQL access",
+      "destructive": true,
+      "expected_result": "each independent attack returns BROKEN and names the violated chain invariant",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/connector-chain-attacks.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-09",
+      "risk": "R-1",
+      "requirement": "Legacy/pre-chain evidence is never labelled verified",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres",
+      "destructive": true,
+      "expected_result": "legacy fixture reports LEGACY_PRE_CHAIN, VERIFIED_WITH_LEGACY_PREFIX, or explicitly unverifiable; never plain VERIFIED for historical rows",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/connector-chain-attacks.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-10",
+      "risk": "R-1",
+      "requirement": "Clean new connector chain verification after fixture reset",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres",
+      "destructive": true,
+      "expected_result": "clean validation fixture returns VERIFIED and chain head matches final chained row",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/connector-chain-attacks.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-11",
+      "risk": "R-5",
+      "requirement": "Live source-health state matrix including available, unavailable, missing_schema, permission_denied, read_error and not_configured",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated Postgres plus test-controlled permissions/schema",
+      "destructive": true,
+      "expected_result": "only real readable empty sources may produce authoritative zero; all unreadable states are explicit non-healthy states",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/source-health.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-12",
+      "risk": "R-1,R-2,R-3,R-5",
+      "requirement": "Controlled production preflight against fully migrated disposable target",
+      "script_command": "npm run runtime:production-preflight -- --json",
+      "required_environment": "disposable migrated target with production-readiness secrets, alert route and rollback metadata",
+      "destructive": false,
+      "expected_result": "READY only if every required invariant passes; required UNKNOWN resolves BLOCKED",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/production-preflight.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-13",
+      "risk": "R-1,R-2,R-5",
+      "requirement": "Control Room/backend state forcing for READY, DEGRADED, BLOCKED and UNKNOWN on controlled backend",
+      "script_command": "npm run runtime:level2-live-validation",
+      "required_environment": "disposable migrated target and test Control Room endpoint",
+      "destructive": false,
+      "expected_result": "frontend reflects authoritative backend state; UNKNOWN/DEGRADED never appear READY; activation is refused for failed preflight",
+      "current_status": "BLOCKED_NO_DISPOSABLE_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/control-room-live.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-14",
+      "risk": "SOVEREIGN",
+      "requirement": "sovereign_private preflight on representative customer-owned boundary",
+      "script_command": "npm run runtime:sovereign-preflight -- --json",
+      "required_environment": "representative customer-owned sovereign_private infrastructure",
+      "destructive": false,
+      "expected_result": "customer-owned durable data/evidence/secrets, local governance, restricted egress, telemetry off, rollback and provenance all pass",
+      "current_status": "BLOCKED_NO_REPRESENTATIVE_SOVEREIGN_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/sovereign-preflight.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-15",
+      "risk": "SOVEREIGN",
+      "requirement": "Sovereign vendor-outage survivability",
+      "script_command": "npm run runtime:sovereign-outage-test -- --target",
+      "required_environment": "representative customer-owned sovereign_private infrastructure with Resurrection Tech dependencies intentionally disabled",
+      "destructive": false,
+      "expected_result": "local governance, blocking, permitting, approved execution, durable evidence, integrity verification, operator surface and rollback continue without mandatory vendor callback",
+      "current_status": "BLOCKED_NO_REPRESENTATIVE_SOVEREIGN_TARGET",
+      "evidence_location": "artifacts/level2-live-validation/sovereign-outage-target.json",
+      "blocks_level_2": true
+    },
+    {
+      "id": "LV-16",
+      "risk": "RELEASE",
+      "requirement": "All existing required GitHub Actions green on final validation head",
+      "script_command": "GitHub Actions / PR #268",
+      "required_environment": "repository CI plus healthy configured live production dependencies",
+      "destructive": false,
+      "expected_result": "all required workflows green; unavailable governance remains a failure, never converted to pass",
+      "current_status": "BLOCKED_EXISTING_PRODUCTION_E2E_RED",
+      "evidence_location": "PR #268 checks",
+      "blocks_level_2": true
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+name: General Production Readiness Validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    name: Production readiness contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GOVERNANCE_URL: http://127.0.0.1:18791
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Capture dependency audit evidence
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          npm audit --json > artifacts/npm-audit.json || true
+          npm ls next postcss sharp brace-expansion js-yaml nanoid --all --json > artifacts/npm-audit-tree.json || true
+          npm audit fix --dry-run --json > artifacts/npm-audit-fix-dry-run.json || true
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const audit = JSON.parse(fs.readFileSync('artifacts/npm-audit.json','utf8'));
+          const meta = audit.metadata?.vulnerabilities || {};
+          console.log('npm audit vulnerability counts:', JSON.stringify(meta));
+          for (const [name, v] of Object.entries(audit.vulnerabilities || {})) {
+            if (!['high','critical'].includes(v.severity)) continue;
+            const via = (v.via || []).map(x => typeof x === 'string' ? x : `${x.source || ''}:${x.title || ''}`).join(' | ');
+            console.log(`AUDIT ${v.severity.toUpperCase()} ${name} direct=${!!v.isDirect} range=${v.range || ''} fix=${JSON.stringify(v.fixAvailable)} via=${via}`);
+          }
+          const tree = JSON.parse(fs.readFileSync('artifacts/npm-audit-tree.json','utf8'));
+          function walk(node, chain=[]) {
+            for (const [name, dep] of Object.entries(node.dependencies || {})) {
+              const next = [...chain, `${name}@${dep.version || 'unknown'}`];
+              if (['next','postcss','sharp','brace-expansion','js-yaml','nanoid'].includes(name)) console.log(`TREE ${next.join(' > ')}`);
+              walk(dep, next);
+            }
+          }
+          walk(tree);
+          NODE
+
+      - name: Upload dependency audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: general-production-npm-audit
+          path: |
+            artifacts/npm-audit.json
+            artifacts/npm-audit-tree.json
+            artifacts/npm-audit-fix-dry-run.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify compatible dependency remediation remains clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit --audit-level=high
+          cp package-lock.json artifacts/package-lock.remediated.json
+          npm ls next postcss sharp brace-expansion js-yaml nanoid --all
+
+      - name: Upload committed dependency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: general-production-dependency-candidate
+          path: artifacts/package-lock.remediated.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Start hermetic governance engine
+        shell: bash
+        run: |
+          nohup node scripts/runtime/mock-governance-engine.cjs > mock-engine.log 2>&1 &
+          echo $! > mock-engine.pid
+          for i in {1..50}; do
+            if node -e "fetch('http://127.0.0.1:18791/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then exit 0; fi
+            sleep 0.1
+          done
+          cat mock-engine.log
+          exit 1
+
+      - name: General production readiness contracts
+        run: npm run runtime:production-readiness-test
+
+      - name: Production profile fail-closed gates
+        run: npm run runtime:production-profile-gates
+
+      - name: Destructive validation safety guards
+        run: npm run runtime:validation-safety
+
+      - name: Source-health state semantics
+        run: npm run runtime:source-health-states
+
+      - name: Control Room readiness state contracts
+        run: npm run runtime:control-room-states
+
+      - name: Production smoke diagnostic classification
+        run: node scripts/runtime/production-smoke-classify.test.cjs
+
+      - name: Governance engine diagnostic classes
+        run: node scripts/runtime/engine-diagnostics.test.cjs
+
+      - name: Sovereign outage architectural simulation
+        run: npm run runtime:sovereign-outage-test -- --simulated
+
+      - name: Tenant isolation live contract
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.GPR_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.GPR_TEST_SUPABASE_ANON_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.GPR_TEST_SUPABASE_JWT_SECRET }}
+          PRODUCTION_RLS_TEST_ORG_A: ${{ secrets.GPR_TEST_ORG_A }}
+          PRODUCTION_RLS_TEST_ORG_B: ${{ secrets.GPR_TEST_ORG_B }}
+        run: |
+          if [[ -n "$NEXT_PUBLIC_SUPABASE_URL" && -n "$SUPABASE_ANON_KEY" && -n "$SUPABASE_JWT_SECRET" && -n "$PRODUCTION_RLS_TEST_ORG_A" && -n "$PRODUCTION_RLS_TEST_ORG_B" ]]; then
+            npm run runtime:tenant-isolation-contract
+          else
+            echo "NOT VALIDATED: disposable live RLS target secrets are not configured."
+            echo "This step intentionally does not fall back to resurrection-tech-prod."
+          fi
+
+      - name: Existing runtime gateway regression
+        run: npm run runtime:test
+
+      - name: Runtime hardening and isolation
+        run: npm run runtime:harden && npm run runtime:isolation
+
+      - name: Contracts
+        run: npm run contracts
+
+      - name: Operations regression
+        run: npm run ops:test
+
+      - name: Sovereign regression
+        run: npm run sovereign:ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Stop hermetic governance engine
+        if: always()
+        shell: bash
+        run: test -f mock-engine.pid && kill "$(cat mock-engine.pid)" 2>/dev/null || true

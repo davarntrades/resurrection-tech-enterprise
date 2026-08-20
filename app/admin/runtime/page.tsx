@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import RuntimeAdminClient from "@/components/admin/RuntimeAdminClient";
+import ProductionDeploymentSurface from "@/components/admin/ProductionDeploymentSurface";
 
 export const metadata: Metadata = {
   title: "Runtime Governance — Operator Control Room",
@@ -9,5 +10,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function RuntimeAdminPage() {
-  return <RuntimeAdminClient />;
+  return <>
+    <ProductionDeploymentSurface />
+    <RuntimeAdminClient />
+  </>;
 }

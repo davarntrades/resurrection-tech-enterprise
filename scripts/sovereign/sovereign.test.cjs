@@ -4,7 +4,7 @@
  * Hermetic (mock engine, temp store, temp trust store). Proves the sovereign
  * deployment model without touching the Runtime Governance kernel:
  *
- *   1. PROFILES      six profiles resolve; an unknown one is REFUSED, never
+ *   1. PROFILES      seven profiles resolve; an unknown one is REFUSED, never
  *                    silently defaulted to a connected deployment.
  *   2. EGRESS        under a local-storage profile the store refuses to build a
  *                    cloud client even with credentials present.
@@ -70,8 +70,8 @@ async function main() {
   console.log(`\nGuardian OS Sovereign test (mock engine on :${srv.address().port})\n`);
 
   // ── 1. Profiles ───────────────────────────────────────────────────────────
-  ok(profiles.PROFILE_IDS.length === 6 && ["cloud", "hybrid", "private_cloud", "on_prem", "sovereign", "air_gapped"].every((p) => profiles.PROFILE_IDS.includes(p)),
-    "six deployment profiles are offered", profiles.PROFILE_IDS);
+  ok(profiles.PROFILE_IDS.length === 7 && ["cloud", "hybrid", "private_cloud", "sovereign_private", "on_prem", "sovereign", "air_gapped"].every((p) => profiles.PROFILE_IDS.includes(p)),
+    "seven deployment profiles are offered", profiles.PROFILE_IDS);
   ok(profiles.profile().id === "cloud", "the DEFAULT profile is cloud — existing deployments are unchanged", profiles.profile().id);
   ok(profiles.normalise("Air-Gapped") === "air_gapped" && profiles.profile("Air Gapped").id === "air_gapped", "profile names normalise (Air-Gapped / air gapped / AIR_GAPPED)");
   try { profiles.profile("sovereignish"); ok(false, "an unknown profile is REFUSED, never silently defaulted"); }
@@ -97,8 +97,6 @@ async function main() {
   });
   await withProfile("cloud", async () => {
     rt.store.resetBackend();
-    // If this fails, the reason is now recorded rather than swallowed — a
-    // silent fallback to local disk is exactly what cloudError() exists to stop.
     ok(rt.store.backend() === "supabase", "the same credentials DO build a cloud client under the cloud profile",
       { backend: rt.store.backend(), error: rt.store.cloudError() });
   });
@@ -130,7 +128,6 @@ async function main() {
   try { bundle.build({ kind: "policies", id: "x", version: "1", files: { "../escape.json": "{}" }, sign: null }); ok(false, "a traversing entry path is refused at build time"); }
   catch (e) { ok(/must not traverse/.test(e.message), "a traversing entry path is refused at build time", e.message); }
 
-  // Round-trip through both shapes.
   const dir = path.join(TMP, "policy-bundle");
   bundle.writeDir(built, dir);
   ok(bundle.verify(bundle.read(dir), { requireSignature: true }).ok, "a bundle round-trips through the DIRECTORY form");
@@ -141,7 +138,6 @@ async function main() {
   // ── 4. Offline pack export + install ──────────────────────────────────────
   const prov = await ops.provisioning.provision({ industry: "financial services" }, { actor: "davarn@control-room" });
   const org = prov.org_id;
-
   const packFile = path.join(TMP, "finance.pack");
   bundle.writeFile(sovPacks.exportPack("finance", { sign: signing }), packFile);
   ok(fs.existsSync(packFile), "an industry pack exports to signed media");
@@ -149,7 +145,6 @@ async function main() {
   ok(readBack.content.id === "finance" && readBack.content.policies.length > 0, "the exported pack carries its declarative Ω policies", readBack.content.policies.length);
   ok(readBack.content.metrics === undefined && readBack.content.dashboard === undefined,
     "a pack bundle carries DATA ONLY — no code travels on the media");
-
   const installed = await ops.industry.installFromBundle(org, packFile, { actor: "guardian-cli" });
   ok(installed.activated > 0, "installing from media activates the pack's Ω policies", installed.activated);
   ok(installed.source === "bundle" && installed.projections === "builtin", "the install records its provenance + projection mode", { source: installed.source, projections: installed.projections });
@@ -181,11 +176,9 @@ async function main() {
   });
   const updateFile = path.join(TMP, "guardian-1.4.0.gos");
   bundle.writeFile(updateBundle, updateFile);
-
   const plan = updates.inspect(updateFile);
   ok(plan.policies.length === 1 && plan.packs.length === 1 && plan.migrations.length === 1,
     "inspect() describes exactly what an update would do, changing nothing", { p: plan.policies.length, k: plan.packs.length, m: plan.migrations.length });
-
   const applied = await updates.apply(updateFile, { org_id: org, actor: "guardian-cli" });
   ok(applied.status === "applied", "a signed update applies", applied.applied);
   ok(applied.rollback_plan.policies.length === 1 && applied.rollback_plan.packs.length === 1,
@@ -194,14 +187,12 @@ async function main() {
     "SQL migrations are REPORTED, never executed", applied.migrations_note);
   ok((await ops.govpolicy.active({ scope: org })).some((p) => p.name === "sov_update_export_block"), "the update's policy is enforcing");
   ok(await ops.industry.isInstalled(org, "cybersecurity"), "the update's pack is installed");
-
   const rolled = await updates.rollback(applied.id, { actor: "guardian-cli" });
   ok(rolled.status === "rolled_back", "the update rolls back");
   ok(!(await ops.govpolicy.active({ scope: org })).some((p) => p.name === "sov_update_export_block"), "its policy is no longer enforcing after rollback");
   ok(!(await ops.industry.isInstalled(org, "cybersecurity")), "its pack is no longer installed after rollback");
   ok((await updates.history({ org_id: org })).length === 1, "the update history survives the rollback (evidence, not erasure)");
 
-  // A bundle signed by an untrusted key must never apply.
   const rogue = bundle.keygen({ key_id: "rogue" });
   const rogueFile = path.join(TMP, "rogue.gos");
   bundle.writeFile(updates.buildUpdate({ id: "guardian", version: "9.9.9", policies: [{ name: "rogue_policy", domain: "finance", spec: { match: { tools: ["wire_transfer"] }, conditions: {} } }], sign: { alg: "ed25519", key_id: rogue.key_id, private_key_pem: rogue.private_key_pem } }), rogueFile);
@@ -213,15 +204,11 @@ async function main() {
     await throws(() => ops.govpolicy.draft({ name: "adhoc", scope: org, domain: "finance", spec: { match: { tools: ["x"] }, conditions: {} } }),
       /immutable runtime/, "ad-hoc policy authoring is REFUSED on a locked runtime");
     await throws(() => ops.industry.install(org, "healthcare", { actor: "operator" }), /immutable runtime/, "ad-hoc pack installation is REFUSED on a locked runtime");
-
-    // The ONLY way in is a verified bundle.
     const hcFile = path.join(TMP, "healthcare.pack");
     bundle.writeFile(sovPacks.exportPack("healthcare", { sign: signing }), hcFile);
     const res = await ops.industry.installFromBundle(org, hcFile, { actor: "guardian-cli" });
     ok(res.activated > 0, "a VERIFIED signed bundle installs on the same locked runtime", res.activated);
     ok(!immutable.inVerifiedBundle(), "the immutability window closes again after the install");
-
-    // The brake is deliberately still available.
     const brake = await ops.industry.uninstall(org, "healthcare", { actor: "operator" });
     ok(brake.policies_rolled_back.length > 0, "rollback / uninstall stays available under immutability (the emergency brake)", brake.policies_rolled_back.length);
   });
@@ -238,8 +225,6 @@ async function main() {
     ok(byId.evidence_store.status === "pass", "verify: the local evidence store is writable", byId.evidence_store.detail);
     ok(byId.runtime_health.status === "pass", "verify: the Ω engine answers", byId.runtime_health.detail);
     ok(v.ok, "verify: a correctly-configured sovereign deployment passes", v.summary);
-
-    // Break the bundle → verification must FAIL, not warn.
     const broken = path.join(TMP, "broken-bundle");
     fs.cpSync(dir, broken, { recursive: true });
     fs.appendFileSync(path.join(broken, "policies", "a.json"), " ");
@@ -247,7 +232,6 @@ async function main() {
     v = await sovereign.verify.run({ org_id: org });
     const pi = v.checks.find((c) => c.id === "policy_integrity");
     ok(!v.ok && pi.status === "fail" && /FAILED verification/.test(pi.detail), "verify: a tampered policy bundle FAILS the deployment", pi.detail);
-
     delete process.env.GUARDIAN_POLICY_BUNDLE;
     v = await sovereign.verify.run({ org_id: org });
     ok(v.checks.find((c) => c.id === "policy_integrity").status === "fail",
@@ -264,7 +248,6 @@ async function main() {
   ok(twin && Object.keys(twin).length > 0, "the AI twin is derived locally");
   const packSummary = await ops.industry.summary(org);
   ok(packSummary.packs.every((p) => p.source), "every installed pack records where it came from", packSummary.packs);
-
   const health = await ops.health();
   ok(health.store.backend === "file", "health reports the local backend", health.store);
 
