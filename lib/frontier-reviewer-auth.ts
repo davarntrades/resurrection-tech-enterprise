@@ -66,6 +66,10 @@ export function configured() {
   return Boolean(reviewerPassword() && signingSecret()) && accessWindowOpen();
 }
 
+export function passwordlessConfigured() {
+  return Boolean(signingSecret()) && accessWindowOpen();
+}
+
 function sign(payloadB64: string) {
   const secret = signingSecret();
   if (!secret) return "";
@@ -90,15 +94,23 @@ function decodeSigned<T>(token: string | undefined | null): T | null {
   }
 }
 
-export function login(password: string) {
-  if (!configured()) return { ok: false as const, error: "reviewer login not configured or expired" };
-  if (!password || !safeEqual(password, reviewerPassword())) return { ok: false as const, error: "invalid credentials" };
-
+function issueReviewerToken() {
+  if (!passwordlessConfigured()) return { ok: false as const, error: "reviewer session not configured or expired" };
   const now = Math.floor(Date.now() / 1000);
   const configuredExpiry = configuredExpiryEpoch();
   const exp = Math.min(now + ttlSec(), configuredExpiry ?? Number.MAX_SAFE_INTEGER);
   const payload: ReviewerPayload = { sub: reviewerIdentity(), role: "reviewer", iat: now, exp };
   return { ok: true as const, token: encodeSigned(payload), exp, maxAgeSec: Math.max(1, exp - now), identity: payload.sub };
+}
+
+export function createPasswordlessSession() {
+  return issueReviewerToken();
+}
+
+export function login(password: string) {
+  if (!configured()) return { ok: false as const, error: "reviewer login not configured or expired" };
+  if (!password || !safeEqual(password, reviewerPassword())) return { ok: false as const, error: "invalid credentials" };
+  return issueReviewerToken();
 }
 
 export function verifyToken(token: string | undefined | null) {
