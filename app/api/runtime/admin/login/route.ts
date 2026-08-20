@@ -1,9 +1,11 @@
-/** Runtime Governance — operator login. Exchanges the operator password for an
- * httpOnly, signed session cookie used by the admin dashboard. Falls back to
- * RUNTIME_ADMIN_KEY as the bootstrap password when RUNTIME_OPERATOR_PASSWORD is
- * unset. The engine is never touched — operator-surface auth only. */
+/** Runtime Governance — operator login plus scoped Frontier reviewer access.
+ * Operator credentials keep the existing admin session. A separately configured
+ * Frontier reviewer credential receives only a Frontier-scoped cookie and can
+ * never authorize admin/control-room routes.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import * as reviewerAuth from "@/lib/frontier-reviewer-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,19 +13,31 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
-  const r = rt.adminauth.login(String(body?.password || ""));
-  if (!r.ok || !r.token) return NextResponse.json({ error: r.error || "login unavailable" }, { status: r.error === "invalid credentials" ? 401 : 503 });
+  const password = String(body?.password || "");
 
-  await rt.adminaudit.record({ action: "login", actor: "operator", via: "session" });
-  const res = NextResponse.json({ ok: true, exp: r.exp });
-  // sameSite:"lax" (not "strict"): the operator opens deliverables via
-  // target="_blank" links (Preview/Download) and reaches the Control Room across
-  // the apex→www canonical redirect. Strict withholds the session cookie on those
-  // top-level/new-tab navigations on iOS Safari (→ 401 "This page couldn't load").
-  // Lax sends it on top-level GET navigations while still blocking cross-site POST
-  // CSRF; the mutating admin endpoints are same-origin fetch, so unaffected.
-  res.cookies.set(rt.adminauth.SESSION_COOKIE, r.token, {
-    httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: r.maxAgeSec,
-  });
-  return res;
+  const operator = rt.adminauth.login(password);
+  if (operator.ok && operator.token) {
+    await rt.adminaudit.record({ action: "login", actor: "operator", via: "session" });
+    const res = NextResponse.json({ ok: true, role: "operator", exp: operator.exp });
+    res.cookies.set(rt.adminauth.SESSION_COOKIE, operator.token, {
+      httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: operator.maxAgeSec,
+    });
+    return res;
+  }
+
+  const reviewer = reviewerAuth.login(password);
+  if (reviewer.ok && reviewer.token) {
+    const res = NextResponse.json({ ok: true, role: "reviewer", exp: reviewer.exp });
+    // Deliberately scoped to Frontier APIs. This cookie is never accepted by
+    // Control Room/admin routes and is not sent to them by the browser.
+    res.cookies.set(reviewerAuth.SESSION_COOKIE, reviewer.token, {
+      httpOnly: true, secure: true, sameSite: "lax", path: "/api/frontier", maxAge: reviewer.maxAgeSec,
+    });
+    return res;
+  }
+
+  const operatorUnavailable = operator.error && operator.error !== "invalid credentials";
+  const reviewerUnavailable = reviewer.error && reviewer.error !== "invalid credentials";
+  const status = operatorUnavailable && reviewerUnavailable ? 503 : 401;
+  return NextResponse.json({ error: status === 401 ? "invalid credentials" : "login unavailable" }, { status });
 }

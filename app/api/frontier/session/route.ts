@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import * as rt from "@/lib/runtime";
+import { authorizeFrontier, reviewerAuth, reviewerGrantToken } from "@/lib/frontier-access";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { frontierService, publicFrontierError } from "@/lib/frontier-server";
 
@@ -32,23 +32,29 @@ const schema = z.object({
   }).strict().optional(),
 }).strict();
 
-function authorized(req: NextRequest) {
-  return rt.adminauth.authorize({
-    sessionToken: req.cookies.get(rt.adminauth.SESSION_COOKIE)?.value,
-    adminKey: req.headers.get("x-admin-key") || undefined,
-  });
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req).ok) return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
+  const access = authorizeFrontier(req);
+  if (!access.ok) return NextResponse.json({ error: "Frontier authentication required" }, { status: 401 });
   const { res, data } = await frontierService("/v1/frontier/session?limit=20");
-  return NextResponse.json(res.ok ? data : { error: publicFrontierError(data, "Session history unavailable") }, { status: res.status });
+  if (!res.ok) return NextResponse.json({ error: publicFrontierError(data, "Session history unavailable") }, { status: res.status });
+
+  if (access.role === "reviewer") {
+    const allowed = new Set(reviewerAuth.readSessionGrants(reviewerGrantToken(req)));
+    const sessions = Array.isArray(data?.sessions)
+      ? data.sessions.filter((item: any) => allowed.has(String(item?.session_id || "")))
+      : [];
+    return NextResponse.json({ ...data, sessions }, { headers: { "cache-control": "no-store, max-age=0" } });
+  }
+
+  return NextResponse.json(data, { headers: { "cache-control": "no-store, max-age=0" } });
 }
 
 export async function POST(req: NextRequest) {
-  if (!authorized(req).ok) return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
+  const access = authorizeFrontier(req);
+  if (!access.ok) return NextResponse.json({ error: "Frontier authentication required" }, { status: 401 });
   const limited = rateLimit(clientIp(req.headers), {
-    bucket: "frontier-session-paid", max: Number(process.env.FRONTIER_SESSION_UI_RATE_LIMIT ?? 3),
+    bucket: access.role === "reviewer" ? "frontier-reviewer-session-paid" : "frontier-session-paid",
+    max: Number(access.role === "reviewer" ? process.env.FRONTIER_REVIEWER_SESSION_UI_RATE_LIMIT ?? 2 : process.env.FRONTIER_SESSION_UI_RATE_LIMIT ?? 3),
     windowMs: 10 * 60 * 1000,
   });
   if (!limited.ok) return NextResponse.json({ error: "Continuous session usage limit reached. Try again shortly." }, { status: 429 });
@@ -56,7 +62,18 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid session request." }, { status: 422 });
   try {
     const { res, data } = await frontierService("/v1/frontier/session", { method: "POST", body: JSON.stringify(parsed.data) });
-    return NextResponse.json(res.ok ? data : { error: publicFrontierError(data, "Session failed to start") }, { status: res.status });
+    if (!res.ok) return NextResponse.json({ error: publicFrontierError(data, "Session failed to start") }, { status: res.status });
+
+    const response = NextResponse.json(data, { headers: { "cache-control": "no-store, max-age=0" } });
+    if (access.role === "reviewer") {
+      const sessionId = String(data?.session?.session_id || data?.session_id || "");
+      if (!sessionId) return NextResponse.json({ error: "Reviewer session failed closed: session identifier unavailable." }, { status: 502 });
+      const grant = reviewerAuth.issueSessionGrant(reviewerGrantToken(req), sessionId);
+      response.cookies.set(reviewerAuth.SESSION_GRANTS_COOKIE, grant.token, {
+        httpOnly: true, secure: true, sameSite: "lax", path: "/api/frontier/session", maxAge: grant.maxAgeSec,
+      });
+    }
+    return response;
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message || "Session failed closed.", execution_reached: false }, { status: 503 });
   }
