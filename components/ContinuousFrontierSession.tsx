@@ -6,7 +6,10 @@ import type { FrontierConfig } from "@/components/FrontierLabClient";
 type Mode = "shadow" | "guarded_pilot" | "enforced";
 type Decision = { verdict: string; rule?: string; layer?: string; reason?: string; latency_ms?: number; metadata?: { capabilities?: string[] } };
 type Step = { step: number; timestamp: string; normalized_call: { tool: string; args: Record<string, unknown> }; morrison_decision: Decision; shadow_decision?: string | null; execution_occurred: boolean; simulator_result?: unknown; operator_decision?: unknown; model_latency_ms: number; governance_latency_ms: number; step_hash: string; previous_step_hash?: string | null };
-type Snapshot = { session_id: string; provider: string; model: string; mode: Mode; scenario_id: string; status: string; current_step: number; max_steps: number; model_calls: number; started_at?: string; ended_at?: string; stop_reason?: string; pending_review?: { step: number; call: { tool: string; args: Record<string, unknown> }; action_hash: string }; approval_configured: boolean; steps: Step[]; events: Array<{ sequence: number; timestamp: string; kind: string; data: Record<string, unknown> }>; summary: { proposed_actions: number; allow: number; block: number; escalate: number; would_allow: number; would_block: number; would_escalate: number; executed_actions: number; unauthorized_executions: number; containment_events: number; policy_exposures: number; model_latency_ms: number; governance_latency_ms: number; average_governance_latency_ms: number }; last_step_hash?: string; session_evidence_hash?: string; evidence_verified?: boolean | null; morrison_evidence_integrity?: { evidence_verified?: boolean } };
+type ValueImpact = { mode: Mode; measurement_type: "illustrative"; currency: "GBP"; measured_facts: { total_proposed_actions: number; permitted_actions: number; blocked_actions: number; escalated_actions: number; unauthorized_executions: number }; direct_simulated_exposure_identified: number | null; direct_simulated_exposure_prevented: number | null; estimated_enterprise_impact: { min: number; max: number; basis: string; aggregation: string; profiles: string[] } | null; incident_classes: Array<{ id: string; label: string }>; possible_costs: string[]; workflow_continuity: { preserved: boolean; permitted_actions: number; intercepted_actions: number; continued_after_intervention: boolean }; would_guarded_pilot_intervene: boolean | null; disclaimer: string };
+type RegulatoryFramework = { framework_id: string; framework_name: string; jurisdiction: string; applicability: "CONFIRMED_BY_CONFIGURATION" | "POTENTIALLY_RELEVANT" | "NOT_APPLICABLE" | "INSUFFICIENT_INFORMATION"; applicability_reason: string; triggering_capabilities: string[]; triggering_steps: number[]; exposure_types: string[]; obligation_categories: string[]; calculation: { available: boolean; reason?: string; basis?: string; tier?: string; organization_turnover?: { amount: number; currency: string; year?: number | null }; turnover_percentage?: number; maximum_context?: { amount: number; currency: string }; aggregation?: string; note?: string }; source: { authority: string; name: string; reference: string; url: string }; profile_version: string; effective_from: string; effective_to?: string | null; source_last_verified: string; disclaimer: string };
+type RegulatoryExposure = { measurement_type: "contextual"; mode: Mode; organization_profile_hash: string; frameworks: RegulatoryFramework[]; distinct_obligation_areas: number; highest_statutory_context_by_currency: Array<{ amount: number; currency: string; framework_id: string }>; statutory_maxima_aggregation: "NOT_SUMMED_ACROSS_FRAMEWORKS"; runtime_mitigation_recorded: boolean; runtime_mitigation_language: string; disclaimer: string };
+type Snapshot = { session_id: string; provider: string; model: string; mode: Mode; scenario_id: string; status: string; current_step: number; max_steps: number; model_calls: number; started_at?: string; ended_at?: string; stop_reason?: string; pending_review?: { step: number; call: { tool: string; args: Record<string, unknown> }; action_hash: string }; approval_configured: boolean; steps: Step[]; events: Array<{ sequence: number; timestamp: string; kind: string; data: Record<string, unknown> }>; summary: { proposed_actions: number; allow: number; block: number; escalate: number; would_allow: number; would_block: number; would_escalate: number; executed_actions: number; unauthorized_executions: number; containment_events: number; policy_exposures: number; model_latency_ms: number; governance_latency_ms: number; average_governance_latency_ms: number }; value_impact?: ValueImpact; regulatory_exposure?: RegulatoryExposure; last_step_hash?: string; session_evidence_hash?: string; evidence_verified?: boolean | null; morrison_evidence_integrity?: { evidence_verified?: boolean } };
 type ApiResponse = { ok: boolean; session: Snapshot; persistence: { backend: string; restart_durable: boolean; volume_required: boolean } };
 
 async function api(path: string, init: RequestInit = {}) {
@@ -32,6 +35,17 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
   const [maxRuntime, setMaxRuntime] = useState(config.limits.session_default_runtime_seconds || 300);
   const [customTask, setCustomTask] = useState("Review this synthetic workflow note.");
   const [customContent, setCustomContent] = useState("");
+  const [jurisdictions, setJurisdictions] = useState<string[]>([]);
+  const [frameworks, setFrameworks] = useState<string[]>([]);
+  const [dataCategories, setDataCategories] = useState<string[]>([]);
+  const [financialEntity, setFinancialEntity] = useState(false);
+  const [turnover, setTurnover] = useState("");
+  const [turnoverCurrency, setTurnoverCurrency] = useState("GBP");
+  const [gdprTier, setGdprTier] = useState("unknown");
+  const [nis2Class, setNis2Class] = useState("unknown");
+  const [aiActClass, setAiActClass] = useState("unknown");
+  const [aiActTier, setAiActTier] = useState("unknown");
+  const [aiActSme, setAiActSme] = useState("unknown");
   const [session, setSession] = useState<Snapshot | null>(null);
   const [persistence, setPersistence] = useState<ApiResponse["persistence"] | null>(null);
   const [recent, setRecent] = useState<Snapshot[]>([]);
@@ -61,7 +75,15 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
 
   const start = async () => {
     setBusy(true); setError(""); setSession(null);
-    const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, objective, mode, domain, max_steps: maxSteps, max_runtime_s: maxRuntime, block_behavior: "return_denial_and_replan" };
+    const parsedTurnover = Number(turnover);
+    const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, objective, mode, domain, max_steps: maxSteps, max_runtime_s: maxRuntime, block_behavior: "return_denial_and_replan", organization_profile: {
+      organization_id: "operator-configured-pilot", jurisdictions, sector: financialEntity ? "financial_services" : "unknown",
+      annual_global_turnover: turnover.trim() && Number.isFinite(parsedTurnover) && parsedTurnover > 0 ? { amount: parsedTurnover, currency: turnoverCurrency, year: new Date().getFullYear() - 1 } : null,
+      data_categories: dataCategories, regulated_entities: financialEntity ? ["financial_services"] : [], frameworks_enabled: frameworks,
+      ai_system_classification: { eu_ai_act: aiActClass, eu_ai_act_penalty_tier: aiActTier },
+      entity_classifications: { eu_gdpr_penalty_tier: gdprTier, uk_gdpr_penalty_tier: gdprTier, nis2: nis2Class, eu_ai_act_sme: aiActSme, hipaa_hitech: "unknown" },
+      contractual_frameworks: frameworks.includes("pci_dss") ? ["pci_dss"] : [],
+    } };
     if (custom) { body.custom_user_task = customTask; body.custom_untrusted_content = customContent; }
     try {
       const data = await api("/api/frontier/session", { method: "POST", body: JSON.stringify(body) }) as ApiResponse;
@@ -98,6 +120,17 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
         <label>Objective<textarea value={objective} maxLength={4000} onChange={(event) => setObjective(event.target.value)} /></label>
         {custom && <><label>Custom synthetic task<textarea value={customTask} maxLength={config.limits.max_task_chars} onChange={(event) => setCustomTask(event.target.value)} /></label><label>Custom untrusted content<textarea className="tall" value={customContent} maxLength={config.limits.max_content_chars} onChange={(event) => setCustomContent(event.target.value)} /></label></>}
         <div className="flab-inline"><label>Max steps<input type="number" value={maxSteps} min={1} max={config.limits.session_max_steps || 50} onChange={(event) => setMaxSteps(Number(event.target.value))} /></label><label>Max runtime (s)<input type="number" value={maxRuntime} min={10} max={config.limits.session_max_runtime_seconds || 900} onChange={(event) => setMaxRuntime(Number(event.target.value))} /></label></div>
+        <details className="flab-reg-config"><summary>Regulatory context profile (operator configured)</summary>
+          <p>Optional applicability inputs. Missing values remain unknown; the Lab does not infer legal scope or turnover.</p>
+          <OptionChecks title="Jurisdictions" values={["UK", "EU", "US"]} selected={jurisdictions} setSelected={setJurisdictions} />
+          <OptionChecks title="Data in scope" values={["personal_data", "financial_data", "payment_card_data", "health_data"]} selected={dataCategories} setSelected={setDataCategories} />
+          <OptionChecks title="Frameworks enabled" values={(config.regulatory_profiles || []).map((item) => item.framework_id)} selected={frameworks} setSelected={setFrameworks} />
+          <label className="flab-check"><input type="checkbox" checked={financialEntity} onChange={(event) => setFinancialEntity(event.target.checked)} /> Configured regulated financial-services entity</label>
+          <div className="flab-inline"><label>Annual global turnover (optional)<input inputMode="decimal" value={turnover} placeholder="Not configured" onChange={(event) => setTurnover(event.target.value.replace(/[^0-9.]/g, ""))} /></label><label>Turnover currency<select value={turnoverCurrency} onChange={(event) => setTurnoverCurrency(event.target.value)}><option>GBP</option><option>EUR</option><option>USD</option></select></label></div>
+          <div className="flab-inline"><label>GDPR penalty tier<select value={gdprTier} onChange={(event) => setGdprTier(event.target.value)}><option value="unknown">Unknown</option><option value="standard">Standard tier</option><option value="higher">Higher tier</option></select></label><label>NIS2 entity class<select value={nis2Class} onChange={(event) => setNis2Class(event.target.value)}><option value="unknown">Unknown</option><option value="essential">Essential</option><option value="important">Important</option><option value="not_applicable">Not applicable</option></select></label></div>
+          <div className="flab-inline"><label>EU AI Act classification<select value={aiActClass} onChange={(event) => setAiActClass(event.target.value)}><option value="unknown">Unknown</option><option value="high_risk">High-risk (configured)</option><option value="prohibited">Prohibited practice (configured)</option><option value="not_applicable">Not applicable</option></select></label><label>EU AI Act context tier<select value={aiActTier} onChange={(event) => setAiActTier(event.target.value)}><option value="unknown">Unknown</option><option value="prohibited_practice">Prohibited practice</option><option value="other_obligation">Other obligation</option><option value="incorrect_information">Incorrect information</option></select></label></div>
+          <label>EU AI Act SME classification<select value={aiActSme} onChange={(event) => setAiActSme(event.target.value)}><option value="unknown">Unknown</option><option value="true">SME (configured)</option><option value="false">Not an SME (configured)</option></select></label>
+        </details>
         <button className="flab-run" disabled={busy || !!running || selectedProvider?.status !== "READY" || !objective.trim() || (custom && (!customTask.trim() || !customContent.trim()))} onClick={start}>{busy ? "STARTING…" : "START SESSION"}</button>
         {error && <div className="flab-error"><strong>FAIL CLOSED</strong>{error}<span>Protected execution reached: NO</span></div>}
       </div>
@@ -111,6 +144,8 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
       {session.status === "review_required" && session.pending_review && <section className="flab-review"><span>REVIEW ACTION</span><strong>{session.pending_review.call.tool}</strong><pre>{JSON.stringify(session.pending_review.call.args, null, 2)}</pre><div>{session.approval_configured && <button onClick={() => control("approve")}>APPROVE WITH BOUND ARTIFACT</button>}<button onClick={() => control("deny")}>DENY</button><button onClick={() => control("continue_without_action")}>CONTINUE WITHOUT ACTION</button><button onClick={() => control("terminate")}>TERMINATE SESSION</button></div></section>}
       <section className="flab-panel"><div className="flab-section-title">Live session timeline</div>{session.steps.length ? <ol className="flab-session-timeline">{session.steps.map((step) => <li key={step.step_hash}><b>{String(step.step).padStart(2, "0")}</b><div><strong>{step.normalized_call.tool}</strong><pre>{JSON.stringify(step.normalized_call.args, null, 2)}</pre><span>Morrison: {step.shadow_decision || step.morrison_decision.verdict} · Execution: {step.execution_occurred ? "SIMULATOR COMPLETED" : step.morrison_decision.verdict === "ESCALATE" ? "HELD" : "NO"}</span><small>{step.morrison_decision.reason}</small></div></li>)}</ol> : <p className="flab-muted">Waiting for the first model proposal…</p>}</section>
       <section className="flab-panel"><div className="flab-section-title">Session summary</div><div className="flab-summary"><Metric label="Current step" value={`${session.current_step} / ${session.max_steps}`} /><Metric label="Model calls" value={session.model_calls} /><Metric label="ALLOW" value={session.summary.allow} /><Metric label="BLOCK" value={session.summary.block} /><Metric label="ESCALATE" value={session.summary.escalate} /><Metric label="Would-block" value={session.summary.would_block} /><Metric label="Would-escalate" value={session.summary.would_escalate} /><Metric label="Executed actions" value={session.summary.executed_actions} /><Metric label="Unauthorized executions" value={session.summary.unauthorized_executions} /><Metric label="Policy exposures" value={session.summary.policy_exposures} /><Metric label="Model latency" value={`${session.summary.model_latency_ms.toFixed(1)} ms`} /><Metric label="Governance latency" value={`${session.summary.governance_latency_ms.toFixed(3)} ms`} accent /></div></section>
+      {session.value_impact && <SessionValueImpact impact={session.value_impact} evidenceVerified={session.evidence_verified === true} />}
+      {session.regulatory_exposure && <SessionRegulatoryExposure exposure={session.regulatory_exposure} session={session} />}
       <section className="flab-detail-grid"><div className="flab-panel"><div className="flab-section-title">Model session trace</div><pre className="flab-json">{JSON.stringify(session.events, null, 2)}</pre></div><div className="flab-panel"><div className="flab-section-title">Session evidence</div><KeyValues values={{ "Session ID": session.session_id, Provider: session.provider, Model: session.model, "Last verdict": highest?.morrison_decision.verdict || "—", "Last step hash": session.last_step_hash || "PENDING", "Session root hash": session.session_evidence_hash || "PENDING", "Step chain": session.evidence_verified == null ? "IN PROGRESS" : session.evidence_verified ? "VERIFIED" : "FAILED", "Morrison chain": session.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS" }} /><button className="flab-secondary" onClick={() => download("json")}>Download JSON</button> <button className="flab-secondary" onClick={() => download("txt")}>Download TXT</button></div></section>
     </>}
     <section className="flab-panel flab-history"><div className="flab-section-title">Recent governed sessions</div>{recent.length ? <div className="flab-table-wrap"><table><thead><tr><th>Started</th><th>Provider / model</th><th>Mode</th><th>Step</th><th>Last verdict</th><th>Status</th></tr></thead><tbody>{recent.map((item) => <tr key={item.session_id} onClick={() => setSession(item)}><td>{item.started_at ? new Date(item.started_at).toLocaleString() : "—"}</td><td>{item.provider}<small>{item.model}</small></td><td>{LABELS[item.mode]}</td><td>{item.current_step}</td><td>{item.steps.at(-1)?.shadow_decision || item.steps.at(-1)?.morrison_decision.verdict || "—"}</td><td>{item.status}</td></tr>)}</tbody></table></div> : <p className="flab-muted">No persistent sessions recorded yet.</p>}</section>
@@ -120,3 +155,64 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
 
 function KeyValues({ values }: { values: Record<string, unknown> }) { return <dl className="flab-kv">{Object.entries(values).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>; }
 function Metric({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) { return <div className={accent ? "accent" : ""}><span>{label}</span><strong>{value}</strong></div>; }
+
+function OptionChecks({ title, values, selected, setSelected }: { title: string; values: string[]; selected: string[]; setSelected: (value: string[]) => void }) {
+  return <fieldset className="flab-options"><legend>{title}</legend>{values.map((value) => <label className="flab-check" key={value}><input type="checkbox" checked={selected.includes(value)} onChange={(event) => setSelected(event.target.checked ? [...selected, value] : selected.filter((item) => item !== value))} />{value.replaceAll("_", " ")}</label>)}</fieldset>;
+}
+
+function gbp(value: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(value);
+}
+
+function money(value: number, currency: string) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+}
+
+function SessionValueImpact({ impact, evidenceVerified }: { impact: ValueImpact; evidenceVerified: boolean }) {
+  const shadow = impact.mode === "shadow";
+  const direct = shadow ? impact.direct_simulated_exposure_identified : impact.direct_simulated_exposure_prevented;
+  const continuity = impact.workflow_continuity;
+  const estimated = impact.estimated_enterprise_impact;
+  return <section className={`flab-panel flab-value-impact ${shadow ? "shadow" : "protected"}`}>
+    <div className="flab-value-heading">
+      <div><span>MEASURED SESSION FACTS</span><h2>{shadow ? "VALUE AT RISK" : "VALUE PROTECTED"}</h2></div>
+      <span className="flab-value-badge">SIMULATED</span>
+    </div>
+    <div className="flab-value-facts">
+      <div className="hero"><span>{shadow ? "Direct simulated exposure identified" : "Direct simulated exposure prevented"}</span><strong>{direct == null ? "NOT MEASURED" : gbp(direct)}</strong>{direct == null && <small>No defensible monetary amount was present in the governed action arguments.</small>}</div>
+      <div><span>Proposed actions</span><strong>{impact.measured_facts.total_proposed_actions}</strong></div>
+      <div><span>Permitted actions</span><strong>{impact.measured_facts.permitted_actions}</strong></div>
+      <div><span>{shadow ? "Observed unsafe proposals" : "Unsafe actions intercepted"}</span><strong>{shadow ? impact.measured_facts.blocked_actions + impact.measured_facts.escalated_actions : continuity.intercepted_actions}</strong></div>
+      <div><span>Unauthorized executions</span><strong>{impact.measured_facts.unauthorized_executions}</strong></div>
+      <div><span>Evidence chain</span><strong>{evidenceVerified ? "VERIFIED" : "IN PROGRESS"}</strong></div>
+    </div>
+    <div className="flab-value-estimate">
+      <span>ILLUSTRATIVE ESTIMATE</span>
+      <h3>{shadow ? "Projected downstream enterprise impact" : "Estimated enterprise impact avoided"}</h3>
+      <strong>{estimated ? `${gbp(estimated.min)} – ${gbp(estimated.max)}+` : "NO MATCHED IMPACT PROFILE"}</strong>
+      <p>{impact.disclaimer}</p>
+      {impact.incident_classes.length > 0 && <div className="flab-value-classes">{impact.incident_classes.map((item) => <span key={item.id}>{item.label}</span>)}</div>}
+    </div>
+    {shadow && <div className="flab-value-intervene"><span>Would Guarded Pilot intervene?</span><strong>{impact.would_guarded_pilot_intervene ? "YES" : "NO"}</strong><small>Shadow Mode observes policy decisions; it does not claim prevention.</small></div>}
+    {impact.possible_costs.length > 0 && <div className="flab-value-costs"><span>{shadow ? "Potential enterprise costs represented" : "Potential costs avoided"}</span><ul>{impact.possible_costs.map((cost) => <li key={cost}>{cost}</li>)}</ul></div>}
+    <div className={`flab-value-continuity ${continuity.preserved ? "preserved" : "not-preserved"}`}><span>WORKFLOW CONTINUITY</span><strong>{continuity.preserved ? `${continuity.permitted_actions} legitimate action${continuity.permitted_actions === 1 ? "" : "s"} preserved` : "NOT DEMONSTRATED"}</strong><p>{continuity.preserved ? (continuity.continued_after_intervention ? "The session continued after governance intervention." : "Legitimate work remained reachable in the same governed session.") : "This session did not contain both an intervention and a permitted legitimate action."}</p></div>
+    <p className="flab-value-boundary">Illustrative demo assumptions only. No real transaction, loss, breach, or saving occurred.</p>
+  </section>;
+}
+
+function SessionRegulatoryExposure({ exposure, session }: { exposure: RegulatoryExposure; session: Snapshot }) {
+  const shadow = exposure.mode === "shadow";
+  return <section className="flab-panel flab-regulatory">
+    <div className="flab-reg-heading"><div><span>REGULATORY / COMPLIANCE EXPOSURE CONTEXT</span><h2>{shadow ? "REGULATORY EXPOSURE OBSERVED" : exposure.runtime_mitigation_recorded ? "RUNTIME MITIGATION RECORDED" : "REGULATORY CONTEXT SURFACED"}</h2></div><span className="flab-context-badge">CONTEXTUAL</span></div>
+    <p className="flab-reg-intro">{exposure.runtime_mitigation_language}</p>
+    <div className="flab-reg-facts"><Metric label="Frameworks surfaced" value={exposure.frameworks.length} /><Metric label="Distinct control areas" value={exposure.distinct_obligation_areas} /><Metric label="Morrison runtime result" value={session.steps.at(-1)?.shadow_decision || session.steps.at(-1)?.morrison_decision.verdict || "—"} /><Metric label="Unauthorized executions" value={session.summary.unauthorized_executions} /></div>
+    {exposure.highest_statutory_context_by_currency.length > 0 && <div className="flab-statutory-summary"><span>STATUTORY MAXIMUM CONTEXT — NOT AGGREGATED</span>{exposure.highest_statutory_context_by_currency.map((item) => <strong key={item.currency}>{money(item.amount, item.currency)} <small>{item.framework_id.replaceAll("_", " ")}</small></strong>)}<p>Per-regime ceiling context only. Maximum values are never added together or counted as protected value.</p></div>}
+    <div className="flab-register"><div className="flab-register-head"><span>Framework</span><span>Applicability</span><span>Exposure type</span></div>{exposure.frameworks.length ? exposure.frameworks.map((item) => <details key={item.framework_id} className="flab-reg-row"><summary><strong>{item.framework_name}</strong><Status value={item.applicability} /><span>{item.exposure_types.join(" / ").replaceAll("_", " ")}</span></summary><div className="flab-reg-detail"><p>{item.applicability_reason}</p><KeyValues values={{ "Triggering capabilities": item.triggering_capabilities.join(", ") || "—", "Triggering steps": item.triggering_steps.join(", ") || "Configured profile context", "Control areas": item.obligation_categories.join("; "), "Profile version": item.profile_version, "Effective from": item.effective_from, "Source verified": item.source_last_verified }} />{item.calculation.available && item.calculation.maximum_context ? <div className="flab-reg-calc"><span>STATUTORY MAXIMUM CONTEXT</span><strong>{money(item.calculation.maximum_context.amount, item.calculation.maximum_context.currency)}</strong><KeyValues values={{ "Annual global turnover": item.calculation.organization_turnover ? `${money(item.calculation.organization_turnover.amount, item.calculation.organization_turnover.currency)} (${item.calculation.organization_turnover.year || "year not supplied"})` : "—", "Configured statutory ceiling": `${item.calculation.turnover_percentage}%`, "Calculation basis": item.calculation.basis || "—", Tier: item.calculation.tier || "—" }} /><p>{item.calculation.note}</p></div> : <div className="flab-reg-unavailable"><span>NO DETERMINISTIC STATUTORY MAXIMUM CALCULATED</span><p>{item.calculation.reason}</p></div>}<a href={item.source.url} target="_blank" rel="noreferrer">Official source: {item.source.authority} · {item.source.reference}</a><small>{item.disclaimer}</small></div></details>) : <p className="flab-muted">No structured runtime capability in this session matched a configured regulatory profile.</p>}</div>
+    <p className="flab-reg-disclaimer">{exposure.disclaimer} This feature provides technical and regulatory exposure context, not legal advice or a compliance certification. Profile: {exposure.organization_profile_hash.slice(0, 12)}…</p>
+  </section>;
+}
+
+function Status({ value }: { value: RegulatoryFramework["applicability"] }) {
+  const labels: Record<RegulatoryFramework["applicability"], string> = { CONFIRMED_BY_CONFIGURATION: "CONFIGURED APPLICABLE", POTENTIALLY_RELEVANT: "POTENTIALLY RELEVANT", INSUFFICIENT_INFORMATION: "INSUFFICIENT INFORMATION", NOT_APPLICABLE: "NOT APPLICABLE" };
+  return <span className={`flab-applicability ${value.toLowerCase()}`}>{labels[value]}</span>;
+}

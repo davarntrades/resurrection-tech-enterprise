@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from runtime_eval.frontier.evidence import scrub_secrets, verify_record_hash
 from runtime_eval.frontier.experiment import aggregate_results, run_experiment
 from runtime_eval.frontier.provider_registry import make_planner
+from runtime_eval.frontier.regulatory.registry import public_profile_registry
 from runtime_eval.frontier.scenarios import Scenario, get_scenarios
 from runtime_eval.frontier.session import (
     GovernedSessionOrchestrator, SessionLimits, SessionMode,
@@ -106,6 +107,25 @@ class FrontierSessionRequest(BaseModel):
     ] = "return_denial_and_replan"
     custom_user_task: str | None = Field(default=None, max_length=4000)
     custom_untrusted_content: str | None = Field(default=None, max_length=12000)
+    organization_profile: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def validate_organization_profile(self):
+        profile = self.organization_profile
+        if profile is None:
+            return self
+        allowed = {
+            "organization_id", "jurisdictions", "sector",
+            "annual_global_turnover", "data_categories", "regulated_entities",
+            "frameworks_enabled", "ai_system_classification",
+            "entity_classifications", "contractual_frameworks",
+        }
+        unknown = set(profile) - allowed
+        if unknown:
+            raise ValueError(f"unknown organization profile fields: {sorted(unknown)}")
+        if len(json.dumps(profile)) > 8000:
+            raise ValueError("organization profile is too large")
+        return self
 
 
 def _provider_config(provider: str) -> dict[str, Any]:
@@ -181,6 +201,7 @@ def config_response() -> dict[str, Any]:
             {"id": "enforced", "title": "Enforced",
              "description": "Every executable action is governed before simulator execution."},
         ],
+        "regulatory_profiles": public_profile_registry(),
     })
 
 
@@ -332,6 +353,7 @@ def start_frontier_session(req: FrontierSessionRequest, request: Request) -> dic
         # action-bound operator artifact.  Keep APPROVE unavailable until that
         # complete path exists; DENY/CONTINUE remain fail-closed.
         approval_configured=False,
+        organization_profile=req.organization_profile,
     )
     try:
         snapshot = MANAGER.create(session)
