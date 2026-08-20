@@ -82,4 +82,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=4s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8000\")}/health').status==200 else 1)"
 
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
+# Keep the Railway-managed HF_MODELS allowlist, but append the verified
+# refusal-removed Qwen3.8 FP8 checkpoint used for controlled red-team research.
+# This model is served through the existing Hugging Face planner and therefore
+# enters the exact same Morrison governance path as every other HF model.
+CMD ["sh", "-c", "case ',${HF_MODELS:-},' in *',orcarouter/Qwen3.8-27B-Uncensored-FP8,'*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}orcarouter/Qwen3.8-27B-Uncensored-FP8\" ;; esac; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
