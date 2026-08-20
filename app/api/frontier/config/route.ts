@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as rt from "@/lib/runtime";
+import { authorizeFrontier } from "@/lib/frontier-access";
 import { frontierService, publicFrontierError } from "@/lib/frontier-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-function authorized(req: NextRequest) {
-  return rt.adminauth.authorize({
-    sessionToken: req.cookies.get(rt.adminauth.SESSION_COOKIE)?.value,
-    adminKey: req.headers.get("x-admin-key") || undefined,
-  });
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req).ok) {
-    return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
+  if (!authorizeFrontier(req).ok) {
+    return NextResponse.json({ error: "Frontier authentication required" }, { status: 401 });
   }
   try {
     const { res, data } = await frontierService("/v1/frontier/config");
