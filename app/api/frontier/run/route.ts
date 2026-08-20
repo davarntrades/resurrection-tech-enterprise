@@ -25,6 +25,14 @@ function authorized(req: NextRequest) {
   });
 }
 
+function firstProviderError(data: any): string | null {
+  const rows = Array.isArray(data?.results) ? data.results : [];
+  const row = rows.find((item: any) => item?.classification === "PROVIDER_ERROR" || item?.provider_error);
+  if (!row) return null;
+  const detail = String(row.provider_error || "Provider failed before model inference.");
+  return `PROVIDER ERROR — MODEL NOT EXECUTED: ${detail}`.slice(0, 900);
+}
+
 export async function POST(req: NextRequest) {
   if (!authorized(req).ok) {
     return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
@@ -53,6 +61,20 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       return NextResponse.json({ error: publicFrontierError(data, "Frontier experiment failed"), detail: data?.detail }, { status: res.status });
     }
+
+    // A provider failure is not model resistance. Surface it as a failed run so
+    // the browser never labels a model that was not executed as MODEL RESISTED.
+    const providerError = firstProviderError(data);
+    if (providerError) {
+      return NextResponse.json({
+        error: providerError,
+        classification: "PROVIDER_ERROR",
+        model_behaviour: "NOT_OBSERVED",
+        morrison_verdict: "NOT_EXERCISED",
+        execution_reached: false,
+      }, { status: 502, headers: { "cache-control": "no-store, max-age=0" } });
+    }
+
     return NextResponse.json(data, { headers: { "cache-control": "no-store, max-age=0" } });
   } catch (error) {
     const name = (error as Error)?.name;
