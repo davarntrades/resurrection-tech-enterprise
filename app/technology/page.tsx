@@ -5,9 +5,9 @@ import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 
 export const metadata: Metadata = {
-  title: "Technology — Runtime Governance, in depth",
+  title: "Technology — Local Safety Envelopes & Runtime Governance",
   description:
-    "How Morrison Runtime Governance works: pre-execution trajectory evaluation, Ω reachability, the Identify–Constrain–Embed–Monitor methodology, full threat coverage across single-agent and multi-agent failure modes, and the core concepts in plain English.",
+    "How Morrison Runtime Governance defines and enforces local Safety Envelopes: bounded deployment context, pre-execution trajectory evaluation, Ω reachability, the Identify–Constrain–Embed–Monitor methodology, and evidence for single-agent and multi-agent operation.",
   alternates: { canonical: "/technology" },
 };
 
@@ -25,50 +25,92 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal" style={{ marginBottom: 0 }}>
             <span className="eyebrow">Technology</span>
-            <h1>Runtime Governance, in depth.</h1>
+            <h1>Local Safety Envelopes, enforced at runtime.</h1>
             <p>
-              The complete technical picture: how trajectories are evaluated before execution,
-              how the forbidden region Ω is made unreachable, the full threat coverage across
-              single-agent and multi-agent failure modes, and the core concepts in plain English.
+              A global claim that an autonomous system is “safe” is too broad to operate on.
+              Morrison evaluates safety locally: in a specified environment, with specified tools,
+              permissions, policies, state transitions, and reachable consequences. That bounded
+              operating region is the <strong>Safety Envelope</strong>.
             </p>
           </div>
         </div>
       </section>
+
+      {/* ===== LOCAL SAFETY ENVELOPE ===== */}
+      <section className="section section--tight" id="safety-envelope" aria-label="Local Safety Envelope">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Local Safety Envelope</span>
+            <h2>Define where safe autonomous operation ends.</h2>
+            <p>
+              The Safety Envelope is the locally validated region in which an autonomous system can
+              operate under a defined deployment context. It is scoped to the actual environment —
+              the agents, tools, permissions, policies, trajectory horizon, and reachable states in
+              front of us — not to an abstract universal claim about the underlying model.
+            </p>
+          </div>
+          <div className="tp2-grid reveal">
+            <div className="tp2-path is-allow">
+              {["Environment", "Inside Safety Envelope", "Runtime Governance", "ALLOW"].map((n, i, a) => (
+                <div className="tp2-step" key={n}>
+                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "ALLOW" ? " verdict ok" : ""}`}>{n}</div>
+                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
+                </div>
+              ))}
+            </div>
+            <div className="tp2-path is-block">
+              {["Environment", "Boundary violation / Ω reachability", "Runtime Governance", "BLOCK / ESCALATE"].map((n, i, a) => (
+                <div className="tp2-step" key={n}>
+                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCK / ESCALATE" ? " verdict block" : ""}`}>{n}</div>
+                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="pull reveal" style={{ marginTop: "clamp(36px,4vw,56px)" }}>
+            Local safety is a bounded claim: <span className="accent">what this system can safely reach,
+            in this environment, under these constraints.</span>
+          </p>
+        </div>
+      </section>
+
+      <hr className="divider" />
 
       {/* ===== WHY RUNTIME, WHY BEFORE EXECUTION ===== */}
       <section className="section section--tight" id="before-execution" aria-label="Why runtime governance intercepts before execution">
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Before execution</span>
-            <h2>Most safety reacts. Governance prevents.</h2>
+            <h2>Most safety reacts. Governance enforces the boundary.</h2>
             <p>
-              Traditional AI safety inspects outputs after the system has already acted. Runtime
-              Governance evaluates the action before execution.
+              Traditional AI safety often inspects outputs or incidents after the system has acted.
+              Runtime Governance evaluates the proposed trajectory before execution and decides whether
+              it remains inside the local Safety Envelope.
             </p>
           </div>
           <div className="versus">
             <div className="vs-col legacy reveal">
-              <div className="vs-tag"><span className="pip" /> Traditional safety</div>
+              <div className="vs-tag"><span className="pip" /> After-the-fact control</div>
               <div className="vs-step"><span className="si">01</span> Output generated</div>
               <div className="vs-arrow-v"><ArrowDown /></div>
               <div className="vs-step"><span className="si">02</span> Action taken</div>
               <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">03</span> Issue discovered later</div>
+              <div className="vs-step"><span className="si">03</span> Boundary violation discovered later</div>
             </div>
             <div className="vs-mid"><div className="vbar" /><span>VS</span><div className="vbar" /></div>
             <div className="vs-col gov reveal" data-d="1">
               <div className="vs-tag"><span className="pip" /> Runtime Governance</div>
               <div className="vs-step"><span className="si">01</span> Trajectory evaluated</div>
               <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">02</span> Unsafe path detected</div>
+              <div className="vs-step"><span className="si">02</span> Envelope status determined</div>
               <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">03</span> Execution prevented</div>
+              <div className="vs-step"><span className="si">03</span> ALLOW / ESCALATE / BLOCK</div>
             </div>
           </div>
 
           <div className="tp2-grid reveal" style={{ marginTop: "clamp(40px,5vw,64px)" }}>
             <div className="tp2-path is-block">
-              {["AI Agent", "Unsafe action chain", "Runtime Governance", "BLOCKED"].map((n, i, a) => (
+              {["AI Agent", "Trajectory leaves envelope", "Runtime Governance", "BLOCKED"].map((n, i, a) => (
                 <div className="tp2-step" key={n}>
                   <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCKED" ? " verdict block" : ""}`}>{n}</div>
                   {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
@@ -76,7 +118,7 @@ export default function Page() {
               ))}
             </div>
             <div className="tp2-path is-allow">
-              {["AI Agent", "Approved action", "Runtime Governance", "Execution"].map((n, i, a) => (
+              {["AI Agent", "Trajectory remains inside envelope", "Runtime Governance", "Execution"].map((n, i, a) => (
                 <div className="tp2-step" key={n}>
                   <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "Execution" ? " verdict ok" : ""}`}>{n}</div>
                   {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
@@ -89,16 +131,16 @@ export default function Page() {
 
       <hr className="divider" />
 
-      {/* ===== UNIVERSAL GOVERNANCE LAYER — full stack view (relocated from the homepage) ===== */}
+      {/* ===== UNIVERSAL GOVERNANCE LAYER ===== */}
       <section className="section section--tight" id="stack" aria-label="Universal governance layer — full stack view">
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Universal governance layer</span>
-            <h2>The full stack view.</h2>
+            <h2>The envelope is local. The enforcement layer is portable.</h2>
             <p>
-              Runtime Governance does not depend on model weights, architectures, providers, or
-              training methods. The governance layer operates at the execution boundary, so the
-              same safety controls govern actions regardless of where they originate.
+              The Safety Envelope changes with the environment; the enforcement mechanism does not.
+              Runtime Governance operates at the execution boundary, independent of model weights,
+              architectures, providers, or training methods.
             </p>
           </div>
 
@@ -126,13 +168,13 @@ export default function Page() {
             </div>
             <div className="mw-arrow" aria-hidden="true">
               <div className="mw-arrow-line" />
-              <div className="mw-arrow-cap">↓ every transition evaluated</div>
+              <div className="mw-arrow-cap">↓ every transition evaluated against the local envelope</div>
             </div>
             <div className="mw-layer mw-gov">
               <div className="mw-gov-inner">
                 <span className="mw-omega">Ω</span>
                 <div>
-                  <div className="mw-gov-kicker">Runtime Governance Layer</div>
+                  <div className="mw-gov-kicker">Local Safety Envelope · Runtime Governance Layer</div>
                   <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
                   <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
                 </div>
@@ -140,7 +182,7 @@ export default function Page() {
             </div>
             <div className="mw-arrow" aria-hidden="true">
               <div className="mw-arrow-line" />
-              <div className="mw-arrow-cap">↓ only safe actions reach your systems</div>
+              <div className="mw-arrow-cap">↓ only envelope-admissible actions reach your systems</div>
             </div>
             <div className="mw-layer mw-system">
               <div className="mw-layer-label">Protected enterprise systems &amp; data</div>
@@ -155,40 +197,40 @@ export default function Page() {
           <div className="mw-note reveal">
             <div className="mwn-row">
               <span className="mwn-dot safe" />
-              <span>Safe actions pass through to your systems, unchanged</span>
+              <span>Trajectories inside the validated Safety Envelope pass through to your systems</span>
             </div>
             <div className="mwn-row">
               <span className="mwn-dot blocked" />
-              <span>Ω-bound actions are blocked pre-execution — regardless of model, agent, or where they originated</span>
+              <span>Boundary-violating or Ω-bound trajectories are blocked or escalated pre-execution</span>
             </div>
           </div>
 
           <p className="mw-examples reveal">
-            Models will change. The governance layer at the execution boundary does not — these
-            providers are examples, not limits.
+            Models will change. Tools and permissions will change. The local envelope can be revalidated
+            without changing the enforcement architecture.
           </p>
         </div>
       </section>
 
       <hr className="divider" />
 
-      {/* ===== METHODOLOGY — IDENTIFY / CONSTRAIN / EMBED / MONITOR ===== */}
+      {/* ===== METHODOLOGY ===== */}
       <section className="section" id="what" data-screen-label="Methodology">
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Methodology</span>
-            <h2>Operational assurance for systems that act on their own.</h2>
+            <h2>Map, define, enforce, and revalidate the local Safety Envelope.</h2>
             <p>
-              Autonomous systems navigate enormous state-spaces. Some of those states are
-              catastrophic. We make the forbidden region — Ω — unreachable at runtime.
+              Autonomous systems operate in changing state-spaces. Morrison turns that environment
+              into a bounded operating claim that can be tested and enforced at runtime.
             </p>
           </div>
           <div className="dowork reveal">
             {[
-              ["01 — IDENTIFY", "Identify", "Map the reachable Ω exposure across the system's full operational state-space."],
-              ["02 — CONSTRAIN", "Constrain", "Define and validate the geometric boundaries that trajectories must never cross."],
-              ["03 — EMBED", "Embed", "Integrate runtime governance directly into the client's deployment environment."],
-              ["04 — MONITOR", "Monitor", "Maintain protection as the model, planner, and threat-surface evolve over time."],
+              ["01 — IDENTIFY", "Identify", "Map the deployment context: reachable states, tools, permissions, policies, data flows, and Ω exposure."],
+              ["02 — CONSTRAIN", "Constrain", "Define and validate the local Safety Envelope and the boundaries trajectories must satisfy."],
+              ["03 — EMBED", "Embed", "Integrate Runtime Governance at the execution boundary so every proposed action is evaluated before it runs."],
+              ["04 — MONITOR", "Revalidate", "Revalidate the envelope as models, tools, permissions, policies, and the operational environment change."],
             ].map(([num, h, p]) => (
               <div className="cell" key={h}>
                 <div className="num">{num}</div>
@@ -199,8 +241,8 @@ export default function Page() {
           </div>
           <div className="reveal" style={{ marginTop: "clamp(48px,6vw,88px)" }}>
             <p className="pull">
-              Identified, constrained, embedded, and monitored — as the operational
-              environment evolves, <span className="accent">Ω</span> stays unreachable.
+              The claim stays bounded to the environment. The boundary stays enforceable as the
+              system evolves. <span className="accent">Ω remains the forbidden region inside that geometry.</span>
             </p>
           </div>
         </div>
@@ -208,7 +250,7 @@ export default function Page() {
 
       <hr className="divider" />
 
-      {/* ===== Ω REACHABILITY ===== */}
+      {/* ===== SAFETY ENVELOPE GEOMETRY ===== */}
       <section className="section" id="reachability" data-screen-label="Reachability">
         <div className="wrap">
           <div className="reach">
@@ -218,34 +260,35 @@ export default function Page() {
             </div>
             <div>
               <div className="section-head reveal" style={{ marginBottom: 0 }}>
-                <span className="eyebrow">Ω Reachability</span>
-                <h2>Safety, expressed as geometry.</h2>
+                <span className="eyebrow">Safety Envelope Geometry</span>
+                <h2>Local safety, expressed as reachability.</h2>
                 <p>
-                  States are nodes. Transitions are edges. Governance evaluates every reachable
-                  path and denies any transition that would step the system into the forbidden Ω
-                  set — before it executes.
+                  States are nodes. Transitions are edges. The Safety Envelope describes the region
+                  the system may occupy under the current environment and constraints. Runtime Governance
+                  evaluates each reachable path and denies transitions that leave the envelope or enter
+                  the forbidden <span className="om">Ω</span> set — before execution.
                 </p>
               </div>
               <div className="reach-legend reveal" data-d="1">
                 <div className="legend-row">
                   <span className="swatch safe" />
                   <div>
-                    <b>Reachable &amp; safe</b>
-                    <span>Transitions that remain outside Ω propagate freely.</span>
+                    <b>Inside the Safety Envelope</b>
+                    <span>Locally admissible transitions propagate under the validated constraints.</span>
                   </div>
                 </div>
                 <div className="legend-row">
                   <span className="swatch blocked" />
                   <div>
-                    <b>Denied transition</b>
-                    <span>Edges crossing the boundary are blocked pre-execution.</span>
+                    <b>Boundary violation</b>
+                    <span>Transitions leaving the validated region are blocked or escalated pre-execution.</span>
                   </div>
                 </div>
                 <div className="legend-row">
                   <span className="swatch omega" />
                   <div>
                     <b>Ω — forbidden region</b>
-                    <span>Catastrophic states. Constrained, contained, unreachable.</span>
+                    <span>States the system must not reach. Constrained, contained, unreachable.</span>
                   </div>
                 </div>
               </div>
@@ -260,15 +303,15 @@ export default function Page() {
       <section className="section section--tight tcov" id="threats" aria-label="Threat coverage">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Threat coverage</span>
-            <h2>The business risks Runtime Governance prevents.</h2>
+            <span className="eyebrow">Boundary coverage</span>
+            <h2>What can push a system outside its local Safety Envelope.</h2>
             <p>
               Traditional security evaluates individual events. Runtime Governance evaluates the
-              trajectory those events create — and denies it before execution.
+              trajectory those events create and whether that trajectory remains locally admissible
+              before execution.
             </p>
           </div>
 
-          {/* Tier 1 — Enterprise critical */}
           <div className="tcov-tier reveal">
             <div className="tcov-tier-h"><span className="tcov-dot crit" aria-hidden="true" />Enterprise critical risks</div>
             <div className="tcov-grid">
@@ -287,7 +330,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Tier 2 — Autonomous agent risks */}
           <div className="tcov-tier reveal">
             <div className="tcov-tier-h"><span className="tcov-dot auto" aria-hidden="true" />Autonomous agent risks</div>
             <p className="tcov-tier-sub">Failure modes that point-in-time monitoring cannot see, because the danger only exists across the full trajectory.</p>
@@ -306,9 +348,8 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Tier 3 — Advanced multi-agent catastrophic */}
           <div className="tcov-tier reveal">
-            <div className="tcov-tier-h"><span className="tcov-dot adv" aria-hidden="true" />Advanced multi-agent catastrophic risks</div>
+            <div className="tcov-tier-h"><span className="tcov-dot adv" aria-hidden="true" />Advanced multi-agent boundary risks</div>
 
             <div className="tcov-featured">
               <div className="tcov-featured-tag">Featured risk</div>
@@ -351,8 +392,9 @@ export default function Page() {
 
             <div className="tcov-keymsg reveal">
               <span className="tcov-keymsg-dot" aria-hidden="true" />
-              Existing controls watch individual events. Multi-agent systems fail across the whole
-              trajectory — which is exactly what Runtime Governance evaluates, before execution.
+              Existing controls watch individual events. Multi-agent systems can leave a safe operating
+              region across the whole trajectory — which is exactly what Runtime Governance evaluates,
+              before execution.
             </div>
           </div>
         </div>
@@ -367,18 +409,19 @@ export default function Page() {
             <span className="eyebrow">Plain-English clarity</span>
             <h2>The concepts, without the jargon.</h2>
             <p>
-              Runtime Governance uses precise technical language. Here is what each core
-              term means in plain English, so you know exactly what you are buying.
+              Runtime Governance uses precise technical language. Here is what each core term means
+              in plain English, so the boundary of the claim is explicit.
             </p>
           </div>
           <div className="inv-grid">
             {([
-              ["Ω — The Forbidden Region", "The set of system states your AI must never reach. Ω is not a filter — it is a geometric boundary around catastrophic outcomes. Once defined, the governance layer ensures no execution path can enter it."],
-              ["Reachability", "Whether your system can ever reach a given state from where it is now. If a catastrophic state is reachable, it will eventually be reached. Governance makes the Ω set unreachable by construction."],
-              ["Trajectory", "The sequence of decisions, tool calls, or actions that lead your system from its current state toward an outcome. Governance evaluates the entire trajectory — not just the final action."],
-              ["Runtime Constraint", "A rule embedded directly in the execution path that prevents a prohibited action. Unlike policy, it cannot be bypassed, overridden, or forgotten by the model at inference time."],
-              ["Pre-Execution Interception", "Blocking a harmful action before it happens — not detecting it after. Most AI safety operates post-hoc. Runtime Governance operates before the action executes."],
-              ["Invariant", "A property that must remain true throughout every execution — for example: 'This system will never authorise a payment above threshold X without human approval.' Invariants are formally specified and enforced at runtime."],
+              ["Safety Envelope", "The locally validated region in which an autonomous system may operate under a specified environment and set of constraints. It is a bounded deployment claim, not a universal claim that a model is safe."],
+              ["Ω — The Forbidden Region", "The set of states your AI must not reach. Ω sits inside the broader safety geometry as the explicitly forbidden region that governance makes unreachable."],
+              ["Reachability", "Whether your system can reach a given state from where it is now through available transitions. Governance uses reachability to test whether a trajectory stays inside the envelope or approaches a forbidden region."],
+              ["Trajectory", "The sequence of decisions, tool calls, or actions that lead your system from its current state toward an outcome. Governance evaluates the trajectory, not only the final action."],
+              ["Runtime Constraint", "A rule embedded directly in the execution path that prevents or escalates a prohibited transition before the tool call runs."],
+              ["Pre-Execution Interception", "Evaluating and governing an action before it happens — not detecting a boundary violation after the fact."],
+              ["Invariant", "A property that must remain true throughout execution — for example: 'This system will never authorise a payment above threshold X without human approval.'"],
             ] as [string, string][]).map(([term, plain]) => (
               <div className="inv-card card reveal" key={term}>
                 <div className="inv-term">{term}</div>
@@ -396,11 +439,11 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Interactive demonstration</span>
-            <h2>See governance intercept in real time.</h2>
+            <h2>See the Safety Envelope enforced in real time.</h2>
             <p>
-              Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed
-              trajectory before execution — safe paths flow through to execution, while
-              Ω-bound paths are intercepted at the governance layer, pre-action.
+              Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed trajectory
+              before execution — trajectories inside the envelope flow through, while boundary-
+              violating or Ω-bound paths are intercepted pre-action.
             </p>
           </div>
           <RuntimeGovernanceDemo />
@@ -421,15 +464,15 @@ export default function Page() {
         <div className="wrap">
           <div className="inner reveal">
             <span className="eyebrow" style={{ justifyContent: "center" }}>Next steps</span>
-            <h2 style={{ marginTop: 20 }}>See it evaluate a live trajectory.</h2>
+            <h2 style={{ marginTop: 20 }}>Map the local Safety Envelope in your environment.</h2>
             <p>
-              The interactive demo shows governance intercepting unsafe trajectories in real time,
-              and the developer quickstart connects it to your own agent in about 15 minutes.
+              Start with a live trajectory, then evaluate the real tools, permissions, policies,
+              and reachable states that define the boundary for your deployment.
             </p>
             <div className="hero-actions" style={{ marginTop: 38 }}>
               <Link href="/live-demo" className="btn btn--primary">Try the Live Demo <span className="arr">→</span></Link>
               <Link href="/quickstart" className="btn btn--ghost">Developer quickstart</Link>
-              <Link href="/book#assessment" className="btn btn--ghost">Book a Runtime Safety Assessment</Link>
+              <Link href="/book#assessment" className="btn btn--ghost">Book a Safety Envelope Assessment</Link>
             </div>
           </div>
         </div>
