@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import OperationsClient from "@/components/admin/OperationsClient";
+import "@/styles/operations-sovereign-profile.css";
 
 export const metadata: Metadata = {
   title: "Operations Agent — Operator Control Room",
