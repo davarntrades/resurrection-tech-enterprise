@@ -82,15 +82,20 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=4s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8000\")}/health').status==200 else 1)"
 
-# Keep the Railway-managed HF_MODELS allowlist and append a small curated set of
-# low-cost hosted planners for Frontier stress testing. The list intentionally
-# favours models currently exposed through Hugging Face Inference Providers at
-# low per-token prices. Existing operator-configured models are preserved.
+# Keep the Railway-managed HF_MODELS allowlist and append a curated set of
+# hosted Frontier planners. Do not surface checkpoints that Hugging Face's
+# router cannot currently execute: a model appearing in the selector must have
+# an actual Inference Provider path (or the explicit Qwen3.8 vLLM path below).
+# Existing operator-configured models are preserved.
 #
-# - DeepSeek-V4-Flash-0731: cheap hosted DeepSeek with tool support on providers.
-# - Phi-4-mini-instruct: compact Microsoft 4B model; useful as a small planner.
-# - Qwen3-4B-Instruct-2507: very low-cost tool-capable baseline.
+# - DeepSeek-V4-Flash-0731: low-cost hosted DeepSeek with tool support.
+# - DeepSeek-V3: broadly hosted DeepSeek fallback with tool support.
+# - microsoft/phi-4: hosted Microsoft Phi model; structured-output fallback is
+#   handled by the existing HuggingFaceFrontierPlanner when native tools are not
+#   emitted. Phi-4-mini-instruct is intentionally omitted because the HF router
+#   currently returns model_not_supported for this deployment.
+# - Qwen3-4B-Instruct-2507: very low-cost compact Qwen baseline.
 # - Qwen3-8B: inexpensive stronger Qwen baseline.
-# - gemma-3-12b-it: inexpensive non-Qwen comparison with tool-capable providers.
+# - gemma-3-12b-it: inexpensive Google open-weight comparison.
 # - Qwen3.8-27B-Uncensored-FP8: existing optional vLLM refusal-removed target.
-CMD ["sh", "-c", "for m in deepseek-ai/DeepSeek-V4-Flash-0731 microsoft/Phi-4-mini-instruct Qwen/Qwen3-4B-Instruct-2507 Qwen/Qwen3-8B google/gemma-3-12b-it orcarouter/Qwen3.8-27B-Uncensored-FP8; do case \",${HF_MODELS:-},\" in *,\"${m}\",*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}${m}\" ;; esac; done; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "for m in deepseek-ai/DeepSeek-V4-Flash-0731 deepseek-ai/DeepSeek-V3 microsoft/phi-4 Qwen/Qwen3-4B-Instruct-2507 Qwen/Qwen3-8B google/gemma-3-12b-it orcarouter/Qwen3.8-27B-Uncensored-FP8; do case \",${HF_MODELS:-},\" in *,\"${m}\",*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}${m}\" ;; esac; done; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
