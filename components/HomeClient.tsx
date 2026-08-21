@@ -23,18 +23,18 @@ export function HomeClient() {
           <div className="wrap">
             <div className="hero-inner">
               <h1 className="reveal in" data-d="1">
-                Preventing <span className="hero-cat">Catastrophic</span> Outcomes
+                Define the <span className="hero-cat">Safety Envelope</span>
                 <br />
-                in <span className="grad">Autonomous Systems</span>
+                Your <span className="grad">AI Can Actually Operate Within</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                Runtime Governance is the enforcement layer between your AI agents and your
-                systems — every action is evaluated <b>before it executes</b>.
+                Morrison Runtime Governance™ maps, tests, and enforces the <b>local Safety Envelope</b>
+                between your autonomous AI and your real systems — before actions execute.
               </p>
               <div className="hero-chips reveal in" data-d="3">
-                <span>Prevents unsafe actions before execution</span>
-                <span>Works across your existing stack</span>
-                <span>Audit-ready governance</span>
+                <span>Local safety evidence in your environment</span>
+                <span>Pre-execution boundary enforcement</span>
+                <span>Audit-ready evidence for every governed decision</span>
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
@@ -42,7 +42,7 @@ export function HomeClient() {
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "book" })}
                 >
-                  Book a Runtime Safety Assessment <span className="arr">→</span>
+                  Book a Safety Envelope Assessment <span className="arr">→</span>
                 </Link>
                 <Link
                   href="/live-demo"
@@ -132,21 +132,20 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 3 · WHAT RUNTIME GOVERNANCE IS — calm, static, canonical diagram.
-                   Intentionally no reveal/animation classes: the section must read
-                   complete without JavaScript. ===== */}
+        {/* ===== 3 · WHAT RUNTIME GOVERNANCE IS — calm, static, canonical diagram. ===== */}
         <section className="section section--tight" id="what" aria-label="What Runtime Governance is">
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">What Runtime Governance is</span>
-              <h2>Most safety reacts. Governance prevents.</h2>
+              <h2>Most safety reacts. Governance keeps autonomy inside a defined envelope.</h2>
               <p>
-                A universal governance layer at the execution boundary between your AI systems and
-                your infrastructure. Every proposed action is evaluated before it runs; trajectories
-                that would enter <span className="om">Ω</span> — the forbidden region of catastrophic
-                states — are blocked pre-execution. No model retraining, no agent rebuild.
+                Runtime Governance establishes and enforces a <strong>local Safety Envelope</strong> at the
+                execution boundary between your AI systems and your infrastructure. Actions and trajectories
+                that remain inside the validated envelope can proceed. Transitions that would leave it,
+                violate a constraint, or enter <span className="om">Ω</span> — the forbidden region — are
+                blocked or escalated before execution. No model retraining, no agent rebuild.
               </p>
-              <p className="govd-agnostic">Provider-, model-, agent-, and deployment-agnostic.</p>
+              <p className="govd-agnostic">Local, bounded evidence — provider-, model-, agent-, and deployment-agnostic.</p>
             </div>
 
             <div className="govd">
@@ -157,7 +156,7 @@ export function HomeClient() {
               <div className="govd-conn" aria-hidden="true" />
               <div className="govd-layer govd-gov">
                 <div className="govd-tm">Morrison Runtime Governance™</div>
-                <div className="govd-k">Runtime Governance</div>
+                <div className="govd-k">Local Safety Envelope</div>
                 <div className="govd-verbs">
                   EVALUATE&nbsp;→&nbsp;<span className="ok">ALLOW</span> · <span className="esc">ESCALATE</span> · <span className="blk">BLOCK</span>
                 </div>
@@ -168,7 +167,7 @@ export function HomeClient() {
                 <div className="govd-v">Data · APIs · Infrastructure · Internal workflows</div>
               </div>
               <p className="govd-caption">
-                Safe actions continue. Catastrophic actions are blocked before execution.
+                Actions inside the validated Safety Envelope continue. Boundary violations are blocked or escalated before execution.
               </p>
             </div>
 
@@ -212,7 +211,7 @@ export function HomeClient() {
               <div className="guardian-conn" />
               <div className="guardian-layer is-kernel">
                 <div className="gl-tm">Morrison Runtime Governance™</div>
-                <div className="gl-k">The kernel — deny-by-default <span className="om">Ω</span> · fail-closed</div>
+                <div className="gl-k">The kernel — local Safety Envelope · deny-by-default <span className="om">Ω</span> · fail-closed</div>
               </div>
               <div className="guardian-conn" />
               <div className="guardian-layer">
@@ -275,10 +274,11 @@ export function HomeClient() {
           <div className="wrap">
             <div className="section-head reveal">
               <span className="eyebrow">The bottom line</span>
-              <h2>What it prevents, and what you get.</h2>
+              <h2>Know where your AI can operate — and enforce the boundary.</h2>
               <p>
-                The specific catastrophic outcomes Runtime Governance blocks — and what your
-                organisation gains by removing them.
+                The Safety Envelope shows the locally validated operating region for your deployment.
+                Runtime Governance keeps execution inside it while preventing the financial, operational,
+                regulatory, and security outcomes that sit beyond the boundary.
               </p>
             </div>
             <div className="outcomes-grid">
@@ -299,12 +299,12 @@ export function HomeClient() {
                 <div className="outcomes-h"><span className="outcomes-dot ok" aria-hidden="true" />What you get</div>
                 <ul>
                   {[
-                    "Fewer catastrophic incidents — risk removed before execution",
+                    "A defined local Safety Envelope for the deployment",
+                    "Evidence of which trajectories remain inside or leave the boundary",
                     "Reduced regulatory and financial exposure",
-                    "Faster, safer AI adoption — deploy with governance built in",
+                    "Faster, safer AI adoption with pre-execution controls",
                     "Audit-ready evidence for every governed decision",
                     "One governance layer across every model, agent, and vendor",
-                    "No rebuild — it works inside your existing stack",
                   ].map((t) => <li key={t}>{t}</li>)}
                 </ul>
               </div>
@@ -385,8 +385,8 @@ export function HomeClient() {
               <span className="eyebrow">From assessment to enforced governance</span>
               <h2>One pathway. Four stages. Nothing replaced.</h2>
               <p>
-                The same pathway takes your organisation from first assessment to enforced,
-                monthly-reported governance — one layer inserted into your existing stack,
+                The same pathway takes your organisation from mapping a local Safety Envelope to
+                enforced, monthly-reported governance — one layer inserted into your existing stack,
                 nothing rebuilt.
               </p>
             </div>
@@ -395,27 +395,27 @@ export function HomeClient() {
               {([
                 {
                   n: "01",
-                  h: "Runtime Assessment",
-                  p: "A 48-hour assessment of your architecture, deployment model, and reachable risks — with a recommended pathway and a domain-specific Ω definition.",
+                  h: "Safety Envelope Assessment",
+                  p: "A 48-hour assessment of your architecture, tools, permissions, reachable states, and constraints — producing a bounded local Safety Envelope and a domain-specific Ω definition.",
                   tag: "48 hours",
                 },
                 {
                   n: "02",
                   h: "Shadow Mode Pilot",
-                  p: "Insert one layer; replace nothing. Governance observes every trajectory in production without touching a single existing tool — a 4–8 week limited pilot, with evidence gathered inside your own environment.",
+                  p: "Insert one layer; replace nothing. Governance observes trajectories in your environment and shows which remain inside the Safety Envelope, which approach the boundary, and which would leave it — without touching a single existing tool.",
                   tag: "Insert one layer",
                   highlight: true,
                 },
                 {
                   n: "03",
                   h: "Enable Enforcement",
-                  p: "Observe-only becomes observe-and-enforce with one configuration change. No agent rebuild, no redeployment.",
+                  p: "Observe-only becomes observe-and-enforce with one configuration change. Actions inside the envelope proceed; boundary violations are blocked or escalated before execution.",
                   tag: "One config change",
                 },
                 {
                   n: "04",
                   h: "Ongoing Governance",
-                  p: "Continuous revalidation, monthly evidence reports, and executive visibility as your models, agents, and threat surface evolve.",
+                  p: "Continuous revalidation, monthly evidence reports, and executive visibility as models, tools, permissions, policies, and the operating environment evolve.",
                   tag: "Standing assurance",
                 },
               ] as { n: string; h: string; p: string; tag: string; highlight?: boolean }[]).map((s) => (
@@ -474,10 +474,11 @@ export function HomeClient() {
           <div className="wrap">
             <div className="inner reveal">
               <span className="eyebrow" style={{ justifyContent: "center" }}>Live demo</span>
-              <h2 style={{ marginTop: 20 }}>Experience Runtime Governance yourself.</h2>
+              <h2 style={{ marginTop: 20 }}>See a local Safety Envelope in action.</h2>
               <p>
-                Real scenarios, live verdicts, sub-millisecond decisions — in your browser,
-                in seconds. No signup, no setup, nothing touches your systems.
+                Real scenarios, live verdicts, sub-millisecond decisions — see which trajectories
+                remain inside the envelope and which are blocked or escalated before execution.
+                No signup, no setup, nothing touches your systems.
               </p>
               <div className="hero-tryit reveal" style={{ justifyContent: "center", marginTop: 28 }}>
                 <span className="hero-tryit-label">Open a live verdict in one click:</span>
@@ -518,12 +519,12 @@ export function HomeClient() {
           <div className="wrap">
             <div className="section-head reveal">
               <span className="eyebrow">Return on governance</span>
-              <h2>The cost of one unsafe execution.</h2>
+              <h2>The cost of one boundary violation.</h2>
             </div>
             <p className="roi-lede reveal">
-              Governance cost is bounded. Catastrophic exposure is not. Runtime Governance is
-              priced against the cost of <span className="om">Ω</span> becoming reachable — not
-              the complexity of the software.
+              Governance cost is bounded. Exposure outside the validated Safety Envelope is not.
+              Runtime Governance is priced against the consequences of unsafe reachable states —
+              including <span className="om">Ω</span> — becoming executable.
             </p>
 
             <div className="tbl-wrap reveal" data-rowreveal>
@@ -551,7 +552,7 @@ export function HomeClient() {
 
             <div className="callout roi-multi reveal">
               <div>
-                <div className="roi-multi-h">Multi-agent systems multiply catastrophic risk</div>
+                <div className="roi-multi-h">Multi-agent systems multiply boundary risk</div>
                 <p>
                   A single unsafe decision in <b>Agent A</b> becomes the input to <b>Agent B</b> before
                   any human intervenes. Runtime Governance evaluates every trajectory at every execution
@@ -561,8 +562,8 @@ export function HomeClient() {
             </div>
 
             <p className="roi-close reveal">
-              One prevented execution pays for governance many times over. The assessment shows
-              which catastrophic states are reachable in your system today.
+              The assessment shows what your system can safely reach in its current environment —
+              and where trajectories would leave the validated envelope.
             </p>
 
             <div className="demo-cta reveal">
@@ -583,17 +584,17 @@ export function HomeClient() {
               <span className="eyebrow">Who this is for</span>
               <h2>Runtime Governance for the people responsible for what the system does.</h2>
               <p>
-                If an autonomous system causes a catastrophic outcome on your watch,
-                you own the consequence. Runtime Governance gives you verifiable protection
-                — not assurances.
+                If you are accountable for autonomous behaviour, you need more than a global claim that
+                a model is “safe.” You need bounded evidence of what it can safely do in your environment,
+                and enforcement when a proposed trajectory leaves that envelope.
               </p>
             </div>
             <div className="who-grid">
               {([
-                ["Head of AI / CTO", "You're deploying autonomous agents in production and the blast radius of a misaligned trajectory is existential.", "A verified governance boundary around every catastrophic reachable state — before deployment."],
-                ["Chief Risk Officer", "Your board is asking how AI risk is managed. 'We monitor outputs' is no longer an acceptable answer.", "A documented Ω specification, formal test evidence, and continuous revalidation."],
-                ["Compliance / Legal", "FCA, GDPR, DORA, AI Act — regulators are requiring demonstrable runtime controls, not policy documents.", "Evidence-grade audit artefacts suitable for regulatory submission and institutional sign-off."],
-                ["Platform / DevOps Engineering", "You're responsible for the AI infrastructure. Safety is your problem when something goes catastrophically wrong.", "Runtime constraints embedded directly in your deployment environment — not bolted on, not bypassable."],
+                ["Head of AI / CTO", "You're deploying autonomous agents in production and need to know where safe operation ends in the real stack.", "A locally validated Safety Envelope around the deployment — before production autonomy expands."],
+                ["Chief Risk Officer", "Your board is asking how AI risk is controlled in practice. 'We monitor outputs' is no longer enough.", "A documented Safety Envelope, Ω specification, formal test evidence, and continuous revalidation."],
+                ["Compliance / Legal", "FCA, GDPR, DORA, AI Act — regulators increasingly expect demonstrable controls and evidence, not policy documents alone.", "Evidence-grade audit artefacts showing the environment, constraints, verdicts, and bounded scope of the safety claim."],
+                ["Platform / DevOps Engineering", "You're responsible for the execution surface where autonomous systems touch real tools and infrastructure.", "Runtime constraints embedded directly in your deployment environment — not bolted on, not bypassable."],
               ] as [string, string, string][]).map(([role, pain, outcome]) => (
                 <div className="who-card card reveal" key={role}>
                   <div className="who-role">{role}</div>
@@ -630,12 +631,9 @@ export function HomeClient() {
                       <path d="M0,0 L10,5 L0,10 z" className="dbf-arrowhead" />
                     </marker>
                   </defs>
-                  {/* connectors: plan -> gate -> act */}
                   <line className="dbf-conn" x1="84" y1="33" x2="110" y2="33" markerEnd="url(#dbfArrow)" />
                   <line className="dbf-conn" x1="190" y1="33" x2="216" y2="33" markerEnd="url(#dbfArrow)" />
-                  {/* gate -> verdicts */}
                   <line className="dbf-conn" x1="150" y1="52" x2="150" y2="70" markerEnd="url(#dbfArrow)" />
-                  {/* nodes */}
                   <rect className="dbf-node" x="4" y="14" width="80" height="38" rx="9" />
                   <text className="dbf-label" x="44" y="37" textAnchor="middle">Agent plans</text>
                   <rect className="dbf-gate" x="110" y="14" width="80" height="38" rx="9" />
@@ -643,7 +641,6 @@ export function HomeClient() {
                   <text className="dbf-sub" x="150" y="43" textAnchor="middle">GOVERNANCE</text>
                   <rect className="dbf-node" x="216" y="14" width="80" height="38" rx="9" />
                   <text className="dbf-label" x="256" y="37" textAnchor="middle">Tool runs</text>
-                  {/* verdict chips */}
                   <rect className="dbf-chip dbf-chip--allow" x="38" y="74" width="66" height="20" rx="10" />
                   <text className="dbf-chip-t dbf-chip-t--allow" x="71" y="87" textAnchor="middle">PERMIT</text>
                   <rect className="dbf-chip dbf-chip--esc" x="112" y="74" width="76" height="20" rx="10" />
@@ -671,13 +668,14 @@ export function HomeClient() {
           <div className="wrap">
             <div className="inner reveal">
               <span className="eyebrow" style={{ justifyContent: "center" }}>The next step</span>
-              <h2 style={{ marginTop: 20 }}>Find out which unsafe states are reachable in your systems.</h2>
+              <h2 style={{ marginTop: 20 }}>Map the local Safety Envelope of your autonomous system.</h2>
               <p>
-                A 48-hour Runtime Safety Assessment identifies the catastrophic states reachable in
-                your autonomous systems — before they execute.
+                A 48-hour Safety Envelope Assessment shows what your system can safely reach in its
+                current environment, where the boundary sits, and which trajectories require blocking
+                or escalation before execution.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
-                <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+                <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
                 <Link href="/enterprise-pathways" className="btn btn--ghost">See enterprise pathways</Link>
               </div>
             </div>
