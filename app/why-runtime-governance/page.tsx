@@ -3,9 +3,9 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 
 export const metadata: Metadata = {
-  title: "Why Runtime Governance?",
+  title: "Why Runtime Governance? — From Unknown Boundaries to Local Safety Envelopes",
   description:
-    "Organisations already spend millions managing risk after the fact. Runtime Governance identifies catastrophic reachable states before execution.",
+    "Runtime Governance turns an undefined autonomous operating surface into a bounded local Safety Envelope that can be tested, enforced, and evidenced before execution.",
   alternates: { canonical: "/why-runtime-governance" },
 };
 
@@ -26,11 +26,46 @@ export default function Page() {
       <section className="section section--tight why" aria-label="Why runtime governance">
         <div className="wrap">
           <span className="eyebrow">Why runtime governance</span>
-          <h1 className="why-h1">The Cost Of Prevention Is Usually Smaller Than The Cost Of Failure</h1>
+          <h1 className="why-h1">You Cannot Govern An Autonomous System If You Cannot Show Where Safe Operation Ends</h1>
           <p className="why-lede">
-            Organisations already spend millions managing risk — after the fact. The categories below
-            are budgeted every year on the assumption that something will eventually go wrong.
+            The central problem is not only whether a model can produce a bad output. It is whether,
+            in your actual environment, an autonomous system can reach states, tools, data, or actions
+            that fall outside the limits you are prepared to accept.
           </p>
+
+          <div className="why-shift reveal">
+            <div className="why-shift-col is-after-the-fact">
+              <span className="why-shift-k">Without a defined envelope</span>
+              <p>Your agents have tools and permissions, but the exact boundary of locally safe operation is implicit, fragmented, or discovered only after something goes wrong.</p>
+            </div>
+            <div className="why-shift-arrow" aria-hidden="true">→</div>
+            <div className="why-shift-col is-before">
+              <span className="why-shift-k">With Morrison Runtime Governance</span>
+              <p>Map the environment, define the local Safety Envelope, evaluate reachable trajectories before execution, and preserve evidence of every ALLOW, ESCALATE, and BLOCK decision.</p>
+            </div>
+          </div>
+
+          <div className="why-omega reveal">
+            <span className="om" aria-hidden="true">Ω</span>
+            <div>
+              <p className="why-omega-q">The Safety Envelope is broader than catastrophic-state prevention.</p>
+              <p className="why-omega-note">
+                The local Safety Envelope defines the validated operating region. <span className="om">Ω</span> remains the explicitly forbidden region inside that geometry — the states the system must not reach.
+              </p>
+            </div>
+          </div>
+
+          <hr className="divider" />
+
+          <div className="section-head reveal">
+            <span className="eyebrow">Why the boundary matters financially</span>
+            <h2>The cost of prevention is usually smaller than the cost of a boundary violation.</h2>
+            <p>
+              Organisations already spend heavily managing residual risk after the fact. A locally
+              defined and enforceable operating envelope moves part of that control upstream — before
+              an autonomous action becomes an incident.
+            </p>
+          </div>
 
           <div className="why-grid reveal">
             {SPEND.map(([h, p]) => (
@@ -45,30 +80,9 @@ export default function Page() {
           </div>
           <p className="why-illus reveal">Figures are illustrative industry references, not guarantees.</p>
 
-          <hr className="divider" />
-
-          <div className="why-shift reveal">
-            <div className="why-shift-col is-after-the-fact">
-              <span className="why-shift-k">Today — after the fact</span>
-              <p>Insurance, penalties, breach response, and recovery — paid once the catastrophic outcome has already occurred.</p>
-            </div>
-            <div className="why-shift-arrow" aria-hidden="true">→</div>
-            <div className="why-shift-col is-before">
-              <span className="why-shift-k">Runtime Governance — before execution</span>
-              <p>Identify the catastrophic reachable states in your system and intercept the trajectories that lead to them — before any action runs.</p>
-            </div>
-          </div>
-
-          <div className="why-omega reveal">
-            <span className="om" aria-hidden="true">Ω</span>
-            <div>
-              <p className="why-omega-q">What happens when unsafe states become reachable?</p>
-              <p className="why-omega-note">In the Morrison Framework™, unsafe states are represented as <span className="om">Ω</span>.</p>
-            </div>
-          </div>
-
           <div className="why-cta reveal">
-            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
+            <Link href="/technology#safety-envelope" className="btn btn--ghost">See how the envelope works</Link>
             <Link href="/case-studies" className="btn btn--ghost">See the evidence</Link>
           </div>
         </div>
