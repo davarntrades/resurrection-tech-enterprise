@@ -1,0 +1,51 @@
+/* Cloud-profile presentation for the Operations > Sovereign surface.
+ *
+ * The sovereign API intentionally reports raw deployment facts. On the managed
+ * Cloud profile, GUARDIAN_POLICY_BUNDLE and an offline signing trust store are
+ * not required because policy is delivered by the remote control plane. The
+ * base SovereignView still renders those raw fields; this stylesheet makes the
+ * UI describe their applicability correctly without changing runtime or
+ * verification semantics.
+ *
+ * Offline profiles add `.ok` to the profile badge in SovereignView and are
+ * deliberately excluded here, so their bundle/trust-store readiness warnings
+ * remain visible and unchanged.
+ */
+
+/* Cloud: replace the misleading bundle status with the mechanism in use. */
+.ops-sov-theme:not(:has(.ops-sov-hero .radmin-badge.ok))
+  > .radmin-card:nth-of-type(2)
+  .ops-brief-head
+  > .radmin-deliv-meta {
+  font-size: 0;
+}
+
+.ops-sov-theme:not(:has(.ops-sov-hero .radmin-badge.ok))
+  > .radmin-card:nth-of-type(2)
+  .ops-brief-head
+  > .radmin-deliv-meta::after {
+  content: "Remote control plane";
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Cloud: the offline trust store is not a missing requirement. Re-label the
+ * row as deployment-profile applicability rather than showing `0 signing keys`.
+ */
+.ops-sov-theme:not(:has(.ops-sov-hero .radmin-badge.ok))
+  > .radmin-card:nth-of-type(2)
+  .ops-sov-trust
+  > * {
+  display: none;
+}
+
+.ops-sov-theme:not(:has(.ops-sov-hero .radmin-badge.ok))
+  > .radmin-card:nth-of-type(2)
+  .ops-sov-trust::before {
+  content: "Policy delivery mode\A Remote control plane\A\A Signed offline bundle\A Not required for Cloud profile";
+  white-space: pre-line;
+  display: block;
+  width: 100%;
+  color: inherit;
+  line-height: 1.55;
+}
