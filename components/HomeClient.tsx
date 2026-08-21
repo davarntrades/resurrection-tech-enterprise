@@ -67,7 +67,7 @@ export function HomeClient() {
           </div>
         </header>
 
-        {/* ===== 1b · SAFETY ENVELOPE — explain the concept before the proof ===== */}
+        {/* ===== 2 · SAFETY ENVELOPE — explain the concept before the pain ===== */}
         <section className="section section--tight" id="safety-envelope" aria-label="What a Safety Envelope is">
           <div className="wrap">
             <div className="section-head reveal">
@@ -117,7 +117,57 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 2 · PROOF STRIP — one canonical validation section ===== */}
+        <hr className="divider" />
+
+        {/* ===== 3 · WHY THIS MATTERS — pain before proof or architecture ===== */}
+        <section className="section section--tight outcomes" id="why-it-matters" aria-label="Why local Safety Envelopes matter">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Why this matters</span>
+              <h2>AI is moving from generating answers to taking actions.</h2>
+              <p>
+                An autonomous system can send money, expose data, change infrastructure, approve workflows,
+                call external tools, and coordinate with other agents. Once AI can act in the real world,
+                the safety question changes: <strong>where is it actually safe for this system to operate?</strong>
+              </p>
+            </div>
+
+            <div className="who-grid">
+              {([
+                ["Actions can be irreversible", "A bad answer can be corrected. A completed transfer, leaked credential, deleted record, or production change may already have created the consequence."],
+                ["Risk emerges across trajectories", "Each individual step can look acceptable while a multi-step or multi-agent sequence moves the system toward an unsafe reachable state."],
+                ["Policies do not enforce themselves", "Permissions, policy documents, prompts, and post-hoc monitoring describe intent. They do not by themselves stop an unsafe transition at the moment of execution."],
+              ] as [string, string][]).map(([title, explanation]) => (
+                <div className="who-card card reveal" key={title}>
+                  <div className="who-role">{title}</div>
+                  <div className="who-pain">{explanation}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="callout roi-multi reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
+              <div>
+                <div className="roi-multi-h">The missing layer is an enforceable operating boundary.</div>
+                <p>
+                  Enterprises need to know which tools, states, workflows, and trajectories remain locally safe —
+                  and stop the system when a proposed action would leave that region. That is what the local
+                  Safety Envelope makes visible, testable, and enforceable before execution.
+                </p>
+              </div>
+            </div>
+
+            <div className="demo-cta reveal">
+              <Link href="/why-runtime-governance" className="btn btn--ghost btn--sm">
+                Why Runtime Governance <span className="arr">→</span>
+              </Link>
+              <Link href="/live-demo" className="btn btn--ghost btn--sm">
+                See it in action <span className="arr">→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== 4 · PROOF STRIP — one canonical validation section ===== */}
         <section className="metrics glow-top" id="validation" aria-label="Validation benchmarks">
           <div className="wrap">
             <Link
@@ -182,7 +232,7 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 3 · WHAT RUNTIME GOVERNANCE IS — calm, static, canonical diagram. ===== */}
+        {/* ===== 5 · WHAT RUNTIME GOVERNANCE IS — calm, static, canonical diagram. ===== */}
         <section className="section section--tight" id="what" aria-label="What Runtime Governance is">
           <div className="wrap">
             <div className="section-head">
@@ -234,7 +284,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 3b · GUARDIAN OS — the governed operating system on the kernel ===== */}
+        {/* ===== 6 · GUARDIAN OS — the governed operating system on the kernel ===== */}
         <section className="section section--tight" id="guardian" aria-label="Guardian OS — the governed enterprise operating system" data-screen-label="Guardian OS">
           <div className="wrap">
             <div className="section-head reveal">
@@ -319,7 +369,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 4 · BUSINESS OUTCOMES — what it prevents, what you get ===== */}
+        {/* ===== 7 · BUSINESS OUTCOMES — detailed consequences and value ===== */}
         <section className="section section--tight outcomes" id="outcomes" aria-label="What it prevents and what you get">
           <div className="wrap">
             <div className="section-head reveal">
@@ -360,7 +410,6 @@ export function HomeClient() {
               </div>
             </div>
 
-            {/* The failure mode event-level monitoring cannot see */}
             <div className="tcov-featured reveal" style={{ marginTop: "clamp(36px,4.5vw,60px)" }}>
               <div className="tcov-featured-tag">Featured risk</div>
               <h3>Cascading Failures Across Agent Pipelines</h3>
@@ -387,7 +436,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 5 · EU AI ACT — DEPLOYER POSITIONING ===== */}
+        {/* ===== 8 · EU AI ACT — DEPLOYER POSITIONING ===== */}
         <section className="eu-trust" aria-label="EU AI Act alignment">
           <div className="wrap">
             <div className="eu-trust-card reveal">
@@ -428,7 +477,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 6 · DEPLOYMENT PATHWAY — assessment to enforced governance ===== */}
+        {/* ===== 9 · DEPLOYMENT PATHWAY — assessment to enforced governance ===== */}
         <section className="section section--tight pathway" id="onboarding" data-screen-label="Deployment pathway">
           <div className="wrap">
             <div className="section-head reveal">
@@ -519,7 +568,7 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 7 · LIVE DEMO — the primary product experience ===== */}
+        {/* ===== 10 · LIVE DEMO — the primary product experience ===== */}
         <section className="section cta-final" id="demo" aria-label="Live demo" data-screen-label="Live demo">
           <div className="wrap">
             <div className="inner reveal">
@@ -564,7 +613,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 8 · ROI — ONE CANONICAL FINANCIAL ARGUMENT ===== */}
+        {/* ===== 11 · ROI — ONE CANONICAL FINANCIAL ARGUMENT ===== */}
         <section className="section section--tight" id="roi" aria-label="The cost of one unsafe execution">
           <div className="wrap">
             <div className="section-head reveal">
@@ -627,7 +676,7 @@ export function HomeClient() {
 
         <hr className="divider" />
 
-        {/* ===== 9 · WHO IS THIS FOR ===== */}
+        {/* ===== 12 · WHO IS THIS FOR ===== */}
         <section className="section section--tight" id="who" aria-label="Who this is for">
           <div className="wrap">
             <div className="section-head reveal">
@@ -657,7 +706,7 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 10 · FOR DEVELOPERS — technical evaluation path ===== */}
+        {/* ===== 13 · FOR DEVELOPERS — technical evaluation path ===== */}
         <section className="devband" aria-label="For developers">
           <div className="wrap">
             <div className="devband-card reveal">
@@ -713,7 +762,7 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ===== 11 · FINAL CTA ===== */}
+        {/* ===== 14 · FINAL CTA ===== */}
         <section className="section cta-final" id="contact" data-screen-label="Contact">
           <div className="wrap">
             <div className="inner reveal">
