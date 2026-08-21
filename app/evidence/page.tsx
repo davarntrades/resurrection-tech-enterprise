@@ -4,9 +4,9 @@ import { PageShell } from "@/components/PageShell";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Evidence & Methodology",
+  title: "Evidence & Methodology — Local Safety Envelope Claims",
   description:
-    "How Morrison Runtime Governance is evaluated: benchmark counts, methodology, scope and limitations, reproducibility, and patent status. Written for independent technical review.",
+    "How Morrison Runtime Governance is evaluated, what a bounded local Safety Envelope claim means, benchmark counts, methodology, scope and limitations, reproducibility, and patent status.",
   alternates: { canonical: "/evidence" },
 };
 
@@ -18,10 +18,36 @@ export default function Page() {
           <span className="eyebrow">Due-diligence</span>
           <h1>Evidence &amp; Methodology</h1>
           <p className="tp-lede">
-            What was tested, how it was tested, what the numbers mean — and, just as
-            importantly, what they do not mean. Written so a technical reviewer can assess the
-            claims independently rather than take them on trust.
+            What was tested, how it was tested, what the numbers mean — and, just as importantly,
+            what they do not mean. Morrison presents safety evidence as a bounded local claim about
+            a specified environment, not as a universal claim that a model is globally safe.
           </p>
+
+          {/* Safety Envelope claim */}
+          <div className="tp-block tp-prose">
+            <h2>What a local Safety Envelope claim means</h2>
+            <p>
+              A Morrison Safety Envelope describes the <b>locally validated operating region</b> for
+              an autonomous system under a specified deployment context. The claim is bounded to the
+              agents, tools, permissions, policies, state transitions, trajectory horizon, Ω definitions,
+              and evidence scope that were actually evaluated.
+            </p>
+            <p>
+              <b>It is not a global safety claim.</b> It does not assert that the underlying model is
+              safe in every environment, with every tool, under every future configuration. If the
+              deployment context changes materially, the envelope may need to be revalidated.
+            </p>
+            <div className="tp-facts">
+              <div><dt>Environment</dt><dd>The actual deployment context being evaluated</dd></div>
+              <div><dt>Agent / model</dt><dd>The system proposing actions inside that environment</dd></div>
+              <div><dt>Tools &amp; permissions</dt><dd>The executable surface the agent can reach</dd></div>
+              <div><dt>Policies &amp; constraints</dt><dd>The conditions that define locally admissible operation</dd></div>
+              <div><dt>Reachability horizon</dt><dd>The trajectory depth over which reachable states are evaluated</dd></div>
+              <div><dt>Ω definitions</dt><dd>The explicitly forbidden regions the system must not reach</dd></div>
+              <div><dt>Envelope status</dt><dd>Whether the proposed trajectory remains inside, approaches, or leaves the validated region</dd></div>
+              <div><dt>Evidence scope</dt><dd>The tests, timestamps, assumptions, and limitations supporting the claim</dd></div>
+            </div>
+          </div>
 
           {/* Evaluation summary */}
           <div className="tp-block">
@@ -58,10 +84,15 @@ export default function Page() {
           <div className="tp-block tp-prose">
             <h2>Methodology</h2>
             <p>
+              <b>Local deployment scope.</b> The evaluator works against a specified environment and
+              constraint set. The resulting evidence supports claims about that bounded context, not
+              about every environment the model could ever enter.
+            </p>
+            <p>
               <b>Deterministic evaluation.</b> Governance verdicts are produced by deterministic
-              evaluation of a proposed trajectory against a defined forbidden set Ω — not by a
-              probabilistic model judging its own output. The same trajectory and the same Ω
-              produce the same verdict.
+              evaluation of a proposed trajectory against defined constraints and forbidden set Ω —
+              not by a probabilistic model judging its own output. The same trajectory and the same
+              policy state produce the same verdict.
             </p>
             <p>
               <b>Trajectory evaluation.</b> The unit of evaluation is the proposed sequence of
@@ -70,13 +101,14 @@ export default function Page() {
             </p>
             <p>
               <b>Pre-execution enforcement.</b> Evaluation happens at the execution boundary,
-              before any action runs. A trajectory that would reach Ω is intercepted; it is not
-              detected after the fact.
+              before any action runs. A trajectory that leaves the validated Safety Envelope, violates
+              a runtime constraint, or would reach Ω is intercepted or escalated before execution.
             </p>
             <p>
               <b>Domain-specific Ω definitions.</b> The forbidden set is defined per domain — an
               unauthorised transfer in banking, PHI exfiltration in healthcare, a GDPR boundary
-              violation in data privacy. The benchmark exercises each domain&rsquo;s Ω.
+              violation in data privacy. Ω is the explicitly forbidden region inside the broader
+              Safety Envelope geometry.
             </p>
             <div className="tp-todo">
               <b>Owner action:</b> link or attach the full written benchmark methodology (test-suite
@@ -93,10 +125,12 @@ export default function Page() {
             <div className="tp-note">
               <span className="k">What these results do NOT mean</span>
               <ul>
+                <li>A Safety Envelope is <b>local and environment-bound</b>. It is not evidence that an underlying model is globally safe.</li>
                 <li>The metrics describe performance on <b>defined internal test suites</b>, not every possible input. &ldquo;Zero false negatives&rdquo; is scoped to the governed benchmark, not a universal guarantee of safety.</li>
                 <li>Results were produced in <b>bounded evaluation environments</b>, not yet under independent third-party audit.</li>
                 <li>The <Link href="/test-trajectory">public demo</Link> is a limited heuristic — it is <b>not</b> the evaluator behind these numbers, and trajectories it has no rule for return INCONCLUSIVE.</li>
-                <li>Domain coverage reflects the sectors listed above; other domains require their own Ω definition and validation.</li>
+                <li>Domain coverage reflects the sectors listed above; other domains require their own envelope definition, Ω specification, and validation.</li>
+                <li>Material changes to tools, permissions, policies, agent architecture, or deployment context can change the Safety Envelope and require revalidation.</li>
               </ul>
             </div>
             <div className="tp-note" style={{ marginTop: 12 }}>
@@ -149,7 +183,8 @@ export default function Page() {
           </div>
 
           <div className="tp-cta">
-            <Link href="/book#assessment" className="btn btn--primary">Book a Runtime Safety Assessment <span className="arr">→</span></Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
+            <Link href="/technology#safety-envelope" className="btn btn--ghost">How the Safety Envelope works</Link>
             <Link href="/security" className="btn btn--ghost">Security &amp; deployment</Link>
           </div>
         </div>
