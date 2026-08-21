@@ -28,7 +28,7 @@ export function HomeClient() {
                 Your <span className="grad">AI Can Actually Operate Within</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                Morrison Runtime Governance™ maps, tests, and enforces the <b>local Safety Envelope</b>
+                Morrison Runtime Governance™ maps, tests, and enforces the <b>local Safety Envelope</b>{" "}
                 between your autonomous AI and your real systems — before actions execute.
               </p>
               <div className="hero-chips reveal in" data-d="3">
@@ -66,6 +66,56 @@ export function HomeClient() {
             </div>
           </div>
         </header>
+
+        {/* ===== 1b · SAFETY ENVELOPE — explain the concept before the proof ===== */}
+        <section className="section section--tight" id="safety-envelope" aria-label="What a Safety Envelope is">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">What is a Safety Envelope?</span>
+              <h2>A defined region where a system can operate without crossing known safety limits.</h2>
+              <p>
+                Safety-critical engineering does not rely on a vague claim that a system is simply “safe.”
+                It defines the conditions, limits, and states in which operation is acceptable — and the
+                boundaries that must not be crossed. That bounded operating region is the idea behind a
+                <strong> Safety Envelope</strong>.
+              </p>
+              <p>
+                The same engineering principle appears in fields where crossing the operating boundary can
+                have serious consequences:
+              </p>
+            </div>
+
+            <div className="who-grid">
+              {([
+                ["Aviation", "Aircraft use flight envelopes to define the combinations of speed, altitude, load, and other conditions within which the aircraft is designed to operate."],
+                ["Nuclear engineering", "Nuclear facilities operate within tightly defined safe operating limits for variables such as power, temperature, pressure, cooling, and system state."],
+                ["Industrial robotics & process control", "Robots and industrial systems use operating envelopes and hard limits around motion, force, speed, pressure, temperature, and other process variables."],
+              ] as [string, string][]).map(([field, explanation]) => (
+                <div className="who-card card reveal" key={field}>
+                  <div className="who-role">{field}</div>
+                  <div className="who-pain">{explanation}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="callout reveal" style={{ marginTop: "clamp(28px,4vw,48px)" }}>
+              <div>
+                <div className="roi-multi-h">We apply the same idea to autonomous AI.</div>
+                <p>
+                  We show you what locally safe operation actually looks like inside your environment —
+                  under your tools, permissions, policies, workflows, and reachable states. Morrison then
+                  evaluates proposed trajectories before execution to keep autonomous operation inside that
+                  validated envelope.
+                </p>
+              </div>
+            </div>
+
+            <p className="pull reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
+              See the Safety Envelope your AI can actually operate within —
+              <span className="accent"> in your environment, before actions execute.</span>
+            </p>
+          </div>
+        </section>
 
         {/* ===== 2 · PROOF STRIP — one canonical validation section ===== */}
         <section className="metrics glow-top" id="validation" aria-label="Validation benchmarks">
