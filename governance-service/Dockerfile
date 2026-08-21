@@ -93,4 +93,4 @@ HEALTHCHECK --interval=30s --timeout=4s --start-period=10s --retries=3 \
 # - Qwen3-8B: inexpensive stronger Qwen baseline.
 # - gemma-3-12b-it: inexpensive non-Qwen comparison with tool-capable providers.
 # - Qwen3.8-27B-Uncensored-FP8: existing optional vLLM refusal-removed target.
-CMD ["sh", "-c", "for m in deepseek-ai/DeepSeek-V4-Flash-0731 microsoft/Phi-4-mini-instruct Qwen/Qwen3-4B-Instruct-2507 Qwen/Qwen3-8B google/gemma-3-12b-it orcarouter/Qwen3.8-27B-Uncensored-FP8; do case ',${HF_MODELS:-},' in *\",${m},\"*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}${m}\" ;; esac; done; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "for m in deepseek-ai/DeepSeek-V4-Flash-0731 microsoft/Phi-4-mini-instruct Qwen/Qwen3-4B-Instruct-2507 Qwen/Qwen3-8B google/gemma-3-12b-it orcarouter/Qwen3.8-27B-Uncensored-FP8; do case \",${HF_MODELS:-},\" in *,\"${m}\",*) ;; *) export HF_MODELS=\"${HF_MODELS:+${HF_MODELS},}${m}\" ;; esac; done; uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
