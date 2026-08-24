@@ -9,6 +9,7 @@ import threading
 from pathlib import Path
 
 from runtime_eval.frontier.evidence import scrub_secrets
+from runtime_eval.frontier.governed_result import project_session_snapshot
 from runtime_eval.frontier.session import (
     FINAL_STATUSES, GovernedSessionOrchestrator, SessionStatus,
     verify_session_evidence,
@@ -87,6 +88,34 @@ class SessionManager:
         snapshot = session.snapshot()
         snapshot["evidence_verified"] = (
             verify_session_evidence(snapshot) if session.is_final else None)
+        try:
+            cached = getattr(session, "governed_result_projection", None)
+            if cached is None or not session.is_final:
+                cached = project_session_snapshot(
+                    snapshot,
+                    boundary_mutation=getattr(
+                        session, "safety_boundary_mutation", "none"),
+                )
+                if session.is_final:
+                    session.governed_result_projection = cached
+            snapshot["governed_result"] = cached
+        except Exception as exc:  # evidence projection is never authoritative
+            snapshot["governed_result"] = {
+                "authority": "NON_AUTHORITATIVE_POST_GOVERNANCE_EVIDENCE",
+                "canonical_governance": {
+                    "verdict": ((snapshot.get("steps") or [{}])[-1].get(
+                        "morrison_decision") or {}).get("verdict", "NOT_EXERCISED"),
+                    "changed_by_projection": False,
+                },
+                "causal_analysis": {"status": "UNAVAILABLE"},
+                "safety_envelope": {
+                    "status": "UNAVAILABLE",
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "warning": (
+                        "This claim applies only to the declared tested envelope. "
+                        "No safety claim is inherited outside that envelope."),
+                },
+            }
         self.store.save(snapshot)
         return snapshot
 

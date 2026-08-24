@@ -21,6 +21,8 @@ import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { track } from "@/lib/analytics";
 import BENCH from "../public/benchmarks/latency.json";
+import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
+import type { GovernedResult } from "@/lib/governed-result";
 import {
   SCENARIOS,
   DECISION_META,
@@ -914,6 +916,7 @@ interface CustomResult {
   stageTimingsMs?: Record<string, number>;
   /** Which evaluator produced this verdict — the real engine or the fallback. */
   source?: "morrison" | "heuristic";
+  governedResult?: GovernedResult;
 }
 
 /** Human labels for the kernel stage names reported by /v1/govern. */
@@ -1052,6 +1055,7 @@ function CustomEval({
         decisionTimeMs: data.decisionTimeMs,
         stageTimingsMs: data.stageTimingsMs,
         source: data.source,
+        governedResult: data.governedResult,
       };
       setResult(cr);
 
@@ -1344,6 +1348,8 @@ function CustomEval({
                   </ol>
                 </div>
               </div>
+
+              {result.source === "morrison" && <GovernedEvidencePanels result={result.governedResult} />}
 
               {/* Decision → evidence, one click away */}
               {lastEvents.length > 0 && (

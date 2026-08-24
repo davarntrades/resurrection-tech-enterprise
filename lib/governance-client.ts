@@ -29,6 +29,7 @@ interface GovernanceResponse {
   reachability_distance: number | null;
   metadata: Record<string, unknown> | null;
   steps?: { tool: string; args?: Record<string, unknown> }[];
+  governed_result?: import("@/lib/governed-result").GovernedResult;
 }
 
 const TIMEOUT_MS = Number(process.env.GOVERNANCE_TIMEOUT_MS ?? "4000");
@@ -120,6 +121,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       trajectoryHash: g.trajectory_hash,
       reachabilityDistance: g.reachability_distance,
       ...timing,
+      governedResult: g.governed_result,
     };
   }
 
@@ -173,6 +175,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
           }
         : undefined,
       ...timing,
+      governedResult: g.governed_result,
     };
   }
 
@@ -196,6 +199,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
     trajectoryHash: g.trajectory_hash,
     reachabilityDistance: g.reachability_distance,
     ...timing,
+    governedResult: g.governed_result,
   };
 }
 

@@ -222,3 +222,67 @@ def test_evidence_download_excludes_credentials(monkeypatch):
     text = _post(monkeypatch, calls=calls).text
     assert "test-secret-never-return" not in text
     assert "experiment_record_hash" in text
+
+
+def test_live_demo_returns_canonical_causal_and_safety_evidence(monkeypatch):
+    calls = [{"tool": "transfer", "args": {"amount": 100000, "to": "x"}}]
+    body = _post(monkeypatch, scenario="direct_malicious_001",
+                 calls=calls).json()
+    row = body["results"][0]
+    projection = body["governed_results"][row["run_id"]]
+    assert projection["canonical_governance"]["verdict"] == \
+        row["final_verdict"]
+    assert projection["causal_analysis"]["observed"]["label"] == "OBSERVED"
+    assert projection["causal_analysis"]["derived"]["label"] == "DERIVED"
+    assert projection["causal_analysis"]["counterfactual"]["label"] == \
+        "COUNTERFACTUAL"
+    assert projection["safety_envelope"]["status"] == \
+        "OBSERVED_LOCAL_SAFETY"
+    assert "No safety claim is inherited outside that envelope" in \
+        projection["safety_envelope"]["warning"]
+
+
+@pytest.mark.parametrize("mutation", [
+    "agent_count_2", "new_tool", "horizon_expansion",
+])
+def test_live_demo_boundary_mutation_is_unvalidated(monkeypatch, mutation):
+    calls = [{"tool": "transfer", "args": {"amount": 100000, "to": "x"}}]
+    body = _post(monkeypatch, scenario="direct_malicious_001", calls=calls,
+                 safety_boundary_mutation=mutation).json()
+    row = body["results"][0]
+    projection = body["governed_results"][row["run_id"]]
+    assert projection["canonical_governance"]["verdict"] == row["final_verdict"]
+    assert projection["safety_envelope"]["status"] == "UNVALIDATED"
+    assert projection["safety_envelope"]["runtime_governance_active"] is True
+
+
+def test_audit_bundle_contains_envelope_causal_provenance_and_warning(monkeypatch):
+    calls = [{"tool": "transfer", "args": {"amount": 100000, "to": "x"}}]
+    body = _post(monkeypatch, scenario="direct_malicious_001",
+                 calls=calls).json()
+    row = body["results"][0]
+    bundle = __import__("json").loads(
+        body["evidence_bundle_downloads"][row["run_id"]])
+    assert bundle["canonical_morrison_evidence"] == row
+    assert bundle["governed_result"]["evidence_package"]["package_hash"]
+    assert len(bundle["bundle_hash"]) == 64
+    assert bundle["governed_result"]["causal_analysis"]["counterfactual"]["items"]
+    assert "No safety claim is inherited outside that envelope" in \
+        bundle["boundary_warning"]
+    html = body["evidence_report_downloads"][row["run_id"]]
+    assert "SAFETY ENVELOPE — BOUNDED ASSURANCE" in html
+    assert "does not constitute a global or universal safety claim" in html
+
+
+def test_projection_failure_does_not_change_morrison(monkeypatch):
+    monkeypatch.setattr(
+        frontier_api, "project_frontier_record",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("ui evidence failed")))
+    calls = [{"tool": "transfer", "args": {"amount": 100000, "to": "x"}}]
+    body = _post(monkeypatch, scenario="direct_malicious_001",
+                 calls=calls).json()
+    row = body["results"][0]
+    projection = body["governed_results"][row["run_id"]]
+    assert projection["canonical_governance"]["verdict"] == row["final_verdict"]
+    assert projection["safety_envelope"]["status"] == "UNAVAILABLE"
+    assert row["executed_calls"] == []

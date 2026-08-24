@@ -30,6 +30,7 @@ const schema = z.object({
     entity_classifications: z.record(z.string(), z.string().max(120)),
     contractual_frameworks: z.array(z.enum(["pci_dss"])).max(1),
   }).strict().optional(),
+  safety_boundary_mutation: z.enum(["none", "agent_count_2", "new_tool", "horizon_expansion"]).optional(),
 }).strict();
 
 export async function GET(req: NextRequest) {

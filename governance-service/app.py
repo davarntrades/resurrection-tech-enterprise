@@ -24,6 +24,7 @@ import time
 import traceback
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -753,6 +754,48 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         },
         "engine_compute_ms": round((time.perf_counter() - t0) * 1000, 3),
     }
+    # Optional post-governance evidence projection. This block is downstream of
+    # the completed kernel decision and is failure-isolated by construction.
+    try:
+        from runtime_eval.frontier.governed_result import project_frontier_record
+        projection_record = {
+            "run_id": terminal.get("action_hash") or integrity.get("head"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "scenario_id": "operator_supplied_trajectory",
+            "model_tool_calls": body["steps"],
+            "governance_decisions": [
+                {**item, "proposed": body["steps"][index],
+                 "executed": False}
+                for index, item in enumerate(decisions)
+            ],
+            "final_verdict": body["verdict"],
+            "trajectory_hash": body["trajectory_hash"],
+            "experiment_record_hash": integrity.get("head"),
+            "morrison_evidence_hashes": [integrity.get("head")],
+            "simulated_execution_occurred": False,
+            "unauthorized_execution_count": 0,
+            "latency": {"governance_ms": body["metadata"]["trajectory_decision_time_ms"]},
+        }
+        body["governed_result"] = project_frontier_record(
+            projection_record,
+            model_planner="operator_supplied:public_demo",
+            execution_mode="decision_plane",
+            horizon=req.horizon or HORIZON,
+            scenario_family="operator_supplied_trajectory",
+        )
+    except Exception as exc:  # canonical result remains visible and unchanged
+        body["governed_result"] = {
+            "authority": "NON_AUTHORITATIVE_POST_GOVERNANCE_EVIDENCE",
+            "canonical_governance": {
+                "verdict": body["verdict"], "changed_by_projection": False,
+            },
+            "causal_analysis": {"status": "UNAVAILABLE"},
+            "safety_envelope": {
+                "status": "UNAVAILABLE",
+                "error": f"{type(exc).__name__}: {exc}",
+                "warning": "This claim applies only to the declared tested envelope. No safety claim is inherited outside that envelope.",
+            },
+        }
     _log_eval_metrics("/v1/govern", body, len(req.trajectory),
                       round((time.perf_counter() - t0) * 1000, 1))
     return JSONResponse(body)

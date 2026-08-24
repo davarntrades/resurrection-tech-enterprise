@@ -20,6 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from runtime_eval.frontier.evidence import scrub_secrets, verify_record_hash
 from runtime_eval.frontier.experiment import aggregate_results, run_experiment
+from runtime_eval.frontier.governed_result import (
+    bounded_assurance_html, deterministic_evidence_bundle,
+    project_frontier_record,
+)
 from runtime_eval.frontier.provider_registry import make_planner
 from runtime_eval.frontier.regulatory.registry import public_profile_registry
 from runtime_eval.frontier.scenarios import Scenario, get_scenarios
@@ -75,6 +79,9 @@ class FrontierRunRequest(BaseModel):
     ] = "broad"
     custom_user_task: str | None = Field(default=None, max_length=4000)
     custom_untrusted_content: str | None = Field(default=None, max_length=12000)
+    safety_boundary_mutation: Literal[
+        "none", "agent_count_2", "new_tool", "horizon_expansion",
+    ] = "none"
 
     @model_validator(mode="after")
     def validate_custom(self):
@@ -108,6 +115,9 @@ class FrontierSessionRequest(BaseModel):
     custom_user_task: str | None = Field(default=None, max_length=4000)
     custom_untrusted_content: str | None = Field(default=None, max_length=12000)
     organization_profile: dict[str, Any] | None = None
+    safety_boundary_mutation: Literal[
+        "none", "agent_count_2", "new_tool", "horizon_expansion",
+    ] = "none"
 
     @model_validator(mode="after")
     def validate_organization_profile(self):
@@ -276,6 +286,47 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
             ensure_ascii=False) + "\n"
         for item in results
     }
+    governed_results = {}
+    evidence_bundle_downloads = {}
+    evidence_report_downloads = {}
+    for item in results:
+        try:
+            projection = project_frontier_record(
+                item.record,
+                model_planner=f"{req.provider}:{req.model}",
+                execution_mode="enforced",
+                horizon=max(1, len(item.record.get("model_tool_calls") or [])),
+                scenario_family=scenario.id,
+                boundary_mutation=req.safety_boundary_mutation,
+            )
+        except Exception as exc:  # post-governance evidence never determines the run result
+            projection = {
+                "authority": "NON_AUTHORITATIVE_POST_GOVERNANCE_EVIDENCE",
+                "canonical_governance": {
+                    "label": "CANONICAL MORRISON VERDICT",
+                    "verdict": item.record.get("final_verdict"),
+                    "source_evidence_hash": item.record.get(
+                        "experiment_record_hash"),
+                    "changed_by_projection": False,
+                },
+                "causal_analysis": {"status": "UNAVAILABLE"},
+                "safety_envelope": {
+                    "status": "UNAVAILABLE", "envelope": None,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "warning": (
+                        "This claim applies only to the declared tested envelope. "
+                        "No safety claim is inherited outside that envelope."),
+                },
+                "source_evidence_hash": item.record.get(
+                    "experiment_record_hash"),
+            }
+        governed_results[item.record["run_id"]] = projection
+        evidence_bundle_downloads[item.record["run_id"]] = json.dumps(
+            scrub_secrets(deterministic_evidence_bundle(
+                item.record, projection)), indent=2, sort_keys=True,
+            ensure_ascii=False) + "\n"
+        evidence_report_downloads[item.record["run_id"]] = \
+            bounded_assurance_html(projection)
     return scrub_secrets({
         "ok": True,
         "provider": req.provider,
@@ -284,6 +335,9 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
         "scenario": _scenario_payload(scenario),
         "results": [item.record for item in results],
         "evidence_downloads": evidence_downloads,
+        "governed_results": governed_results,
+        "evidence_bundle_downloads": evidence_bundle_downloads,
+        "evidence_report_downloads": evidence_report_downloads,
         "summary": summary,
         "stages": [
             "scenario_prepared", "frontier_model_called",
@@ -324,6 +378,7 @@ def _session_as_run_request(req: FrontierSessionRequest) -> FrontierRunRequest:
         provider=req.provider, model=req.model, scenario_id=req.scenario_id,
         runs=1, domain=req.domain, custom_user_task=req.custom_user_task,
         custom_untrusted_content=req.custom_untrusted_content,
+        safety_boundary_mutation=req.safety_boundary_mutation,
     )
 
 
@@ -355,6 +410,9 @@ def start_frontier_session(req: FrontierSessionRequest, request: Request) -> dic
         approval_configured=False,
         organization_profile=req.organization_profile,
     )
+    # Evidence-only demo input. It is consumed after governance and never enters
+    # the planner, kernel, policy, or simulator.
+    session.safety_boundary_mutation = req.safety_boundary_mutation
     try:
         snapshot = MANAGER.create(session)
     except RuntimeError as exc:
