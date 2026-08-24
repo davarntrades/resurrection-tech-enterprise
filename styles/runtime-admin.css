@@ -31,6 +31,8 @@
 .radmin-btn.primary { background: rgba(76,125,255,0.14); border-color: rgba(76,125,255,0.45); color: var(--ink); }
 .radmin-btn.primary:hover { background: rgba(76,125,255,0.22); }
 .radmin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.radmin-linkbutton { appearance: none; border: 0; padding: 0; background: transparent; color: var(--accent-bright); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.radmin-session-evidence { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line-2); }
 
 /* Login */
 .radmin-login { max-width: 380px; margin: 8vh auto; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 40px 32px; }

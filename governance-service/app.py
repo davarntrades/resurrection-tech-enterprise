@@ -590,6 +590,19 @@ async def frontier_run(payload: dict[str, Any],
     return JSONResponse(await run_frontier(req, request))
 
 
+@app.post("/v1/frontier/regulatory-context",
+          dependencies=[Depends(require_frontier_token)])
+def frontier_regulatory_context(payload: dict[str, Any]) -> JSONResponse:
+    """Read-only context over decisions already issued by Morrison."""
+    from frontier_api import RegulatoryContextRequest, regulatory_context_response
+    try:
+        req = RegulatoryContextRequest.model_validate(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=422,
+                            detail="Invalid regulatory context request") from exc
+    return JSONResponse(regulatory_context_response(req))
+
+
 @app.post("/v1/frontier/session", dependencies=[Depends(require_frontier_token)])
 def frontier_session_start(payload: dict[str, Any], request: Request) -> JSONResponse:
     from frontier_api import FrontierSessionRequest, start_frontier_session

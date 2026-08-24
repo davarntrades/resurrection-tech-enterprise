@@ -25,6 +25,7 @@ from runtime_eval.frontier.governed_result import (
     project_frontier_record,
 )
 from runtime_eval.frontier.provider_registry import make_planner
+from runtime_eval.frontier.regulatory.exposure import calculate_regulatory_exposure
 from runtime_eval.frontier.regulatory.registry import public_profile_registry
 from runtime_eval.frontier.scenarios import Scenario, get_scenarios
 from runtime_eval.frontier.session import (
@@ -138,6 +139,31 @@ class FrontierSessionRequest(BaseModel):
         return self
 
 
+class RegulatoryContextStep(BaseModel):
+    """A completed Morrison decision used only for read-only projection."""
+
+    model_config = ConfigDict(extra="forbid")
+    step: int = Field(ge=1, le=50)
+    normalized_call: dict[str, Any]
+    morrison_decision: dict[str, Any]
+    execution_occurred: bool = False
+
+
+class RegulatoryContextRequest(BaseModel):
+    """Strict input to the deterministic regulatory context projector."""
+
+    model_config = ConfigDict(extra="forbid")
+    mode: Literal["shadow", "guarded_pilot", "enforced"] = "shadow"
+    steps: list[RegulatoryContextStep] = Field(min_length=1, max_length=50)
+    organization_profile: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def validate_size(self):
+        if len(json.dumps(self.model_dump())) > 50000:
+            raise ValueError("regulatory context request is too large")
+        return self
+
+
 def _provider_config(provider: str) -> dict[str, Any]:
     key_env, model_env = PROVIDER_ENV[provider]
     key_ready = bool(os.getenv(key_env))
@@ -213,6 +239,22 @@ def config_response() -> dict[str, Any]:
         ],
         "regulatory_profiles": public_profile_registry(),
     })
+
+
+def regulatory_context_response(req: RegulatoryContextRequest) -> dict[str, Any]:
+    """Project legal/control context without changing a runtime decision.
+
+    This function has no planner, governance, approval or executor reference.
+    It consumes already-issued Morrison decisions and returns sanitized,
+    deterministic context from the versioned regulatory registry.
+    """
+    steps = [item.model_dump() for item in req.steps]
+    exposure = calculate_regulatory_exposure(
+        steps,
+        mode=req.mode,
+        organization_profile=req.organization_profile,
+    )
+    return scrub_secrets({"ok": True, "regulatory_exposure": exposure})
 
 
 def _rate_limit(request: Request) -> None:

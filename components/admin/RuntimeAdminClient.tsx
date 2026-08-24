@@ -14,6 +14,8 @@ import { VolumeChart, RatioBar, LatencySpark, FreqBars, Info, MiniSpark } from "
 import { deliverableFileUrl } from "@/lib/deliverable-url";
 import IntegrationGatewayPanel from "./IntegrationGatewayPanel";
 import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
+import RegulatoryExposureCard from "@/components/RegulatoryExposureCard";
+import type { RegulatoryExposure } from "@/lib/regulatory-exposure";
 
 const OMEGA_TIP = "Ω (Omega) domains are the catastrophic-risk categories the engine governs — e.g. finance, healthcare, infrastructure. Every blocked or escalated action is attributed to the Ω domain whose safety boundary it would cross.";
 
@@ -84,8 +86,8 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
 
 function GovernedSessionsPanel() {
   const [sessions, setSessions] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any | null>(null);
   const [persistence, setPersistence] = useState<any>(null);
+  const [selectedId, setSelectedId] = useState("");
   const [err, setErr] = useState("");
   const load = useCallback(async () => {
     setErr("");
@@ -100,32 +102,47 @@ function GovernedSessionsPanel() {
   }, []);
   useEffect(() => { load(); const timer = window.setInterval(load, 5000); return () => window.clearInterval(timer); }, [load]);
   if (err) return <div className="radmin-err">{err}</div>;
+  const selected = sessions.find((session) => session.session_id === selectedId) || sessions[0];
+  const selectedLast = selected?.steps?.at(-1);
   return <section className="radmin-card">
     <div className="radmin-row"><h2>Governed agent sessions</h2><span style={{ flex: 1 }} /><a className="radmin-btn" href="/lab">Open Frontier Lab</a><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
     <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
     {persistence?.volume_required && <div className="radmin-err">Session history is process-local until a Railway volume is mounted at the configured database path.</div>}
     {!sessions.length ? <div className="radmin-empty">No governed sessions recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
-      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Safety Envelope</th><th>Status</th></tr></thead>
+      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Safety Envelope</th><th>Frameworks</th><th>Evidence</th></tr></thead>
       <tbody>{sessions.map((session) => {
         const steps = session.steps || [];
         const risky = [...steps].reverse().find((step: any) => step.morrison_decision?.verdict !== "PERMIT");
         const last = steps.at(-1);
-        return <tr key={session.session_id} onClick={() => setSelected(session)} style={{ cursor: "pointer" }}>
-          <td><a href={`/lab?session=${encodeURIComponent(session.session_id)}`}><code>{session.session_id}</code></a></td>
+        const frameworks = session.regulatory_exposure?.frameworks || [];
+        return <tr key={session.session_id}>
+          <td><button className="radmin-linkbutton" onClick={() => setSelectedId(session.session_id)}><code>{session.session_id}</code></button></td>
           <td>{String(session.mode || "").replaceAll("_", " ")}</td>
           <td>{session.provider}<br /><span className="radmin-muted">{session.model}</span></td>
           <td>{session.current_step} / {session.max_steps}</td>
           <td>{risky?.normalized_call?.tool || "—"}</td>
           <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
           <td>{session.governed_result?.safety_envelope?.status || "UNAVAILABLE"}<br /><span className="radmin-muted">{session.governed_result?.safety_envelope?.envelope || "not established"}</span></td>
-          <td>{String(session.status || "").replaceAll("_", " ")}</td>
+          <td>{frameworks.length ? frameworks.map((item: any) => item.framework_name).join(", ") : "—"}</td>
+          <td>{session.evidence_verified === true ? "VERIFIED" : String(session.status || "").replaceAll("_", " ")}</td>
         </tr>;
       })}</tbody>
     </table></div>}
-    {selected && <div style={{ marginTop: 16 }}>
-      <div className="radmin-row"><h2>Safety Envelope evidence</h2><span style={{ flex: 1 }} /><a className="radmin-btn sm" href={`/lab?session=${encodeURIComponent(selected.session_id)}`}>View full evidence</a><button className="radmin-btn sm" onClick={() => setSelected(null)}>Close</button></div>
-      <p className="radmin-muted">Canonical backend projection for this governed session. Protected Value and regulatory/compliance context remain separate in the full session view.</p>
+    {selected && <div className="radmin-session-evidence">
+      <div className="radmin-row"><h2>Session evidence</h2><span style={{ flex: 1 }} /><a className="radmin-btn sm" href={`/lab?session=${encodeURIComponent(selected.session_id)}`}>Open full session</a></div>
+      <div className="radmin-kv">
+        <div><span>Session</span><code>{selected.session_id}</code></div>
+        <div><span>Last verdict</span><code>{selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict || "—"}</code></div>
+        <div><span>Unauthorized executions</span><code>{selected.summary?.unauthorized_executions ?? 0}</code></div>
+        <div><span>Session chain</span><code>{selected.evidence_verified === true ? "VERIFIED" : "IN PROGRESS"}</code></div>
+        <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS"}</code></div>
+      </div>
       <GovernedEvidencePanels result={selected.governed_result} compact />
+      {selected.regulatory_exposure && <RegulatoryExposureCard
+        exposure={selected.regulatory_exposure as RegulatoryExposure}
+        runtimeVerdict={selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict}
+        unauthorizedExecutions={selected.summary?.unauthorized_executions ?? 0}
+      />}
     </div>}
   </section>;
 }
@@ -1516,11 +1533,25 @@ function AlertsPanel() {
 
 // ── Audit log ────────────────────────────────────────────────────────────────
 function AuditPanel() {
-  const [rows, setRows] = useState<any[] | null>(null); const [err, setErr] = useState("");
-  useEffect(() => { (async () => { try { const d = await api("audit?limit=100"); setRows(d.actions || []); } catch (e: any) { setErr(e.message); } })(); }, []);
+  const [rows, setRows] = useState<any[] | null>(null);
+  const [sessions, setSessions] = useState<any[] | null>(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { (async () => {
+    try {
+      const [operator, runtimeResponse] = await Promise.all([
+        api("audit?limit=100"),
+        fetch("/api/frontier/session", { credentials: "same-origin", cache: "no-store" }),
+      ]);
+      const runtime = await runtimeResponse.json().catch(() => ({}));
+      if (!runtimeResponse.ok) throw new Error(runtime?.error || `HTTP ${runtimeResponse.status}`);
+      setRows(operator.actions || []);
+      setSessions(runtime.sessions || []);
+    } catch (e: any) { setErr(e.message); }
+  })(); }, []);
   if (err) return <div className="radmin-err">{err}</div>;
-  if (!rows) return <div className="radmin-muted">Loading audit log…</div>;
+  if (!rows || !sessions) return <div className="radmin-muted">Loading audit log…</div>;
   return (
+    <>
     <section className="radmin-card">
       <h2>Operator action log</h2>
       {!rows.length ? <div className="radmin-muted">No actions recorded yet (durable once <code>rg_admin_audit</code> exists).</div> : (
@@ -1540,6 +1571,26 @@ function AuditPanel() {
         </div>
       )}
     </section>
+    <section className="radmin-card">
+      <h2>Governed runtime evidence</h2>
+      <p className="radmin-muted">Read-only session evidence sealed by the Frontier service. Regulatory context is linked to the model-generated trajectory and is not an operator-entered legal conclusion.</p>
+      {!sessions.length ? <div className="radmin-muted">No governed session evidence recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
+        <thead><tr><th>Session</th><th>Mode</th><th>Last verdict</th><th>Regulatory context</th><th>Step chain</th><th>Morrison chain</th></tr></thead>
+        <tbody>{sessions.map((session: any) => {
+          const last = session.steps?.at(-1);
+          const frameworks = session.regulatory_exposure?.frameworks || [];
+          return <tr key={session.session_id}>
+            <td><a href={`/lab?session=${encodeURIComponent(session.session_id)}`}><code>{session.session_id}</code></a></td>
+            <td>{String(session.mode || "").replaceAll("_", " ")}</td>
+            <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
+            <td>{frameworks.length ? frameworks.map((item: any) => item.framework_name).join(", ") : "—"}</td>
+            <td>{session.evidence_verified === true ? "VERIFIED" : "IN PROGRESS"}</td>
+            <td>{session.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS"}</td>
+          </tr>;
+        })}</tbody>
+      </table></div>}
+    </section>
+    </>
   );
 }
 

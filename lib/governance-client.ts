@@ -13,7 +13,17 @@
 import { OMEGA_META, type EvalResult, type StepSummary, type ToolCall, type Verdict } from "@/lib/trajectory-eval";
 
 /** Raw shape returned by the FastAPI service (GovernanceResult.to_dict + extras). */
-interface GovernanceResponse {
+export interface GovernanceDecisionRecord {
+  verdict: string;
+  rule?: string;
+  layer?: string;
+  reason?: string;
+  capabilities?: string[];
+  decision_time_ms?: number;
+  [key: string]: unknown;
+}
+
+export interface GovernanceResponse {
   verdict: "PERMIT" | "BLOCK" | "NO_VALID_SOLUTION" | "ENVIRONMENT_SENSITIVE" | "ESCALATE";
   permitted: boolean;
   blocked: boolean;
@@ -30,6 +40,7 @@ interface GovernanceResponse {
   metadata: Record<string, unknown> | null;
   steps?: { tool: string; args?: Record<string, unknown> }[];
   governed_result?: import("@/lib/governed-result").GovernedResult;
+  decisions?: GovernanceDecisionRecord[];
 }
 
 const TIMEOUT_MS = Number(process.env.GOVERNANCE_TIMEOUT_MS ?? "4000");
@@ -267,6 +278,14 @@ export async function assessViaGovernance(
  * fall back to the heuristic evaluator. Never executes a tool call.
  */
 export async function evaluateViaGovernance(trajectory: ToolCall[], domains?: string[]): Promise<EvalResult> {
+  return (await evaluateViaGovernanceDetailed(trajectory, domains)).result;
+}
+
+/** Server-side detail for downstream read-only evidence projections. */
+export async function evaluateViaGovernanceDetailed(
+  trajectory: ToolCall[],
+  domains?: string[],
+): Promise<{ result: EvalResult; governance: GovernanceResponse }> {
   // Default to the live Railway deployment; override with GOVERNANCE_URL (e.g.
   // Vercel production env) to point at a different backend. Empty string ⇒
   // disabled (caller falls back to the heuristic).
@@ -307,5 +326,5 @@ export async function evaluateViaGovernance(trajectory: ToolCall[], domains?: st
 
   const g = (await res.json()) as GovernanceResponse;
   if (!g || typeof g.verdict !== "string") throw new Error("governance service: malformed response");
-  return mapGovernanceToEvalResult(g, trajectory);
+  return { result: mapGovernanceToEvalResult(g, trajectory), governance: g };
 }
