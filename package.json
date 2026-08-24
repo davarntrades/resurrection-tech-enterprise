@@ -85,7 +85,8 @@
     "runtime:report-window": "node scripts/runtime/report-window.test.cjs",
     "runtime:share-password": "node scripts/runtime/share-password.test.cjs",
     "runtime:assurance": "node scripts/runtime/assurance-status.test.cjs",
-    "runtime:full-audit-connector": "node scripts/runtime/full-audit-connector-evidence.test.cjs"
+    "runtime:full-audit-connector": "node scripts/runtime/full-audit-connector-evidence.test.cjs",
+    "runtime:safety-envelope-ui": "node scripts/runtime/safety-envelope-ui.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1095.0",

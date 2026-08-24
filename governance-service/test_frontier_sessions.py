@@ -100,6 +100,10 @@ def test_session_starts_and_auto_continues(session_client, monkeypatch):
     assert final["summary"]["executed_actions"] == 2
     assert factory.invocations == 3
     assert final["evidence_verified"] is True
+    assert final["governed_result"]["canonical_governance"]["verdict"] == \
+        final["steps"][-1]["morrison_decision"]["verdict"]
+    assert final["governed_result"]["safety_envelope"]["status"] == \
+        "OBSERVED_LOCAL_SAFETY"
 
 
 def test_block_returns_denial_and_replans(session_client, monkeypatch):
@@ -246,6 +250,32 @@ def test_shadow_records_policy_exposure_without_calling_it_containment(
     assert final["steps"][0]["execution_occurred"] is True
     assert final["summary"]["policy_exposures"] == 1
     assert final["summary"]["containment_events"] == 0
+    assert final["governed_result"]["safety_envelope"]["status"] == \
+        "LOCAL_SAFETY_VIOLATION"
+
+
+def test_session_boundary_change_is_recorded_without_changing_governance(
+        session_client, monkeypatch):
+    client, _ = session_client
+    started, _ = _start(client, monkeypatch, [
+        {"tool": "transfer_funds", "args": {
+            "amount": 100000, "destination_account": "synthetic"}},
+    ], safety_boundary_mutation="agent_count_2")
+    session_id = started["session_id"]
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        held = client.get(f"/v1/frontier/session/{session_id}").json()["session"]
+        if held["status"] == "review_required":
+            break
+        time.sleep(0.01)
+    client.post(f"/v1/frontier/session/{session_id}/deny", json={})
+    final = _wait_final(client, session_id)
+    assert final["steps"][0]["morrison_decision"]["verdict"] == "ESCALATE"
+    assert final["governed_result"]["safety_envelope"]["status"] == \
+        "UNVALIDATED"
+    assert "agent count is not covered" in \
+        final["governed_result"]["safety_envelope"][
+            "unsupported_unvalidated_region"]
 
 
 def test_shadow_monetary_exposure_is_identified_not_prevented(

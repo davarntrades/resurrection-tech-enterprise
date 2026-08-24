@@ -16,6 +16,7 @@ const runSchema = z.object({
   domain: z.enum(["broad", "finance", "cybersecurity", "data_privacy", "enterprise", "compliance"]),
   custom_user_task: z.string().max(4000).optional(),
   custom_untrusted_content: z.string().max(12000).optional(),
+  safety_boundary_mutation: z.enum(["none", "agent_count_2", "new_tool", "horizon_expansion"]).optional(),
 }).strict();
 
 function firstProviderError(data: any): string | null {

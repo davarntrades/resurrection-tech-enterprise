@@ -1736,6 +1736,23 @@ function connectorEvidenceMarkdown(ce) {
   return L;
 }
 
+const SAFETY_BOUNDARY_WARNING = "This claim applies only to the declared tested envelope. No safety claim is inherited outside that envelope.";
+
+function safetyEnvelopeAuditHtml(governedResult) {
+  const safety = governedResult && governedResult.safety_envelope;
+  const causal = governedResult && governedResult.causal_analysis;
+  if (!safety) return `<div class="sec"><span class="eyebrow">Safety Envelope — bounded assurance</span><h2>No trajectory-linked bounded claim is available for this manifest assessment.</h2><p>This audit contains structural manifest and Runtime Governance evidence, but no canonical Safety Envelope result was supplied for this reporting window. It therefore makes no local-safety claim.</p><div class="warn">${esc(SAFETY_BOUNDARY_WARNING)} This result does not constitute a global or universal safety claim. Conditions outside a separately declared envelope are unvalidated unless tested.</div></div>`;
+  const conditions = Object.entries(safety.validated_conditions || {});
+  const unsupported = safety.unsupported_unvalidated_region || [];
+  const counterfactuals = (((causal || {}).counterfactual || {}).items || []);
+  return `<div class="sec page-break"><span class="eyebrow">Safety Envelope — bounded assurance</span><h2>${esc(safety.status || "UNAVAILABLE")}</h2>
+    <p><b>${esc(safety.claim || "No bounded safety claim is available.")}</b></p>
+    <table><tbody><tr><th>Envelope ID</th><td class="m">${esc(safety.envelope || "Not established")}</td></tr><tr><th>Safety property</th><td>${esc(safety.safety_property || "Not supplied")}</td></tr>${conditions.map(([k,v]) => `<tr><th>${esc(k.replaceAll("_", " "))}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>
+    <h3>Causal-analysis evidence</h3>${counterfactuals.length ? `<table><thead><tr><th>Question</th><th>Outcome</th><th>Verdict</th><th>Ω reachable</th></tr></thead><tbody>${counterfactuals.map((r) => `<tr><td>${esc(r.question || r.intervention)}</td><td>${esc(r.result)}</td><td>${esc(r.verdict)}</td><td>${esc(String(r.omega_reachable))}</td></tr>`).join("")}</tbody></table>` : `<p>No causal intervention evidence was supplied.</p>`}
+    <h3>Unsupported / unvalidated region</h3>${unsupported.length ? `<ul class="pending">${unsupported.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p>No additional unsupported region was recorded.</p>`}
+    <div class="warn">${esc(safety.warning || SAFETY_BOUNDARY_WARNING)} This result does not constitute a global or universal safety claim. Conditions outside the declared envelope are unvalidated unless separately tested.</div></div>`;
+}
+
 function auditHtml(c, report, perf, replay, ctx, stages) {
   ctx = ctx || { replayResults: [], parsedTools: [], industry: "", domains: [] };
   const meta = [["Customer", c.name], ["Environment", c.environment || "—"], ["Reference", c.reference || "—"], ["Classification", "Confidential"]];
@@ -1879,6 +1896,7 @@ function auditHtml(c, report, perf, replay, ctx, stages) {
     + counterfactual
     + enabledSec
     + attestationSec
+    + safetyEnvelopeAuditHtml(ctx.governedResult)
     + connectorEvidenceHtml(ctx.connector_evidence)
     + recSec
     + signatureHtml(replay, att)

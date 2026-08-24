@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import ContinuousFrontierSession from "@/components/ContinuousFrontierSession";
+import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
+import type { GovernedResult } from "@/lib/governed-result";
 
 type ProviderName = "anthropic" | "openai" | "huggingface";
 type Provider = { provider: ProviderName; status: "READY" | "NOT_CONFIGURED"; model: string | null; models: string[]; missing: string[] };
@@ -31,8 +33,8 @@ type Summary = {
   provider_model_latency: { p50_ms: number; p95_ms: number };
   governance_latency: { p50_ms: number; p95_ms: number };
 };
-type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; summary: Summary; stages: string[] };
-type HistoryItem = { id: string; timestamp: string; provider: string; model: string; scenario: string; classification: string; verdict: string; reached: boolean; contained: boolean | null; row: RecordRow };
+type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; evidence_bundle_downloads?: Record<string, string>; evidence_report_downloads?: Record<string, string>; governed_results?: Record<string, GovernedResult>; summary: Summary; stages: string[] };
+type HistoryItem = { id: string; timestamp: string; provider: string; model: string; scenario: string; classification: string; verdict: string; reached: boolean; contained: boolean | null; row: RecordRow; governedResult?: GovernedResult };
 
 const STAGES = [
   ["scenario_prepared", "Scenario prepared"],
@@ -72,6 +74,7 @@ export default function FrontierLabClient() {
   const [runs, setRuns] = useState(1);
   const [customTask, setCustomTask] = useState("Summarise this synthetic message.");
   const [customContent, setCustomContent] = useState("");
+  const [boundaryMutation, setBoundaryMutation] = useState("none");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [response, setResponse] = useState<RunResponse | null>(null);
@@ -102,6 +105,7 @@ export default function FrontierLabClient() {
   const scenario = config?.scenarios.find((item) => item.id === scenarioId);
   const isCustom = scenarioId === "custom_web_001";
   const current = response?.results[activeTrial];
+  const governedResult = current ? response?.governed_results?.[current.run_id] : undefined;
   const selectedScenario = response?.scenario ?? scenario;
   const reached = current ? executionReached(current, selectedScenario) : false;
   const targetDecision = useMemo(() => {
@@ -116,6 +120,7 @@ export default function FrontierLabClient() {
       scenario: data.scenario.title, classification: row.classification,
       verdict: row.final_verdict, reached: executionReached(row, data.scenario),
       contained: row.model_compromised ? row.unauthorized_execution_count === 0 : null, row,
+      governedResult: data.governed_results?.[row.run_id],
     }));
     setHistory((previous) => {
       const next = [...additions, ...previous].slice(0, 12);
@@ -128,7 +133,7 @@ export default function FrontierLabClient() {
     if (!model || selectedProvider?.status !== "READY") return;
     setBusy(true); setError(""); setResponse(null); setActiveTrial(0); setCompletedStages([]);
     try {
-      const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, runs, domain };
+      const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, runs, domain, safety_boundary_mutation: boundaryMutation };
       if (isCustom) { body.custom_user_task = customTask; body.custom_untrusted_content = customContent; }
       const data = await api("/api/frontier/run", { method: "POST", body: JSON.stringify(body) }) as RunResponse;
       setResponse(data); setCompletedStages(data.stages || []); persistHistory(data);
@@ -138,11 +143,21 @@ export default function FrontierLabClient() {
 
   const downloadEvidence = () => {
     if (!current) return;
-    const sealed = response?.evidence_downloads?.[current.run_id];
+    const sealed = response?.evidence_bundle_downloads?.[current.run_id] || response?.evidence_downloads?.[current.run_id];
     if (!sealed) { setError("Server-sealed evidence is unavailable for this recorded session item."); return; }
     const blob = new Blob([sealed], { type: "application/json" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
-    link.href = url; link.download = `${current.run_id}.json`; link.click(); URL.revokeObjectURL(url);
+    link.href = url; link.download = `${current.run_id}-evidence-bundle.json`; link.click(); URL.revokeObjectURL(url);
+  };
+
+  const downloadReport = () => {
+    if (!current) return;
+    const report = response?.evidence_report_downloads?.[current.run_id];
+    if (!report) { setError("Server-rendered bounded-assurance report is unavailable for this item."); return; }
+    const url = URL.createObjectURL(new Blob([report], { type: "text/html" }));
+    const link = document.createElement("a"); link.href = url;
+    link.download = `${current.run_id}-bounded-assurance.html`; link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (authed === null) return <div className="flab flab-center">Checking operator session…</div>;
@@ -177,6 +192,8 @@ export default function FrontierLabClient() {
           <label>Governance domain<select value={domain} onChange={(e) => setDomain(e.target.value)}>{config?.domains.map((item) => <option key={item} value={item}>{DOMAIN_LABEL[item] || pretty(item)}</option>)}</select></label>
           <label>Attack / scenario<select value={scenarioId} onChange={(e) => setScenarioId(e.target.value)}>{config?.scenarios.map((item) => <option key={item.id} value={item.id}>{item.title} · v{item.version}</option>)}</select></label>
           <label>Trials<select value={runs} onChange={(e) => setRuns(Number(e.target.value))}>{Array.from({ length: config?.limits.max_runs || 1 }, (_, i) => i + 1).map((n) => <option key={n}>{n}</option>)}</select></label>
+          <label>Safety evidence operating point<select value={boundaryMutation} onChange={(e) => setBoundaryMutation(e.target.value)}><option value="none">Declared tested envelope</option><option value="agent_count_2">Boundary demo · 2 agents</option><option value="new_tool">Boundary demo · new tool</option><option value="horizon_expansion">Boundary demo · expanded horizon</option></select></label>
+          {boundaryMutation !== "none" && <p className="flab-pending">Evidence-only boundary demonstration. Morrison still governs the trajectory independently.</p>}
           {isCustom && <><label>Custom synthetic task<textarea value={customTask} maxLength={config?.limits.max_task_chars} onChange={(e) => setCustomTask(e.target.value)} /></label><label>Custom untrusted content<textarea className="tall" value={customContent} maxLength={config?.limits.max_content_chars} onChange={(e) => setCustomContent(e.target.value)} placeholder="Paste synthetic untrusted content only…" /></label></>}
           <button className="flab-run" disabled={busy || selectedProvider?.status !== "READY" || (isCustom && (!customTask.trim() || !customContent.trim()))} onClick={runTest}>{busy ? "RUNNING FRONTIER TEST…" : "RUN FRONTIER TEST"}</button>
           {error && <div className="flab-error"><strong>FAIL CLOSED</strong>{error}<span>Execution reached: NO</span></div>}
@@ -210,15 +227,16 @@ export default function FrontierLabClient() {
           <div className="flab-panel"><div className="flab-section-title">Proposed trajectory</div><Trajectory calls={current.model_tool_calls} /><details><summary>Evaluated trajectory prefixes</summary><pre className="flab-json">{JSON.stringify(current.evaluated_prefixes, null, 2)}</pre></details></div>
           <div className="flab-panel"><div className="flab-section-title">Governance details</div><KeyValues values={{ Verdict: targetDecision?.verdict || current.final_verdict, Rule: targetDecision?.rule || "—", Layer: targetDecision?.layer || "—", "Ω domain": targetDecision?.omega_domain || "—", Reason: targetDecision?.reason || "—", "Trajectory hash": current.trajectory_hash, "Governance latency": fmtMs(current.latency.governance_ms) }} /></div>
           <div className="flab-panel"><div className="flab-section-title">Latency</div><div className="flab-latency"><Metric label="Model" value={fmtMs(current.latency.model_ms)} /><Metric label="Governance" value={fmtMs(current.latency.governance_ms)} accent /><Metric label="Total" value={fmtMs(current.latency.total_ms)} /></div></div>
-          <div className="flab-panel"><div className="flab-section-title">Evidence</div><KeyValues values={{ "Run ID": current.run_id, Timestamp: current.timestamp, Provider: current.provider, Model: current.model, Scenario: `${current.scenario_id} · v${current.scenario_version}`, "Trajectory hash": current.trajectory_hash, "Experiment record hash": current.experiment_record_hash, "Evidence chain": current.evidence_integrity?.evidence_verified ? "VERIFIED" : "FAILED" }} /><button className="flab-secondary" onClick={downloadEvidence}>Download JSON evidence</button></div>
+          <div className="flab-panel"><div className="flab-section-title">Evidence</div><KeyValues values={{ "Run ID": current.run_id, Timestamp: current.timestamp, Provider: current.provider, Model: current.model, Scenario: `${current.scenario_id} · v${current.scenario_version}`, "Trajectory hash": current.trajectory_hash, "Experiment record hash": current.experiment_record_hash, "Evidence chain": current.evidence_integrity?.evidence_verified ? "VERIFIED" : "FAILED" }} /><button className="flab-secondary" onClick={downloadEvidence}>Download JSON evidence bundle</button> <button className="flab-secondary" onClick={downloadReport}>Download bounded-assurance HTML</button></div>
         </section>
+        <GovernedEvidencePanels result={governedResult} />
       </>}
 
       {response?.summary && <SummaryPanel summary={response.summary} />}
 
       <section className="flab-panel flab-tools"><div className="flab-section-title">Available simulated capabilities</div><div className="flab-tool-grid">{config?.tools.map((tool) => <div key={tool.name}><code>{tool.name}</code><span>{tool.description}</span></div>)}</div><p>SIMULATED — NO REAL-WORLD SIDE EFFECTS. No shell, network, email, payment, filesystem-secret or production-data executor is available.</p></section>
 
-      <section className="flab-panel flab-history"><div className="flab-section-title">Recent session experiments</div>{history.length ? <div className="flab-table-wrap"><table><thead><tr><th>Time</th><th>Provider / model</th><th>Scenario</th><th>Model</th><th>Morrison</th><th>Execution</th><th>Containment</th></tr></thead><tbody>{history.map((item) => <tr key={item.id} onClick={() => { setResponse({ ok: true, provider: item.provider, model: item.model, domain: "recorded", scenario: { id: item.row.scenario_id, version: item.row.scenario_version, title: item.scenario, user_task: "Recorded experiment", untrusted_content: "", untrusted_content_type: "recorded", safe_control: item.row.scenario_id.startsWith("clean_control") }, results: [item.row], summary: null as unknown as Summary, stages: STAGES.map(([key]) => key) }); setActiveTrial(0); setCompletedStages(STAGES.map(([key]) => key)); }}><td>{new Date(item.timestamp).toLocaleString()}</td><td>{pretty(item.provider)}<small>{item.model}</small></td><td>{item.scenario}</td><td>{item.classification}</td><td>{item.verdict}</td><td>{item.reached ? "YES" : "NO"}</td><td>{item.contained == null ? "NOT EXERCISED" : item.contained ? "SUCCESS" : "FAILED"}</td></tr>)}</tbody></table></div> : <p className="flab-muted">No experiments in this browser session yet.</p>}</section>
+      <section className="flab-panel flab-history"><div className="flab-section-title">Recent session experiments</div>{history.length ? <div className="flab-table-wrap"><table><thead><tr><th>Time</th><th>Provider / model</th><th>Scenario</th><th>Model</th><th>Morrison</th><th>Safety Envelope</th><th>Execution</th><th>Containment</th></tr></thead><tbody>{history.map((item) => <tr key={item.id} onClick={() => { setResponse({ ok: true, provider: item.provider, model: item.model, domain: "recorded", scenario: { id: item.row.scenario_id, version: item.row.scenario_version, title: item.scenario, user_task: "Recorded experiment", untrusted_content: "", untrusted_content_type: "recorded", safe_control: item.row.scenario_id.startsWith("clean_control") }, results: [item.row], governed_results: item.governedResult ? { [item.row.run_id]: item.governedResult } : undefined, summary: null as unknown as Summary, stages: STAGES.map(([key]) => key) }); setActiveTrial(0); setCompletedStages(STAGES.map(([key]) => key)); }}><td>{new Date(item.timestamp).toLocaleString()}</td><td>{pretty(item.provider)}<small>{item.model}</small></td><td>{item.scenario}</td><td>{item.classification}</td><td>{item.verdict}</td><td>{item.governedResult?.safety_envelope.status || "UNAVAILABLE"}</td><td>{item.reached ? "YES" : "NO"}</td><td>{item.contained == null ? "NOT EXERCISED" : item.contained ? "SUCCESS" : "FAILED"}</td></tr>)}</tbody></table></div> : <p className="flab-muted">No experiments in this browser session yet.</p>}</section>
     </main>
   );
 }
