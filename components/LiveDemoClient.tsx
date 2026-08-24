@@ -20,6 +20,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { track } from "@/lib/analytics";
+import RegulatoryExposureCard from "@/components/RegulatoryExposureCard";
+import type { RegulatoryExposure } from "@/lib/regulatory-exposure";
 import BENCH from "../public/benchmarks/latency.json";
 import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
 import type { GovernedResult } from "@/lib/governed-result";
@@ -61,6 +63,7 @@ interface EvalRecord {
     reason: string; requiredAction: string; decisionAuthority: string;
     nextStep: string; executionStatus: string;
   };
+  regulatoryExposure?: RegulatoryExposure;
 }
 
 // ── Tamper-evident audit chain ──────────────────────────────────────────
@@ -74,9 +77,21 @@ async function sha256Hex(s: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Deterministic serialization of a record: keys sorted, hash fields excluded. */
+function canonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalValue(item)]),
+    );
+  }
+  return value;
+}
+
+/** Deterministic deep serialization; nested regulatory evidence is hash-covered. */
 function canonicalRecord(rec: EvalRecord): string {
-  return JSON.stringify(rec, Object.keys(rec).sort());
+  return JSON.stringify(canonicalValue(rec));
 }
 
 /** Build a verifiable, SHA-256–linked audit document (records oldest→newest). */
@@ -916,7 +931,8 @@ interface CustomResult {
   stageTimingsMs?: Record<string, number>;
   /** Which evaluator produced this verdict — the real engine or the fallback. */
   source?: "morrison" | "heuristic";
-  governedResult?: GovernedResult;
+    governedResult?: GovernedResult;
+    regulatoryExposure?: RegulatoryExposure;
 }
 
 /** Human labels for the kernel stage names reported by /v1/govern. */
@@ -1055,7 +1071,8 @@ function CustomEval({
         decisionTimeMs: data.decisionTimeMs,
         stageTimingsMs: data.stageTimingsMs,
         source: data.source,
-        governedResult: data.governedResult,
+          governedResult: data.governedResult,
+          regulatoryExposure: data.regulatoryExposure,
       };
       setResult(cr);
 
@@ -1065,6 +1082,17 @@ function CustomEval({
         { id: evtId(), time: clock(), event: "Reachability evaluated", detail: data.explanation, tone: "info" },
         { id: evtId(), time: clock(), event: "Custom trajectory submitted", detail: trajStr, tone: "info" },
       ];
+      if (data.regulatoryExposure?.frameworks?.length) {
+        events.unshift({
+          id: evtId(),
+          time: clock(),
+          event: "Regulatory context surfaced",
+          detail: data.regulatoryExposure.frameworks
+            .map((framework: { framework_name: string }) => framework.framework_name)
+            .join(", "),
+          tone: "info",
+        });
+      }
       setLastEvents(events);
       // Decision → evidence with zero friction: bring the verdict into view.
       requestAnimationFrame(() =>
@@ -1082,6 +1110,7 @@ function CustomEval({
           omegaDomain: data.category,
           reasoning: data.reason,
           review: data.humanReview,
+          regulatoryExposure: data.regulatoryExposure,
         },
         events,
       );
@@ -1350,6 +1379,13 @@ function CustomEval({
               </div>
 
               {result.source === "morrison" && <GovernedEvidencePanels result={result.governedResult} />}
+              {result.regulatoryExposure && (
+                <RegulatoryExposureCard
+                  exposure={result.regulatoryExposure}
+                  runtimeVerdict={result.rawVerdict}
+                  unauthorizedExecutions={0}
+                />
+              )}
 
               {/* Decision → evidence, one click away */}
               {lastEvents.length > 0 && (

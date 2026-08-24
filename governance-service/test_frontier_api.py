@@ -286,3 +286,53 @@ def test_projection_failure_does_not_change_morrison(monkeypatch):
     assert projection["canonical_governance"]["verdict"] == row["final_verdict"]
     assert projection["safety_envelope"]["status"] == "UNAVAILABLE"
     assert row["executed_calls"] == []
+
+
+def test_regulatory_context_projects_existing_morrison_decision(monkeypatch):
+    """The Live Demo projection is authenticated, deterministic and read-only."""
+    _configured(monkeypatch)
+    original_decision = {
+        "verdict": "BLOCK",
+        "rule": "cross_tenant",
+        "layer": "tenancy",
+        "reason": "cross-tenant access",
+        "metadata": {"capabilities": ["personal_data.read"]},
+    }
+    res = _client().post("/v1/frontier/regulatory-context", json={
+        "mode": "shadow",
+        "steps": [{
+            "step": 1,
+            "normalized_call": {
+                "tool": "read_customer_record",
+                "args": {"customer_id": "C-999"},
+            },
+            "morrison_decision": original_decision,
+            "execution_occurred": False,
+        }],
+    })
+    assert res.status_code == 200
+    exposure = res.json()["regulatory_exposure"]
+    assert exposure["measurement_type"] == "contextual"
+    assert exposure["mode"] == "shadow"
+    assert exposure["runtime_mitigation_recorded"] is False
+    assert exposure["statutory_maxima_aggregation"] == "NOT_SUMMED_ACROSS_FRAMEWORKS"
+    assert "no enforcement occurred in Shadow Mode" in exposure["runtime_mitigation_language"]
+    assert any(row["framework_id"] == "uk_gdpr"
+               for row in exposure["frameworks"])
+    # Projection cannot rewrite the already-issued runtime decision.
+    assert original_decision["verdict"] == "BLOCK"
+
+
+def test_regulatory_context_rejects_unknown_fields_and_never_returns_token(monkeypatch):
+    _configured(monkeypatch)
+    res = _client().post("/v1/frontier/regulatory-context", json={
+        "mode": "shadow",
+        "steps": [{
+            "step": 1,
+            "normalized_call": {"tool": "read_account", "args": {}},
+            "morrison_decision": {"verdict": "PERMIT"},
+        }],
+        "api_key": "browser-supplied-key",
+    })
+    assert res.status_code == 422
+    assert "test-secret-never-return" not in res.text

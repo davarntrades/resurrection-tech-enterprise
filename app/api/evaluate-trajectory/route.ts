@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { trajectoryRequestSchema } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { evaluateTrajectory, type EvalResult } from "@/lib/trajectory-eval";
-import { evaluateViaGovernance } from "@/lib/governance-client";
+import { evaluateViaGovernanceDetailed } from "@/lib/governance-client";
+import { frontierService } from "@/lib/frontier-server";
+import type { RegulatoryExposure } from "@/lib/regulatory-exposure";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Source = "morrison" | "heuristic";
-type Resp = (EvalResult & { ok: true; source: Source }) | { ok: false; error: string; fieldErrors?: Record<string, string> };
+type Resp = (EvalResult & { ok: true; source: Source; regulatoryExposure?: RegulatoryExposure }) | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 /**
  * Public demo endpoint: evaluates a proposed tool-call trajectory for reachable
@@ -63,9 +65,37 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
   // timeout — fall back to the in-process heuristic so the UI never breaks.
   let result: EvalResult;
   let source: Source = "heuristic";
+  let regulatoryExposure: RegulatoryExposure | undefined;
   try {
-    result = await evaluateViaGovernance(parsed.data.trajectory, parsed.data.domains);
+    const detailed = await evaluateViaGovernanceDetailed(parsed.data.trajectory, parsed.data.domains);
+    result = detailed.result;
     source = "morrison";
+    const decisions = detailed.governance.decisions || [];
+    const steps = parsed.data.trajectory.map((call, index) => {
+      const decision = decisions[index] || decisions.at(-1) || {};
+      return {
+        step: index + 1,
+        normalized_call: call,
+        morrison_decision: {
+          verdict: decision.verdict || detailed.governance.verdict,
+          rule: decision.rule || detailed.governance.metadata?.rule,
+          layer: decision.layer || detailed.governance.layer,
+          reason: decision.reason || detailed.governance.reason,
+          metadata: { capabilities: decision.capabilities || detailed.governance.metadata?.capabilities || [] },
+        },
+        // This public demo evaluates only. It has no executor.
+        execution_occurred: false,
+      };
+    });
+    try {
+      const projection = await frontierService("/v1/frontier/regulatory-context", {
+        method: "POST",
+        body: JSON.stringify({ mode: "shadow", steps }),
+      });
+      if (projection.res.ok) regulatoryExposure = projection.data?.regulatory_exposure;
+    } catch (projectionError) {
+      console.warn("[evaluate-trajectory] regulatory projection unavailable:", (projectionError as Error).message);
+    }
   } catch (err) {
     console.warn("[evaluate-trajectory] governance service unavailable, using heuristic fallback:", (err as Error).message);
     result = evaluateTrajectory(parsed.data.trajectory);
@@ -97,7 +127,7 @@ export async function POST(req: Request): Promise<NextResponse<Resp>> {
 
   // Surface the evaluation source to the UI so a heuristic fallback is never
   // presented as a real-engine verdict. Also kept as a header for observability.
-  const res = NextResponse.json<Resp>({ ok: true, source, ...result });
+  const res = NextResponse.json<Resp>({ ok: true, source, ...result, regulatoryExposure });
   res.headers.set("x-governance-source", source);
   return res;
 }
