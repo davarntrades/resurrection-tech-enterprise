@@ -98,19 +98,28 @@ export function HomeClient() {
               ))}
             </div>
 
+            <p className="pull reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
+              The principle is the same: safety is not a vague property of the system.
+              <span className="accent"> It is a bounded property of operation.</span>
+            </p>
+
             <div className="callout reveal" style={{ marginTop: "clamp(28px,4vw,48px)" }}>
               <div>
                 <div className="roi-multi-h">We apply the same idea to autonomous AI.</div>
                 <p>
-                  We show you what locally safe operation actually looks like inside your environment —
-                  under your tools, permissions, policies, workflows, and reachable states. Morrison then
-                  evaluates proposed trajectories before execution to keep autonomous operation inside that
-                  validated envelope.
+                  We define and validate the conditions under which locally safe operation holds inside your
+                  environment — under your tools, permissions, policies, workflows, and reachable states.
+                  Morrison then evaluates proposed trajectories before execution to keep autonomous operation
+                  inside that validated envelope.
                 </p>
               </div>
             </div>
 
             <p className="pull reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
+              <span className="accent">Causal control over autonomous-system behaviour at execution time.</span>
+            </p>
+
+            <p className="pull reveal" style={{ marginTop: "clamp(22px,3vw,36px)" }}>
               See the Safety Envelope your AI can actually operate within —
               <span className="accent"> in your environment, before actions execute.</span>
             </p>
