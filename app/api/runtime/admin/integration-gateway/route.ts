@@ -40,16 +40,19 @@ export async function GET(req: NextRequest) {
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
     bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,
   }, { headers: { "cache-control": "no-store" } });
-  const [connectors, webhooks, deliveries, deployments, credentials, bedrock] = await Promise.all([
+  const [connectors, webhooks, deliveries, deployments, credentials, bedrock, execution_environments, execution_records, experiment_comparisons] = await Promise.all([
     (rt.integrationGateway as any).listConnectors(org_id),
     (rt.integrationGateway as any).listWebhooks(org_id),
     (rt.integrationGateway as any).listDeliveries(org_id),
     (rt.integrationGateway as any).listDeployments(org_id),
     rt.admin.listApiKeys(org_id),
     (rt.integrationGateway as any).bedrockOverview(org_id),
+    (rt.executionAdapters as any).executionEnvironments(org_id),
+    (rt.executionAdapters as any).evidence.listExecutionRecords({ org_id, limit: 50 }),
+    (rt.executionAdapters as any).evidence.experimentComparisons(org_id),
   ]);
   return NextResponse.json({
-    summary, organisations, connectors, webhooks, deliveries, deployments, credentials, bedrock,
+    summary, organisations, connectors, webhooks, deliveries, deployments, credentials, bedrock, execution_environments, execution_records, experiment_comparisons,
     connector_definitions: (rt.integrationGateway as any).CONNECTOR_DEFINITIONS,
     sdk_methods: (rt.integrationGateway as any).SDK_METHODS,
     bedrock_sdk_methods: (rt.integrationGateway as any).BEDROCK_SDK_METHODS,

@@ -136,6 +136,8 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
+      {orgId && <ExecutionEnvironments environments={data.execution_environments || []} records={data.execution_records || []} comparisons={data.experiment_comparisons || []} />}
+
       {orgId && (
         <section className="radmin-card">
           <h2>Connected systems</h2>
@@ -295,6 +297,60 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
       </form>
     </section>
   );
+}
+
+function YesNo({ value }: { value: boolean }) {
+  return <span className={`radmin-badge ${value ? "ok" : "ghost"}`}>{value ? "YES" : "NO"}</span>;
+}
+
+function ExecutionEnvironments({ environments, records, comparisons }: { environments: any[]; records: any[]; comparisons: any[] }) {
+  return <section className="radmin-card">
+    <h2>Execution environments</h2>
+    <p className="radmin-muted">Universal governed targets. Readiness describes experimental control and observability—not a claim that an environment is safe.</p>
+    <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Adapter / type</th><th>Status</th><th>Environment</th><th>Pre-execution</th><th>State read</th><th>Replay</th><th>Multi-step</th><th>Permissions</th><th>Readiness</th><th>Last execution</th><th>Health</th></tr></thead>
+      <tbody>{environments.map((row: any) => <tr key={row.adapter}>
+        <td><strong>{row.provider}</strong><div className="radmin-muted" style={{ fontSize: 11 }}>{row.adapter_type}</div></td>
+        <td><span className={`radmin-badge ${row.status === "adapter_available" ? "ok" : "ghost"}`}>{row.status}</span></td>
+        <td>{row.environment?.environment_id || row.environment?.twin_id || row.environment?.server_id || row.environment?.endpoint || "Not observed"}</td>
+        <td><YesNo value={row.capabilities?.pre_execution_hook === true} /></td>
+        <td><YesNo value={row.capabilities?.state_read === true} /></td>
+        <td><YesNo value={row.capabilities?.replay === true} /></td>
+        <td><YesNo value={row.capabilities?.multi_step === true} /></td>
+        <td><YesNo value={row.capabilities?.permission_control === true} /></td>
+        <td><span className={`radmin-badge ${row.safety_claim_readiness?.supports_local_safety_experiment ? "ok" : "ghost"}`}>{row.safety_claim_readiness?.level || "UNKNOWN"}</span></td>
+        <td>{ago(row.last_execution)}</td><td>{row.last_health_check ? ago(row.last_health_check) : "Not checked"}</td>
+      </tr>)}</tbody>
+    </table></div>
+    <h3 style={{ marginTop: 22 }}>Recent governed execution evidence</h3>
+    {!records.length ? <p className="radmin-muted">No external execution evidence recorded.</p> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Decision</th><th>Verdict</th><th>Adapter</th><th>Environment / twin</th><th>Executed?</th><th>State changed?</th><th>State hashes</th><th>Receipt</th><th>Correlation</th><th>Evidence</th></tr></thead>
+      <tbody>{records.map((row: any) => <tr key={row.id}>
+        <td>{row.morrison_decision_id || "—"}</td>
+        <td><strong>{row.verdict === "BLOCK" ? "MORRISON BLOCK" : row.verdict}</strong>{row.verdict === "BLOCK" && <div className="radmin-muted" style={{ fontSize: 11 }}>EXTERNAL EXECUTION: NOT ATTEMPTED</div>}</td>
+        <td>{row.adapter_id}</td><td>{row.execution_target?.environment_id || row.execution_target?.twin_id || row.execution_target?.endpoint || "—"}</td>
+        <td>{row.executed === true ? "YES" : row.executed === false ? "NO" : "UNKNOWN"}</td>
+        <td>{row.external_state_changed === true ? "YES" : row.external_state_changed === false ? "NO" : row.state_observability === "NOT_APPLICABLE" ? "NOT APPLICABLE" : "UNKNOWN"}</td>
+        <td><span className="radmin-muted">{row.state_before_hash?.slice(0, 10) || "—"} → {row.state_after_hash?.slice(0, 10) || "—"}</span></td>
+        <td>{row.execution_receipt ? "CAPTURED" : "—"}</td><td>{row.correlation_id || "—"}</td>
+        <td>{row.evidence_verified ? "VERIFIED" : "UNVERIFIED"}</td>
+      </tr>)}</tbody>
+    </table></div>}
+    <h3 style={{ marginTop: 22 }}>Pilot comparisons</h3>
+    {!comparisons.length ? <p className="radmin-muted">No baseline/governed pair has been recorded by a trusted pilot harness.</p> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Scenario / correlation</th><th>Same starting state?</th><th>Trajectory</th><th>Baseline outcome</th><th>Governed verdict</th><th>Governed execution</th><th>State delta</th><th>Prevented transition</th><th>Evidence</th></tr></thead>
+      <tbody>{comparisons.map((row: any) => <tr key={`${row.scenario_id}-${row.correlation_id}`}>
+        <td>{row.scenario_id}<div className="radmin-muted" style={{ fontSize: 11 }}>{row.correlation_id}</div></td>
+        <td>{row.comparison?.equivalent_initial_state ? "ESTABLISHED" : "NOT ESTABLISHED"}<div className="radmin-muted" style={{ fontSize: 11 }}>{(row.comparison?.reasons || []).join("; ")}</div></td>
+        <td>{row.governed?.trajectory_hash?.slice(0, 12) || "—"}</td>
+        <td>{row.baseline?.execution_status} · state changed {row.baseline?.external_state_changed ? "YES" : "NO"}</td>
+        <td>{row.governed?.verdict}</td><td>{row.governed?.execution_attempted ? row.governed?.execution_status : "NOT ATTEMPTED"}</td>
+        <td>{row.governed?.state_delta ? JSON.stringify(row.governed.state_delta) : "—"}</td>
+        <td>{row.prevented_unsafe_transition ? "YES" : "NOT ESTABLISHED"}</td>
+        <td>{row.baseline?.evidence_verified && row.governed?.evidence_verified ? "VERIFIED" : "INCOMPLETE"}</td>
+      </tr>)}</tbody>
+    </table></div>}
+  </section>;
 }
 
 /* Post-creation Gmail administration. Every button is a governed operation
