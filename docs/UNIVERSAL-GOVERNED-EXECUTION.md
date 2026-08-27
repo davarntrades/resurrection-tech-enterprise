@@ -67,6 +67,12 @@ Optional functions are capability-driven:
 
 Adapters live under `lib/runtime/execution-adapters/adapters/`. The registry validates the contract and wraps the execution function with the authorization gate.
 
+### Provider-neutral provisioning metadata
+
+An adapter may also expose a descriptive `provisioning` manifest. This is not an execution capability and never grants authorization. It lets the existing Control Room explain how an operator prepares an external environment using provider-supported credential modes and setup transports (`manual`, `http_api`, `cli`, or `mcp`), then hands the resulting run ID/endpoints into the adapter configuration.
+
+The optional lifecycle vocabulary covers catalog, provision, seed, status, reset, extend, lock, teardown, and structured output. These flags describe the provider's setup surface only. For example, a documented reset command does **not** imply `deterministic_reset`, equivalent initial state, or a successful reset; those claims still require execution capability confirmation and evidence.
+
 ## Capability manifest
 
 Every manifest is normalized to explicit booleans for:
@@ -111,15 +117,20 @@ Requires a command allowlist, working-directory policy, and per-invocation valid
 
 ### Arga Labs
 
-Arga is the first named sandbox implementation, but its public transport contract is not documented in this repository. The Arga shell therefore:
+Arga is the first named sandbox implementation. Its public documentation now confirms the onboarding shape shown in the live product: authenticate with an API key or `arga login`, install `arga-cli`, use `arga wizard` (`arga wizard init` remains a compatibility command), provision stateful service twins, and point the application at returned provider-compatible URLs/environment variables. Arga also documents CLI/MCP lifecycle operations such as catalog, provision, status, reset and teardown, plus JSON output. The Control Room renders these as a three-step, manifest-driven setup guide: authenticate provider → set up transport → hand the provisioned target to the adapter.
 
-- invents no endpoint;
-- declares no capability by default;
+This documentation does **not** make Arga the governance architecture and does not turn provisioning into authorization. The shell therefore still:
+
+- invents no action or state endpoint;
+- declares no execution capability by default;
+- never executes setup commands;
 - requires `integration_surface_confirmed` from trusted server configuration;
 - requires operator-supplied transport paths; and
-- requires trusted-server `confirmed_capabilities` sourced from Arga technical documentation (client payloads cannot assert them).
+- requires trusted-server `confirmed_capabilities` (client payloads cannot assert them).
 
-The unresolved items are the authenticated base URL, action schema/path, state inspection schema/path, session/twin identifiers, receipt format, idempotency behaviour, and whether replay/reset is available and deterministic.
+Still unresolved for production execution are the exact action-routing schema/path, state inspection schema/path, normalized receipt shape, idempotency behaviour, and trustworthy pre/post-state capture semantics. Arga documents reset availability, but Morrison must not call it deterministic or use it to claim comparable starting state without verified reset evidence.
+
+Provider references: [CLI and MCP](https://docs.argalabs.com/cli-and-mcp), [Quickstart](https://docs.argalabs.com/quickstart), and [Local testing](https://docs.argalabs.com/features/local-testing).
 
 ## Evidence flow
 
@@ -155,12 +166,13 @@ Declaring a `deterministic_reset` capability is not itself evidence that reset o
 ## Adding another sandbox provider
 
 1. Implement the common adapter contract in `adapters/<provider>.js`.
-2. Declare only capabilities confirmed by the provider and the supplied configuration.
-3. Keep credentials in the existing trusted secret/configuration infrastructure; never return them in receipts.
-4. Normalize provider results into `ok`, `executed`, `result`, and `receipt` without converting ambiguous outcomes into success/failure claims.
-5. Add the adapter to the registry.
-6. Test `ALLOW` once, `BLOCK` zero times, `ESCALATE` zero times, unavailable engine/config, state observability, timeout ambiguity, idempotency and direct-use rejection.
-7. Surface the manifest/readiness and recent evidence in the existing Control Room.
+2. Optionally publish a normalized provisioning manifest for operator onboarding; do not execute setup commands from that manifest.
+3. Declare only capabilities confirmed by the provider and the supplied configuration. Never infer execution readiness from provisioning metadata.
+4. Keep credentials in the existing trusted secret/configuration infrastructure; never return them in receipts.
+5. Normalize provider results into `ok`, `executed`, `result`, and `receipt` without converting ambiguous outcomes into success/failure claims.
+6. Add the adapter to the registry.
+7. Test `ALLOW` once, `BLOCK` zero times, `ESCALATE` zero times, unavailable engine/config, state observability, timeout ambiguity, idempotency and direct-use rejection.
+8. Surface provisioning, capability/readiness and recent evidence in the existing Control Room.
 
 ## Example integration sequence
 

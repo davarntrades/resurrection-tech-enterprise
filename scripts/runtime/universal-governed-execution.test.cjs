@@ -9,6 +9,7 @@ process.env.RUNTIME_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "rt-executi
 
 const execution = require("../../lib/runtime/execution-adapters");
 const { assessSafetyClaimReadiness, READINESS } = execution.capabilities;
+const { normalizeProvisioning } = execution.provisioning;
 const httpAdapter = require("../../lib/runtime/execution-adapters/adapters/generic-http");
 
 const auth = { org: { id: "org_test" }, environment: { id: "env_test", mode: "enforce" }, key_id: "key_test", role: "ingest" };
@@ -150,6 +151,17 @@ function fakeAdapter(id, options = {}) {
   const arga = execution.registry.get("arga");
   assert.deepEqual(Object.values(arga.capabilities({})).filter(Boolean), [], "Arga shell invents no capabilities");
   assert.equal(arga.validateConfiguration({}).ok, false, "Arga shell cannot execute without confirmed documentation");
+  const argaProvisioning = normalizeProvisioning(arga.provisioning);
+  assert.equal(argaProvisioning.available, true, "Arga exposes documented provider setup metadata");
+  assert.ok(argaProvisioning.commands.some((item) => item.command === "arga wizard"), "Arga's current twin-run wizard is shown");
+  assert.ok(argaProvisioning.commands.some((item) => item.command === "arga wizard init"), "website compatibility command remains discoverable");
+  assert.equal(argaProvisioning.lifecycle.reset, true, "documented reset lifecycle is exposed");
+  assert.equal(arga.capabilities({}).deterministic_reset, undefined, "provisioning reset never invents deterministic execution capability");
+  assert.equal(assessSafetyClaimReadiness(arga.capabilities({})).level, READINESS.INSUFFICIENT_FOR_LOCAL_SAFETY_CLAIM,
+    "provider onboarding alone cannot establish local-safety readiness");
+  const normalizedSetup = normalizeProvisioning({ available: true, setup_transports: ["cli", "unknown"], lifecycle: { provision: true }, commands: [{ command: "provider init" }, { command: "" }] });
+  assert.deepEqual(normalizedSetup.setup_transports, ["cli"], "unknown setup transports are not surfaced as supported");
+  assert.equal(normalizedSetup.commands.length, 1, "empty setup commands are removed");
   assert.equal(httpAdapter.privateAddress("127.0.0.1"), true);
   assert.equal(httpAdapter.privateAddress("10.0.0.1"), true);
   assert.equal(execution.registry.get("generic-http").validateConfiguration({ endpoint: "https://localhost/action", allowed_hosts: ["localhost"] }).ok, false, "HTTP adapter rejects local SSRF target during validation");

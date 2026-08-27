@@ -303,10 +303,63 @@ function YesNo({ value }: { value: boolean }) {
   return <span className={`radmin-badge ${value ? "ok" : "ghost"}`}>{value ? "YES" : "NO"}</span>;
 }
 
+function ExecutionEnvironmentSetup({ environments }: { environments: any[] }) {
+  const setupRows = environments.filter((row: any) => row.provisioning?.available);
+  const [adapterId, setAdapterId] = useState(setupRows[0]?.adapter || "");
+  const selected = setupRows.find((row: any) => row.adapter === adapterId) || setupRows[0];
+  const provisioning = selected?.provisioning;
+  const copy = async (command: string) => { try { await navigator.clipboard.writeText(command); } catch { /* clipboard can be blocked by browser policy */ } };
+  if (!selected || !provisioning) return null;
+  const lifecycle = Object.entries(provisioning.lifecycle || {}).filter(([, enabled]) => enabled).map(([name]) => name);
+  return <div style={{ margin: "18px 0 24px", padding: 18, border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--panel-2)" }}>
+    <div className="radmin-row" style={{ alignItems: "flex-start", marginBottom: 14 }}>
+      <div>
+        <h3 style={{ margin: 0 }}>Provision an execution environment</h3>
+        <p className="radmin-muted" style={{ margin: "5px 0 0" }}>Provider setup is separate from Morrison authorization. Provisioning never grants permission to execute.</p>
+      </div>
+      <span style={{ flex: 1 }} />
+      <select className="radmin-select" aria-label="Execution environment provider" value={selected.adapter} onChange={(event) => setAdapterId(event.target.value)}>
+        {setupRows.map((row: any) => <option value={row.adapter} key={row.adapter}>{row.provider}</option>)}
+      </select>
+    </div>
+    <div className="radmin-kpis execution-setup-steps">
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>1 · Authenticate provider</div>
+        <p style={{ margin: "10px 0 8px" }}>Create or connect a provider credential using its supported flow.</p>
+        <div className="radmin-badges">{provisioning.credential_modes.map((mode: string) => <span className="radmin-badge ghost" key={mode}>{mode.replaceAll("_", " ")}</span>)}</div>
+      </div>
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>2 · Set up transport</div>
+        <p style={{ margin: "10px 0 8px" }}>Use a documented CLI, MCP, HTTP API or manual provider workflow.</p>
+        <div className="radmin-badges">{provisioning.setup_transports.map((mode: string) => <span className="radmin-badge accent" key={mode}>{mode.replaceAll("_", " ")}</span>)}</div>
+      </div>
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>3 · Hand off target</div>
+        <p style={{ margin: "10px 0 8px" }}>{provisioning.endpoint_handoff || "Bind the provisioned run or endpoint to the adapter configuration."}</p>
+        <span className="radmin-badge warn">AUTHORIZATION STILL REQUIRED</span>
+      </div>
+    </div>
+    {!!provisioning.commands?.length && <div style={{ marginTop: 14 }}>
+      <div className="radmin-muted" style={{ marginBottom: 7 }}>Documented setup commands (display only)</div>
+      <div style={{ display: "grid", gap: 7 }}>{provisioning.commands.map((item: any) => <div className="radmin-row" key={item.id} style={{ padding: "8px 10px", border: "1px solid var(--line-2)", borderRadius: 7 }}>
+        <div style={{ minWidth: 145 }}><strong>{item.label}</strong></div>
+        <code style={{ flex: 1, overflowWrap: "anywhere" }}>{item.command}</code>
+        <button className="radmin-btn sm" type="button" onClick={() => copy(item.command)}>Copy</button>
+      </div>)}</div>
+    </div>}
+    <div className="radmin-badges" style={{ marginTop: 14 }}>
+      {lifecycle.map((name) => <span className="radmin-badge ghost" key={name}>{name.replaceAll("_", " ")}</span>)}
+      <span className="radmin-badge ghost">{provisioning.status.replaceAll("_", " ")}</span>
+    </div>
+    <p className="radmin-muted" style={{ margin: "10px 0 0" }}>Lifecycle availability describes the provider setup surface. Adapter capabilities and local-safety readiness remain independently assessed below.</p>
+  </div>;
+}
+
 function ExecutionEnvironments({ environments, records, comparisons }: { environments: any[]; records: any[]; comparisons: any[] }) {
   return <section className="radmin-card">
     <h2>Execution environments</h2>
     <p className="radmin-muted">Universal governed targets. Readiness describes experimental control and observability—not a claim that an environment is safe.</p>
+    <ExecutionEnvironmentSetup environments={environments} />
     <div className="radmin-table-wrap"><table className="radmin-table">
       <thead><tr><th>Adapter / type</th><th>Status</th><th>Environment</th><th>Pre-execution</th><th>State read</th><th>Replay</th><th>Multi-step</th><th>Permissions</th><th>Readiness</th><th>Last execution</th><th>Health</th></tr></thead>
       <tbody>{environments.map((row: any) => <tr key={row.adapter}>
