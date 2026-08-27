@@ -138,6 +138,7 @@ function GovernedSessionsPanel() {
         <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS"}</code></div>
       </div>
       <GovernedEvidencePanels result={selected.governed_result} compact />
+      {/* Protected Value and regulatory/compliance context remain separate. */}
       {selected.regulatory_exposure && <RegulatoryExposureCard
         exposure={selected.regulatory_exposure as RegulatoryExposure}
         runtimeVerdict={selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict}

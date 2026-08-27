@@ -136,6 +136,8 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
 
+      {orgId && <ExecutionEnvironments environments={data.execution_environments || []} records={data.execution_records || []} comparisons={data.experiment_comparisons || []} />}
+
       {orgId && (
         <section className="radmin-card">
           <h2>Connected systems</h2>
@@ -295,6 +297,113 @@ function GatewayActions({ envs, definitions, busy, mutate }: { envs: any[]; defi
       </form>
     </section>
   );
+}
+
+function YesNo({ value }: { value: boolean }) {
+  return <span className={`radmin-badge ${value ? "ok" : "ghost"}`}>{value ? "YES" : "NO"}</span>;
+}
+
+function ExecutionEnvironmentSetup({ environments }: { environments: any[] }) {
+  const setupRows = environments.filter((row: any) => row.provisioning?.available);
+  const [adapterId, setAdapterId] = useState(setupRows[0]?.adapter || "");
+  const selected = setupRows.find((row: any) => row.adapter === adapterId) || setupRows[0];
+  const provisioning = selected?.provisioning;
+  const copy = async (command: string) => { try { await navigator.clipboard.writeText(command); } catch { /* clipboard can be blocked by browser policy */ } };
+  if (!selected || !provisioning) return null;
+  const lifecycle = Object.entries(provisioning.lifecycle || {}).filter(([, enabled]) => enabled).map(([name]) => name);
+  return <div style={{ margin: "18px 0 24px", padding: 18, border: "1px solid var(--line-2)", borderRadius: "var(--radius-sm, 9px)", background: "var(--panel-2)" }}>
+    <div className="radmin-row" style={{ alignItems: "flex-start", marginBottom: 14 }}>
+      <div>
+        <h3 style={{ margin: 0 }}>Provision an execution environment</h3>
+        <p className="radmin-muted" style={{ margin: "5px 0 0" }}>Provider setup is separate from Morrison authorization. Provisioning never grants permission to execute.</p>
+      </div>
+      <span style={{ flex: 1 }} />
+      <select className="radmin-select" aria-label="Execution environment provider" value={selected.adapter} onChange={(event) => setAdapterId(event.target.value)}>
+        {setupRows.map((row: any) => <option value={row.adapter} key={row.adapter}>{row.provider}</option>)}
+      </select>
+    </div>
+    <div className="radmin-kpis execution-setup-steps">
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>1 · Authenticate provider</div>
+        <p style={{ margin: "10px 0 8px" }}>Create or connect a provider credential using its supported flow.</p>
+        <div className="radmin-badges">{provisioning.credential_modes.map((mode: string) => <span className="radmin-badge ghost" key={mode}>{mode.replaceAll("_", " ")}</span>)}</div>
+      </div>
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>2 · Set up transport</div>
+        <p style={{ margin: "10px 0 8px" }}>Use a documented CLI, MCP, HTTP API or manual provider workflow.</p>
+        <div className="radmin-badges">{provisioning.setup_transports.map((mode: string) => <span className="radmin-badge accent" key={mode}>{mode.replaceAll("_", " ")}</span>)}</div>
+      </div>
+      <div className="radmin-kpi">
+        <div className="radmin-kpi-l" style={{ marginTop: 0 }}>3 · Hand off target</div>
+        <p style={{ margin: "10px 0 8px" }}>{provisioning.endpoint_handoff || "Bind the provisioned run or endpoint to the adapter configuration."}</p>
+        <span className="radmin-badge warn">AUTHORIZATION STILL REQUIRED</span>
+      </div>
+    </div>
+    {!!provisioning.commands?.length && <div style={{ marginTop: 14 }}>
+      <div className="radmin-muted" style={{ marginBottom: 7 }}>Documented setup commands (display only)</div>
+      <div style={{ display: "grid", gap: 7 }}>{provisioning.commands.map((item: any) => <div className="radmin-row" key={item.id} style={{ padding: "8px 10px", border: "1px solid var(--line-2)", borderRadius: 7 }}>
+        <div style={{ minWidth: 145 }}><strong>{item.label}</strong></div>
+        <code style={{ flex: 1, overflowWrap: "anywhere" }}>{item.command}</code>
+        <button className="radmin-btn sm" type="button" onClick={() => copy(item.command)}>Copy</button>
+      </div>)}</div>
+    </div>}
+    <div className="radmin-badges" style={{ marginTop: 14 }}>
+      {lifecycle.map((name) => <span className="radmin-badge ghost" key={name}>{name.replaceAll("_", " ")}</span>)}
+      <span className="radmin-badge ghost">{provisioning.status.replaceAll("_", " ")}</span>
+    </div>
+    <p className="radmin-muted" style={{ margin: "10px 0 0" }}>Lifecycle availability describes the provider setup surface. Adapter capabilities and local-safety readiness remain independently assessed below.</p>
+  </div>;
+}
+
+function ExecutionEnvironments({ environments, records, comparisons }: { environments: any[]; records: any[]; comparisons: any[] }) {
+  return <section className="radmin-card">
+    <h2>Execution environments</h2>
+    <p className="radmin-muted">Universal governed targets. Readiness describes experimental control and observability—not a claim that an environment is safe.</p>
+    <ExecutionEnvironmentSetup environments={environments} />
+    <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Adapter / type</th><th>Status</th><th>Environment</th><th>Pre-execution</th><th>State read</th><th>Replay</th><th>Multi-step</th><th>Permissions</th><th>Readiness</th><th>Last execution</th><th>Health</th></tr></thead>
+      <tbody>{environments.map((row: any) => <tr key={row.adapter}>
+        <td><strong>{row.provider}</strong><div className="radmin-muted" style={{ fontSize: 11 }}>{row.adapter_type}</div></td>
+        <td><span className={`radmin-badge ${row.status === "adapter_available" ? "ok" : "ghost"}`}>{row.status}</span></td>
+        <td>{row.environment?.environment_id || row.environment?.twin_id || row.environment?.server_id || row.environment?.endpoint || "Not observed"}</td>
+        <td><YesNo value={row.capabilities?.pre_execution_hook === true} /></td>
+        <td><YesNo value={row.capabilities?.state_read === true} /></td>
+        <td><YesNo value={row.capabilities?.replay === true} /></td>
+        <td><YesNo value={row.capabilities?.multi_step === true} /></td>
+        <td><YesNo value={row.capabilities?.permission_control === true} /></td>
+        <td><span className={`radmin-badge ${row.safety_claim_readiness?.supports_local_safety_experiment ? "ok" : "ghost"}`}>{row.safety_claim_readiness?.level || "UNKNOWN"}</span></td>
+        <td>{ago(row.last_execution)}</td><td>{row.last_health_check ? ago(row.last_health_check) : "Not checked"}</td>
+      </tr>)}</tbody>
+    </table></div>
+    <h3 style={{ marginTop: 22 }}>Recent governed execution evidence</h3>
+    {!records.length ? <p className="radmin-muted">No external execution evidence recorded.</p> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Decision</th><th>Verdict</th><th>Adapter</th><th>Environment / twin</th><th>Executed?</th><th>State changed?</th><th>State hashes</th><th>Receipt</th><th>Correlation</th><th>Evidence</th></tr></thead>
+      <tbody>{records.map((row: any) => <tr key={row.id}>
+        <td>{row.morrison_decision_id || "—"}</td>
+        <td><strong>{row.verdict === "BLOCK" ? "MORRISON BLOCK" : row.verdict}</strong>{row.verdict === "BLOCK" && <div className="radmin-muted" style={{ fontSize: 11 }}>EXTERNAL EXECUTION: NOT ATTEMPTED</div>}</td>
+        <td>{row.adapter_id}</td><td>{row.execution_target?.environment_id || row.execution_target?.twin_id || row.execution_target?.endpoint || "—"}</td>
+        <td>{row.executed === true ? "YES" : row.executed === false ? "NO" : "UNKNOWN"}</td>
+        <td>{row.external_state_changed === true ? "YES" : row.external_state_changed === false ? "NO" : row.state_observability === "NOT_APPLICABLE" ? "NOT APPLICABLE" : "UNKNOWN"}</td>
+        <td><span className="radmin-muted">{row.state_before_hash?.slice(0, 10) || "—"} → {row.state_after_hash?.slice(0, 10) || "—"}</span></td>
+        <td>{row.execution_receipt ? "CAPTURED" : "—"}</td><td>{row.correlation_id || "—"}</td>
+        <td>{row.evidence_verified ? "VERIFIED" : "UNVERIFIED"}</td>
+      </tr>)}</tbody>
+    </table></div>}
+    <h3 style={{ marginTop: 22 }}>Pilot comparisons</h3>
+    {!comparisons.length ? <p className="radmin-muted">No baseline/governed pair has been recorded by a trusted pilot harness.</p> : <div className="radmin-table-wrap"><table className="radmin-table">
+      <thead><tr><th>Scenario / correlation</th><th>Same starting state?</th><th>Trajectory</th><th>Baseline outcome</th><th>Governed verdict</th><th>Governed execution</th><th>State delta</th><th>Prevented transition</th><th>Evidence</th></tr></thead>
+      <tbody>{comparisons.map((row: any) => <tr key={`${row.scenario_id}-${row.correlation_id}`}>
+        <td>{row.scenario_id}<div className="radmin-muted" style={{ fontSize: 11 }}>{row.correlation_id}</div></td>
+        <td>{row.comparison?.equivalent_initial_state ? "ESTABLISHED" : "NOT ESTABLISHED"}<div className="radmin-muted" style={{ fontSize: 11 }}>{(row.comparison?.reasons || []).join("; ")}</div></td>
+        <td>{row.governed?.trajectory_hash?.slice(0, 12) || "—"}</td>
+        <td>{row.baseline?.execution_status} · state changed {row.baseline?.external_state_changed ? "YES" : "NO"}</td>
+        <td>{row.governed?.verdict}</td><td>{row.governed?.execution_attempted ? row.governed?.execution_status : "NOT ATTEMPTED"}</td>
+        <td>{row.governed?.state_delta ? JSON.stringify(row.governed.state_delta) : "—"}</td>
+        <td>{row.prevented_unsafe_transition ? "YES" : "NOT ESTABLISHED"}</td>
+        <td>{row.baseline?.evidence_verified && row.governed?.evidence_verified ? "VERIFIED" : "INCOMPLETE"}</td>
+      </tr>)}</tbody>
+    </table></div>}
+  </section>;
 }
 
 /* Post-creation Gmail administration. Every button is a governed operation
