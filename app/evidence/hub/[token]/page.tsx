@@ -3,6 +3,7 @@
  * reports and evidence, plus a timeline. No login, no operator surface. */
 import type { Metadata } from "next";
 import * as rt from "@/lib/runtime";
+import styles from "./page.module.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,24 +12,35 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const C = {
-  bg: "#08090b", panel: "#0f1216", inset: "#0b0d10", line: "rgba(255,255,255,.08)",
-  ink: "#f3f5f7", ink2: "#aab2bd", ink3: "#6b7480", ink4: "#474e58",
-  accent: "#6f97ff", ok: "#3fb27f", mono: "'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace",
-};
 const SHAREABLE = /\.(pdf|html)$/i;
-const STATUS_LABEL: Record<string, string> = { open: "Open", acknowledged: "Acknowledged", in_progress: "In Progress", resolved: "Resolved" };
-const SEV_COLOR: Record<string, string> = { critical: "#e5484d", high: "#e5893f", medium: "#c9a227", low: "#6b7480" };
-const fmt = (iso?: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "—");
-const kindLabel = (f: string) => (/enterprise-assessment/i.test(f) ? (/\.pdf$/i.test(f) ? "Enterprise assessment" : "Enterprise assessment (HTML)") : /executive/i.test(f) ? "Executive report" : /full-audit/i.test(f) ? (/\.pdf$/i.test(f) ? "48-Hour Audit" : "48-Hour Audit (HTML)") : /monthly-evidence/i.test(f) ? (/\.pdf$/i.test(f) ? "Monthly evidence" : "Monthly evidence (HTML)") : /\.pdf$/i.test(f) ? "Audit report" : /\.html$/i.test(f) ? "Report (HTML)" : "Evidence");
+const OPEN_STATES = new Set(["open", "acknowledged", "in_progress"]);
+const STATUS_LABEL: Record<string, string> = {
+  open: "Open",
+  acknowledged: "Acknowledged",
+  in_progress: "In progress",
+  resolved: "Resolved",
+};
+const fmt = (iso?: string | null) => iso
+  ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
+  : "—";
+const kindLabel = (filename: string) => (
+  /enterprise-assessment/i.test(filename) ? "Enterprise assessment"
+    : /executive/i.test(filename) ? "Executive report"
+      : /full-audit/i.test(filename) ? "48-Hour Audit"
+        : /monthly-evidence/i.test(filename) ? "Monthly evidence"
+          : /\.pdf$/i.test(filename) ? "Audit report"
+            : /\.html$/i.test(filename) ? "Interactive report"
+              : "Evidence"
+);
 
 function Message({ title, body }: { title: string; body: string }) {
   return (
-    <main style={{ background: C.bg, minHeight: "100vh", color: C.ink2, fontFamily: C.mono, display: "grid", placeItems: "center", padding: 24 }}>
-      <div style={{ maxWidth: 460, textAlign: "center" }}>
-        <div style={{ fontSize: 26, color: C.accent, marginBottom: 10 }}>&#8475;(t)</div>
-        <h1 style={{ color: C.ink, fontSize: 20, fontWeight: 560, margin: "0 0 8px" }}>{title}</h1>
-        <p style={{ color: C.ink3, fontSize: 13, lineHeight: 1.6 }}>{body}</p>
+    <main className={styles.messagePage}>
+      <div className={styles.messageCard}>
+        <div className={styles.mark} aria-hidden="true">&#8475;(t)</div>
+        <p className={styles.eyebrow}>Runtime Governance Evidence</p>
+        <h1>{title}</h1>
+        <p>{body}</p>
       </div>
     </main>
   );
@@ -44,109 +56,201 @@ export default async function EvidenceHubPage({ params }: { params: Promise<{ to
   }
 
   const orgName: string = res.org?.name || "Your organisation";
-  const packs: any[] = res.packs || [];
+  const packs: any[] = (res.packs || []).map((pack: any) => ({
+    ...pack,
+    shareable: (pack.deliverables || []).filter((item: any) => SHAREABLE.test(item.filename)),
+  })).filter((pack: any) => pack.shareable.length > 0);
   const recommendations: any[] = res.recommendations || [];
   const timeline: any[] = res.timeline || [];
-  const btn = { display: "inline-block", textDecoration: "none", fontFamily: C.mono, fontSize: 12, padding: "7px 12px", borderRadius: 9, border: `1px solid ${C.line}`, color: C.ink2 } as const;
-  const accentBtn = { ...btn, background: "rgba(76,125,255,.14)", borderColor: "rgba(76,125,255,.45)", color: C.ink } as const;
-  const label = { fontFamily: C.mono, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: C.ink3 } as const;
+  const openRecommendations = recommendations.filter((item) => OPEN_STATES.has(item.status));
+  const resolvedRecommendations = recommendations.filter((item) => item.status === "resolved");
+  const documentCount = packs.reduce((total, pack) => total + pack.shareable.length, 0);
+  const latestPublication = timeline[0]?.at || packs[0]?.created_at || null;
 
   return (
-    <main style={{ background: C.bg, minHeight: "100vh", color: C.ink2, fontFamily: "-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 80px" }}>
-        {/* Header */}
-        <header style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 20, borderBottom: `1px solid ${C.line}`, marginBottom: 24 }}>
-          <span style={{ color: C.accent, fontSize: 22, fontFamily: C.mono }}>&#8475;(t)</span>
-          <div>
-            <div style={{ color: C.ink, fontWeight: 560, fontSize: 16 }}>Resurrection Tech&trade; — Runtime Governance Evidence</div>
-            <div style={{ ...label }}>{orgName}</div>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <header className={styles.header}>
+          <div className={styles.brand}>
+            <span className={styles.mark} aria-hidden="true">&#8475;(t)</span>
+            <span>
+              <strong>Resurrection Tech</strong>
+              <small>Morrison Runtime Governance&trade;</small>
+            </span>
+          </div>
+          <div className={styles.accessBadge}>
+            <span aria-hidden="true" />
+            Read-only evidence portal
           </div>
         </header>
 
-        <p style={{ color: C.ink3, fontSize: 13, lineHeight: 1.6, margin: "0 0 24px" }}>
-          Your ongoing Runtime Governance evidence, in one place. Bookmark this secure link — new audits and
-          reports appear here as they&rsquo;re published. Read-only; no account required.
-        </p>
-
-        {/* Evidence */}
-        {!packs.length && (
-          <div style={{ border: `1px dashed ${C.line}`, borderRadius: 14, padding: 40, textAlign: "center", color: C.ink3 }}>
-            No evidence published yet. Your first Runtime Governance audit will appear here.
+        <section className={styles.hero} aria-labelledby="hub-title">
+          <div>
+            <p className={styles.eyebrow}>Customer Evidence Hub</p>
+            <h1 id="hub-title">Runtime governance evidence for <span>{orgName}</span></h1>
+            <p className={styles.lede}>
+              Published audits, executive reports and tracked governance actions in one durable view.
+              New evidence appears here as it is released.
+            </p>
           </div>
-        )}
+          <div className={styles.accessNote}>
+            <strong>Private link access</strong>
+            <span>No account required</span>
+            <span>Bookmark this page</span>
+          </div>
+        </section>
 
-        {packs.map((p) => {
-          const files = (p.deliverables || []).filter((d: any) => SHAREABLE.test(d.filename));
-          if (!files.length) return null;
-          return (
-            <section key={p.id} style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.panel, padding: "20px 22px", marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
-                <h2 style={{ color: C.ink, fontSize: 16, fontWeight: 560, margin: 0 }}>{p.name || "Runtime Governance Audit"}</h2>
-                <span style={{ ...label }}>{p.reference ? `${p.reference} · ` : ""}{fmt(p.created_at)}</span>
+        <section className={styles.summary} aria-label="Evidence summary">
+          <div className={styles.metric}>
+            <span>Published audits</span>
+            <strong>{packs.length}</strong>
+            <small>Evidence packs available</small>
+          </div>
+          <div className={styles.metric}>
+            <span>Documents</span>
+            <strong>{documentCount}</strong>
+            <small>Reports ready to review</small>
+          </div>
+          <div className={`${styles.metric} ${openRecommendations.length ? styles.attentionMetric : ""}`}>
+            <span>Open actions</span>
+            <strong>{openRecommendations.length}</strong>
+            <small>{openRecommendations.length ? "Require attention" : "No outstanding actions"}</small>
+          </div>
+          <div className={styles.metric}>
+            <span>Last published</span>
+            <strong className={styles.metricDate}>{fmt(latestPublication)}</strong>
+            <small>Most recent evidence update</small>
+          </div>
+        </section>
+
+        <nav className={styles.sectionNav} aria-label="Evidence Hub sections">
+          <a href="#evidence-library">Evidence library <span>{packs.length}</span></a>
+          <a href="#action-register">Action register <span>{recommendations.length}</span></a>
+          <a href="#activity">Activity <span>{timeline.length}</span></a>
+        </nav>
+
+        <div className={styles.contentGrid}>
+          <section id="evidence-library" className={styles.library} aria-labelledby="evidence-heading">
+            <div className={styles.sectionHeading}>
+              <div>
+                <p className={styles.eyebrow}>Assurance record</p>
+                <h2 id="evidence-heading">Evidence library</h2>
               </div>
-              {typeof p.summary?.assess_summary === "string" && p.summary.assess_summary.trim() && (
-                <p style={{ color: C.ink3, fontSize: 12.5, margin: "0 0 10px" }}>{p.summary.assess_summary}</p>
-              )}
-              <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", display: "flex", flexDirection: "column", gap: 8 }}>
-                {files.map((d: any) => (
-                  <li key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "10px 12px", background: C.inset, border: `1px solid ${C.line}`, borderRadius: 10 }}>
+              <p>Open a report in your browser or download a retained copy.</p>
+            </div>
+
+            {!packs.length && (
+              <div className={styles.emptyState}>
+                <span aria-hidden="true">&#8475;</span>
+                <h3>No evidence published yet</h3>
+                <p>Your first Runtime Governance audit will appear here when it is released.</p>
+              </div>
+            )}
+
+            <div className={styles.packList}>
+              {packs.map((pack) => (
+                <article key={pack.id} className={styles.pack}>
+                  <div className={styles.packHeader}>
                     <div>
-                      <div style={{ color: C.ink, fontSize: 13 }}>{kindLabel(d.filename)}</div>
-                      <div style={{ ...label }}>{d.filename}{d.size ? ` · ${(d.size / 1024).toFixed(0)} KB` : ""}</div>
+                      <div className={styles.packMeta}>
+                        <span>Published</span>
+                        {pack.reference && <code>{pack.reference}</code>}
+                      </div>
+                      <h3>{pack.name || "Runtime Governance Audit"}</h3>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <a style={accentBtn} href={`/api/runtime/hub/${token}/file?id=${encodeURIComponent(d.id)}&mode=preview`} target="_blank" rel="noopener noreferrer">Open</a>
-                      <a style={btn} href={`/api/runtime/hub/${token}/file?id=${encodeURIComponent(d.id)}&mode=download`}>Download</a>
+                    <time dateTime={pack.created_at || undefined}>{fmt(pack.created_at)}</time>
+                  </div>
+                  {typeof pack.summary?.assess_summary === "string" && pack.summary.assess_summary.trim() && (
+                    <p className={styles.packSummary}>{pack.summary.assess_summary}</p>
+                  )}
+                  <ul className={styles.fileList}>
+                    {pack.shareable.map((file: any) => {
+                      const format = /\.pdf$/i.test(file.filename) ? "PDF" : "HTML";
+                      return (
+                        <li key={file.id} className={styles.fileRow}>
+                          <span className={styles.fileType} aria-hidden="true">{format}</span>
+                          <div className={styles.fileInfo}>
+                            <strong>{kindLabel(file.filename)}</strong>
+                            <span>{file.filename}{file.size ? ` · ${Math.max(1, Math.round(file.size / 1024))} KB` : ""}</span>
+                          </div>
+                          <div className={styles.fileActions}>
+                            <a className={styles.openButton} href={`/api/runtime/hub/${token}/file?id=${encodeURIComponent(file.id)}&mode=preview`} target="_blank" rel="noopener noreferrer">
+                              Open <span className={styles.srOnly}>{kindLabel(file.filename)}</span>
+                            </a>
+                            <a className={styles.downloadButton} href={`/api/runtime/hub/${token}/file?id=${encodeURIComponent(file.id)}&mode=download`}>
+                              Download <span className={styles.srOnly}>{kindLabel(file.filename)}</span>
+                            </a>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <aside className={styles.sidebar}>
+            <section id="action-register" className={styles.sidePanel} aria-labelledby="actions-heading">
+              <div className={styles.sideHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Tracked remediation</p>
+                  <h2 id="actions-heading">Action register</h2>
+                </div>
+                <span className={openRecommendations.length ? styles.countWarn : styles.countOk}>{openRecommendations.length} open</span>
+              </div>
+
+              {!recommendations.length && (
+                <p className={styles.compactEmpty}>No governance actions have been raised.</p>
+              )}
+              <ul className={styles.actionList}>
+                {[...openRecommendations, ...resolvedRecommendations].map((item) => {
+                  const resolved = item.status === "resolved";
+                  return (
+                    <li key={item.id} className={`${styles.actionItem} ${resolved ? styles.resolved : ""}`}>
+                      <div className={styles.actionTopline}>
+                        <span className={`${styles.severity} ${styles[`severity_${item.severity}`] || ""}`}>{item.severity}</span>
+                        <span className={styles.status}>{STATUS_LABEL[item.status] || item.status}</span>
+                      </div>
+                      <h3>{item.title}</h3>
+                      {item.detail && <p>{item.detail}</p>}
+                      {item.source && <code>Source: {item.source}</code>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section id="activity" className={styles.sidePanel} aria-labelledby="activity-heading">
+              <div className={styles.sideHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Publication history</p>
+                  <h2 id="activity-heading">Recent activity</h2>
+                </div>
+              </div>
+              {!timeline.length && <p className={styles.compactEmpty}>No publication activity yet.</p>}
+              <ol className={styles.timeline}>
+                {timeline.map((item, index) => (
+                  <li key={`${item.at || "event"}-${index}`}>
+                    <span className={styles.timelineDot} aria-hidden="true" />
+                    <div>
+                      <strong>{item.label}</strong>
+                      {item.reference && <code>{item.reference}</code>}
+                      <time dateTime={item.at || undefined}>{fmt(item.at)}</time>
                     </div>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </section>
-          );
-        })}
+          </aside>
+        </div>
 
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <section style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.panel, padding: "20px 22px", marginTop: 8, marginBottom: 16 }}>
-            <div style={{ ...label, marginBottom: 12 }}>Recommendations</div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {recommendations.map((r) => {
-                const resolved = r.status === "resolved";
-                return (
-                  <li key={r.id} style={{ padding: "12px 14px", background: C.inset, border: `1px solid ${C.line}`, borderRadius: 10, opacity: resolved ? 0.6 : 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: r.detail ? 6 : 0 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEV_COLOR[r.severity] || C.ink3, flex: "0 0 8px" }} />
-                      <span style={{ color: C.ink, fontSize: 13.5, textDecoration: resolved ? "line-through" : "none" }}>{r.title}</span>
-                      <span style={{ ...label, marginLeft: "auto" }}>{r.severity} · {STATUS_LABEL[r.status] || r.status}</span>
-                    </div>
-                    {r.detail && <div style={{ color: C.ink3, fontSize: 12.5, lineHeight: 1.55, paddingLeft: 16 }}>{r.detail}</div>}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )}
-
-        {/* Timeline */}
-        {timeline.length > 0 && (
-          <section style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.panel, padding: "20px 22px", marginTop: 8 }}>
-            <div style={{ ...label, marginBottom: 12 }}>Timeline</div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {timeline.map((t, i) => (
-                <li key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: C.ok, marginTop: 5, flex: "0 0 9px" }} />
-                  <div>
-                    <div style={{ color: C.ink2, fontSize: 13 }}>{t.label}{t.reference ? ` · ${t.reference}` : ""}</div>
-                    <div style={{ ...label }}>{fmt(t.at)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <footer style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${C.line}`, ...label }}>
-          Patent GB2600765.8 · Morrison Runtime Governance&trade; · Confidential — shared with {orgName}
+        <footer className={styles.footer}>
+          <div>
+            <span className={styles.mark} aria-hidden="true">&#8475;(t)</span>
+            <span>Confidential evidence shared with <strong>{orgName}</strong></span>
+          </div>
+          <span>Patent GB2600765.8 · Morrison Runtime Governance&trade;</span>
         </footer>
       </div>
     </main>
