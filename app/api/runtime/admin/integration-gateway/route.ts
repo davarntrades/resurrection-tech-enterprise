@@ -26,13 +26,20 @@ function governance(proposal: any) {
   };
 }
 
+async function lightweightOrganisations() {
+  const organisations = (await rt.admin.listOrgs()).filter((org: any) => org.status !== "archived");
+  return Promise.all(organisations.map(async (org: any) => ({
+    ...org, environments: await rt.admin.listEnvironments(org.id),
+  })));
+}
+
 export async function GET(req: NextRequest) {
   const op = operator(req);
   if (!op.ok) return NextResponse.json({ error: "operator authentication required" }, { status: 401 });
   const org_id = new URL(req.url).searchParams.get("org_id") || null;
   const [summary, organisations] = await Promise.all([
     (rt.integrationGateway as any).overview(org_id),
-    rt.overview.customers(),
+    lightweightOrganisations(),
   ]);
   if (!org_id) return NextResponse.json({
     summary, organisations,
