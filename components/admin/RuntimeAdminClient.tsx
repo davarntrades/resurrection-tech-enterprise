@@ -216,8 +216,19 @@ function OnboardPanel({ onDone }: { onDone: () => void }) {
 // ── Overview (operator dashboard) ────────────────────────────────────────────
 function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
   const [data, setData] = useState<any>(null); const [err, setErr] = useState("");
+  const [engineState, setEngineState] = useState<any>(null);
   // cache: "no-store" + the route's no-store header ⇒ Refresh always re-reads live.
-  const load = useCallback(async () => { setErr(""); try { setData(await api("overview", { cache: "no-store" })); } catch (e: any) { setErr(e.message); } }, []);
+  const load = useCallback(async () => {
+    setErr("");
+    // Render database-backed KPIs immediately. Engine health is independent
+    // and patches in when Railway responds instead of blocking the whole tab.
+    try { setData(await api("overview?scope=platform&engine=deferred", { cache: "no-store" })); }
+    catch (e: any) { setErr(e.message); return; }
+    fetch("/api/runtime/health", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((health) => setEngineState(health?.engine || { reachable: false }))
+      .catch(() => setEngineState({ reachable: false }));
+  }, []);
   useEffect(() => { load(); }, [load]);
   if (err) return <div className="radmin-err">{err}</div>;
   if (!data) return <div className="radmin-muted">Loading overview…</div>;
@@ -239,7 +250,7 @@ function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
     ["Reports generated", p.reports ?? 0],
     ["Published audit packs", p.audit_packs ?? 0],
     ["Active alerts (24h)", p.active_alerts ?? 0, p.active_alerts > 0 ? "warn" : undefined],
-    ["Engine", p.engine_reachable ? "reachable" : "down", p.engine_reachable ? "ok" : "omega"],
+    ["Engine", engineState == null ? "checking" : engineState.reachable ? "reachable" : "down", engineState?.reachable ? "ok" : engineState == null ? undefined : "omega"],
   ];
   const auditKpis: Array<[string, any, string?]> = ae ? [
     ["Assessed trajectories", ae.trajectories ?? 0],
@@ -262,7 +273,7 @@ function OverviewPanel({ onOpenCustomers }: { onOpenCustomers: () => void }) {
             <div key={i} className={`radmin-kpi${tone ? " " + tone : ""}`}><div className="radmin-kpi-v">{val}</div><div className="radmin-kpi-l">{label}</div></div>
           ))}
         </div>
-        {p.engine_commit && <div className="radmin-muted" style={{ marginTop: 12 }}>Runtime engine commit <code>{p.engine_commit}</code></div>}
+        {(engineState?.engine_commit || p.engine_commit) && <div className="radmin-muted" style={{ marginTop: 12 }}>Runtime engine commit <code>{engineState?.engine_commit || p.engine_commit}</code></div>}
         <div className="radmin-row"><button className="radmin-btn" onClick={onOpenCustomers}>View customers →</button></div>
       </section>
       {ae && (
@@ -622,7 +633,7 @@ function CustomersPanel() {
   const [refresh, setRefresh] = useState(0);
   const load = useCallback(async () => {
     setErr("");
-    try { const d = await api("overview"); setOrgs(d.customers || []); setRefresh((n) => n + 1); }
+    try { const d = await api("overview?scope=customers&engine=deferred"); setOrgs(d.customers || []); setRefresh((n) => n + 1); }
     catch (e: any) { setErr(e.message); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -633,7 +644,7 @@ function CustomersPanel() {
 
   // Collapse cards by default once the list grows, so operators can scan many
   // customers at a glance and expand the one they need.
-  const collapsible = orgs.length > 3;
+  const collapsible = orgs.length > 1;
   return (
     <div className="radmin-orgs">
       {orgs.map((o) => <CustomerCard key={o.id} o={o} onChange={load} defaultOpen={!collapsible} />)}
