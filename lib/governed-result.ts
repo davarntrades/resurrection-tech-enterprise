@@ -86,7 +86,7 @@ export const SAFETY_STATUS_COPY: Record<SafetyEnvelopeStatus, { label: string; d
     detail: "Available evidence cannot support the requested bounded claim.",
   },
   UNAVAILABLE: {
-    label: "SAFETY ENVELOPE UNAVAILABLE",
+    label: "OPERATING ENVELOPE EVIDENCE UNAVAILABLE",
     detail: "The evidence projection is unavailable. Runtime governance remains active.",
   },
 };

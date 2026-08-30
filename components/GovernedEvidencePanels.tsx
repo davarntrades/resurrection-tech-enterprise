@@ -4,10 +4,10 @@ import { displayValue, SAFETY_STATUS_COPY, type GovernedResult } from "@/lib/gov
 
 export default function GovernedEvidencePanels({ result, compact = false }: { result?: GovernedResult | null; compact?: boolean }) {
   if (!result) return (
-    <section className="gev-panel gev-unavailable" aria-label="Safety Envelope unavailable">
-      <div className="gev-kicker">Safety Envelope</div>
-      <h3>SAFETY ENVELOPE UNAVAILABLE</h3>
-      <p>No canonical backend Safety Envelope evidence was supplied. Runtime governance remains active.</p>
+    <section className="gev-panel gev-unavailable" aria-label="Admissible Operating Envelope unavailable">
+      <div className="gev-kicker">Admissible Operating Envelope</div>
+      <h3>OPERATING ENVELOPE EVIDENCE UNAVAILABLE</h3>
+      <p>No canonical backend operating-envelope evidence was supplied. Runtime governance remains active.</p>
     </section>
   );
   const safety = result.safety_envelope;
@@ -48,8 +48,8 @@ export default function GovernedEvidencePanels({ result, compact = false }: { re
       </>}
     </section>}
 
-    <section className={`gev-panel gev-safety gev-status-${safety.status.toLowerCase()}`} aria-label="Safety Envelope">
-      <div className="gev-kicker">Safety Envelope · bounded assurance</div>
+    <section className={`gev-panel gev-safety gev-status-${safety.status.toLowerCase()}`} aria-label="Admissible Operating Envelope">
+      <div className="gev-kicker">Admissible Operating Envelope · bounded assurance</div>
       <h3>{status.label}</h3>
       <p className="gev-status-detail">{status.detail}</p>
       {safety.safety_property && <p><b>Safety property:</b> {safety.safety_property}</p>}
@@ -60,7 +60,7 @@ export default function GovernedEvidencePanels({ result, compact = false }: { re
       <details open={safety.status === "UNVALIDATED" || safety.status === "INSUFFICIENT_EVIDENCE"}><summary>Unsupported / unvalidated region</summary>{unsupported.length ? <ul className="gev-unsupported">{unsupported.map((item) => <li key={item}>{item}</li>)}</ul> : <p>No additional unsupported condition was recorded for this operating point.</p>}</details>
       {safety.error && <p className="gev-error">{safety.error}</p>}
       <p className="gev-warning">{safety.warning || result.boundary_warning}</p>
-      <p className="gev-noequivalence">Safety Envelope validity is separate from Protected Value and regulatory/compliance context. It is not a compliance certification.</p>
+      <p className="gev-noequivalence">Operating-envelope validity is separate from Protected Value and regulatory/compliance context. It is not a compliance certification or a universal safety claim.</p>
     </section>
   </div>;
 }

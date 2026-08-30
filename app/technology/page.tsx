@@ -5,9 +5,9 @@ import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 
 export const metadata: Metadata = {
-  title: "Technology — Local Safety Envelopes & Runtime Governance",
+  title: "Technology — Admissible Operating Envelopes & Runtime Governance",
   description:
-    "How Morrison Runtime Governance defines and enforces local Safety Envelopes: bounded deployment context, pre-execution trajectory evaluation, Ω reachability, the Identify–Constrain–Embed–Monitor methodology, and evidence for single-agent and multi-agent operation.",
+    "How Morrison Runtime Governance defines and enforces Admissible Operating Envelopes through bounded deployment context, independent pre-execution authorization, Ω reachability, and causal verification.",
   alternates: { canonical: "/technology" },
 };
 
@@ -25,33 +25,33 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal" style={{ marginBottom: 0 }}>
             <span className="eyebrow">Technology</span>
-            <h1>Local Safety Envelopes, enforced at runtime.</h1>
+            <h1>Admissible Operating Envelopes, enforced at runtime.</h1>
             <p>
               A global claim that an autonomous system is “safe” is too broad to operate on.
               Morrison evaluates safety locally: in a specified environment, with specified tools,
               permissions, policies, state transitions, and reachable consequences. That bounded
-              operating region is the <strong>Safety Envelope</strong>.
+              operating region is the <strong>Admissible Operating Envelope</strong>.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ===== LOCAL SAFETY ENVELOPE ===== */}
-      <section className="section section--tight" id="safety-envelope" aria-label="Local Safety Envelope">
+      {/* The legacy anchor remains stable for existing inbound links. */}
+      <section className="section section--tight" id="safety-envelope" aria-label="Admissible Operating Envelope">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Local Safety Envelope</span>
+            <span className="eyebrow">Admissible Operating Envelope</span>
             <h2>Define where safe autonomous operation ends.</h2>
             <p>
-              The Safety Envelope is the locally validated region in which an autonomous system can
-              operate under a defined deployment context. It is scoped to the actual environment —
+              An Admissible Operating Envelope is the set of states, actions, transitions and operating
+              conditions that a system is permitted to occupy or execute within a defined environment. It is scoped to the actual environment —
               the agents, tools, permissions, policies, trajectory horizon, and reachable states in
               front of us — not to an abstract universal claim about the underlying model.
             </p>
           </div>
           <div className="tp2-grid reveal">
             <div className="tp2-path is-allow">
-              {["Environment", "Inside Safety Envelope", "Runtime Governance", "ALLOW"].map((n, i, a) => (
+              {["Environment defines envelope", "Transition proposed", "Runtime Governance", "ALLOW"].map((n, i, a) => (
                 <div className="tp2-step" key={n}>
                   <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "ALLOW" ? " verdict ok" : ""}`}>{n}</div>
                   {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
@@ -59,7 +59,7 @@ export default function Page() {
               ))}
             </div>
             <div className="tp2-path is-block">
-              {["Environment", "Boundary violation / Ω reachability", "Runtime Governance", "BLOCK / ESCALATE"].map((n, i, a) => (
+              {["Environment defines envelope", "Non-admissible / Ω-bound transition", "Runtime Governance", "BLOCK / ESCALATE"].map((n, i, a) => (
                 <div className="tp2-step" key={n}>
                   <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCK / ESCALATE" ? " verdict block" : ""}`}>{n}</div>
                   {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
@@ -85,7 +85,7 @@ export default function Page() {
             <p>
               Traditional AI safety often inspects outputs or incidents after the system has acted.
               Runtime Governance evaluates the proposed trajectory before execution and decides whether
-              it remains inside the local Safety Envelope.
+              it remains inside the Admissible Operating Envelope.
             </p>
           </div>
           <div className="versus">
@@ -138,7 +138,7 @@ export default function Page() {
             <span className="eyebrow">Universal governance layer</span>
             <h2>The envelope is local. The enforcement layer is portable.</h2>
             <p>
-              The Safety Envelope changes with the environment; the enforcement mechanism does not.
+              The Admissible Operating Envelope changes with the environment; the enforcement mechanism does not.
               Runtime Governance operates at the execution boundary, independent of model weights,
               architectures, providers, or training methods.
             </p>
@@ -174,7 +174,7 @@ export default function Page() {
               <div className="mw-gov-inner">
                 <span className="mw-omega">Ω</span>
                 <div>
-                  <div className="mw-gov-kicker">Local Safety Envelope · Runtime Governance Layer</div>
+                  <div className="mw-gov-kicker">Admissible Operating Envelope · Runtime Governance Layer</div>
                   <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
                   <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
                 </div>
@@ -197,7 +197,7 @@ export default function Page() {
           <div className="mw-note reveal">
             <div className="mwn-row">
               <span className="mwn-dot safe" />
-              <span>Trajectories inside the validated Safety Envelope pass through to your systems</span>
+              <span>Authorized trajectories inside the Admissible Operating Envelope pass through to your systems</span>
             </div>
             <div className="mwn-row">
               <span className="mwn-dot blocked" />
@@ -219,7 +219,7 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Methodology</span>
-            <h2>Map, define, enforce, and revalidate the local Safety Envelope.</h2>
+            <h2>Map, define, enforce, and revalidate the Admissible Operating Envelope.</h2>
             <p>
               Autonomous systems operate in changing state-spaces. Morrison turns that environment
               into a bounded operating claim that can be tested and enforced at runtime.
@@ -228,7 +228,7 @@ export default function Page() {
           <div className="dowork reveal">
             {[
               ["01 — IDENTIFY", "Identify", "Map the deployment context: reachable states, tools, permissions, policies, data flows, and Ω exposure."],
-              ["02 — CONSTRAIN", "Constrain", "Define and validate the local Safety Envelope and the boundaries trajectories must satisfy."],
+              ["02 — CONSTRAIN", "Constrain", "Define and validate the Admissible Operating Envelope and the boundaries proposed transitions must satisfy."],
               ["03 — EMBED", "Embed", "Integrate Runtime Governance at the execution boundary so every proposed action is evaluated before it runs."],
               ["04 — MONITOR", "Revalidate", "Revalidate the envelope as models, tools, permissions, policies, and the operational environment change."],
             ].map(([num, h, p]) => (
@@ -250,7 +250,7 @@ export default function Page() {
 
       <hr className="divider" />
 
-      {/* ===== SAFETY ENVELOPE GEOMETRY ===== */}
+      {/* ===== ADMISSIBLE OPERATING ENVELOPE GEOMETRY ===== */}
       <section className="section" id="reachability" data-screen-label="Reachability">
         <div className="wrap">
           <div className="reach">
@@ -260,10 +260,10 @@ export default function Page() {
             </div>
             <div>
               <div className="section-head reveal" style={{ marginBottom: 0 }}>
-                <span className="eyebrow">Safety Envelope Geometry</span>
+                <span className="eyebrow">Admissible Operating Envelope Geometry</span>
                 <h2>Local safety, expressed as reachability.</h2>
                 <p>
-                  States are nodes. Transitions are edges. The Safety Envelope describes the region
+                  States are nodes. Transitions are edges. The Admissible Operating Envelope describes the region
                   the system may occupy under the current environment and constraints. Runtime Governance
                   evaluates each reachable path and denies transitions that leave the envelope or enter
                   the forbidden <span className="om">Ω</span> set — before execution.
@@ -273,7 +273,7 @@ export default function Page() {
                 <div className="legend-row">
                   <span className="swatch safe" />
                   <div>
-                    <b>Inside the Safety Envelope</b>
+                    <b>Inside the Admissible Operating Envelope</b>
                     <span>Locally admissible transitions propagate under the validated constraints.</span>
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Boundary coverage</span>
-            <h2>What can push a system outside its local Safety Envelope.</h2>
+            <h2>What can push a system outside its Admissible Operating Envelope.</h2>
             <p>
               Traditional security evaluates individual events. Runtime Governance evaluates the
               trajectory those events create and whether that trajectory remains locally admissible
@@ -415,7 +415,7 @@ export default function Page() {
           </div>
           <div className="inv-grid">
             {([
-              ["Safety Envelope", "The locally validated region in which an autonomous system may operate under a specified environment and set of constraints. It is a bounded deployment claim, not a universal claim that a model is safe."],
+              ["Admissible Operating Envelope", "The set of states, actions, transitions and operating conditions a system is permitted to occupy or execute within a defined environment. It is a bounded deployment claim, not a universal claim that a model is safe."],
               ["Ω — The Forbidden Region", "The set of states your AI must not reach. Ω sits inside the broader safety geometry as the explicitly forbidden region that governance makes unreachable."],
               ["Reachability", "Whether your system can reach a given state from where it is now through available transitions. Governance uses reachability to test whether a trajectory stays inside the envelope or approaches a forbidden region."],
               ["Trajectory", "The sequence of decisions, tool calls, or actions that lead your system from its current state toward an outcome. Governance evaluates the trajectory, not only the final action."],
@@ -439,7 +439,7 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Interactive demonstration</span>
-            <h2>See the Safety Envelope enforced in real time.</h2>
+            <h2>See an Admissible Operating Envelope enforced in real time.</h2>
             <p>
               Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed trajectory
               before execution — trajectories inside the envelope flow through, while boundary-
@@ -464,7 +464,7 @@ export default function Page() {
         <div className="wrap">
           <div className="inner reveal">
             <span className="eyebrow" style={{ justifyContent: "center" }}>Next steps</span>
-            <h2 style={{ marginTop: 20 }}>Map the local Safety Envelope in your environment.</h2>
+            <h2 style={{ marginTop: 20 }}>Map the Admissible Operating Envelope in your environment.</h2>
             <p>
               Start with a live trajectory, then evaluate the real tools, permissions, policies,
               and reachable states that define the boundary for your deployment.
@@ -472,7 +472,7 @@ export default function Page() {
             <div className="hero-actions" style={{ marginTop: 38 }}>
               <Link href="/live-demo" className="btn btn--primary">Try the Live Demo <span className="arr">→</span></Link>
               <Link href="/quickstart" className="btn btn--ghost">Developer quickstart</Link>
-              <Link href="/book#assessment" className="btn btn--ghost">Book a Safety Envelope Assessment</Link>
+              <Link href="/book#assessment" className="btn btn--ghost">Book an Operating Envelope Assessment</Link>
             </div>
           </div>
         </div>

@@ -23,18 +23,18 @@ export function HomeClient() {
           <div className="wrap">
             <div className="hero-inner">
               <h1 className="reveal in" data-d="1">
-                Define the <span className="hero-cat">Safety Envelope</span>
+                Define the <span className="hero-cat">Admissible Operating Envelope</span>
                 <br />
-                Your <span className="grad">AI Can Actually Operate Within</span>
+                Your <span className="grad">Autonomous System Can Actually Operate Within</span>
               </h1>
               <p className="hero-sub reveal in" data-d="2">
-                Morrison Runtime Governance™ maps, tests, and enforces the <b>local Safety Envelope</b>{" "}
-                between your autonomous AI and your real systems — before actions execute.
+                Morrison Runtime Governance™ defines, tests, and enforces the <b>admissible operating envelope</b>{" "}
+                between an autonomous system and real-world execution — before proposed actions become state transitions.
               </p>
               <div className="hero-chips reveal in" data-d="3">
-                <span>Local safety evidence in your environment</span>
-                <span>Pre-execution boundary enforcement</span>
-                <span>Audit-ready evidence for every governed decision</span>
+                <span>Bounded reachability evidence in your environment</span>
+                <span>Pre-execution enforcement of the operating boundary</span>
+                <span>Audit-ready evidence for every governed transition</span>
               </div>
               <div className="hero-actions reveal in" data-d="4">
                 <Link
@@ -42,7 +42,7 @@ export function HomeClient() {
                   className="btn btn--primary"
                   onClick={() => track(Events.CTA_CLICK, { location: "hero", cta: "book" })}
                 >
-                  Book a Safety Envelope Assessment <span className="arr">→</span>
+                  Book an Operating Envelope Assessment <span className="arr">→</span>
                 </Link>
                 <Link
                   href="/live-demo"
@@ -67,29 +67,27 @@ export function HomeClient() {
           </div>
         </header>
 
-        {/* ===== 2 · SAFETY ENVELOPE — explain the concept before the pain ===== */}
-        <section className="section section--tight" id="safety-envelope" aria-label="What a Safety Envelope is">
+        {/* Keep the legacy anchor stable for existing inbound links. */}
+        <section className="section section--tight" id="safety-envelope" aria-label="What an Admissible Operating Envelope is">
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">What is a Safety Envelope?</span>
-              <h2>A defined region where a system can operate without crossing known safety limits.</h2>
+              <span className="eyebrow">What is an Admissible Operating Envelope?</span>
+              <h2>The defined states, actions, transitions and conditions in which operation is permitted.</h2>
               <p>
-                Safety-critical engineering does not rely on a vague claim that a system is simply “safe.”
-                It defines the conditions, limits, and states in which operation is acceptable — and the
-                boundaries that must not be crossed. That bounded operating region is the idea behind a
-                <strong> Safety Envelope</strong>.
+                An <strong>Admissible Operating Envelope</strong> is the set of states, actions, transitions
+                and operating conditions that a system is permitted to occupy or execute within a defined environment.
               </p>
               <p>
-                The same engineering principle appears in fields where crossing the operating boundary can
-                have serious consequences:
+                Safety-critical engineering already uses operating envelopes, limits, constrained workspaces,
+                interlocks and control boundaries wherever crossing the operating boundary has serious consequences:
               </p>
             </div>
 
             <div className="who-grid">
               {([
                 ["Aviation", "Aircraft use flight envelopes to define the combinations of speed, altitude, load, and other conditions within which the aircraft is designed to operate."],
-                ["Nuclear engineering", "Nuclear facilities operate within tightly defined safe operating limits for variables such as power, temperature, pressure, cooling, and system state."],
-                ["Industrial robotics & process control", "Robots and industrial systems use operating envelopes and hard limits around motion, force, speed, pressure, temperature, and other process variables."],
+                ["Nuclear engineering", "High-consequence facilities use operating limits, interlocks and control boundaries around power, temperature, pressure, cooling and system state."],
+                ["Industrial systems & robotics", "Industrial systems use operating limits; robots use constrained workspaces and motion envelopes around force, speed, position and other process variables."],
               ] as [string, string][]).map(([field, explanation]) => (
                 <div className="who-card card reveal" key={field}>
                   <div className="who-role">{field}</div>
@@ -99,18 +97,19 @@ export function HomeClient() {
             </div>
 
             <p className="pull reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
-              The principle is the same: safety is not a vague property of the system.
-              <span className="accent"> It is a bounded property of operation.</span>
+              Aviation has flight envelopes. Industrial systems have operating limits. Robotics has constrained
+              workspaces and motion envelopes. <span className="accent">Autonomous AI also needs a defined admissible
+              operating envelope — and an independent mechanism that enforces it.</span>
             </p>
 
             <div className="callout reveal" style={{ marginTop: "clamp(28px,4vw,48px)" }}>
               <div>
                 <div className="roi-multi-h">We apply the same idea to autonomous AI.</div>
                 <p>
-                  We define and validate the conditions under which locally safe operation holds inside your
-                  environment — under your tools, permissions, policies, workflows, and reachable states.
-                  Morrison then evaluates proposed trajectories before execution to keep autonomous operation
-                  inside that validated envelope.
+                  The envelope defines what is permitted under the environment, tools, permissions, authority
+                  boundaries and workflows. Morrison independently evaluates proposed transitions before execution.
+                  Reachability and causal verification provide bounded evidence of what became reachable or unreachable
+                  under stated assumptions.
                 </p>
               </div>
             </div>
@@ -120,7 +119,7 @@ export function HomeClient() {
             </p>
 
             <p className="pull reveal" style={{ marginTop: "clamp(22px,3vw,36px)" }}>
-              See the Safety Envelope your AI can actually operate within —
+              Define the admissible operating envelope your autonomous system can actually operate within —
               <span className="accent"> in your environment, before actions execute.</span>
             </p>
           </div>
@@ -128,8 +127,43 @@ export function HomeClient() {
 
         <hr className="divider" />
 
+        <section className="section section--tight" id="knowledge-is-not-control" aria-label="Representation compared with causal enforcement">
+          <div className="wrap">
+            <div className="section-head reveal">
+              <span className="eyebrow">Knowledge ≠ control</span>
+              <h2>Knowing the rule does not enforce the rule.</h2>
+              <p>
+                <strong>Representation of the operating envelope is not causal enforcement of the operating envelope.</strong>
+                {" "}A driver can know the speed limit and still exceed it. A trader can know their delegated authority
+                and still submit a transaction if the system permits it. An administrator can know data must remain
+                inside a trust boundary and still exfiltrate it if credentials and egress remain available.
+              </p>
+              <p className="knowledge-thesis">Constraint awareness changes information. Enforcement changes reachability.</p>
+            </div>
+
+            <div className="knowledge-compare reveal">
+              <div className="knowledge-panel is-representation">
+                <span className="knowledge-label">Rule represented</span>
+                <strong>“I know I must not do X.”</strong>
+                <span>X remains executable</span>
+                <span className="knowledge-result">No causal guarantee</span>
+              </div>
+              <div className="knowledge-vs" aria-hidden="true">VS</div>
+              <div className="knowledge-panel is-enforcement">
+                <span className="knowledge-label">Operating envelope defined</span>
+                <strong>Action X proposed</strong>
+                <span>Independent authorization</span>
+                <span className="knowledge-verdicts"><b>ALLOW</b> · <b>ESCALATE</b> · <b>BLOCK</b></span>
+                <span className="knowledge-result">Prohibited transition does not execute</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
         {/* ===== 3 · WHY THIS MATTERS — pain before proof or architecture ===== */}
-        <section className="section section--tight outcomes" id="why-it-matters" aria-label="Why local Safety Envelopes matter">
+        <section className="section section--tight outcomes" id="why-it-matters" aria-label="Why Admissible Operating Envelopes matter">
           <div className="wrap">
             <div className="section-head reveal">
               <span className="eyebrow">Why this matters</span>
@@ -156,11 +190,11 @@ export function HomeClient() {
 
             <div className="callout roi-multi reveal" style={{ marginTop: "clamp(30px,4vw,52px)" }}>
               <div>
-                <div className="roi-multi-h">The missing layer is an enforceable operating boundary.</div>
+                <div className="roi-multi-h">The missing layer is not another representation of the rule. It is causal enforcement of the operating boundary.</div>
                 <p>
-                  Enterprises need to know which tools, states, workflows, and trajectories remain locally safe —
-                  and stop the system when a proposed action would leave that region. That is what the local
-                  Safety Envelope makes visible, testable, and enforceable before execution.
+                  The engineering question is not only, “Does the system know the rule?” It is, “What independently
+                  prevents the system from crossing the boundary?” Runtime control changes which transitions can
+                  actually execute; verification tests what became unreachable within the defined environment.
                 </p>
               </div>
             </div>
@@ -246,37 +280,47 @@ export function HomeClient() {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">What Runtime Governance is</span>
-              <h2>Most safety reacts. Governance keeps autonomy inside a defined envelope.</h2>
+              <h2>Define the boundary. Authorize independently. Enforce before execution.</h2>
               <p>
-                Runtime Governance establishes and enforces a <strong>local Safety Envelope</strong> at the
-                execution boundary between your AI systems and your infrastructure. Actions and trajectories
-                that remain inside the validated envelope can proceed. Transitions that would leave it,
-                violate a constraint, or enter <span className="om">Ω</span> — the forbidden region — are
-                blocked or escalated before execution. No model retraining, no agent rebuild.
+                Morrison Runtime Governance establishes and enforces an <strong>Admissible Operating Envelope</strong> at the
+                execution boundary between autonomous systems and real infrastructure. Actions and trajectories
+                that remain within the defined envelope may proceed. Proposed transitions that would leave it,
+                violate authority, or enter <span className="om">Ω</span> — the prohibited region — are blocked
+                or escalated before execution. No model retraining, no agent rebuild.
               </p>
               <p className="govd-agnostic">Local, bounded evidence — provider-, model-, agent-, and deployment-agnostic.</p>
             </div>
 
             <div className="govd">
               <div className="govd-layer">
-                <div className="govd-k">AI systems</div>
-                <div className="govd-v">Models · Agents · Planners · Third-party tools</div>
+                <div className="govd-k">Environment &amp; authority</div>
+                <div className="govd-v">Defines the Admissible Operating Envelope · States · Actions · Tools · Permissions · Trajectories</div>
+              </div>
+              <div className="govd-conn" aria-hidden="true" />
+              <div className="govd-layer">
+                <div className="govd-k">Autonomous system</div>
+                <div className="govd-v">Models · Agents · Planners · Proposes a transition</div>
               </div>
               <div className="govd-conn" aria-hidden="true" />
               <div className="govd-layer govd-gov">
                 <div className="govd-tm">Morrison Runtime Governance™</div>
-                <div className="govd-k">Local Safety Envelope</div>
+                <div className="govd-k">Independent pre-execution authority</div>
                 <div className="govd-verbs">
                   EVALUATE&nbsp;→&nbsp;<span className="ok">ALLOW</span> · <span className="esc">ESCALATE</span> · <span className="blk">BLOCK</span>
                 </div>
               </div>
               <div className="govd-conn" aria-hidden="true" />
               <div className="govd-layer">
-                <div className="govd-k">Protected enterprise systems</div>
-                <div className="govd-v">Data · APIs · Infrastructure · Internal workflows</div>
+                <div className="govd-k">Authorized execution</div>
+                <div className="govd-v">Protected data · APIs · Infrastructure · Physical systems</div>
+              </div>
+              <div className="govd-conn" aria-hidden="true" />
+              <div className="govd-layer">
+                <div className="govd-k">Evidence &amp; verification</div>
+                <div className="govd-v">Governed transition · Decision chain · Bounded reachability evidence</div>
               </div>
               <p className="govd-caption">
-                Actions inside the validated Safety Envelope continue. Boundary violations are blocked or escalated before execution.
+                Execution occurs only when authorized. Ω denotes prohibited states; claims remain bounded to the defined environment and stated assumptions.
               </p>
             </div>
 
@@ -320,7 +364,7 @@ export function HomeClient() {
               <div className="guardian-conn" />
               <div className="guardian-layer is-kernel">
                 <div className="gl-tm">Morrison Runtime Governance™</div>
-                <div className="gl-k">The kernel — local Safety Envelope · deny-by-default <span className="om">Ω</span> · fail-closed</div>
+                <div className="gl-k">The kernel — Admissible Operating Envelope · deny-by-default <span className="om">Ω</span> · fail-closed</div>
               </div>
               <div className="guardian-conn" />
               <div className="guardian-layer">
@@ -385,9 +429,9 @@ export function HomeClient() {
               <span className="eyebrow">The bottom line</span>
               <h2>Know where your AI can operate — and enforce the boundary.</h2>
               <p>
-                The Safety Envelope shows the locally validated operating region for your deployment.
-                Runtime Governance keeps execution inside it while preventing the financial, operational,
-                regulatory, and security outcomes that sit beyond the boundary.
+                The Admissible Operating Envelope defines the locally validated region of operation for your deployment.
+                Morrison Runtime Governance independently controls whether proposed transitions are permitted to cross
+                the execution boundary.
               </p>
             </div>
             <div className="outcomes-grid">
@@ -408,7 +452,7 @@ export function HomeClient() {
                 <div className="outcomes-h"><span className="outcomes-dot ok" aria-hidden="true" />What you get</div>
                 <ul>
                   {[
-                    "A defined local Safety Envelope for the deployment",
+                    "A defined Admissible Operating Envelope for the deployment",
                     "Evidence of which trajectories remain inside or leave the boundary",
                     "Reduced regulatory and financial exposure",
                     "Faster, safer AI adoption with pre-execution controls",
@@ -493,9 +537,8 @@ export function HomeClient() {
               <span className="eyebrow">From assessment to enforced governance</span>
               <h2>One pathway. Four stages. Nothing replaced.</h2>
               <p>
-                The same pathway takes your organisation from mapping a local Safety Envelope to
-                enforced, monthly-reported governance — one layer inserted into your existing stack,
-                nothing rebuilt.
+                The same pathway takes your organisation from mapping an Admissible Operating Envelope to
+                enforced runtime governance and continuous verification — one layer inserted into your existing stack.
               </p>
             </div>
 
@@ -503,27 +546,27 @@ export function HomeClient() {
               {([
                 {
                   n: "01",
-                  h: "Safety Envelope Assessment",
-                  p: "A 48-hour assessment of your architecture, tools, permissions, reachable states, and constraints — producing a bounded local Safety Envelope and a domain-specific Ω definition.",
+                  h: "Operating Envelope Assessment",
+                  p: "Map the environment, tools, permissions, authority boundaries, reachable states and prohibited region Ω. Produce a bounded definition of where autonomous operation is admissible and which transitions require authorization, escalation or blocking.",
                   tag: "48 hours",
                 },
                 {
                   n: "02",
                   h: "Shadow Mode Pilot",
-                  p: "Insert one layer; replace nothing. Governance observes trajectories in your environment and shows which remain inside the Safety Envelope, which approach the boundary, and which would leave it — without touching a single existing tool.",
+                  p: "Insert one layer; replace nothing. Governance observes trajectories in your environment and shows which remain inside the admissible operating envelope, which approach the boundary, and which would leave it — without touching a single existing tool.",
                   tag: "Insert one layer",
                   highlight: true,
                 },
                 {
                   n: "03",
-                  h: "Enable Enforcement",
+                  h: "Enforced Runtime Governance",
                   p: "Observe-only becomes observe-and-enforce with one configuration change. Actions inside the envelope proceed; boundary violations are blocked or escalated before execution.",
                   tag: "One config change",
                 },
                 {
                   n: "04",
-                  h: "Ongoing Governance",
-                  p: "Continuous revalidation, monthly evidence reports, and executive visibility as models, tools, permissions, policies, and the operating environment evolve.",
+                  h: "Continuous Verification",
+                  p: "Continuous revalidation, bounded reachability evidence, monthly reports, and executive visibility as models, tools, permissions, policies, and the operating environment evolve.",
                   tag: "Standing assurance",
                 },
               ] as { n: string; h: string; p: string; tag: string; highlight?: boolean }[]).map((s) => (
@@ -582,10 +625,10 @@ export function HomeClient() {
           <div className="wrap">
             <div className="inner reveal">
               <span className="eyebrow" style={{ justifyContent: "center" }}>Live demo</span>
-              <h2 style={{ marginTop: 20 }}>See a local Safety Envelope in action.</h2>
+              <h2 style={{ marginTop: 20 }}>See an Admissible Operating Envelope enforced in real time.</h2>
               <p>
-                Real scenarios, live verdicts, sub-millisecond decisions — see which trajectories
-                remain inside the envelope and which are blocked or escalated before execution.
+                Watch Morrison evaluate proposed state transitions before execution and show which remain
+                admissible, which require escalation, and which are removed from the executable path.
                 No signup, no setup, nothing touches your systems.
               </p>
               <div className="hero-tryit reveal" style={{ justifyContent: "center", marginTop: 28 }}>
@@ -630,7 +673,7 @@ export function HomeClient() {
               <h2>The cost of one boundary violation.</h2>
             </div>
             <p className="roi-lede reveal">
-              Governance cost is bounded. Exposure outside the validated Safety Envelope is not.
+              Governance cost is bounded. Exposure outside the validated Admissible Operating Envelope is not.
               Runtime Governance is priced against the consequences of unsafe reachable states —
               including <span className="om">Ω</span> — becoming executable.
             </p>
@@ -699,8 +742,8 @@ export function HomeClient() {
             </div>
             <div className="who-grid">
               {([
-                ["Head of AI / CTO", "You're deploying autonomous agents in production and need to know where safe operation ends in the real stack.", "A locally validated Safety Envelope around the deployment — before production autonomy expands."],
-                ["Chief Risk Officer", "Your board is asking how AI risk is controlled in practice. 'We monitor outputs' is no longer enough.", "A documented Safety Envelope, Ω specification, formal test evidence, and continuous revalidation."],
+                ["Head of AI / CTO", "You're deploying autonomous agents in production and need to know where safe operation ends in the real stack.", "A locally validated Admissible Operating Envelope around the deployment — before production autonomy expands."],
+                ["Chief Risk Officer", "Your board is asking how AI risk is controlled in practice. 'We monitor outputs' is no longer enough.", "A documented Admissible Operating Envelope, Ω specification, formal test evidence, and continuous revalidation."],
                 ["Compliance / Legal", "FCA, GDPR, DORA, AI Act — regulators increasingly expect demonstrable controls and evidence, not policy documents alone.", "Evidence-grade audit artefacts showing the environment, constraints, verdicts, and bounded scope of the safety claim."],
                 ["Platform / DevOps Engineering", "You're responsible for the execution surface where autonomous systems touch real tools and infrastructure.", "Runtime constraints embedded directly in your deployment environment — not bolted on, not bypassable."],
               ] as [string, string, string][]).map(([role, pain, outcome]) => (
@@ -776,14 +819,13 @@ export function HomeClient() {
           <div className="wrap">
             <div className="inner reveal">
               <span className="eyebrow" style={{ justifyContent: "center" }}>The next step</span>
-              <h2 style={{ marginTop: 20 }}>Map the local Safety Envelope of your autonomous system.</h2>
+              <h2 style={{ marginTop: 20 }}>Map the Admissible Operating Envelope of your autonomous system.</h2>
               <p>
-                A 48-hour Safety Envelope Assessment shows what your system can safely reach in its
-                current environment, where the boundary sits, and which trajectories require blocking
-                or escalation before execution.
+                A 48-hour Operating Envelope Assessment maps your environment, tools, permissions, authority
+                boundaries, reachable states and prohibited region Ω — under stated assumptions.
               </p>
               <div className="hero-actions" style={{ marginTop: 38 }}>
-                <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
+                <Link href="/book#assessment" className="btn btn--primary">Book an Operating Envelope Assessment <span className="arr">→</span></Link>
                 <Link href="/enterprise-pathways" className="btn btn--ghost">See enterprise pathways</Link>
               </div>
             </div>

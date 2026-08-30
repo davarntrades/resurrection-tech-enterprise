@@ -16,7 +16,7 @@ const fullAudit = read("lib/runtime/fullaudit.js");
 const api = read("app/api/frontier/run/route.ts");
 const publicDemo = read("components/LiveDemoClient.tsx");
 
-test("live demo renders canonical causal and Safety Envelope evidence", () => {
+test("live demo renders canonical causal and Admissible Operating Envelope evidence", () => {
   assert.match(lab, /GovernedEvidencePanels result=\{governedResult\}/);
   assert.match(publicDemo, /GovernedEvidencePanels result=\{result\.governedResult\}/);
   assert.match(panels, /CANONICAL MORRISON VERDICT/);
@@ -59,11 +59,11 @@ test("session history records envelope and invalidation reason", () => {
 });
 
 test("audit and downloadable reports state the bounded claim", () => {
-  assert.match(audit, /Safety Envelope — bounded assurance/);
+  assert.match(audit, /Admissible Operating Envelope — bounded assurance/);
   assert.match(audit, /does not constitute a global or universal safety claim/);
   assert.match(audit, /Causal-analysis evidence/);
   assert.match(fullAudit, /safetyEnvelope:/);
-  assert.match(fullAudit, /No trajectory-linked canonical Safety Envelope result/);
+  assert.match(fullAudit, /No trajectory-linked canonical Admissible Operating Envelope result/);
   assert.match(lab, /Download bounded-assurance HTML/);
   assert.match(lab, /Download JSON evidence bundle/);
 });
@@ -82,7 +82,7 @@ test("Protected Value and compliance components remain separate", () => {
 });
 
 test("evidence UI failure never suppresses the canonical result", () => {
-  assert.match(panels, /No canonical backend Safety Envelope evidence was supplied/);
+  assert.match(panels, /No canonical backend operating-envelope evidence was supplied/);
   assert.match(panels, /Runtime governance remains active/);
   assert.match(panels, /CAUSAL ANALYSIS UNAVAILABLE/);
 });

@@ -4,9 +4,9 @@ import { PageShell } from "@/components/PageShell";
 import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 
 export const metadata: Metadata = {
-  title: "Solutions — Local Safety Envelopes across critical industries",
+  title: "Solutions — Admissible Operating Envelopes across critical industries",
   description:
-    "The enforcement mechanism remains constant; the local Safety Envelope changes with the environment. Morrison Runtime Governance applied across finance, healthcare, cybersecurity, data privacy, government, energy, telecommunications, manufacturing, aerospace, and defence.",
+    "The Admissible Operating Envelope changes with the environment; Morrison Runtime Governance provides independent pre-execution enforcement across critical industries.",
   alternates: { canonical: "/solutions" },
 };
 
@@ -34,9 +34,9 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Cross-domain capability</span>
-            <h1>Local Safety Envelopes across critical industries.</h1>
+            <h1>Admissible Operating Envelopes across critical industries.</h1>
             <p>
-              The enforcement mechanism remains constant. The local Safety Envelope changes with
+              The enforcement mechanism remains constant. The Admissible Operating Envelope changes with
               the deployment environment: different tools, permissions, policies, reachable states,
               and consequences. Morrison maps and enforces that boundary wherever autonomous systems
               can create financial, operational, regulatory, safety, or national-security impact.
@@ -58,7 +58,7 @@ export default function Page() {
             ))}
           </div>
           <p className="sectors-note reveal">
-            A Safety Envelope is local and bounded to a specified deployment context. The examples
+            An Admissible Operating Envelope is local and bounded to a specified deployment context. The examples
             above illustrate the kinds of constraints and forbidden regions that differ by sector.
             Indicative engagement scales represent target deployment categories and potential market
             scope, not claims regarding existing customers or contracts.
@@ -72,13 +72,13 @@ export default function Page() {
         <div className="wrap">
           <div className="inner reveal">
             <span className="eyebrow" style={{ justifyContent: "center" }}>Next steps</span>
-            <h2 style={{ marginTop: 20 }}>Map the Safety Envelope for your environment.</h2>
+            <h2 style={{ marginTop: 20 }}>Map the Admissible Operating Envelope for your environment.</h2>
             <p>
-              A 48-hour Safety Envelope Assessment maps the tools, permissions, policies, reachable
-              states, and Ω exposure that define locally safe operation for your deployment.
+              A 48-hour Operating Envelope Assessment maps the tools, permissions, policies, authority
+              boundaries, reachable states, and Ω exposure that define admissible operation for your deployment.
             </p>
             <div className="hero-actions" style={{ marginTop: 38 }}>
-              <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
+              <Link href="/book#assessment" className="btn btn--primary">Book an Operating Envelope Assessment <span className="arr">→</span></Link>
               <Link href="/technology#safety-envelope" className="btn btn--ghost">Explore the technology</Link>
             </div>
           </div>

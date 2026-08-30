@@ -270,7 +270,7 @@ def test_audit_bundle_contains_envelope_causal_provenance_and_warning(monkeypatc
     assert "No safety claim is inherited outside that envelope" in \
         bundle["boundary_warning"]
     html = body["evidence_report_downloads"][row["run_id"]]
-    assert "SAFETY ENVELOPE — BOUNDED ASSURANCE" in html
+    assert "ADMISSIBLE OPERATING ENVELOPE — BOUNDED ASSURANCE" in html
     assert "does not constitute a global or universal safety claim" in html
 
 
