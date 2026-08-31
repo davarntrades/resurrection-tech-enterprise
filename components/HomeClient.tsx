@@ -12,8 +12,10 @@ import { Events, track } from "@/lib/analytics";
 const OPENAI_INCIDENT_REPORT = "https://openai.com/index/hugging-face-incident-and-the-road-ahead/";
 const MICROSOFT_ENVIRONMENT_REPORT = "https://commandline.microsoft.com/azure-sre-agent-restricting-environment-ai-safety/";
 const AWS_AUTHORIZATION_REPORT = "https://aws.amazon.com/blogs/security/propagate-user-authorization-context-in-ai-agents-with-amazon-bedrock-agentcore/";
+const GOOGLE_ZERO_TRUST_REPORT = "https://developers.googleblog.com/build-zero-trust-ai-agents-with-googles-agent-development-kit/";
 const MICROSOFT_LOGO = "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png";
 const AWS_LOGO = "https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png";
+const GOOGLE_LOGO = "https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png";
 
 const engineeringExamples = [
   ["AVIATION", "Flight envelope"],
@@ -176,7 +178,6 @@ export function HomeClient() {
                   <div className="bp-provider-interpretation">
                     <span>RESURRECTION TECH INTERPRETATION</span>
                     <p>Control is moving out of the model and into the runtime around it.</p>
-                    <p><strong>Morrison goes one step further:</strong> define the admissible operating envelope, enforce it at execution time, and verify what becomes unreachable.</p>
                   </div>
                 </article>
 
@@ -204,10 +205,32 @@ export function HomeClient() {
                     <p className="bp-provider-policy">Every tool invocation should be authorized against declarative policy before execution.</p>
                   </div>
                 </article>
+
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity bp-provider-identity--google">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={GOOGLE_LOGO} alt="Google logo" width="48" height="48" loading="lazy" decoding="async" />
+                      <div><strong>GOOGLE DEVELOPERS</strong><span>17 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">DETERMINISTIC SECURITY</span>
+                  </header>
+                  <blockquote>
+                    <p>“System prompts are soft constraints.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">Business rules should not rely solely on system-prompt compliance. Hard security guarantees belong outside the LLM context, with deterministic checks before consequential state changes execute.</p>
+                  <a className="bp-provider-source" href={GOOGLE_ZERO_TRUST_REPORT} target="_blank" rel="noopener noreferrer">
+                    Google Developers / Agent Development Kit <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>RESURRECTION TECH INTERPRETATION</span>
+                    <p>Model instructions are not the security boundary. External deterministic controls are.</p>
+                  </div>
+                </article>
               </div>
 
               <div className="bp-category-conclusion">
-                <p>The architectural shift is becoming explicit: model-internal safeguards are necessary, but they are not sufficient for agentic AI with execution authority.</p>
+                <p>Three major infrastructure providers, within five days, independently converged on the same architectural direction: separate agent reasoning from execution authority, and enforce consequential actions outside the model before they execute.</p>
                 <strong>Independent runtime control is becoming infrastructure.</strong>
                 <div className="bp-convergence-envelope">
                   <span>ADMISSIBLE OPERATING ENVELOPE</span>
@@ -224,7 +247,7 @@ export function HomeClient() {
                     <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong><small>{action}</small></li>
                   ))}
                 </ol>
-                <p className="bp-category-morrison">Morrison defines the admissible operating envelope, evaluates proposed transitions against it before execution, and verifies the resulting reachable-state boundary within a defined environment and under stated assumptions.</p>
+                <p className="bp-category-morrison">Morrison extends that direction by explicitly defining the admissible operating envelope, independently authorizing proposed transitions against it, and testing whether prohibited states become unreachable within a bounded environment and under stated assumptions.</p>
               </div>
             </aside>
 
