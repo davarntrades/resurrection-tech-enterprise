@@ -10,6 +10,7 @@ import { useSiteMotion } from "@/components/useSiteMotion";
 import { Events, track } from "@/lib/analytics";
 
 const OPENAI_INCIDENT_REPORT = "https://openai.com/index/hugging-face-incident-and-the-road-ahead/";
+const MICROSOFT_ENVIRONMENT_REPORT = "https://commandline.microsoft.com/azure-sre-agent-restricting-environment-ai-safety/";
 
 const engineeringExamples = [
   ["AVIATION", "Flight envelope"],
@@ -141,6 +142,30 @@ export function HomeClient() {
                 <div className="bp-control-result">RESULT <strong>CONTROL</strong></div>
               </div>
             </div>
+
+            <aside className="bp-category-validation reveal" aria-label="Industry convergence from Microsoft CoreAI">
+              <div className="bp-category-meta">
+                <span>INDUSTRY CONVERGENCE</span>
+                <span>RUNTIME CONTROL // 2026.08</span>
+              </div>
+              <div className="bp-category-grid">
+                <blockquote>
+                  <p>“Stop restricting the agent. Start restricting its environment.”</p>
+                  <cite>
+                    <a href={MICROSOFT_ENVIRONMENT_REPORT} target="_blank" rel="noopener noreferrer">
+                      Microsoft CoreAI — August 2026 <span aria-hidden="true">↗</span>
+                    </a>
+                  </cite>
+                </blockquote>
+                <div className="bp-category-frame">
+                  <p>Control is moving out of the model and into the runtime around it.</p>
+                  <p className="bp-category-morrison">
+                    <strong>Morrison goes one step further:</strong> define the admissible operating envelope,
+                    enforce it at execution time, and verify what becomes unreachable.
+                  </p>
+                </div>
+              </div>
+            </aside>
 
             <article className="bp-incident reveal" aria-labelledby="incident-title">
               <div className="bp-incident-copy">
