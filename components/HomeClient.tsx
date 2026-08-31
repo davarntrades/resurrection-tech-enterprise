@@ -11,6 +11,9 @@ import { Events, track } from "@/lib/analytics";
 
 const OPENAI_INCIDENT_REPORT = "https://openai.com/index/hugging-face-incident-and-the-road-ahead/";
 const MICROSOFT_ENVIRONMENT_REPORT = "https://commandline.microsoft.com/azure-sre-agent-restricting-environment-ai-safety/";
+const AWS_AUTHORIZATION_REPORT = "https://aws.amazon.com/blogs/security/propagate-user-authorization-context-in-ai-agents-with-amazon-bedrock-agentcore/";
+const MICROSOFT_LOGO = "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png";
+const AWS_LOGO = "https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png";
 
 const engineeringExamples = [
   ["AVIATION", "Flight envelope"],
@@ -143,27 +146,85 @@ export function HomeClient() {
               </div>
             </div>
 
-            <aside className="bp-category-validation reveal" aria-label="Industry convergence from Microsoft CoreAI">
+            <aside className="bp-category-validation reveal" aria-labelledby="industry-convergence-title">
               <div className="bp-category-meta">
                 <span>INDUSTRY CONVERGENCE</span>
-                <span>RUNTIME CONTROL // 2026.08</span>
+                <span>INDEPENDENT ARCHITECTURAL CONVERGENCE // 2026.08</span>
               </div>
-              <div className="bp-category-grid">
-                <blockquote>
-                  <p>“Stop restricting the agent. Start restricting its environment.”</p>
-                  <cite>
-                    <a href={MICROSOFT_ENVIRONMENT_REPORT} target="_blank" rel="noopener noreferrer">
-                      Microsoft CoreAI — August 2026 <span aria-hidden="true">↗</span>
-                    </a>
-                  </cite>
-                </blockquote>
-                <div className="bp-category-frame">
-                  <p>Control is moving out of the model and into the runtime around it.</p>
-                  <p className="bp-category-morrison">
-                    <strong>Morrison goes one step further:</strong> define the admissible operating envelope,
-                    enforce it at execution time, and verify what becomes unreachable.
-                  </p>
+              <div className="bp-category-intro">
+                <h3 id="industry-convergence-title">Control is moving into the execution environment.</h3>
+                <p>Major infrastructure providers are independently articulating the shift from model-internal restraint to external runtime enforcement.</p>
+              </div>
+
+              <div className="bp-category-providers">
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={MICROSOFT_LOGO} alt="Microsoft logo" width="92" height="20" loading="lazy" decoding="async" />
+                      <div><strong>MICROSOFT COREAI</strong><span>21 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">ENVIRONMENT CONTROL</span>
+                  </header>
+                  <blockquote>
+                    <p>“Stop restricting the agent. Start restricting its environment.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">“moving control out of the model and into the runtime around it.”</p>
+                  <a className="bp-provider-source" href={MICROSOFT_ENVIRONMENT_REPORT} target="_blank" rel="noopener noreferrer">
+                    Microsoft CoreAI / Azure SRE Agent <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>RESURRECTION TECH INTERPRETATION</span>
+                    <p>Control is moving out of the model and into the runtime around it.</p>
+                    <p><strong>Morrison goes one step further:</strong> define the admissible operating envelope, enforce it at execution time, and verify what becomes unreachable.</p>
+                  </div>
+                </article>
+
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity bp-provider-identity--aws">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={AWS_LOGO} alt="AWS logo" width="58" height="31" loading="lazy" decoding="async" />
+                      <div><strong>AWS SECURITY</strong><span>19 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">INFRASTRUCTURE AUTHORIZATION</span>
+                  </header>
+                  <blockquote>
+                    <p>“enforced by infrastructure and downstream services, not by agent code.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">“This enforcement must happen outside the agent.”</p>
+                  <a className="bp-provider-source" href={AWS_AUTHORIZATION_REPORT} target="_blank" rel="noopener noreferrer">
+                    AWS Security / Amazon Bedrock AgentCore <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>ARCHITECTURAL IMPLICATION</span>
+                    <p>Agent reasoning and execution authority are being separated.</p>
+                    <p>The agent may propose. Infrastructure independently determines whether the action is authorized to execute.</p>
+                    <p className="bp-provider-antipattern"><b>ANTI-PATTERN</b> Relying on the agent&apos;s own judgment with no independent check at the tool or API layer.</p>
+                    <p className="bp-provider-policy">Every tool invocation should be authorized against declarative policy before execution.</p>
+                  </div>
+                </article>
+              </div>
+
+              <div className="bp-category-conclusion">
+                <p>The architectural shift is becoming explicit: model-internal safeguards are necessary, but they are not sufficient for agentic AI with execution authority.</p>
+                <strong>Independent runtime control is becoming infrastructure.</strong>
+                <div className="bp-convergence-envelope">
+                  <span>ADMISSIBLE OPERATING ENVELOPE</span>
+                  <small>STATES · ACTIONS · TRANSITIONS · CONDITIONS</small>
                 </div>
+                <ol className="bp-convergence-flow" aria-label="Morrison pre-execution authorization flow">
+                  {[
+                    ["AGENT", "proposes"],
+                    ["INDEPENDENT AUTHORIZATION", "evaluates"],
+                    ["ALLOW / ESCALATE / BLOCK", "decides"],
+                    ["EXECUTION", "governs"],
+                    ["EVIDENCE", "records"],
+                  ].map(([step, action], index) => (
+                    <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong><small>{action}</small></li>
+                  ))}
+                </ol>
+                <p className="bp-category-morrison">Morrison defines the admissible operating envelope, evaluates proposed transitions against it before execution, and verifies the resulting reachable-state boundary within a defined environment and under stated assumptions.</p>
               </div>
             </aside>
 
