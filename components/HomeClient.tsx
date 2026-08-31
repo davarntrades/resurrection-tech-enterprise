@@ -10,6 +10,12 @@ import { useSiteMotion } from "@/components/useSiteMotion";
 import { Events, track } from "@/lib/analytics";
 
 const OPENAI_INCIDENT_REPORT = "https://openai.com/index/hugging-face-incident-and-the-road-ahead/";
+const MICROSOFT_ENVIRONMENT_REPORT = "https://commandline.microsoft.com/azure-sre-agent-restricting-environment-ai-safety/";
+const AWS_AUTHORIZATION_REPORT = "https://aws.amazon.com/blogs/security/propagate-user-authorization-context-in-ai-agents-with-amazon-bedrock-agentcore/";
+const GOOGLE_ZERO_TRUST_REPORT = "https://developers.googleblog.com/build-zero-trust-ai-agents-with-googles-agent-development-kit/";
+const MICROSOFT_LOGO = "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png";
+const AWS_LOGO = "https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png";
+const GOOGLE_LOGO = "https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png";
 
 const engineeringExamples = [
   ["AVIATION", "Flight envelope"],
@@ -141,6 +147,109 @@ export function HomeClient() {
                 <div className="bp-control-result">RESULT <strong>CONTROL</strong></div>
               </div>
             </div>
+
+            <aside className="bp-category-validation reveal" aria-labelledby="industry-convergence-title">
+              <div className="bp-category-meta">
+                <span>INDUSTRY CONVERGENCE</span>
+                <span>INDEPENDENT ARCHITECTURAL CONVERGENCE // 2026.08</span>
+              </div>
+              <div className="bp-category-intro">
+                <h3 id="industry-convergence-title">Control is moving into the execution environment.</h3>
+                <p>Major infrastructure providers are independently articulating the shift from model-internal restraint to external runtime enforcement.</p>
+              </div>
+
+              <div className="bp-category-providers">
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={MICROSOFT_LOGO} alt="Microsoft logo" width="92" height="20" loading="lazy" decoding="async" />
+                      <div><strong>MICROSOFT COREAI</strong><span>21 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">ENVIRONMENT CONTROL</span>
+                  </header>
+                  <blockquote>
+                    <p>“Stop restricting the agent. Start restricting its environment.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">“moving control out of the model and into the runtime around it.”</p>
+                  <a className="bp-provider-source" href={MICROSOFT_ENVIRONMENT_REPORT} target="_blank" rel="noopener noreferrer">
+                    Microsoft CoreAI / Azure SRE Agent <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>RESURRECTION TECH INTERPRETATION</span>
+                    <p>Control is moving out of the model and into the runtime around it.</p>
+                  </div>
+                </article>
+
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity bp-provider-identity--aws">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={AWS_LOGO} alt="AWS logo" width="58" height="31" loading="lazy" decoding="async" />
+                      <div><strong>AWS SECURITY</strong><span>19 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">INFRASTRUCTURE AUTHORIZATION</span>
+                  </header>
+                  <blockquote>
+                    <p>“enforced by infrastructure and downstream services, not by agent code.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">“This enforcement must happen outside the agent.”</p>
+                  <a className="bp-provider-source" href={AWS_AUTHORIZATION_REPORT} target="_blank" rel="noopener noreferrer">
+                    AWS Security / Amazon Bedrock AgentCore <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>ARCHITECTURAL IMPLICATION</span>
+                    <p>Agent reasoning and execution authority are being separated.</p>
+                    <p>The agent may propose. Infrastructure independently determines whether the action is authorized to execute.</p>
+                    <p className="bp-provider-antipattern"><b>ANTI-PATTERN</b> Relying on the agent&apos;s own judgment with no independent check at the tool or API layer.</p>
+                    <p className="bp-provider-policy">Every tool invocation should be authorized against declarative policy before execution.</p>
+                  </div>
+                </article>
+
+                <article className="bp-provider-panel">
+                  <header className="bp-provider-head">
+                    <div className="bp-provider-identity bp-provider-identity--google">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={GOOGLE_LOGO} alt="Google logo" width="48" height="48" loading="lazy" decoding="async" />
+                      <div><strong>GOOGLE DEVELOPERS</strong><span>17 AUGUST 2026</span></div>
+                    </div>
+                    <span className="bp-provider-code">DETERMINISTIC SECURITY</span>
+                  </header>
+                  <blockquote>
+                    <p>“System prompts are soft constraints.”</p>
+                  </blockquote>
+                  <p className="bp-provider-support">Business rules should not rely solely on system-prompt compliance. Hard security guarantees belong outside the LLM context, with deterministic checks before consequential state changes execute.</p>
+                  <a className="bp-provider-source" href={GOOGLE_ZERO_TRUST_REPORT} target="_blank" rel="noopener noreferrer">
+                    Google Developers / Agent Development Kit <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                  <div className="bp-provider-interpretation">
+                    <span>RESURRECTION TECH INTERPRETATION</span>
+                    <p>Model instructions are not the security boundary. External deterministic controls are.</p>
+                  </div>
+                </article>
+              </div>
+
+              <div className="bp-category-conclusion">
+                <p>Three major infrastructure providers, within five days, independently converged on the same architectural direction: separate agent reasoning from execution authority, and enforce consequential actions outside the model before they execute.</p>
+                <strong>Independent runtime control is becoming infrastructure.</strong>
+                <div className="bp-convergence-envelope">
+                  <span>ADMISSIBLE OPERATING ENVELOPE</span>
+                  <small>STATES · ACTIONS · TRANSITIONS · CONDITIONS</small>
+                </div>
+                <ol className="bp-convergence-flow" aria-label="Morrison pre-execution authorization flow">
+                  {[
+                    ["AGENT", "proposes"],
+                    ["INDEPENDENT AUTHORIZATION", "evaluates"],
+                    ["ALLOW / ESCALATE / BLOCK", "decides"],
+                    ["EXECUTION", "executes authorized transition"],
+                    ["EVIDENCE", "records"],
+                  ].map(([step, action], index) => (
+                    <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong><small>{action}</small></li>
+                  ))}
+                </ol>
+                <p className="bp-category-morrison">Morrison extends that direction by explicitly defining the admissible operating envelope, independently authorizing proposed transitions against it, and testing whether prohibited states become unreachable within a bounded environment and under stated assumptions.</p>
+              </div>
+            </aside>
 
             <article className="bp-incident reveal" aria-labelledby="incident-title">
               <div className="bp-incident-copy">
