@@ -367,8 +367,13 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
             scrub_secrets(deterministic_evidence_bundle(
                 item.record, projection)), indent=2, sort_keys=True,
             ensure_ascii=False) + "\n"
-        evidence_report_downloads[item.record["run_id"]] = \
-            bounded_assurance_html(projection)
+        # Translate only the public report label. The canonical projection field
+        # remains ``safety_envelope`` for API and stored-evidence compatibility.
+        evidence_report_downloads[item.record["run_id"]] = bounded_assurance_html(
+            projection).replace(
+                "SAFETY ENVELOPE — BOUNDED ASSURANCE",
+                "ADMISSIBLE OPERATING ENVELOPE — BOUNDED ASSURANCE",
+            )
     return scrub_secrets({
         "ok": True,
         "provider": req.provider,

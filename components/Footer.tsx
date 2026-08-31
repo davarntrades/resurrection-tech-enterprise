@@ -1,54 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { SITE } from "@/lib/site";
 
 export function Footer() {
-  const pathname = usePathname();
-  const showSovereignProof = pathname === "/";
-
   return (
-    <>
-      {showSovereignProof && (
-        <section
-          aria-label="Guardian OS Sovereign air-gapped capability"
-          style={{
-            background: "#050505",
-            color: "#f5f1e8",
-            borderTop: "1px solid rgba(213,173,90,.28)",
-            borderBottom: "1px solid rgba(213,173,90,.28)",
-            padding: "clamp(64px,8vw,104px) 0",
-          }}
-        >
-          <div className="wrap">
-            <div style={{ maxWidth: 940 }}>
-              <span style={{ color: "#d5ad5a", fontSize: 12, fontWeight: 800, letterSpacing: ".2em", textTransform: "uppercase" }}>
-                Guardian OS // Sovereign
-              </span>
-              <h2 style={{ fontSize: "clamp(34px,5vw,62px)", lineHeight: 1.04, letterSpacing: "-.045em", margin: "16px 0 20px" }}>
-                Air-gapped operation. Offline policy enforcement. Local governance evidence.
-              </h2>
-              <p style={{ color: "#aaa59b", fontSize: "clamp(17px,2vw,20px)", lineHeight: 1.7, maxWidth: 880 }}>
-                Air-gapped operation is proven in continuous integration with external network access removed, signed offline policy enforcement, an offline-clean interface, local evidence generation and acceptance-testable sovereign deployment artefacts.
-              </p>
-              <p style={{ color: "#d8d0c1", fontSize: 16, lineHeight: 1.7, maxWidth: 880 }}>
-                Guardian OS Sovereign provides an acceptance-testable, offline-clean operating architecture with zero required external resource loads and locally generated governance evidence.
-              </p>
-              <Link
-                href="/guardian-os/sovereign"
-                className="btn btn--ghost btn--sm"
-                style={{ marginTop: 22, borderColor: "#d5ad5a", color: "#d5ad5a" }}
-              >
-                Explore Guardian OS Sovereign <span className="arr">→</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      <footer className="footer">
+    <footer className="footer">
         <div className="wrap">
           <div>
             <Link className="brand" href="/" style={{ color: "var(--ink)" }}>
@@ -103,7 +61,6 @@ export function Footer() {
           </div>
         </div>
         <div className="wrap"><div className="footer-base"><span>© {new Date().getFullYear()} {SITE.legalName.toUpperCase()} · ALL RIGHTS RESERVED</span><span>PATENT {SITE.patent} · MORRISON RUNTIME GOVERNANCE™</span></div></div>
-      </footer>
-    </>
+    </footer>
   );
 }

@@ -4,9 +4,9 @@ import { PageShell } from "@/components/PageShell";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Evidence & Methodology — Local Safety Envelope Claims",
+  title: "Evidence & Methodology — Admissible Operating Envelope Claims",
   description:
-    "How Morrison Runtime Governance is evaluated, what a bounded local Safety Envelope claim means, benchmark counts, methodology, scope and limitations, reproducibility, and patent status.",
+    "How Morrison Runtime Governance is evaluated, what a bounded Admissible Operating Envelope claim means, and the methodology, assumptions, limitations, and reproducibility behind the evidence.",
   alternates: { canonical: "/evidence" },
 };
 
@@ -23,11 +23,11 @@ export default function Page() {
             a specified environment, not as a universal claim that a model is globally safe.
           </p>
 
-          {/* Safety Envelope claim */}
+          {/* Admissible Operating Envelope claim */}
           <div className="tp-block tp-prose">
-            <h2>What a local Safety Envelope claim means</h2>
+            <h2>What an Admissible Operating Envelope claim means</h2>
             <p>
-              A Morrison Safety Envelope describes the <b>locally validated operating region</b> for
+              A Morrison Admissible Operating Envelope describes the <b>locally validated operating region</b> for
               an autonomous system under a specified deployment context. The claim is bounded to the
               agents, tools, permissions, policies, state transitions, trajectory horizon, Ω definitions,
               and evidence scope that were actually evaluated.
@@ -101,14 +101,14 @@ export default function Page() {
             </p>
             <p>
               <b>Pre-execution enforcement.</b> Evaluation happens at the execution boundary,
-              before any action runs. A trajectory that leaves the validated Safety Envelope, violates
+              before any action runs. A trajectory that leaves the validated Admissible Operating Envelope, violates
               a runtime constraint, or would reach Ω is intercepted or escalated before execution.
             </p>
             <p>
               <b>Domain-specific Ω definitions.</b> The forbidden set is defined per domain — an
               unauthorised transfer in banking, PHI exfiltration in healthcare, a GDPR boundary
               violation in data privacy. Ω is the explicitly forbidden region inside the broader
-              Safety Envelope geometry.
+              Admissible Operating Envelope geometry.
             </p>
             <div className="tp-todo">
               <b>Owner action:</b> link or attach the full written benchmark methodology (test-suite
@@ -125,12 +125,12 @@ export default function Page() {
             <div className="tp-note">
               <span className="k">What these results do NOT mean</span>
               <ul>
-                <li>A Safety Envelope is <b>local and environment-bound</b>. It is not evidence that an underlying model is globally safe.</li>
+                <li>An Admissible Operating Envelope is <b>local and environment-bound</b>. It is not evidence that an underlying model is globally safe.</li>
                 <li>The metrics describe performance on <b>defined internal test suites</b>, not every possible input. &ldquo;Zero false negatives&rdquo; is scoped to the governed benchmark, not a universal guarantee of safety.</li>
                 <li>Results were produced in <b>bounded evaluation environments</b>, not yet under independent third-party audit.</li>
                 <li>The <Link href="/test-trajectory">public demo</Link> is a limited heuristic — it is <b>not</b> the evaluator behind these numbers, and trajectories it has no rule for return INCONCLUSIVE.</li>
                 <li>Domain coverage reflects the sectors listed above; other domains require their own envelope definition, Ω specification, and validation.</li>
-                <li>Material changes to tools, permissions, policies, agent architecture, or deployment context can change the Safety Envelope and require revalidation.</li>
+                <li>Material changes to tools, permissions, policies, agent architecture, or deployment context can change the Admissible Operating Envelope and require revalidation.</li>
               </ul>
             </div>
             <div className="tp-note" style={{ marginTop: 12 }}>
@@ -183,8 +183,8 @@ export default function Page() {
           </div>
 
           <div className="tp-cta">
-            <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
-            <Link href="/technology#safety-envelope" className="btn btn--ghost">How the Safety Envelope works</Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book an Operating Envelope Assessment <span className="arr">→</span></Link>
+            <Link href="/technology#safety-envelope" className="btn btn--ghost">How the operating envelope works</Link>
             <Link href="/security" className="btn btn--ghost">Security &amp; deployment</Link>
           </div>
         </div>

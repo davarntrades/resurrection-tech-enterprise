@@ -3,9 +3,9 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 
 export const metadata: Metadata = {
-  title: "Why Runtime Governance? — From Unknown Boundaries to Local Safety Envelopes",
+  title: "Why Runtime Governance? — From Represented Rules to Enforced Operating Boundaries",
   description:
-    "Runtime Governance turns an undefined autonomous operating surface into a bounded local Safety Envelope that can be tested, enforced, and evidenced before execution.",
+    "Runtime Governance turns an undefined autonomous operating surface into an Admissible Operating Envelope that can be tested, enforced, and evidenced before execution.",
   alternates: { canonical: "/why-runtime-governance" },
 };
 
@@ -41,16 +41,16 @@ export default function Page() {
             <div className="why-shift-arrow" aria-hidden="true">→</div>
             <div className="why-shift-col is-before">
               <span className="why-shift-k">With Morrison Runtime Governance</span>
-              <p>Map the environment, define the local Safety Envelope, evaluate reachable trajectories before execution, and preserve evidence of every ALLOW, ESCALATE, and BLOCK decision.</p>
+              <p>Map the environment, define the Admissible Operating Envelope, evaluate proposed transitions before execution, and preserve evidence of every ALLOW, ESCALATE, and BLOCK decision.</p>
             </div>
           </div>
 
           <div className="why-omega reveal">
             <span className="om" aria-hidden="true">Ω</span>
             <div>
-              <p className="why-omega-q">The Safety Envelope is broader than catastrophic-state prevention.</p>
+              <p className="why-omega-q">The Admissible Operating Envelope is broader than catastrophic-state prevention.</p>
               <p className="why-omega-note">
-                The local Safety Envelope defines the validated operating region. <span className="om">Ω</span> remains the explicitly forbidden region inside that geometry — the states the system must not reach.
+                The Admissible Operating Envelope defines the validated operating region. <span className="om">Ω</span> remains the explicitly prohibited region inside that geometry — the states the system must not reach within the defined environment.
               </p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function Page() {
           <p className="why-illus reveal">Figures are illustrative industry references, not guarantees.</p>
 
           <div className="why-cta reveal">
-            <Link href="/book#assessment" className="btn btn--primary">Book a Safety Envelope Assessment <span className="arr">→</span></Link>
+            <Link href="/book#assessment" className="btn btn--primary">Book an Operating Envelope Assessment <span className="arr">→</span></Link>
             <Link href="/technology#safety-envelope" className="btn btn--ghost">See how the envelope works</Link>
             <Link href="/case-studies" className="btn btn--ghost">See the evidence</Link>
           </div>

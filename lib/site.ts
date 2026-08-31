@@ -5,11 +5,12 @@ export const SITE = {
   legalName: "Resurrection Tech Ltd",
   domain: "resurrection-tech.com",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://resurrection-tech.com",
-  tagline: "Local Safety Envelopes for Autonomous Systems",
+  tagline: "Admissible Operating Envelopes for Autonomous Systems",
   description:
-    "Resurrection Tech maps, tests, and enforces local Safety Envelopes for autonomous systems — showing what AI can safely reach in a specific environment and preventing boundary violations before execution.",
+    "Resurrection Tech defines, tests, and enforces Admissible Operating Envelopes for autonomous systems through independent, pre-execution runtime governance and bounded reachability evidence.",
   patent: "GB2600765.8",
   keywords: [
+    "Admissible Operating Envelope",
     "Safety Envelope",
     "Local AI Safety",
     "Runtime Governance",

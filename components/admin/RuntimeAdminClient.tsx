@@ -109,7 +109,7 @@ function GovernedSessionsPanel() {
     <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
     {persistence?.volume_required && <div className="radmin-err">Session history is process-local until a Railway volume is mounted at the configured database path.</div>}
     {!sessions.length ? <div className="radmin-empty">No governed sessions recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
-      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Safety Envelope</th><th>Frameworks</th><th>Evidence</th></tr></thead>
+      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Operating Envelope</th><th>Frameworks</th><th>Evidence</th></tr></thead>
       <tbody>{sessions.map((session) => {
         const steps = session.steps || [];
         const risky = [...steps].reverse().find((step: any) => step.morrison_decision?.verdict !== "PERMIT");

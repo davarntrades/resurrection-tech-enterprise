@@ -1277,3 +1277,57 @@
   max-width: 46ch;
   line-height: 1.5;
 }
+
+/* Representation vs causal enforcement — compact, site-native comparison. */
+.knowledge-thesis {
+  color: var(--ink);
+  font-weight: 600;
+}
+.knowledge-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(14px, 2.4vw, 28px);
+}
+.knowledge-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  background: var(--panel);
+}
+.knowledge-panel.is-representation { border-color: rgba(229, 72, 77, 0.28); }
+.knowledge-panel.is-enforcement {
+  border-color: rgba(63, 178, 127, 0.38);
+  background: linear-gradient(180deg, rgba(63, 178, 127, 0.07), rgba(63, 178, 127, 0.015));
+}
+.knowledge-label,
+.knowledge-verdicts {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.knowledge-panel strong { color: var(--ink); font-size: clamp(1.08rem, 2vw, 1.35rem); }
+.knowledge-panel > span:not(.knowledge-label):not(.knowledge-verdicts) { color: var(--ink-2); }
+.knowledge-panel .knowledge-result { margin-top: auto; padding-top: 8px; font-weight: 600; }
+.knowledge-panel.is-representation .knowledge-result { color: var(--omega); }
+.knowledge-panel.is-enforcement .knowledge-result { color: var(--ok); }
+.knowledge-verdicts b { font-weight: 600; color: var(--ink); }
+.knowledge-vs {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+
+@media (max-width: 760px) {
+  .hero h1 .hero-cat { white-space: normal; }
+  .knowledge-compare { grid-template-columns: 1fr; }
+  .knowledge-vs { justify-self: center; }
+}
