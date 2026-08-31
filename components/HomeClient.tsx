@@ -241,7 +241,7 @@ export function HomeClient() {
                     ["AGENT", "proposes"],
                     ["INDEPENDENT AUTHORIZATION", "evaluates"],
                     ["ALLOW / ESCALATE / BLOCK", "decides"],
-                    ["EXECUTION", "governs"],
+                    ["EXECUTION", "executes authorized transition"],
                     ["EVIDENCE", "records"],
                   ].map(([step, action], index) => (
                     <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong><small>{action}</small></li>
