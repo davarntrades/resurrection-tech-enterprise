@@ -5,6 +5,7 @@
  * distinct from /api/runtime/metrics, which is scoped to a customer API key. */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import { controlRoomAuditDoc } from "@/lib/audit-surface-adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +46,8 @@ export async function GET(req: NextRequest) {
         rt.store.queryDecisions({ org_id, environment_id, limit }),
         trendsP,
       ]);
-      return NextResponse.json({ window: "all", bucket, summary, previous: null, recent, trends });
+      const audit_v2 = await controlRoomAuditDoc(recent as Array<Record<string, any>>, { window: "all", summary, active_environment_id: environment_id });
+      return NextResponse.json({ window: "all", bucket, summary, previous: null, recent, trends, audit_v2 });
     }
     const curSince = new Date(now - span).toISOString();
     const prevSince = new Date(now - 2 * span).toISOString();
@@ -55,7 +57,8 @@ export async function GET(req: NextRequest) {
       rt.store.queryDecisions({ org_id, environment_id, since: curSince, limit }),
       trendsP,
     ]);
-    return NextResponse.json({ window, bucket, summary, previous, recent, trends });
+    const audit_v2 = await controlRoomAuditDoc(recent as Array<Record<string, any>>, { window, summary, previous, active_environment_id: environment_id });
+    return NextResponse.json({ window, bucket, summary, previous, recent, trends, audit_v2 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "failed to load evidence" }, { status: 500 });
   }

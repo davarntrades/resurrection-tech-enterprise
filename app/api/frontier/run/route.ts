@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizeFrontier } from "@/lib/frontier-access";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { frontierService, publicFrontierError } from "@/lib/frontier-server";
+import { frontierRunAuditDoc } from "@/lib/audit-surface-adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,12 @@ export async function POST(req: NextRequest) {
       }, { status: 502, headers: { "cache-control": "no-store, max-age=0" } });
     }
 
-    return NextResponse.json(data, { headers: { "cache-control": "no-store, max-age=0" } });
+    const evidence_v2_downloads: Record<string, string> = {};
+    for (const row of Array.isArray(data?.results) ? data.results : []) {
+      const doc = await frontierRunAuditDoc(row, data?.governed_results?.[row.run_id]);
+      evidence_v2_downloads[row.run_id] = JSON.stringify(doc, null, 2);
+    }
+    return NextResponse.json({ ...data, evidence_v2_downloads }, { headers: { "cache-control": "no-store, max-age=0" } });
   } catch (error) {
     const name = (error as Error)?.name;
     const message = name === "TimeoutError"

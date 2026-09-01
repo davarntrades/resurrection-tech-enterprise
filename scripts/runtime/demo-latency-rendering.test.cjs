@@ -266,7 +266,7 @@ function testReferenceBenchmarkLabelIsAccurateAndSelfExplaining() {
     { avg: single.avg_ms, p50: single.p50_ms });
 
   ok(/Δ vs reference/.test(src), "delta states what it is measured against");
-  ok(/n=\$\{benchRef\.iters\}/.test(src),
+  ok(/n=\$\{(?:latency\.reference|reference)\.sample_size\}/.test(src),
     "sample size is derived from the data, not hardcoded");
   ok(/rgx-cv-lat-note/.test(src) && /different hardware/.test(src),
     "the explanation is rendered on the page, not only in a tooltip (mobile has no hover)");

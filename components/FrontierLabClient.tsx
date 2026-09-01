@@ -33,7 +33,7 @@ type Summary = {
   provider_model_latency: { p50_ms: number; p95_ms: number };
   governance_latency: { p50_ms: number; p95_ms: number };
 };
-type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; evidence_bundle_downloads?: Record<string, string>; evidence_report_downloads?: Record<string, string>; governed_results?: Record<string, GovernedResult>; summary: Summary; stages: string[] };
+type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; evidence_bundle_downloads?: Record<string, string>; evidence_v2_downloads?: Record<string, string>; evidence_report_downloads?: Record<string, string>; governed_results?: Record<string, GovernedResult>; summary: Summary; stages: string[] };
 type HistoryItem = { id: string; timestamp: string; provider: string; model: string; scenario: string; classification: string; verdict: string; reached: boolean; contained: boolean | null; row: RecordRow; governedResult?: GovernedResult };
 
 const STAGES = [
@@ -143,11 +143,11 @@ export default function FrontierLabClient() {
 
   const downloadEvidence = () => {
     if (!current) return;
-    const sealed = response?.evidence_bundle_downloads?.[current.run_id] || response?.evidence_downloads?.[current.run_id];
+    const sealed = response?.evidence_v2_downloads?.[current.run_id];
     if (!sealed) { setError("Server-sealed evidence is unavailable for this recorded session item."); return; }
     const blob = new Blob([sealed], { type: "application/json" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
-    link.href = url; link.download = `${current.run_id}-evidence-bundle.json`; link.click(); URL.revokeObjectURL(url);
+    link.href = url; link.download = `${current.run_id}-morrison-audit-v2.json`; link.click(); URL.revokeObjectURL(url);
   };
 
   const downloadReport = () => {

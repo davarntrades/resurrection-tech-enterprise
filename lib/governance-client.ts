@@ -11,6 +11,7 @@
  */
 
 import { OMEGA_META, type EvalResult, type StepSummary, type ToolCall, type Verdict } from "@/lib/trajectory-eval";
+import { buildEvidenceProvenance } from "@/lib/live-demo-audit";
 
 /** Raw shape returned by the FastAPI service (GovernanceResult.to_dict + extras). */
 export interface GovernanceDecisionRecord {
@@ -41,6 +42,19 @@ export interface GovernanceResponse {
   steps?: { tool: string; args?: Record<string, unknown> }[];
   governed_result?: import("@/lib/governed-result").GovernedResult;
   decisions?: GovernanceDecisionRecord[];
+  attestation?: {
+    engine_commit?: string;
+    ruleset_hash?: string;
+    ruleset_hash_algorithm?: string;
+    service_version?: string;
+    horizon?: number;
+  };
+  evidence?: {
+    verified?: boolean;
+    records?: number;
+    head?: string;
+  };
+  enforcement?: string;
 }
 
 const TIMEOUT_MS = Number(process.env.GOVERNANCE_TIMEOUT_MS ?? "4000");
@@ -106,6 +120,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
   }
 
   const timing = { evalTimeMs, evalNumber, engineTimeMs, decisionTimeMs, stageTimingsMs };
+  const evidenceProvenance = buildEvidenceProvenance(g);
 
   // Real engine signals, surfaced inside the existing explanation field (no new UI fields).
   const distance = g.reachability_distance;
@@ -133,6 +148,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
       reachabilityDistance: g.reachability_distance,
       ...timing,
       governedResult: g.governed_result,
+      evidenceProvenance,
     };
   }
 
@@ -187,6 +203,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
         : undefined,
       ...timing,
       governedResult: g.governed_result,
+      evidenceProvenance,
     };
   }
 
@@ -211,6 +228,7 @@ export function mapGovernanceToEvalResult(g: GovernanceResponse, trajectory: Too
     reachabilityDistance: g.reachability_distance,
     ...timing,
     governedResult: g.governed_result,
+    evidenceProvenance,
   };
 }
 

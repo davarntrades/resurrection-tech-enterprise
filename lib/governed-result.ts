@@ -55,7 +55,7 @@ export type GovernedResult = {
     status: SafetyEnvelopeStatus;
     envelope?: string | null;
     safety_property?: string;
-    validated_conditions?: Record<string, string>;
+    validated_conditions?: Record<string, unknown>;
     evidence?: Record<string, unknown>;
     unsupported_unvalidated_region?: string[];
     canonical_morrison_verdict?: Record<string, unknown>;
