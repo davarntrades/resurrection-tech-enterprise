@@ -74,12 +74,14 @@ for (const f of SURFACES) {
 // renders avg_ms; the benchmark file also carries a DIFFERENT p50_ms.
 {
   const demo = read("components/LiveDemoClient.tsx");
+  const auditBuilder = read("lib/live-demo-audit.ts");
   const bench = JSON.parse(read("public/benchmarks/latency.json"));
   const single = bench.classes.single_step;
   ok(single.avg_ms !== single.p50_ms,
     "avg and p50 genuinely differ, so the distinction is not academic",
     { avg: single.avg_ms, p50: single.p50_ms });
-  ok(/benchRef\.avg_ms/.test(demo), "the reference figure is avg_ms");
+  ok(/average_ms:\s*reference\.avg_ms/.test(auditBuilder),
+    "the shared v2 evidence builder sources the reference figure from avg_ms");
   ok(/CI avg/.test(demo), "…and is labelled as an average");
   ok(!/Reference benchmark p50|CI p50/.test(demo),
     "an average must not be labelled p50");
