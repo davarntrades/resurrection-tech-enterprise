@@ -91,6 +91,8 @@ export interface EvalResult {
   };
   /** Canonical backend evidence projection. The browser renders but never recomputes it. */
   governedResult?: import("@/lib/governed-result").GovernedResult;
+  /** Strictly allowlisted evaluator/envelope provenance. Never contains request headers or credentials. */
+  evidenceProvenance?: import("@/lib/live-demo-audit").EvidenceProvenance;
 }
 
 /** Executive-summary metadata per forbidden state, for non-technical readers. */

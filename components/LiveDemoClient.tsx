@@ -26,6 +26,16 @@ import BENCH from "../public/benchmarks/latency.json";
 import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
 import type { GovernedResult } from "@/lib/governed-result";
 import {
+  buildLatencyEvidence,
+  buildCanonicalAuditRecord,
+  buildProtectedValueEvidence,
+  chainedAuditDoc,
+  type EvalRecord,
+  type EvidenceProvenance,
+  type LatencyEvidence,
+  type ProtectedValueEvidence,
+} from "@/lib/live-demo-audit";
+import {
   SCENARIOS,
   DECISION_META,
   EVIDENCE,
@@ -43,76 +53,10 @@ type Tab = "scenarios" | "custom";
 interface AuditEvent {
   id: string;
   time: string;
+  timestamp: string;
   event: string;
   detail: string;
   tone?: "block" | "allow" | "escalate" | "info";
-}
-
-/** Structured per-evaluation record used for copy / export. */
-interface EvalRecord {
-  timestamp: string;
-  source: "scenario" | "custom";
-  scenario: string;
-  trajectory: string;
-  triggeredRule: string;
-  verdict: Decision;
-  governanceLayer: string;
-  omegaDomain: string;
-  reasoning: string;
-  review?: {
-    reason: string; requiredAction: string; decisionAuthority: string;
-    nextStep: string; executionStatus: string;
-  };
-  regulatoryExposure?: RegulatoryExposure;
-}
-
-// ── Tamper-evident audit chain ──────────────────────────────────────────
-// record_hash = SHA-256(prev_hash + canonical(record)). Each record links to
-// the previous one, so editing, reordering, or removing any record breaks the
-// chain — making an exported audit trail independently verifiable.
-const AUDIT_GENESIS = "0".repeat(64);
-
-async function sha256Hex(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function canonicalValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalValue);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, canonicalValue(item)]),
-    );
-  }
-  return value;
-}
-
-/** Deterministic deep serialization; nested regulatory evidence is hash-covered. */
-function canonicalRecord(rec: EvalRecord): string {
-  return JSON.stringify(canonicalValue(rec));
-}
-
-/** Build a verifiable, SHA-256–linked audit document (records oldest→newest). */
-async function chainedAuditDoc(recordsNewestFirst: EvalRecord[]) {
-  const chrono = [...recordsNewestFirst].reverse();
-  let prev = AUDIT_GENESIS;
-  const records: (EvalRecord & { prev_hash: string; record_hash: string })[] = [];
-  for (const rec of chrono) {
-    const record_hash = await sha256Hex(prev + canonicalRecord(rec));
-    records.push({ ...rec, prev_hash: prev, record_hash });
-    prev = record_hash;
-  }
-  return {
-    schema: "morrison-audit-chain/1",
-    algorithm:
-      "record_hash = SHA-256(prev_hash + JSON.stringify(record_without_hashes, sortedKeys))",
-    genesis: AUDIT_GENESIS,
-    count: records.length,
-    head_hash: prev,
-    records,
-  };
 }
 
 function clock(d = new Date()) {
@@ -291,7 +235,8 @@ export function LiveDemoClient() {
   }, []);
 
   const log = useCallback((event: string, detail: string, tone: AuditEvent["tone"] = "info") => {
-    setAudit((prev) => [{ id: evtId(), time: clock(), event, detail, tone }, ...prev].slice(0, 24));
+    const now = new Date();
+    setAudit((prev) => [{ id: evtId(), time: clock(now), timestamp: now.toISOString(), event, detail, tone }, ...prev].slice(0, 24));
   }, []);
 
   const pushScenarioRecord = useCallback((s: Scenario) => {
@@ -929,6 +874,9 @@ interface CustomResult {
   engineTimeMs?: number;
   decisionTimeMs?: number;
   stageTimingsMs?: Record<string, number>;
+  latency?: LatencyEvidence;
+  protectedValue?: ProtectedValueEvidence;
+  evidenceProvenance?: EvidenceProvenance;
   /** Which evaluator produced this verdict — the real engine or the fallback. */
   source?: "morrison" | "heuristic";
     governedResult?: GovernedResult;
@@ -961,33 +909,6 @@ const UNMEASURED_STAGES = ["Provider call", "Provider response"] as const;
 
 function mapVerdict(v: string): Decision {
   return v === "BLOCK" ? "BLOCK" : v === "PERMIT" ? "ALLOW" : "ESCALATE";
-}
-
-/** Closest benchmark class avg (ms) for a given trajectory length. */
-type BenchClass = { steps: number; avg_ms: number; p50_ms?: number; iters?: number };
-
-/**
- * Closest reference benchmark class for a trajectory of `n` steps.
- *
- * Returns the whole class, not just the mean, so the UI can state HOW the
- * reference was produced. A single live evaluation and this figure are two
- * different measurements, and a reader comparing them deserves to know why
- * they differ:
- *
- *   · different machine — the reference is measured on the CI/build runner,
- *     not on the server answering this request
- *   · different statistic — an average over many iterations, not one run
- *   · warm vs cold — the reference is taken after warmup; a live evaluation
- *     may include first-call costs
- *
- * `public/benchmarks/latency.json` says so itself: "Representative figures,
- * not a production guarantee."
- */
-function benchRefForSteps(n: number): BenchClass {
-  const classes = Object.values((BENCH as { classes: Record<string, BenchClass> }).classes);
-  let best = classes[0];
-  for (const c of classes) if (Math.abs(c.steps - n) < Math.abs(best.steps - n)) best = c;
-  return best;
 }
 
 function CustomEval({
@@ -1035,17 +956,19 @@ function CustomEval({
       }
       const decision = mapVerdict(data.verdict);
       const trajStr = parsed.trajectory!.map((t) => t.tool).join(" → ");
-      // Direct exposure: surface the largest monetary amount in the trajectory
-      // (e.g. transfer_funds(amount=100000) → "£100,000").
-      let maxAmt = 0;
-      for (const s of parsed.trajectory!) {
-        for (const k of ["amount", "value", "sum", "total"]) {
-          const raw = (s.args as Record<string, unknown> | undefined)?.[k];
-          const n = typeof raw === "number" ? raw : Number(String(raw ?? "").replace(/[^0-9.]/g, ""));
-          if (!Number.isNaN(n) && n > maxAmt) maxAmt = n;
-        }
-      }
-      const directExposure = maxAmt > 0 ? `£${maxAmt.toLocaleString("en-GB")}` : undefined;
+      const valueProfile = valueProtectedFor(dom);
+      const protectedValue = buildProtectedValueEvidence(parsed.trajectory!, decision, valueProfile);
+      const directAmount = protectedValue?.direct_exposure?.amount;
+      const directExposure = directAmount === undefined
+        ? undefined
+        : `£${directAmount.toLocaleString("en-GB")}`;
+      const latency = buildLatencyEvidence({
+        evalTimeMs: data.evalTimeMs,
+        engineTimeMs: data.engineTimeMs,
+        decisionTimeMs: data.decisionTimeMs,
+        evalNumber: data.evalNumber,
+        stageTimingsMs: data.stageTimingsMs,
+      }, parsed.trajectory!.length, BENCH);
       const cr: CustomResult = {
         decision,
         rawVerdict: data.verdict,
@@ -1070,6 +993,9 @@ function CustomEval({
         engineTimeMs: data.engineTimeMs,
         decisionTimeMs: data.decisionTimeMs,
         stageTimingsMs: data.stageTimingsMs,
+        latency,
+        protectedValue,
+        evidenceProvenance: data.evidenceProvenance,
         source: data.source,
           governedResult: data.governedResult,
           regulatoryExposure: data.regulatoryExposure,
@@ -1077,15 +1003,19 @@ function CustomEval({
       setResult(cr);
 
       const m = DECISION_META[decision];
+      const eventNow = new Date();
+      const eventStamp = eventNow.toISOString();
+      const eventTime = clock(eventNow);
       const events: AuditEvent[] = [
-        { id: evtId(), time: clock(), event: `${m.label} issued`, detail: data.reason, tone: m.tone },
-        { id: evtId(), time: clock(), event: "Reachability evaluated", detail: data.explanation, tone: "info" },
-        { id: evtId(), time: clock(), event: "Custom trajectory submitted", detail: trajStr, tone: "info" },
+        { id: evtId(), time: eventTime, timestamp: eventStamp, event: `${m.label} issued`, detail: data.reason, tone: m.tone },
+        { id: evtId(), time: eventTime, timestamp: eventStamp, event: "Reachability evaluated", detail: data.explanation, tone: "info" },
+        { id: evtId(), time: eventTime, timestamp: eventStamp, event: "Custom trajectory submitted", detail: trajStr, tone: "info" },
       ];
       if (data.regulatoryExposure?.frameworks?.length) {
         events.unshift({
           id: evtId(),
-          time: clock(),
+          time: eventTime,
+          timestamp: eventStamp,
           event: "Regulatory context surfaced",
           detail: data.regulatoryExposure.frameworks
             .map((framework: { framework_name: string }) => framework.framework_name)
@@ -1098,10 +1028,13 @@ function CustomEval({
       requestAnimationFrame(() =>
         resultRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" }),
       );
+      const evidenceGeneratedAt = new Date().toISOString();
       onResult(
-        {
-          timestamp: fullStamp(),
+        buildCanonicalAuditRecord({
+          timestamp: evidenceGeneratedAt,
           source: "custom",
+          surface: "live_demo",
+          record_type: "governance_decision",
           scenario: "Custom evaluation",
           trajectory: trajStr,
           triggeredRule: data.omega && data.omega !== "not reached" ? data.omega : data.category,
@@ -1111,7 +1044,19 @@ function CustomEval({
           reasoning: data.reason,
           review: data.humanReview,
           regulatoryExposure: data.regulatoryExposure,
-        },
+          evaluator_source: data.source,
+          proposal: parsed.trajectory!,
+          governed_result: data.governedResult,
+          latency,
+          protected_value: protectedValue,
+          audit_events: [...events].reverse().map(({ timestamp, event, detail }) => ({ timestamp, event, detail })),
+          ...(data.evidenceProvenance ? {
+            provenance: {
+              ...data.evidenceProvenance,
+              evidence_generation_timestamp: evidenceGeneratedAt,
+            },
+          } : {}),
+        }),
         events,
       );
     } catch {
@@ -1238,39 +1183,38 @@ function CustomEval({
                 * time to decide, and showing its latency does not imply the
                 * action ran. Execution status is stated by the verdict card
                 * above, which this does not touch. */}
-              {result.evalTimeMs !== undefined && (() => {
-                const benchRef = benchRefForSteps(result.steps.length);
-                const benchAvg = benchRef.avg_ms;
-                const delta = Math.round((result.evalTimeMs! - benchAvg) * 1000) / 1000;
-                // Sample size comes from the data, so the label cannot drift
-                // out of step with a regenerated benchmark file.
-                const refLabel = benchRef.iters
-                  ? `Reference (CI avg, n=${benchRef.iters})`
+              {result.latency?.reference && (() => {
+                const latency = result.latency;
+                const reference = latency.reference!;
+                const benchAvg = reference.average_ms;
+                const delta = latency.delta_vs_reference_ms!;
+                const refLabel = reference.sample_size
+                  ? `Reference (CI avg, n=${reference.sample_size})`
                   : "Reference (CI avg)";
-                const stages = result.stageTimingsMs
-                  ? Object.entries(result.stageTimingsMs).sort((a, b) => b[1] - a[1])
-                  : [];
+                const stages = (latency.stage_breakdown || [])
+                  .map(({ stage, latency_ms }) => [stage, latency_ms] as const)
+                  .sort((a, b) => b[1] - a[1]);
                 const stageTotal = stages.reduce((sum, [, v]) => sum + v, 0);
                 return (
                   <div className="rgx-cv-latency">
                     <div className="rgx-cv-lat-main">
                       <span className="rgx-k">Governed decision latency</span>
-                      <span className="rgx-cv-lat-v">{result.evalTimeMs} ms</span>
+                      <span className="rgx-cv-lat-v">{latency.governed_decision_ms} ms</span>
                       <span className="rgx-cv-lat-tag">measured · this evaluation</span>
                     </div>
                     <div className="rgx-cv-lat-cmp">
-                      <span><b>Governed decision</b> {result.evalTimeMs} ms</span>
-                      {result.engineTimeMs !== undefined && (
+                      <span><b>Governed decision</b> {latency.governed_decision_ms} ms</span>
+                      {latency.engine_compute_ms !== undefined && (
                         <span title="Ω reachability compute alone — a fraction of the full governed decision">
-                          <b>Engine compute</b> {result.engineTimeMs} ms
+                          <b>Engine compute</b> {latency.engine_compute_ms} ms
                         </span>
                       )}
-                      {result.decisionTimeMs !== undefined
-                        && result.decisionTimeMs !== result.evalTimeMs && (
-                        <span><b>Decision time</b> {result.decisionTimeMs} ms</span>
+                      {latency.decision_time_ms !== undefined
+                        && latency.decision_time_ms !== latency.governed_decision_ms && (
+                        <span><b>Decision time</b> {latency.decision_time_ms} ms</span>
                       )}
                       <span title={
-                        `Average of ${benchRef.iters ?? "many"} iterations measured on the CI/build `
+                        `Average of ${reference.sample_size ?? "many"} iterations measured on the CI/build `
                         + `machine, not on this server. A single live evaluation and this average `
                         + `are two different measurements, so they are not expected to match.`
                       }>
@@ -1279,7 +1223,7 @@ function CustomEval({
                       <span title="This evaluation minus the reference average. A positive value is expected on different hardware and does not indicate a regression.">
                         <b>Δ vs reference</b> {delta >= 0 ? "+" : ""}{delta} ms
                       </span>
-                      {result.evalNumber !== undefined && <span><b>Eval #</b> {result.evalNumber}</span>}
+                      {latency.evaluation_number !== undefined && <span><b>Eval #</b> {latency.evaluation_number}</span>}
                     </div>
 
                     {/* Stated in the page, not only in a tooltip: this demo is
@@ -1287,7 +1231,7 @@ function CustomEval({
                       * reader sees two latency numbers that disagree and has
                       * no way to learn why. */}
                     <p className="rgx-cv-lat-note">
-                      The reference is an average of {benchRef.iters ?? "many"} warm iterations
+                      The reference is an average of {reference.sample_size ?? "many"} warm iterations
                       measured on the CI/build machine — different hardware, and an average
                       rather than a single run. It is a comparison point, not a target: a live
                       evaluation differing from it is expected, not a regression.
@@ -1351,13 +1295,13 @@ function CustomEval({
                         <ul className="rgx-assets">{result.protectedAssets.map((a) => <li key={a}>{a}</li>)}</ul>
                       </div>
                     )}
-                    {result.decision !== "ALLOW" && (() => {
-                      const vp = valueProtectedFor(result.domain);
+                    {result.decision !== "ALLOW" && result.protectedValue && (() => {
+                      const pv = result.protectedValue;
                       return (
                         <ValueProtected
-                          direct={result.directExposure ?? vp.direct}
-                          range={vp.range}
-                          costs={vp.costs}
+                          direct={result.directExposure ?? valueProtectedFor(result.domain).direct}
+                          range={pv.illustrative_downstream_impact?.range_label}
+                          costs={pv.potential_cost_categories.map((label) => ({ label }))}
                           tone={rmeta.tone}
                         />
                       );

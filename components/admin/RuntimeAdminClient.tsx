@@ -16,6 +16,7 @@ import IntegrationGatewayPanel from "./IntegrationGatewayPanel";
 import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
 import RegulatoryExposureCard from "@/components/RegulatoryExposureCard";
 import type { RegulatoryExposure } from "@/lib/regulatory-exposure";
+import { governedSessionAuditDoc } from "@/lib/audit-surface-adapters";
 
 const OMEGA_TIP = "Ω (Omega) domains are the catastrophic-risk categories the engine governs — e.g. finance, healthcare, infrastructure. Every blocked or escalated action is attributed to the Ω domain whose safety boundary it would cross.";
 
@@ -104,6 +105,12 @@ function GovernedSessionsPanel() {
   if (err) return <div className="radmin-err">{err}</div>;
   const selected = sessions.find((session) => session.session_id === selectedId) || sessions[0];
   const selectedLast = selected?.steps?.at(-1);
+  const downloadSelected = async () => {
+    if (!selected) return;
+    const doc = await governedSessionAuditDoc(selected);
+    const href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a"); link.href = href; link.download = `${selected.session_id}-morrison-audit-v2.json`; link.click(); URL.revokeObjectURL(href);
+  };
   return <section className="radmin-card">
     <div className="radmin-row"><h2>Governed agent sessions</h2><span style={{ flex: 1 }} /><a className="radmin-btn" href="/lab">Open Frontier Lab</a><button className="radmin-btn sm" onClick={load}>Refresh</button></div>
     <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
@@ -129,7 +136,7 @@ function GovernedSessionsPanel() {
       })}</tbody>
     </table></div>}
     {selected && <div className="radmin-session-evidence">
-      <div className="radmin-row"><h2>Session evidence</h2><span style={{ flex: 1 }} /><a className="radmin-btn sm" href={`/lab?session=${encodeURIComponent(selected.session_id)}`}>Open full session</a></div>
+      <div className="radmin-row"><h2>Session evidence</h2><span style={{ flex: 1 }} /><button className="radmin-btn sm" onClick={() => void downloadSelected()}>Download evidence bundle</button><a className="radmin-btn sm" href={`/lab?session=${encodeURIComponent(selected.session_id)}`}>Open full session</a></div>
       <div className="radmin-kv">
         <div><span>Session</span><code>{selected.session_id}</code></div>
         <div><span>Last verdict</span><code>{selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict || "—"}</code></div>
@@ -924,9 +931,9 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
   const s = data.summary || {}; const v = s.verdicts || {}; const lat = s.latency?.engine_compute_ms || {};
   const pv = data.previous?.verdicts || {}; const plat = data.previous?.latency?.engine_compute_ms || {};
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data.audit_v2, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `evidence-${org.slug || org.id}-${env.kind}.json`; a.click(); URL.revokeObjectURL(a.href);
+    a.download = `evidence-${org.slug || org.id}-${env.kind}-morrison-audit-v2.json`; a.click(); URL.revokeObjectURL(a.href);
   };
   return (
     <div className="radmin-evidence">
@@ -951,7 +958,7 @@ function EvidenceView({ org, env }: { org: any; env: any }) {
         <FreqBars title="Top rules" rows={s.rule_frequency} color="#6f97ff" />
         <FreqBars title="Top Ω domains" rows={s.omega_frequency} color="#d9a441" info={OMEGA_TIP} />
       </div>
-      <div className="radmin-row"><span className="radmin-muted">Evidence export</span><button className="radmin-btn sm" onClick={exportJson}>Export window JSON</button></div>
+      <div className="radmin-row"><span className="radmin-muted">Canonical runtime, envelope and provenance evidence</span><button className="radmin-btn sm" onClick={exportJson}>Download evidence bundle</button></div>
       <DecisionSearch org={org} env={env} />
     </div>
   );
@@ -997,6 +1004,7 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
         <button className="radmin-btn sm primary" disabled={busy} onClick={search}>{busy ? "…" : "Search"}</button>
         <button className="radmin-btn sm" onClick={lastMonth} title="Preset: BLOCK events, last month">BLOCK · last month</button>
         <a className="radmin-btn sm" href={`/api/runtime/admin/decisions?${qs()}&format=csv`}>Export CSV</a>
+        <a className="radmin-btn sm" href={`/api/runtime/admin/decisions?${qs()}&format=audit-v2`}>Download evidence bundle</a>
       </div>
       {err && <div className="radmin-err">{err}</div>}
       <div className="radmin-muted" style={{ fontSize: 11, margin: "2px 0 8px" }}>{rows ? `${count} decision${count === 1 ? "" : "s"}` : "Searching…"}</div>
@@ -1013,7 +1021,7 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
             <th title="The governed decision: the kernel pipeline that produced this verdict">Governed decision</th>
             <th title="Ω reachability compute alone — a fraction of the governed decision">Engine compute</th>
             <th title="Whole service handler, as /v1/govern reports it">Service handler</th>
-            <th title="Node → service → Node, including network">Round trip</th>
+            <th title="Node → service → Node, including network">Round trip</th><th>Evidence</th>
           </tr></thead>
           <tbody>
             {(rows || []).map((d: any, i: number) => (
@@ -1027,9 +1035,10 @@ function DecisionSearch({ org, env }: { org: any; env: any }) {
                 <td className="radmin-muted">{d.engine_time_ms ?? "—"}</td>
                 <td className="radmin-muted">{d.engine_compute_ms ?? "—"}</td>
                 <td className="radmin-muted">{d.round_trip_ms ?? "—"}</td>
+                <td><a className="radmin-btn sm" href={`/api/runtime/admin/decisions?org_id=${encodeURIComponent(org.id)}&environment_id=${encodeURIComponent(env.id)}&decision_id=${encodeURIComponent(d.id)}&format=audit-v2`}>Export audit record</a></td>
               </tr>
             ))}
-            {rows && !rows.length && <tr><td colSpan={9} className="radmin-muted">No matching decisions.</td></tr>}
+            {rows && !rows.length && <tr><td colSpan={10} className="radmin-muted">No matching decisions.</td></tr>}
           </tbody>
         </table>
       </div>

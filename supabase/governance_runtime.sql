@@ -157,6 +157,13 @@ alter table public.rg_decisions add column if not exists trajectory_decision_tim
 alter table public.rg_decisions add column if not exists eval_number                 integer;
 alter table public.rg_decisions add column if not exists stage_timings_ms            jsonb;
 
+-- Canonical evaluator projections retained for v2 evidence export. These are
+-- authoritative service response objects, not values reconstructed by the UI.
+alter table public.rg_decisions add column if not exists governed_result      jsonb;
+alter table public.rg_decisions add column if not exists engine_evidence      jsonb;
+alter table public.rg_decisions add column if not exists governance_layer     text;
+alter table public.rg_decisions add column if not exists execution_occurred   boolean;
+
 -- ── Server-side aggregation (item 3) ─────────────────────────────────────────
 -- SQL count()/group by + percentile_cont, so metrics are correct at ANY scale
 -- and immune to the PostgREST 1000-row response cap that truncated in-app

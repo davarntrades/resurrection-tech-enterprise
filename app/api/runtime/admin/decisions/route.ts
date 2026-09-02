@@ -4,6 +4,7 @@
  * (session OR x-admin-key) — distinct from /api/runtime/decisions (customer key). */
 import { NextRequest, NextResponse } from "next/server";
 import * as rt from "@/lib/runtime";
+import { controlRoomAuditDoc } from "@/lib/audit-surface-adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,11 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const rows = await rt.store.queryDecisions(filter);
+    const decisionId = sp.get("decision_id");
+    const single = decisionId ? await rt.store.getDecisionById(decisionId) : null;
+    const rows = decisionId
+      ? (single && single.org_id === org_id && (!filter.environment_id || single.environment_id === filter.environment_id) ? [single] : [])
+      : await rt.store.queryDecisions(filter);
     if (sp.get("format") === "csv") {
       const cols = ["created_at", "verdict", "engine_verdict", "omega_domain", "rule", "environment_kind", "mode", "engine_compute_ms", "decision_id", "correlation_id"];
       const header = cols.join(",");
@@ -45,6 +50,13 @@ export async function GET(req: NextRequest) {
       return new NextResponse([header, ...lines].join("\n"), {
         status: 200,
         headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="decisions-${org_id}.csv"`, "cache-control": "private, no-store" },
+      });
+    }
+    if (sp.get("format") === "audit-v2") {
+      const doc = await controlRoomAuditDoc(rows as Array<Record<string, any>>);
+      return new NextResponse(JSON.stringify(doc, null, 2), {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "content-disposition": `attachment; filename="decisions-${org_id}-morrison-audit-v2.json"`, "cache-control": "private, no-store" },
       });
     }
     return NextResponse.json({ count: rows.length, decisions: rows });
