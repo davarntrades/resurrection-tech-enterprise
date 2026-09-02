@@ -99,6 +99,11 @@ create table if not exists public.rg_decisions (
   trajectory_hash      text,
   engine_compute_ms    double precision,
   round_trip_ms        double precision,
+  decision_time_ms     double precision,
+  engine_time_ms       double precision,
+  trajectory_decision_time_ms double precision,
+  eval_number          integer,
+  stage_timings_ms     jsonb,
   steps                integer,
   tools                jsonb,
   domains              jsonb,
@@ -114,6 +119,12 @@ create table if not exists public.rg_decisions (
   engine_service_version text,
   attestation          jsonb,
   trajectory_full      jsonb,                             -- only when store_payloads
+  -- Canonical evaluator projections retained for audit-chain v2 exports.
+  -- Nullable preserves unknown/unavailable evidence instead of inventing it.
+  governed_result      jsonb,
+  engine_evidence      jsonb,
+  governance_layer     text,
+  execution_occurred   boolean,
   -- Tamper-evidence (L3): per-environment hash chain. seq is monotonic per
   -- environment; entry_hash = sha256(prev_hash | canonical(core fields)).
   seq                  bigint,
@@ -465,3 +476,7 @@ alter table public.rg_engagements        enable row level security;
 --     using (org_id = current_setting('app.current_org', true));
 --   create policy rg_env_tenant on public.rg_environments
 --     using (org_id = current_setting('app.current_org', true));
+
+-- Make newly-added columns immediately visible to PostgREST after an
+-- idempotent re-application of this canonical schema file.
+notify pgrst, 'reload schema';

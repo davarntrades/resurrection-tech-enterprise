@@ -59,6 +59,16 @@ const FUNCTIONS = [
 ];
 
 const COLUMNS = [
+  // canonical runtime decision evidence (supabase/governance_runtime.sql)
+  { table: "rg_decisions", column: "decision_time_ms", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "engine_time_ms", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "trajectory_decision_time_ms", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "eval_number", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "stage_timings_ms", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "governed_result", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "engine_evidence", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "governance_layer", migration: "supabase/governance_runtime.sql" },
+  { table: "rg_decisions", column: "execution_occurred", migration: "supabase/governance_runtime.sql" },
   // normalized connector audit projection (supabase/connector_audit_projection.sql)
   { table: "rg_reports", column: "connector_activity", migration: "supabase/connector_audit_projection.sql" },
   // verifiable connector evidence hashes (supabase/evidence_hash_canonical.sql)

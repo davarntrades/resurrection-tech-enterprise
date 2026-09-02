@@ -84,6 +84,8 @@ jobs:
         run: npm run runtime:control-room-latency
       - name: Latency label/field drift
         run: npm run runtime:latency-labels
+      - name: Runtime governance Supabase migration contract
+        run: npm run runtime:governance-migration
       - name: Gmail smoke diagnostics contract
         run: npm run runtime:gmail-smoke-diagnostics
       - name: Operations regression suite and schema contracts
