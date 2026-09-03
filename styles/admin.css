@@ -14,17 +14,17 @@
 .adm-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 720px; }
 .adm-table th { text-align: left; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted, #8a929c); padding: 11px 14px; border-bottom: 1px solid var(--line); background: #0b0d11; position: sticky; top: 0; }
 .adm-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
-.adm-table tr:hover td { background: rgba(255,255,255,0.02); }
+.adm-table tr:hover td { background: rgba(var(--ink-rgb),0.02); }
 .adm-mono { font-family: var(--mono); font-size: 0.82rem; }
 .adm-num { font-family: var(--mono); text-align: right; }
 .adm-strong { color: var(--ink); font-weight: 600; }
 .adm-sub { display: block; color: var(--muted, #8a929c); font-size: 0.76rem; margin-top: 3px; }
 
 .adm-status { display: inline-block; font-size: 0.74rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted, #aab2bd); white-space: nowrap; }
-.adm-status.s-new-lead { color: var(--accent-bright); border-color: rgba(76,125,255,0.5); background: rgba(76,125,255,0.08); }
-.adm-status.s-workshop, .adm-status.s-audit { color: #e8a13a; border-color: rgba(232,161,58,0.5); background: rgba(232,161,58,0.08); }
-.adm-status.s-pilot, .adm-status.s-integration, .adm-status.s-won { color: var(--ok); border-color: rgba(63,178,127,0.5); background: rgba(63,178,127,0.08); }
-.adm-status.s-lost { color: var(--omega); border-color: rgba(229,72,77,0.5); background: rgba(229,72,77,0.08); }
+.adm-status.s-new-lead { color: var(--accent-bright); border-color: rgba(var(--accent-rgb),0.5); background: rgba(var(--accent-rgb),0.08); }
+.adm-status.s-workshop, .adm-status.s-audit { color: #e8a13a; border-color: rgba(var(--escalate-rgb),0.5); background: rgba(var(--escalate-rgb),0.08); }
+.adm-status.s-pilot, .adm-status.s-integration, .adm-status.s-won { color: var(--ok); border-color: rgba(var(--ok-rgb),0.5); background: rgba(var(--ok-rgb),0.08); }
+.adm-status.s-lost { color: var(--omega); border-color: rgba(var(--omega-rgb),0.5); background: rgba(var(--omega-rgb),0.08); }
 
 .adm-section { margin-top: 38px; }
 .adm-section h2 { font-size: 1.2rem; letter-spacing: -0.01em; margin: 0 0 4px; }

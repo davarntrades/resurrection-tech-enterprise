@@ -22,7 +22,7 @@
 .ip-architecture { display: grid; justify-items: center; }
 .ip-arch-source,
 .ip-arch-pack { width: min(720px, 100%); padding: clamp(24px, 3vw, 34px); border: 1px solid var(--line-2); border-radius: 14px; background: var(--panel); text-align: center; }
-.ip-arch-pack { border-color: var(--accent-dim); background: linear-gradient(135deg, rgba(76,125,255,.12), var(--panel) 68%); }
+.ip-arch-pack { border-color: var(--accent-dim); background: linear-gradient(135deg, rgba(var(--accent-rgb),.12), var(--panel) 68%); }
 .ip-arch-source span,
 .ip-arch-pack span,
 .ip-arch-output span { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .085em; text-transform: uppercase; color: var(--ink-3); }
@@ -67,7 +67,7 @@
 .ip-extension-note {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .85fr); gap: 32px; align-items: center;
   margin-top: 16px; padding: clamp(24px, 3.2vw, 38px); border: 1px solid var(--accent-dim);
-  border-radius: 14px; background: linear-gradient(100deg, rgba(76,125,255,.08), var(--panel) 72%);
+  border-radius: 14px; background: linear-gradient(100deg, rgba(var(--accent-rgb),.08), var(--panel) 72%);
 }
 .ip-extension-note h3 { margin: 10px 0 0; font-size: clamp(20px, 2.5vw, 29px); font-weight: 600; letter-spacing: -.024em; color: var(--ink); }
 .ip-extension-note p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
@@ -79,7 +79,7 @@
 .ip-lifecycle-step p { margin: 7px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
 .ip-lifecycle-rule {
   display: grid; grid-template-columns: minmax(90px, .25fr) minmax(0, 1fr); gap: 9px 20px;
-  margin-top: 16px; padding: 24px; border: 1px solid var(--accent-dim); border-radius: 12px; background: rgba(76,125,255,.045);
+  margin-top: 16px; padding: 24px; border: 1px solid var(--accent-dim); border-radius: 12px; background: rgba(var(--accent-rgb),.045);
 }
 .ip-lifecycle-rule span { font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .ip-lifecycle-rule b { font-size: 12.5px; font-weight: 520; color: var(--ink); }
@@ -91,7 +91,7 @@
 
 .ip-platform { display: grid; justify-items: center; }
 .ip-platform-row { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 18px; width: min(760px, 100%); padding: 22px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-.ip-platform-row.is-pack { border-color: var(--accent-dim); background: linear-gradient(90deg, rgba(76,125,255,.09), var(--panel)); }
+.ip-platform-row.is-pack { border-color: var(--accent-dim); background: linear-gradient(90deg, rgba(var(--accent-rgb),.09), var(--panel)); }
 .ip-platform-row > span { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: var(--accent-bright); }
 .ip-platform-row h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--ink); }
 .ip-platform-row p { margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); }

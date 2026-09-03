@@ -8,10 +8,10 @@
 .retainer-note {
   margin-top: 24px;
   padding: clamp(22px, 3.5vw, 34px) clamp(24px, 4vw, 40px);
-  border: 1px solid rgba(76, 125, 255, 0.28);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(76, 125, 255, 0.07), rgba(109, 92, 255, 0.035) 60%, transparent),
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.07), rgba(var(--accent-rgb), 0.035) 60%, transparent),
     var(--panel);
   display: flex;
   flex-direction: column;
@@ -96,9 +96,9 @@
   text-transform: uppercase;
   color: var(--accent-bright);
   padding: 5px 10px;
-  border: 1px solid rgba(76, 125, 255, 0.28);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: 100px;
-  background: rgba(76, 125, 255, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 .book-flag {
   font-family: var(--mono);
@@ -144,8 +144,8 @@
 
 /* Focused (deep-linked) card */
 .book-card.is-focused {
-  border-color: rgba(76, 125, 255, 0.55);
-  box-shadow: 0 0 0 1px rgba(76, 125, 255, 0.2), 0 0 60px -16px var(--accent-glow);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 0 60px -16px var(--accent-glow);
 }
 
 /* Calendly pending state */
@@ -177,7 +177,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    radial-gradient(120% 90% at 0% 0%, rgba(76, 125, 255, 0.06), transparent 55%),
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--accent-rgb), 0.06), transparent 55%),
     var(--panel);
   padding: clamp(26px, 4vw, 44px);
   display: grid;
@@ -211,8 +211,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  background: rgba(76, 125, 255, 0.08);
-  border: 1px solid rgba(76, 125, 255, 0.2);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
 /* ---------- Contact routing ---------- */
@@ -236,7 +236,7 @@ a.contact-card {
 }
 a.contact-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(76, 125, 255, 0.4);
+  border-color: rgba(var(--accent-rgb), 0.4);
   box-shadow: 0 0 40px -16px var(--accent-glow);
 }
 a.contact-card:focus-visible {
@@ -310,7 +310,7 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
 .lead-field textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(76, 125, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
   background: var(--panel);
 }
 .lead-field.err input,

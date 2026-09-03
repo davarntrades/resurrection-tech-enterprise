@@ -13,8 +13,13 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const ACCENT = '76,125,255';
-  const OMEGA = '229,72,77';
+  // Read the palette from the design system so the figure follows the surface
+  // it is drawn on rather than pinning the retired dark-theme hues.
+  const cs = getComputedStyle(document.documentElement);
+  const tok = (name, fallback) => (cs.getPropertyValue(name).trim() || fallback);
+  const ACCENT = tok('--accent-rgb', '18,58,158');
+  const OMEGA = tok('--omega-rgb', '168,30,18');
+  const INK = tok('--ink-rgb', '16,17,20');
 
   let W = 0, H = 0, DPR = 1;
   let nodes = [], edges = [], omegaNodes = new Set();
@@ -96,7 +101,7 @@
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(bx, by);
-      ctx.strokeStyle = `rgba(140,146,156,${(0.12 + e.lit * 0.18).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(${INK},${(0.10 + e.lit * 0.16).toFixed(3)})`;
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 4]);
       ctx.stroke();
@@ -148,9 +153,9 @@
     ctx.beginPath();
     ctx.arc(omegaC.x, omegaC.y, omegaC.r, 0, Math.PI * 2);
     const g = ctx.createRadialGradient(omegaC.x, omegaC.y, omegaC.r * 0.2, omegaC.x, omegaC.y, omegaC.r);
-    g.addColorStop(0, 'rgba(4,4,6,0.94)');
-    g.addColorStop(0.7, 'rgba(6,6,9,0.9)');
-    g.addColorStop(1, `rgba(${OMEGA},0.12)`);
+    g.addColorStop(0, `rgba(${OMEGA},0.10)`);
+    g.addColorStop(0.7, `rgba(${OMEGA},0.07)`);
+    g.addColorStop(1, `rgba(${OMEGA},0.14)`);
     ctx.fillStyle = g; ctx.fill();
 
     // energy-distortion warning ring (wavy)

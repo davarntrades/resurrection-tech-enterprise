@@ -23,8 +23,8 @@
 
 /* executive assessment card */
 .exec-card {
-  border: 1px solid rgba(76,125,255,0.3); border-radius: 14px; padding: 24px; margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(76,125,255,0.08), rgba(109,92,255,0.04) 60%, transparent);
+  border: 1px solid rgba(var(--accent-rgb),0.3); border-radius: 14px; padding: 24px; margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.04) 60%, transparent);
   position: relative; overflow: hidden;
 }
 .exec-card .exec-h { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 12px; }

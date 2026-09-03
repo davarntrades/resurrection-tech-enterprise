@@ -27,7 +27,7 @@
   border: 1px solid var(--line-2);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
-  background: radial-gradient(130% 180% at 0% 0%, rgba(76,125,255,0.09), transparent 55%), var(--panel);
+  background: radial-gradient(130% 180% at 0% 0%, rgba(var(--accent-rgb),0.09), transparent 55%), var(--panel);
 }
 .ig-banner-strong { margin: 0; font-size: clamp(16px, 2.4vw, 20px); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .ig-banner-sub { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
@@ -47,7 +47,7 @@
   margin-top: 22px;
   border: 1px solid var(--line-2);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(63,178,127,0.06), transparent 45%), var(--panel);
+  background: linear-gradient(180deg, rgba(var(--ok-rgb),0.06), transparent 45%), var(--panel);
   overflow: hidden;
 }
 .ig-impact-h {
@@ -115,11 +115,11 @@
 .ig-svg { display: block; margin: 0 auto; height: auto; max-width: none; }
 .ig-svg-node { fill: var(--panel); stroke: var(--line-2); stroke-width: 1.25; }
 .ig-svg-node.tone-platform { fill: var(--panel-2); }
-.ig-svg-node.tone-gov { fill: rgba(76,125,255,0.12); stroke: rgba(76,125,255,0.55); }
-.ig-svg-node.tone-system { stroke: rgba(63,178,127,0.5); }
-.ig-svg-node.tone-block { fill: rgba(229,72,77,0.12); stroke: rgba(229,72,77,0.55); }
-.ig-svg-node.tone-allow { fill: rgba(63,178,127,0.12); stroke: rgba(63,178,127,0.55); }
-.ig-svg-node.tone-escalate { fill: rgba(214,158,46,0.12); stroke: rgba(214,158,46,0.55); }
+.ig-svg-node.tone-gov { fill: rgba(var(--accent-rgb),0.12); stroke: rgba(var(--accent-rgb),0.55); }
+.ig-svg-node.tone-system { stroke: rgba(var(--ok-rgb),0.5); }
+.ig-svg-node.tone-block { fill: rgba(var(--omega-rgb),0.12); stroke: rgba(var(--omega-rgb),0.55); }
+.ig-svg-node.tone-allow { fill: rgba(var(--ok-rgb),0.12); stroke: rgba(var(--ok-rgb),0.55); }
+.ig-svg-node.tone-escalate { fill: rgba(var(--escalate-rgb),0.12); stroke: rgba(var(--escalate-rgb),0.55); }
 .ig-svg-label { fill: var(--ink); font-family: var(--font); font-size: 13px; font-weight: 600; }
 .ig-svg-label.tone-gov { fill: var(--accent-bright); }
 .ig-svg-label.tone-block { fill: var(--omega); }
@@ -167,13 +167,13 @@
 .ig-node--platform { border-color: var(--line-2); background: var(--panel-2); }
 .ig-node--agent { border-color: var(--line-2); }
 .ig-node--gov {
-  border-color: rgba(76,125,255,0.4);
-  background: linear-gradient(135deg, rgba(76,125,255,0.10), rgba(109,92,255,0.05) 60%, var(--panel));
-  box-shadow: 0 0 0 1px rgba(76,125,255,0.12), 0 16px 40px -24px var(--accent-glow);
+  border-color: rgba(var(--accent-rgb),0.4);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),0.10), rgba(var(--accent-rgb),0.05) 60%, var(--panel));
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.12), 0 16px 40px -24px var(--accent-glow);
 }
 .ig-node--gov .ig-node-label { color: var(--ink); }
 .ig-node--gov .ig-node-sub { color: var(--accent-bright); }
-.ig-node--system { border-color: rgba(63,178,127,0.32); }
+.ig-node--system { border-color: rgba(var(--ok-rgb),0.32); }
 .ig-node--system .ig-node-sub { color: var(--ok); }
 
 .ig-arrow {
@@ -197,9 +197,9 @@
   border-radius: 8px;
   border: 1px solid;
 }
-.ig-vd.allow { color: var(--ok); border-color: rgba(63,178,127,0.45); background: rgba(63,178,127,0.10); }
-.ig-vd.block { color: var(--omega); border-color: rgba(229,72,77,0.45); background: rgba(229,72,77,0.10); }
-.ig-vd.escalate { color: #e0a93f; border-color: rgba(214,158,46,0.45); background: rgba(214,158,46,0.10); }
+.ig-vd.allow { color: var(--ok); border-color: rgba(var(--ok-rgb),0.45); background: rgba(var(--ok-rgb),0.10); }
+.ig-vd.block { color: var(--omega); border-color: rgba(var(--omega-rgb),0.45); background: rgba(var(--omega-rgb),0.10); }
+.ig-vd.escalate { color: #e0a93f; border-color: rgba(var(--escalate-rgb),0.45); background: rgba(var(--escalate-rgb),0.10); }
 
 /* ── Before / After ── */
 .ig-ba {
@@ -238,12 +238,12 @@
 /* ── Result callout ── */
 .ig-result {
   margin-top: 24px;
-  border: 1px solid rgba(63,178,127,0.32);
+  border: 1px solid rgba(var(--ok-rgb),0.32);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(63,178,127,0.07), transparent 50%), var(--panel);
+  background: linear-gradient(180deg, rgba(var(--ok-rgb),0.07), transparent 50%), var(--panel);
   padding: 20px 24px;
 }
-.ig-result.is-block { border-color: rgba(229,72,77,0.32); background: linear-gradient(180deg, rgba(229,72,77,0.07), transparent 50%), var(--panel); }
+.ig-result.is-block { border-color: rgba(var(--omega-rgb),0.32); background: linear-gradient(180deg, rgba(var(--omega-rgb),0.07), transparent 50%), var(--panel); }
 .ig-result-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
 .ig-result p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
 
@@ -300,7 +300,7 @@
 .ig-card { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); padding: 20px; }
 .ig-card h3 { font-size: 16px; color: var(--ink); margin: 0 0 8px; letter-spacing: -0.01em; }
 .ig-card p { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); margin: 0; }
-.ig-card--accent { border-color: rgba(76,125,255,0.28); background: linear-gradient(180deg, rgba(76,125,255,0.06), transparent 55%), var(--panel); }
+.ig-card--accent { border-color: rgba(var(--accent-rgb),0.28); background: linear-gradient(180deg, rgba(var(--accent-rgb),0.06), transparent 55%), var(--panel); }
 
 /* ── Assessment days ── */
 .ig-days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }

@@ -47,6 +47,16 @@
   --escalate:  #8a5a00;   /* ESCALATE */
   --escalate-dim: #f6e6c8;
 
+  /* RGB channels, so the ~40 page stylesheets that composite the palette with
+     alpha (glows, washes, focus rings) resolve against the current surface
+     instead of pinning the retired dark-theme hues. */
+  --accent-rgb:   18,58,158;
+  --omega-rgb:    168,30,18;
+  --ok-rgb:       11,107,69;
+  --escalate-rgb: 138,90,0;
+  --ink-rgb:      16,17,20;
+  --bg-rgb:       255,255,255;
+
   /* ---- Type ---- */
   --font: "Geist", "Helvetica Neue", Arial, sans-serif;
   --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -93,7 +103,16 @@
    unchanged on either ground.
    ============================================================ */
 .theme-dark,
-[data-surface="dark"] {
+[data-surface="dark"],
+/* Operational consoles are dark by design: the live-demo test instrument,
+   the admin and runtime dashboards, and the Frontier Containment Lab. They
+   keep their own stylesheets unchanged and simply inherit the dark tokens. */
+.rgx,
+.adm,
+.flab,
+/* Code and evidence blocks are instrument surfaces: mono on a dark panel,
+   inside an otherwise light page. */
+.qs-code {
   --bg:        #050608;
   --bg-1:      #08090b;
   --bg-2:      #0b0d10;
@@ -124,11 +143,23 @@
   --escalate:  #f0b94a;
   --escalate-dim: #3d2e0e;
 
+  --accent-rgb:   124,155,255;
+  --omega-rgb:    255,111,102;
+  --ok-rgb:       79,211,155;
+  --escalate-rgb: 240,185,74;
+  --ink-rgb:      245,246,247;
+  --bg-rgb:       5,6,8;
+
   --shadow-lift: 0 1px 0 rgba(255,255,255,0.03), 0 24px 60px -34px rgba(0,0,0,0.9);
 
   background: var(--bg-1);
   color: var(--ink);
 }
+
+/* A full-page console fills the viewport rather than floating as a dark block
+   inside a light page. */
+main.adm,
+main.flab { min-height: 100vh; }
 
 * { box-sizing: border-box; }
 

@@ -457,3 +457,118 @@
   .rt-actions .btn { width: 100%; justify-content: center; }
   .rt-actions { gap: 10px; }
 }
+
+/* ============================================================
+   Deep technical pages (Technology, Evidence, Developers)
+   ============================================================ */
+
+.rt-anchor { display: block; height: 0; scroll-margin-top: 90px; }
+
+/* Section index — lets a technical reader jump straight to depth without
+   scrolling the argument. */
+.rt-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: clamp(40px, 5vw, 64px);
+}
+.rt-jump a {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color .2s var(--ease), color .2s var(--ease), background .2s var(--ease);
+}
+.rt-jump a:hover { color: var(--ink); border-color: var(--line-strong); background: var(--panel-2); }
+
+.rt-inline-mono {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--ink);
+}
+
+.rt-figcaption {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  margin: 18px 0 0;
+}
+
+.rt-defs--wide > div { grid-template-columns: minmax(180px, 300px) 1fr; }
+@media (max-width: 760px) {
+  .rt-defs--wide > div { grid-template-columns: 1fr; gap: 6px; }
+}
+
+.rt-verdicts--standalone {
+  border-top: 1px solid var(--line);
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
+.rt-reach-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: start;
+  margin-top: clamp(44px, 5vw, 68px);
+}
+@media (max-width: 940px) { .rt-reach-grid { grid-template-columns: 1fr; } }
+
+/* Boundary coverage — editorial rows, not a card wall. */
+.rt-cov {
+  border-top: 1px solid var(--ink);
+  margin-top: clamp(44px, 5vw, 68px);
+}
+.rt-cov-row {
+  padding: clamp(26px, 3vw, 38px) 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(18px, 3vw, 44px);
+  align-items: start;
+}
+.rt-cov-row .c-what { font-size: 15px; color: var(--ink-2); line-height: 1.6; }
+.rt-cov-row .c-outcome { font-size: 15px; color: var(--ink); line-height: 1.6; }
+.rt-cov-row .c-outcome span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+@media (max-width: 900px) {
+  .rt-cov-row { grid-template-columns: 1fr; gap: 12px; }
+}
+
+/* A working component keeps its own interface; the frame just gives it a
+   panel to sit in on the light ground. */
+.rt-demo-frame {
+  margin-top: clamp(40px, 5vw, 64px);
+  padding: clamp(20px, 3vw, 36px);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.rt-tech-title { max-width: 14ch; }
+.rt-tech-title .neq { color: var(--accent); }
+.rt-tech-path { margin-top: clamp(44px, 5vw, 68px); }
+
+/* Code blocks sit on their own dark ground; give them room to breathe. */
+.rt-code-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  margin-top: clamp(40px, 5vw, 64px);
+  align-items: start;
+}
+.rt-code-single { margin-top: clamp(24px, 3vw, 36px); max-width: 720px; }
+.rt-code-pair .qs-code,
+.rt-code-single .qs-code { margin: 0; }
+
+.rt-dev-title { max-width: 15ch; }

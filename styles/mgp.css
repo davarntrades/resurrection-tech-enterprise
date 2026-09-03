@@ -10,14 +10,14 @@
   --accent: #e0a93f;
   --accent-bright: #f2c66a;
   --accent-dim: #6b4f1c;
-  --accent-glow: rgba(224,169,63,0.40);
+  --accent-glow: rgba(var(--escalate-rgb),0.40);
 }
 .mgp-page .eyebrow { color: var(--accent-bright); }
 /* Gold CTA reads premium with dark foil-style text rather than white-on-gold. */
-.mgp-page .btn--primary { color: #14100a; }
-.mgp-page .btn--primary .arr { color: #14100a; }
+.mgp-page .btn--primary { color: var(--escalate-dim); }
+.mgp-page .btn--primary .arr { color: var(--escalate-dim); }
 /* Warm sheen at the top of the hero. */
-.mgp-page .section.mgp { background: radial-gradient(120% 80% at 50% 0%, rgba(224,169,63,0.07), transparent 60%); }
+.mgp-page .section.mgp { background: radial-gradient(120% 80% at 50% 0%, rgba(var(--escalate-rgb),0.07), transparent 60%); }
 
 .mgp-lede { color: var(--ink-2); font-size: clamp(1rem, 1.5vw, 1.14rem); line-height: 1.6; max-width: 64ch; }
 .mgp-prose p { color: var(--ink-2); font-size: 1rem; line-height: 1.7; margin: 0 0 14px; max-width: 70ch; }
@@ -31,18 +31,18 @@
   background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius-sm);
   padding: 14px 18px; text-align: center; font-size: 0.96rem; color: var(--ink);
 }
-.mgp-flow-node--gov { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(224,169,63,0.12), rgba(224,169,63,0.02)); }
+.mgp-flow-node--gov { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.12), rgba(var(--escalate-rgb),0.02)); }
 .mgp-flow-node--gov b { color: var(--accent-bright); }
 .mgp-flow-verdict {
   display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 8px 0;
   font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em;
 }
 .mgp-flow-verdict span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line-2); }
-.mgp-flow-verdict .v-allow { color: var(--ok); border-color: rgba(63,178,127,0.5); }
-.mgp-flow-verdict .v-esc { color: #e0a93f; border-color: rgba(224,169,63,0.5); }
-.mgp-flow-verdict .v-block { color: var(--omega); border-color: rgba(229,72,77,0.5); }
+.mgp-flow-verdict .v-allow { color: var(--ok); border-color: rgba(var(--ok-rgb),0.5); }
+.mgp-flow-verdict .v-esc { color: #e0a93f; border-color: rgba(var(--escalate-rgb),0.5); }
+.mgp-flow-verdict .v-block { color: var(--omega); border-color: rgba(var(--omega-rgb),0.5); }
 .mgp-flow-arrow { color: var(--ink-3); text-align: center; line-height: 1; padding: 6px 0; font-size: 1rem; }
-.mgp-flow-node--key { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(224,169,63,0.12), rgba(224,169,63,0.02)); }
+.mgp-flow-node--key { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.12), rgba(var(--escalate-rgb),0.02)); }
 .mgp-flow-node--key b, .mgp-flow-node--gov b { color: var(--accent-bright); }
 
 /* Worked example journey — left-aligned narrative flow */
@@ -75,7 +75,7 @@
 /* Gold-tinted callout / ownership note */
 .mgp-note {
   margin: 18px 0 0; padding: clamp(16px, 2.2vw, 22px) clamp(18px, 2.4vw, 24px);
-  background: linear-gradient(180deg, rgba(224,169,63,0.08), rgba(224,169,63,0.02));
+  background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.08), rgba(var(--escalate-rgb),0.02));
   border: 1px solid var(--accent-dim); border-radius: var(--radius);
 }
 .mgp-note-k { display: block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 10px; }
@@ -87,7 +87,7 @@
 @media (max-width: 900px) { .mgp-int-grid { grid-template-columns: 1fr; } }
 .mgp-int-card {
   display: flex; flex-direction: column; gap: 12px;
-  background: linear-gradient(180deg, rgba(224,169,63,0.05), transparent 60%), var(--panel);
+  background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.05), transparent 60%), var(--panel);
   border: 1px solid var(--line-2); border-radius: 16px; padding: clamp(18px, 2.2vw, 24px);
 }
 .mgp-int-h { font-size: 1.06rem; letter-spacing: -0.01em; line-height: 1.2; margin: 0; color: var(--ink); }
@@ -99,7 +99,7 @@
 .mgp-int-k { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 5px; }
 .mgp-int-meta { display: grid; gap: 12px; margin-top: auto; padding-top: 4px; }
 .mgp-int-meta p { font-size: 0.86rem; line-height: 1.5; color: var(--ink); margin: 0; }
-.mgp-int-warn { font-size: 0.84rem; line-height: 1.55; color: var(--ink-2); margin: 0; padding: 10px 12px; border-left: 2px solid var(--accent-dim); background: rgba(224,169,63,0.06); border-radius: 0 8px 8px 0; }
+.mgp-int-warn { font-size: 0.84rem; line-height: 1.55; color: var(--ink-2); margin: 0; padding: 10px 12px; border-left: 2px solid var(--accent-dim); background: rgba(var(--escalate-rgb),0.06); border-radius: 0 8px 8px 0; }
 .mgp-int-warn b { color: var(--accent-bright); }
 
 /* Deployment-model card bullet list */
@@ -123,7 +123,7 @@
 .mgp-conn { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px; }
 @media (max-width: 760px) { .mgp-conn { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 420px) { .mgp-conn { grid-template-columns: 1fr; } }
-.mgp-conn-card { background: linear-gradient(180deg, rgba(224,169,63,0.05), transparent 60%), var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px; }
+.mgp-conn-card { background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.05), transparent 60%), var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px; }
 .mgp-conn-h { font-size: 0.96rem; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
 .mgp-conn-p { font-size: 0.84rem; color: var(--ink-3); line-height: 1.5; margin: 0; }
 
@@ -145,7 +145,7 @@
    `.mgp-page`.
 
    The box-shadow needs overriding too: `.btn--primary`'s focus ring is a
-   hardcoded blue `rgba(76,125,255,.4)` that the accent tokens do not touch,
+   hardcoded blue `rgba(var(--accent-rgb),.4)` that the accent tokens do not touch,
    which is what left a blue rim around an otherwise gold button.
 
    Literal colours, not `var(--accent)`: the tokens are defined ON `.mgp-page`,
@@ -160,11 +160,11 @@ body:has(.mgp-page) .nav-assess,
 body:has(.mgp-page) .nav-menu-cta .btn--primary {
   background: linear-gradient(180deg, #f2c66a, #e0a93f);
   border-color: transparent;
-  color: #14100a;
-  box-shadow: 0 0 0 1px rgba(224, 169, 63, 0.45), 0 10px 30px -12px rgba(224, 169, 63, 0.4);
+  color: var(--escalate-dim);
+  box-shadow: 0 0 0 1px rgba(var(--escalate-rgb), 0.45), 0 10px 30px -12px rgba(var(--escalate-rgb), 0.4);
 }
 body:has(.mgp-page) .nav-assess:hover,
 body:has(.mgp-page) .nav-menu-cta .btn--primary:hover {
-  box-shadow: 0 0 0 1px rgba(242, 198, 106, 0.7), 0 16px 44px -14px rgba(224, 169, 63, 0.5);
+  box-shadow: 0 0 0 1px rgba(var(--escalate-rgb), 0.7), 0 16px 44px -14px rgba(var(--escalate-rgb), 0.5);
 }
-body:has(.mgp-page) .nav-assess .arr { color: #14100a; }
+body:has(.mgp-page) .nav-assess .arr { color: var(--escalate-dim); }

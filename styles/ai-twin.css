@@ -10,7 +10,7 @@
 .twin-render {
   margin-top: clamp(48px, 6vw, 82px); border: 1px solid var(--line-2); border-radius: 14px;
   background: linear-gradient(180deg, var(--panel), var(--bg-1));
-  box-shadow: 0 40px 120px -50px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  box-shadow: 0 40px 120px -50px rgba(var(--ink-rgb),0.9), 0 0 0 1px rgba(var(--ink-rgb),0.02) inset;
   overflow: hidden;
 }
 .twin-render-body { padding: clamp(18px, 2.6vw, 30px); }
@@ -105,7 +105,7 @@
 /* ── Governing distinction ───────────────────────────────────────────────── */
 .twin-dist { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 14px; }
 .twin-dist-item { padding: clamp(22px, 2.6vw, 30px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
-.twin-dist-item.is-boundary { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.07), var(--panel)); }
+.twin-dist-item.is-boundary { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(var(--accent-rgb),0.07), var(--panel)); }
 .twin-dist-item h3 { margin: 0; font-size: clamp(17px, 1.85vw, 20px); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .twin-dist-item p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
 .twin-dist-note { margin: clamp(28px, 3.4vw, 40px) 0 0; font-size: 14.5px; color: var(--ink-3); }
@@ -138,7 +138,7 @@
 .twin-derived-rule {
   display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 20px;
   margin-top: 18px; padding: 22px; border: 1px solid var(--accent-dim); border-radius: 12px;
-  background: linear-gradient(90deg, rgba(76,125,255,.06), var(--panel), rgba(76,125,255,.06));
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),.06), var(--panel), rgba(var(--accent-rgb),.06));
 }
 .twin-derived-rule span { font-size: 12.5px; color: var(--ink-2); }
 .twin-derived-rule b { font-weight: 400; color: var(--ink-4); }
@@ -151,7 +151,7 @@
 .twin-graph-core {
   display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 280px;
   padding: 28px; border: 1px solid var(--accent-dim); border-radius: 14px;
-  background: radial-gradient(circle at 50% 45%, rgba(76,125,255,.15), var(--panel) 62%); text-align: center;
+  background: radial-gradient(circle at 50% 45%, rgba(var(--accent-rgb),.15), var(--panel) 62%); text-align: center;
 }
 .twin-graph-core span,
 .twin-graph-core small { font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
@@ -194,7 +194,7 @@
   display: grid; grid-template-columns: auto 1fr; gap: 20px; padding: 22px 24px;
   border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
 }
-.twin-platform-role.is-twin { border-color: var(--accent-dim); background: linear-gradient(90deg, rgba(76,125,255,.08), var(--panel)); }
+.twin-platform-role.is-twin { border-color: var(--accent-dim); background: linear-gradient(90deg, rgba(var(--accent-rgb),.08), var(--panel)); }
 .twin-platform-role > span { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; color: var(--accent-bright); }
 .twin-platform-role h3 { display: inline; margin: 0; font-size: 18px; font-weight: 600; color: var(--ink); }
 .twin-platform-role strong { margin-left: 12px; font-size: 13px; font-weight: 520; color: var(--ink); }

@@ -5,146 +5,357 @@ import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
 
 export const metadata: Metadata = {
-  title: "Technology — Admissible Operating Envelopes & Runtime Governance",
+  title: "Technology — Execution Control for Autonomous Systems",
   description:
-    "How Morrison Runtime Governance defines and enforces Admissible Operating Envelopes through bounded deployment context, independent pre-execution authorization, Ω reachability, and causal verification.",
+    "How Morrison Runtime Governance defines and enforces Admissible Operating Envelopes: independent pre-execution authorization, state transitions, Ω reachability, bounded verification, evidence chains, integrations and deployment.",
   alternates: { canonical: "/technology" },
 };
 
-const ArrowDown = () => (
-  <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
-    <path d="M7 0 V18 M2 13 L7 19 L12 13" stroke="currentColor" strokeWidth="1.4" />
-  </svg>
-);
+/* Section 4 — the three verdicts, stated as control outcomes. */
+const VERDICTS = [
+  ["allow", "Allow", "The proposed transition satisfies the envelope. It proceeds to the execution path."],
+  ["escalate", "Escalate", "Authorization is withheld and routed to an independent approver before any state change."],
+  ["block", "Block", "The transition is terminated at the boundary. No state-changing call is issued."],
+] as const;
+
+/* Section 5 — what is actually evaluated at the boundary. */
+const TRANSITION_INPUTS = [
+  ["State", "The current configuration of the environment: resources, records, permissions and prior transitions."],
+  ["Action", "The proposed tool call or API invocation, with its arguments, target and scope."],
+  ["Trajectory", "The sequence the action belongs to, evaluated over a declared horizon rather than one step at a time."],
+  ["Authority", "The permissions and delegation the calling identity actually holds for this action, in this environment."],
+  ["Conditions", "The operating conditions the envelope declares — thresholds, approval requirements, data boundaries, time and rate constraints."],
+];
+
+/* Section 8 — what a governance evaluation emits. */
+const EVIDENCE_CHAIN = [
+  ["01", "Proposal record", "The proposed action, its arguments, the calling identity and the environment it was proposed in."],
+  ["02", "Policy state", "The exact envelope and Ω definitions in force at evaluation time, identified by version."],
+  ["03", "Verdict", "Allow, escalate or block, with the governing rule that produced it."],
+  ["04", "Approval", "Where escalation applied: who authorized, under what authority, and when."],
+  ["05", "Execution result", "Whether the authorized action was issued, and what the downstream system returned."],
+  ["06", "Chain hash", "A hash linking the record to the one before it, so an alteration anywhere breaks verification."],
+];
+
+/* Section 11 — profiles. The contract is identical across all of them. */
+const PROFILES = [
+  ["Cloud", "Managed control plane, hosted evidence store."],
+  ["Hybrid", "Local enforcement, centrally managed policy distribution."],
+  ["Private cloud", "Customer tenancy, customer-held keys."],
+  ["On-premises", "Enforcement and evidence inside the customer estate."],
+  ["Sovereign", "Customer-controlled authority and evidence custody in-jurisdiction."],
+  ["Air-gapped", "Signed local policy, no required external control plane or network."],
+];
 
 export default function Page() {
   return (
     <PageShell>
-      {/* ===== INTRO ===== */}
-      <section className="section section--tight" aria-label="Technology overview">
-        <div className="wrap">
-          <div className="section-head reveal" style={{ marginBottom: 0 }}>
-            <span className="eyebrow">Technology</span>
-            <h1>Admissible Operating Envelopes, enforced at runtime.</h1>
-            <p>
-              A global claim that an autonomous system is “safe” is too broad to operate on.
-              Morrison evaluates safety locally: in a specified environment, with specified tools,
-              permissions, policies, state transitions, and reachable consequences. That bounded
-              operating region is the <strong>Admissible Operating Envelope</strong>.
-            </p>
-          </div>
+      {/* ══════════ 1 · CAPABILITY ≠ AUTHORITY ══════════ */}
+      <section className="rt-section rt-section--first" aria-labelledby="tech-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal in">Technology</span>
+          <h1 id="tech-title" className="rt-display rt-tech-title reveal in" data-d="1">
+            Capability <span className="neq">≠</span> Authority
+          </h1>
+          <p className="rt-lede reveal in" data-d="2">
+            What an autonomous system is able to compute is a separate question from what it is
+            permitted to execute. Morrison Runtime Governance operates on the second question only.
+          </p>
+          <p className="rt-lede reveal in" data-d="2">
+            It sits on the execution path, evaluates each proposed state transition against a
+            declared Admissible Operating Envelope, and issues an authorization decision before any
+            state-changing call is made.
+          </p>
+          <nav className="rt-jump reveal" data-d="3" aria-label="On this page">
+            {[
+              ["#envelope", "Operating envelope"],
+              ["#authorization", "Authorization"],
+              ["#transitions", "State transitions"],
+              ["#reachability", "Reachability"],
+              ["#verification", "Bounded verification"],
+              ["#evidence-chain", "Evidence chain"],
+              ["#integrations", "Integrations"],
+              ["#performance", "Performance"],
+              ["#deployment", "Deployment"],
+            ].map(([href, label]) => (
+              <a key={href} href={href}>{label}</a>
+            ))}
+          </nav>
         </div>
       </section>
 
-      {/* The legacy anchor remains stable for existing inbound links. */}
-      <section className="section section--tight" id="safety-envelope" aria-label="Admissible Operating Envelope">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Admissible Operating Envelope</span>
-            <h2>Define where safe autonomous operation ends.</h2>
-            <p>
-              An Admissible Operating Envelope is the set of states, actions, transitions and operating
-              conditions that a system is permitted to occupy or execute within a defined environment. It is scoped to the actual environment —
-              the agents, tools, permissions, policies, trajectory horizon, and reachable states in
-              front of us — not to an abstract universal claim about the underlying model.
-            </p>
+      {/* ══════════ 2 · ADMISSIBLE OPERATING ENVELOPE ══════════ */}
+      {/* The legacy anchor stays stable for existing inbound links. */}
+      <section className="rt-section rt-section--band" id="envelope" aria-labelledby="env-title">
+        <span id="safety-envelope" className="rt-anchor" aria-hidden="true" />
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Admissible Operating Envelope</span>
+          <h2 id="env-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Declare the permitted region
+            <br />
+            before trusting operation.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            An Admissible Operating Envelope is the set of states, actions, transitions and
+            operating conditions a system is permitted to occupy or execute within a defined
+            environment. It is scoped to the actual deployment — the agents, tools, permissions,
+            policies, trajectory horizon and reachable states in front of us — not to a universal
+            claim about the underlying model.
+          </p>
+
+          <div className="rt-defs reveal" data-d="3">
+            {[
+              ["Environment", "The deployment context being governed."],
+              ["Tools & permissions", "The executable surface reachable from that context."],
+              ["Policies & conditions", "The declared constraints that define admissible operation."],
+              ["Horizon", "The trajectory depth over which reachable states are evaluated."],
+              ["Ω", "The explicitly forbidden region inside that geometry."],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <span className="k">{k}</span>
+                <span className="v">{v}</span>
+              </div>
+            ))}
           </div>
-          <div className="tp2-grid reveal">
-            <div className="tp2-path is-allow">
-              {["Environment defines envelope", "Transition proposed", "Runtime Governance", "ALLOW"].map((n, i, a) => (
-                <div className="tp2-step" key={n}>
-                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "ALLOW" ? " verdict ok" : ""}`}>{n}</div>
-                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
-                </div>
-              ))}
-            </div>
-            <div className="tp2-path is-block">
-              {["Environment defines envelope", "Non-admissible / Ω-bound transition", "Runtime Governance", "BLOCK / ESCALATE"].map((n, i, a) => (
-                <div className="tp2-step" key={n}>
-                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCK / ESCALATE" ? " verdict block" : ""}`}>{n}</div>
-                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-          <p className="pull reveal" style={{ marginTop: "clamp(36px,4vw,56px)" }}>
-            Local safety is a bounded claim: <span className="accent">what this system can safely reach,
-            in this environment, under these constraints.</span>
+
+          <p className="rt-note reveal">
+            The same engineering principle appears wherever consequences are physical: a flight
+            envelope in aviation, a workspace envelope in robotics. Different systems, one method —
+            declare the operating boundary before trusting operation.
           </p>
         </div>
       </section>
 
-      <hr className="divider" />
+      {/* ══════════ 3 · PROPOSAL → AUTHORIZATION → EXECUTION ══════════ */}
+      <section className="rt-section" id="authorization" aria-labelledby="auth-title">
+        <span id="before-execution" className="rt-anchor" aria-hidden="true" />
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Proposal → Authorization → Execution</span>
+          <h2 id="auth-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            The decision is made
+            <br />
+            before the call is issued.
+          </h2>
 
-      {/* ===== WHY RUNTIME, WHY BEFORE EXECUTION ===== */}
-      <section className="section section--tight" id="before-execution" aria-label="Why runtime governance intercepts before execution">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Before execution</span>
-            <h2>Most safety reacts. Governance enforces the boundary.</h2>
-            <p>
-              Traditional AI safety often inspects outputs or incidents after the system has acted.
-              Runtime Governance evaluates the proposed trajectory before execution and decides whether
-              it remains inside the Admissible Operating Envelope.
-            </p>
-          </div>
-          <div className="versus">
-            <div className="vs-col legacy reveal">
-              <div className="vs-tag"><span className="pip" /> After-the-fact control</div>
-              <div className="vs-step"><span className="si">01</span> Output generated</div>
-              <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">02</span> Action taken</div>
-              <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">03</span> Boundary violation discovered later</div>
+          <div className="rt-path rt-tech-path reveal" data-d="2">
+            <div className="rt-path-node">
+              <span className="n-label">01 / Proposal</span>
+              <span className="n-title">Action proposed</span>
+              <span className="n-desc">A tool call or API invocation is requested, with arguments and target.</span>
             </div>
-            <div className="vs-mid"><div className="vbar" /><span>VS</span><div className="vbar" /></div>
-            <div className="vs-col gov reveal" data-d="1">
-              <div className="vs-tag"><span className="pip" /> Runtime Governance</div>
-              <div className="vs-step"><span className="si">01</span> Trajectory evaluated</div>
-              <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">02</span> Envelope status determined</div>
-              <div className="vs-arrow-v"><ArrowDown /></div>
-              <div className="vs-step"><span className="si">03</span> ALLOW / ESCALATE / BLOCK</div>
+            <div className="rt-path-link" aria-hidden="true"><span className="rt-path-glyph">→</span></div>
+            <div className="rt-path-node rt-path-node--authority">
+              <span className="n-label">02 / Authorization</span>
+              <span className="n-title">Independently evaluated</span>
+              <span className="n-desc">Assessed against the envelope by a component outside the proposing system.</span>
+            </div>
+            <div className="rt-path-link" aria-hidden="true"><span className="rt-path-glyph">→</span></div>
+            <div className="rt-path-node">
+              <span className="n-label">03 / Execution</span>
+              <span className="n-title">Authorized call issued</span>
+              <span className="n-desc">Only a transition that satisfied authorization reaches the downstream system.</span>
             </div>
           </div>
 
-          <div className="tp2-grid reveal" style={{ marginTop: "clamp(40px,5vw,64px)" }}>
-            <div className="tp2-path is-block">
-              {["AI Agent", "Trajectory leaves envelope", "Runtime Governance", "BLOCKED"].map((n, i, a) => (
-                <div className="tp2-step" key={n}>
-                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "BLOCKED" ? " verdict block" : ""}`}>{n}</div>
-                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
-                </div>
-              ))}
+          <p className="rt-note reveal">
+            Evaluation is deterministic: the same proposed trajectory against the same policy state
+            produces the same verdict. The evaluator is not a model judging its own output.
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════ 4 · ALLOW / ESCALATE / BLOCK ══════════ */}
+      <section className="rt-section rt-section--band" id="verdicts" aria-labelledby="verdict-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Allow / Escalate / Block</span>
+          <h2 id="verdict-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Three outcomes. One of them
+            <br />
+            reaches the execution path.
+          </h2>
+          <div className="rt-verdicts rt-verdicts--standalone reveal" data-d="2">
+            {VERDICTS.map(([id, name, desc]) => (
+              <div className={`rt-verdict rt-verdict--${id}`} key={id}>
+                <span className="v-key"><span className="v-mark" aria-hidden="true" />{name}</span>
+                <span className="v-desc">{desc}</span>
+              </div>
+            ))}
+          </div>
+          <p className="rt-note reveal">
+            Fail-closed: if policy cannot be verified, or the evaluator cannot reach a decision, the
+            transition does not execute. The absence of an allow is not an allow.
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════ 5 · STATE TRANSITIONS ══════════ */}
+      <section className="rt-section" id="transitions" aria-labelledby="trans-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">State transitions</span>
+          <h2 id="trans-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            The unit of evaluation is the
+            <br />
+            transition, not the output.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            A transition takes the environment from <span className="rt-inline-mono">x(t)</span> to{" "}
+            <span className="rt-inline-mono">x(t+1)</span>. Governance evaluates that step and the
+            trajectory it belongs to — natural-language output is not the object under evaluation.
+          </p>
+          <div className="rt-defs reveal" data-d="3">
+            {TRANSITION_INPUTS.map(([k, v]) => (
+              <div key={k}>
+                <span className="k">{k}</span>
+                <span className="v">{v}</span>
+              </div>
+            ))}
+          </div>
+          <p className="rt-note reveal">
+            This is why chained and cross-agent paths are visible to it: each step may be admissible
+            in isolation while the sequence is not. The sequence is what gets evaluated.
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════ 6 · REACHABILITY ══════════ */}
+      <section className="rt-section rt-section--band" id="reachability" aria-labelledby="reach-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Reachability</span>
+          <h2 id="reach-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            States are nodes.
+            <br />
+            Transitions are edges.
+          </h2>
+
+          <div className="rt-reach-grid">
+            <div className="reveal" data-d="2">
+              <div className="reach-stage">
+                <canvas id="reach-canvas" aria-hidden="true" />
+                <CanvasScript src="/canvas/reach.js" />
+              </div>
+              <p className="rt-figcaption">
+                A discrete state space. Transitions that would step into Ω are denied at the
+                boundary rather than reported afterwards.
+              </p>
             </div>
-            <div className="tp2-path is-allow">
-              {["AI Agent", "Trajectory remains inside envelope", "Runtime Governance", "Execution"].map((n, i, a) => (
-                <div className="tp2-step" key={n}>
-                  <div className={`tp2-node${n === "Runtime Governance" ? " gov" : ""}${n === "Execution" ? " verdict ok" : ""}`}>{n}</div>
-                  {i < a.length - 1 && <div className="tp2-arrow" aria-hidden="true">↓</div>}
+            <div className="reveal" data-d="3">
+              <div className="reach-legend">
+                <div className="legend-row">
+                  <span className="swatch safe" aria-hidden="true" />
+                  <div>
+                    <b>Inside the envelope</b>
+                    <span>Admissible transitions propagate under the declared constraints.</span>
+                  </div>
                 </div>
-              ))}
+                <div className="legend-row">
+                  <span className="swatch blocked" aria-hidden="true" />
+                  <div>
+                    <b>Boundary violation</b>
+                    <span>Transitions leaving the declared region are blocked or escalated pre-execution.</span>
+                  </div>
+                </div>
+                <div className="legend-row">
+                  <span className="swatch omega" aria-hidden="true" />
+                  <div>
+                    <b>Ω — forbidden region</b>
+                    <span>States the system must not reach under the governed transition system.</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <hr className="divider" />
+      {/* ══════════ 7 · BOUNDED VERIFICATION ══════════ */}
+      <section className="rt-section" id="verification" aria-labelledby="verify-title">
+        <span id="invariants" className="rt-anchor" aria-hidden="true" />
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Bounded verification</span>
+          <h2 id="verify-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Within the declared model,
+            <br />
+            no forbidden state remains reachable.
+          </h2>
 
-      {/* ===== UNIVERSAL GOVERNANCE LAYER ===== */}
-      <section className="section section--tight" id="stack" aria-label="Universal governance layer — full stack view">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Universal governance layer</span>
-            <h2>The envelope is local. The enforcement layer is portable.</h2>
+          <p className="rt-lede reveal" data-d="2">
+            Stated formally, the verification condition is:
+          </p>
+
+          <p className="rt-notation reveal" data-d="3">
+            Reach<sub>G</sub>(X₀) ∩ Ω = ∅
+          </p>
+
+          <dl className="rt-defs reveal">
+            <div><dt>X₀</dt><dd>Initial state set</dd></div>
+            <div><dt>G</dt><dd>Governed transition system</dd></div>
+            <div><dt>Reach<sub>G</sub>(X₀)</dt><dd>States reachable while governance is active</dd></div>
+            <div><dt>Ω</dt><dd>Configured forbidden states</dd></div>
+          </dl>
+
+          <p className="rt-lede reveal">
+            In plain English: within the declared bounded model, no configured forbidden state
+            remains reachable under the governed transition system.
+          </p>
+
+          <div className="rt-claim reveal">
+            <span className="c-key">Claim boundary</span>
             <p>
-              The Admissible Operating Envelope changes with the environment; the enforcement mechanism does not.
-              Runtime Governance operates at the execution boundary, independent of model weights,
-              architectures, providers, or training methods.
+              This is <strong>bounded verification, not a universal proof of AI safety</strong>. The
+              result holds for the environment, tools, permissions, policies, horizon and Ω
+              definitions that were declared and evaluated. It does not assert that the underlying
+              model is safe in every environment or under every future configuration. If the
+              deployment context changes materially, the envelope is revalidated.
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="mw-agnostic reveal" aria-label="Agnostic across the stack">
+      {/* ══════════ 8 · EVIDENCE CHAIN ══════════ */}
+      <section className="rt-section rt-section--band" id="evidence-chain" aria-labelledby="chain-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Evidence chain</span>
+          <h2 id="chain-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Every decision leaves
+            <br />
+            a record that can be replayed.
+          </h2>
+          <div className="rt-stack reveal" data-d="2">
+            {EVIDENCE_CHAIN.map(([idx, name, body]) => (
+              <div className="rt-stack-row" key={idx}>
+                <span className="s-idx">{idx}</span>
+                <div><span className="s-name">{name}</span></div>
+                <p className="s-body">{body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="rt-note reveal">
+            Replay is deterministic: the recorded proposal and the recorded policy state reproduce
+            the recorded verdict. A record that has been altered fails verification.
+          </p>
+          <div className="rt-links reveal">
+            <Link href="/evidence">Evidence &amp; methodology</Link>
+            <Link href="/security">Security &amp; deployment</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ 9 · INTEGRATIONS ══════════ */}
+      <section className="rt-section" id="integrations" aria-labelledby="integ-title">
+        <span id="stack" className="rt-anchor" aria-hidden="true" />
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Integrations</span>
+          <h2 id="integ-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            The envelope is local.
+            <br />
+            The control layer is portable.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            The envelope changes with the environment; the enforcement mechanism does not.
+            Governance operates at the execution boundary, independent of model weights,
+            architectures, providers or training methods.
+          </p>
+          <ul className="rt-attrs reveal" data-d="3">
             {[
               "Provider-agnostic",
               "Model-agnostic",
@@ -152,328 +363,190 @@ export default function Page() {
               "Deployment-agnostic",
               "Third-party compatible",
               "Future-model compatible",
-            ].map((t) => (
-              <span key={t} className="mw-ag"><span className="mw-ag-dot" aria-hidden="true" />{t}</span>
+            ].map((t, i) => (
+              <li key={t}>
+                <span className="a-idx">{String(i + 1).padStart(2, "0")}</span>
+                {t}
+              </li>
             ))}
-          </div>
-
-          <div className="mw-arch reveal">
-            <div className="mw-layer mw-models">
-              <div className="mw-layer-label">Any provider · model · agent · system</div>
-              <div className="mw-model-chips">
-                {["OpenAI", "Anthropic", "Google", "Meta", "DeepSeek", "Qwen", "Microsoft Phi", "Mistral", "Grok", "Custom Models", "Third-Party Agents", "Internal Systems"].map((m) => (
-                  <span key={m} className="mw-chip">{m}</span>
-                ))}
-              </div>
-            </div>
-            <div className="mw-arrow" aria-hidden="true">
-              <div className="mw-arrow-line" />
-              <div className="mw-arrow-cap">↓ every transition evaluated against the local envelope</div>
-            </div>
-            <div className="mw-layer mw-gov">
-              <div className="mw-gov-inner">
-                <span className="mw-omega">Ω</span>
-                <div>
-                  <div className="mw-gov-kicker">Admissible Operating Envelope · Runtime Governance Layer</div>
-                  <div className="mw-gov-title">Morrison Runtime Governance<span className="tm">™</span></div>
-                  <div className="mw-gov-sub">Trajectory evaluation · Boundary enforcement · Pre-execution interception</div>
-                </div>
-              </div>
-            </div>
-            <div className="mw-arrow" aria-hidden="true">
-              <div className="mw-arrow-line" />
-              <div className="mw-arrow-cap">↓ only envelope-admissible actions reach your systems</div>
-            </div>
-            <div className="mw-layer mw-system">
-              <div className="mw-layer-label">Protected enterprise systems &amp; data</div>
-              <div className="mw-model-chips">
-                {["Customer Data", "CRM Systems", "Banking APIs", "Email Systems", "Cloud Infrastructure", "Internal Tools", "Databases", "Autonomous Workflows"].map((a) => (
-                  <span key={a} className="mw-chip mw-asset">{a}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mw-note reveal">
-            <div className="mwn-row">
-              <span className="mwn-dot safe" />
-              <span>Authorized trajectories inside the Admissible Operating Envelope pass through to your systems</span>
-            </div>
-            <div className="mwn-row">
-              <span className="mwn-dot blocked" />
-              <span>Boundary-violating or Ω-bound trajectories are blocked or escalated pre-execution</span>
-            </div>
-          </div>
-
-          <p className="mw-examples reveal">
-            Models will change. Tools and permissions will change. The local envelope can be revalidated
-            without changing the enforcement architecture.
+          </ul>
+          <p className="rt-note reveal">
+            Models, tools and permissions change. The envelope is revalidated without changing the
+            enforcement architecture.
           </p>
+          <div className="rt-links reveal">
+            <Link href="/integrations">How it integrates</Link>
+            <Link href="/developers">Developer surface</Link>
+          </div>
         </div>
       </section>
 
-      <hr className="divider" />
-
-      {/* ===== METHODOLOGY ===== */}
-      <section className="section" id="what" data-screen-label="Methodology">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Methodology</span>
-            <h2>Map, define, enforce, and revalidate the Admissible Operating Envelope.</h2>
-            <p>
-              Autonomous systems operate in changing state-spaces. Morrison turns that environment
-              into a bounded operating claim that can be tested and enforced at runtime.
-            </p>
-          </div>
-          <div className="dowork reveal">
+      {/* ══════════ 10 · PERFORMANCE ══════════ */}
+      <section className="rt-section rt-section--band" id="performance" aria-labelledby="perf-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Performance</span>
+          <h2 id="perf-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Authorization sits on the
+            <br />
+            critical path, so it is measured there.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            Because the evaluation is deterministic rather than model-mediated, its cost is a
+            function of the declared envelope and horizon, not of prompt length or sampling. Every
+            governed run records its own evaluation latency alongside the verdict, so the figure a
+            deployment quotes is one it measured.
+          </p>
+          <div className="rt-defs reveal" data-d="3">
             {[
-              ["01 — IDENTIFY", "Identify", "Map the deployment context: reachable states, tools, permissions, policies, data flows, and Ω exposure."],
-              ["02 — CONSTRAIN", "Constrain", "Define and validate the Admissible Operating Envelope and the boundaries proposed transitions must satisfy."],
-              ["03 — EMBED", "Embed", "Integrate Runtime Governance at the execution boundary so every proposed action is evaluated before it runs."],
-              ["04 — MONITOR", "Revalidate", "Revalidate the envelope as models, tools, permissions, policies, and the operational environment change."],
-            ].map(([num, h, p]) => (
-              <div className="cell" key={h}>
-                <div className="num">{num}</div>
-                <h3>{h}</h3>
-                <p>{p}</p>
+              ["Recorded per run", "Evaluation latency, approval wait and downstream provider latency are recorded separately for each governed run."],
+              ["Visible in the console", "The runtime dashboard reports mean and p95 evaluation latency for the deployment it governs."],
+              ["Not asserted here", "No single latency figure is published as a product claim: it depends on the envelope, horizon and host. Ask for the measured figures from a governed run in your environment."],
+            ].map(([k, v]) => (
+              <div key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+            ))}
+          </div>
+          <div className="rt-links reveal">
+            <Link href="/evidence">Measured results</Link>
+            <Link href="/live-demo">Run an evaluation</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ 11 · DEPLOYMENT ══════════ */}
+      <section className="rt-section" id="deployment" aria-labelledby="deploy-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Deployment</span>
+          <h2 id="deploy-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            One control contract
+            <br />
+            across every profile.
+          </h2>
+          <div className="rt-map reveal" data-d="2">
+            {PROFILES.map(([name, desc]) => (
+              <div className="rt-map-row" key={name}>
+                <span className="m-from">{name}</span>
+                <span className="m-arrow" aria-hidden="true">→</span>
+                <span className="m-to">{desc}</span>
               </div>
             ))}
           </div>
-          <div className="reveal" style={{ marginTop: "clamp(48px,6vw,88px)" }}>
-            <p className="pull">
-              The claim stays bounded to the environment. The boundary stays enforceable as the
-              system evolves. <span className="accent">Ω remains the forbidden region inside that geometry.</span>
-            </p>
+          <p className="rt-note reveal">
+            The deployment profile changes where enforcement runs and who holds the keys. It does
+            not change the contract: identity → policy → verdict → approval → execution → evidence.
+          </p>
+          <div className="rt-links reveal">
+            <Link href="/guardian-os">Guardian OS</Link>
+            <Link href="/guardian-os/sovereign">Sovereign</Link>
           </div>
         </div>
       </section>
 
-      <hr className="divider" />
+      {/* ══════════ BOUNDARY COVERAGE ══════════ */}
+      <section className="rt-section rt-section--band" id="threats" aria-labelledby="cov-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Boundary coverage</span>
+          <h2 id="cov-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            What can push a system
+            <br />
+            outside its envelope.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            Event-level controls evaluate individual calls. Governance evaluates the trajectory those
+            calls create, and whether it remains admissible before execution.
+          </p>
 
-      {/* ===== ADMISSIBLE OPERATING ENVELOPE GEOMETRY ===== */}
-      <section className="section" id="reachability" data-screen-label="Reachability">
-        <div className="wrap">
-          <div className="reach">
-            <div className="reach-stage reveal">
-              <canvas id="reach-canvas" aria-hidden="true" />
-              <CanvasScript src="/canvas/reach.js" />
-            </div>
-            <div>
-              <div className="section-head reveal" style={{ marginBottom: 0 }}>
-                <span className="eyebrow">Admissible Operating Envelope Geometry</span>
-                <h2>Local safety, expressed as reachability.</h2>
-                <p>
-                  States are nodes. Transitions are edges. The Admissible Operating Envelope describes the region
-                  the system may occupy under the current environment and constraints. Runtime Governance
-                  evaluates each reachable path and denies transitions that leave the envelope or enter
-                  the forbidden <span className="om">Ω</span> set — before execution.
-                </p>
-              </div>
-              <div className="reach-legend reveal" data-d="1">
-                <div className="legend-row">
-                  <span className="swatch safe" />
-                  <div>
-                    <b>Inside the Admissible Operating Envelope</b>
-                    <span>Locally admissible transitions propagate under the validated constraints.</span>
-                  </div>
-                </div>
-                <div className="legend-row">
-                  <span className="swatch blocked" />
-                  <div>
-                    <b>Boundary violation</b>
-                    <span>Transitions leaving the validated region are blocked or escalated pre-execution.</span>
-                  </div>
-                </div>
-                <div className="legend-row">
-                  <span className="swatch omega" />
-                  <div>
-                    <b>Ω — forbidden region</b>
-                    <span>States the system must not reach. Constrained, contained, unreachable.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <hr className="divider" />
-
-      {/* ===== FULL THREAT COVERAGE ===== */}
-      <section className="section section--tight tcov" id="threats" aria-label="Threat coverage">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Boundary coverage</span>
-            <h2>What can push a system outside its Admissible Operating Envelope.</h2>
-            <p>
-              Traditional security evaluates individual events. Runtime Governance evaluates the
-              trajectory those events create and whether that trajectory remains locally admissible
-              before execution.
-            </p>
-          </div>
-
-          <div className="tcov-tier reveal">
-            <div className="tcov-tier-h"><span className="tcov-dot crit" aria-hidden="true" />Enterprise critical risks</div>
-            <div className="tcov-grid">
-              {([
-                ["Unauthorized Financial Execution", "An agent moves money — a transfer, payment, or refund — outside approved limits or to an unverified destination.", "The transfer is denied before it executes, preventing irreversible financial loss."],
-                ["Credential & Secret Exfiltration", "An agent reads API keys, tokens, or secrets and routes them toward an external destination.", "The credential-to-external path is blocked before any secret leaves the boundary."],
-                ["Data Leakage (PII / PHI / customer data)", "Customer or regulated data is read and then sent beyond the approved boundary.", "The exfiltration trajectory is stopped before a notifiable breach can occur."],
-                ["Privilege Escalation", "An agent acquires permissions — for itself or another agent — beyond its authorised scope.", "Escalation is denied before elevated access is ever granted."],
-              ] as [string, string, string][]).map(([t, what, prevent]) => (
-                <div className="tcov-card crit" key={t}>
-                  <div className="tcov-card-h">{t}</div>
-                  <p className="tcov-what">{what}</p>
-                  <p className="tcov-prevent"><span>Prevented</span>{prevent}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="tcov-tier reveal">
-            <div className="tcov-tier-h"><span className="tcov-dot auto" aria-hidden="true" />Autonomous agent risks</div>
-            <p className="tcov-tier-sub">Failure modes that point-in-time monitoring cannot see, because the danger only exists across the full trajectory.</p>
-            <div className="tcov-grid">
-              {([
-                ["Chained Multi-Step Attacks", "Each step looks benign in isolation; the risk only appears across the full sequence. Event-level monitoring never sees the chain."],
-                ["Cross-Agent Delayed Intent", "Intent formed by one agent executes through another, later — breaking the cause-and-effect link monitoring relies on."],
-                ["Silent Trajectory Collapse", "The system drifts toward an unsafe state with no single alerting event. Nothing trips a threshold until it is too late."],
-                ["Long-Horizon Agent Drift", "Over many steps an agent migrates outside its original mandate — gradually, below the radar of point-in-time checks."],
-              ] as [string, string][]).map(([t, d]) => (
-                <div className="tcov-card auto" key={t}>
-                  <div className="tcov-card-h">{t}</div>
-                  <p className="tcov-what">{d}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="tcov-tier reveal">
-            <div className="tcov-tier-h"><span className="tcov-dot adv" aria-hidden="true" />Advanced multi-agent boundary risks</div>
-
-            <div className="tcov-featured">
-              <div className="tcov-featured-tag">Featured risk</div>
-              <h3>Cascading Failures Across Agent Pipelines</h3>
-              <p>Multiple individually safe agents can combine into an unsafe system.</p>
-              <div className="tcov-chain" aria-hidden="true">
-                <span className="tcov-chain-node ok">Agent A — safe</span>
-                <span className="tcov-chain-plus">+</span>
-                <span className="tcov-chain-node ok">Agent B — safe</span>
-                <span className="tcov-chain-plus">+</span>
-                <span className="tcov-chain-node ok">Agent C — safe</span>
-                <span className="tcov-chain-eq">=</span>
-                <span className="tcov-chain-node bad">Combined trajectory — unsafe</span>
-              </div>
-              <p className="tcov-featured-close">Runtime Governance evaluates the full trajectory across the pipeline — not each agent in isolation — and denies the combined unsafe path before any agent acts.</p>
-            </div>
-
-            <div className="tcov-grid tcov-grid--adv">
-              {([
-                ["Multi-Agent Collusion", "Agents coordinate to achieve together what none could alone.", ["Collusive exfiltration", "Role-split credential theft", "Split unauthorized transfer", "Tool delegation chains"]],
-                ["Composite Cross-Domain Risk", "Separate risk categories combine into one unsafe trajectory.", ["Financial execution + data exfiltration", "Credential theft + privilege escalation", "Multiple risk categories in one trajectory"]],
-              ] as [string, string, string[]][]).map(([t, d, subs]) => (
-                <div className="tcov-card adv" key={t}>
-                  <div className="tcov-card-h">{t}</div>
-                  <p className="tcov-what">{d}</p>
-                  <ul className="tcov-sub">{subs.map((s) => <li key={s}>{s}</li>)}</ul>
-                </div>
-              ))}
-              {([
-                ["Hidden-Trajectory Catastrophic Risk", "An unsafe path that never surfaces as an obvious unsafe step."],
-                ["Multi-Representation Forbidden-State Reachability", "The same forbidden outcome reached through different encodings or tools."],
-                ["Memory Contamination Between Agents", "Unsafe state passed between agents through shared memory or context."],
-              ] as [string, string][]).map(([t, d]) => (
-                <div className="tcov-card adv" key={t}>
-                  <div className="tcov-card-h">{t}</div>
-                  <p className="tcov-what">{d}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="tcov-keymsg reveal">
-              <span className="tcov-keymsg-dot" aria-hidden="true" />
-              Existing controls watch individual events. Multi-agent systems can leave a safe operating
-              region across the whole trajectory — which is exactly what Runtime Governance evaluates,
-              before execution.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <hr className="divider" />
-
-      {/* ===== CONCEPTS IN PLAIN ENGLISH ===== */}
-      <section className="section section--tight" id="invariants" aria-label="Plain-English concept glossary">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Plain-English clarity</span>
-            <h2>The concepts, without the jargon.</h2>
-            <p>
-              Runtime Governance uses precise technical language. Here is what each core term means
-              in plain English, so the boundary of the claim is explicit.
-            </p>
-          </div>
-          <div className="inv-grid">
+          <div className="rt-cov reveal" data-d="3">
             {([
-              ["Admissible Operating Envelope", "The set of states, actions, transitions and operating conditions a system is permitted to occupy or execute within a defined environment. It is a bounded deployment claim, not a universal claim that a model is safe."],
-              ["Ω — The Forbidden Region", "The set of states your AI must not reach. Ω sits inside the broader safety geometry as the explicitly forbidden region that governance makes unreachable."],
-              ["Reachability", "Whether your system can reach a given state from where it is now through available transitions. Governance uses reachability to test whether a trajectory stays inside the envelope or approaches a forbidden region."],
-              ["Trajectory", "The sequence of decisions, tool calls, or actions that lead your system from its current state toward an outcome. Governance evaluates the trajectory, not only the final action."],
-              ["Runtime Constraint", "A rule embedded directly in the execution path that prevents or escalates a prohibited transition before the tool call runs."],
-              ["Pre-Execution Interception", "Evaluating and governing an action before it happens — not detecting a boundary violation after the fact."],
-              ["Invariant", "A property that must remain true throughout execution — for example: 'This system will never authorise a payment above threshold X without human approval.'"],
-            ] as [string, string][]).map(([term, plain]) => (
-              <div className="inv-card card reveal" key={term}>
-                <div className="inv-term">{term}</div>
-                <div className="inv-plain">{plain}</div>
+              ["Unauthorized financial execution", "A transfer, payment or refund outside approved limits or to an unverified destination.", "The transfer is denied before it executes."],
+              ["Credential and secret exfiltration", "Keys, tokens or secrets read and routed toward an external destination.", "The credential-to-external path is blocked before any secret leaves the boundary."],
+              ["Regulated data leakage", "Customer or regulated data read and then sent beyond the approved boundary.", "The exfiltration trajectory is stopped before a notifiable breach occurs."],
+              ["Privilege escalation", "Permissions acquired beyond the authorized scope, for the calling identity or another.", "Escalation is denied before elevated access is granted."],
+              ["Chained multi-step paths", "Each step is admissible in isolation; the sequence is not. Event-level controls never see the chain.", "The sequence is evaluated over the declared horizon, not one call at a time."],
+              ["Cross-agent delegation", "A transition proposed through one component and executed through another, later.", "Authority is evaluated against the identity that actually holds it, across the pipeline."],
+            ] as [string, string, string][]).map(([t, what, outcome]) => (
+              <div className="rt-cov-row" key={t}>
+                <h3 className="rt-h3">{t}</h3>
+                <p className="c-what">{what}</p>
+                <p className="c-outcome"><span>Control outcome</span>{outcome}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <hr className="divider" />
-
-      {/* ===== INTERACTIVE GOVERNANCE DEMO ===== */}
-      <section className="section section--tight" id="demo" aria-label="Interactive governance demonstration">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <span className="eyebrow">Interactive demonstration</span>
-            <h2>See an Admissible Operating Envelope enforced in real time.</h2>
-            <p>
-              Select a scenario. Runtime Governance evaluates the agent&rsquo;s proposed trajectory
-              before execution — trajectories inside the envelope flow through, while boundary-
-              violating or Ω-bound paths are intercepted pre-action.
-            </p>
-          </div>
-          <RuntimeGovernanceDemo />
-          <div className="demo-cta reveal">
-            <span>Want to test your own action chain — or don&rsquo;t have an agent yet?</span>
-            <Link href="/test-trajectory" className="btn btn--ghost btn--sm">
-              Try the trajectory demo <span className="arr">→</span>
-            </Link>
-            <Link href="/test-without-agent" className="btn btn--ghost btn--sm">
-              Test without your own agent <span className="arr">→</span>
-            </Link>
+      {/* ══════════ TERMS ══════════ */}
+      <section className="rt-section" id="terms" aria-labelledby="terms-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Terms</span>
+          <h2 id="terms-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            The vocabulary, stated exactly.
+          </h2>
+          <div className="rt-defs rt-defs--wide reveal" data-d="2">
+            {([
+              ["Admissible Operating Envelope", "The set of states, actions, transitions and operating conditions a system is permitted to occupy or execute within a defined environment. A bounded deployment claim, not a universal claim about a model."],
+              ["Ω — forbidden region", "The set of states the system must not reach. Ω sits inside the envelope geometry as the explicitly forbidden region."],
+              ["Reachability", "Whether a state can be reached from the current state through available transitions, over a declared horizon."],
+              ["Trajectory", "The sequence of actions leading from the current state toward an outcome. The trajectory is evaluated, not only the final action."],
+              ["Runtime constraint", "A rule on the execution path that terminates or escalates a prohibited transition before the call runs."],
+              ["Pre-execution authorization", "Evaluating and deciding a proposed action before it is issued, rather than detecting a violation afterwards."],
+              ["Invariant", "A property that must hold throughout execution — for example, that no payment above a threshold is issued without independent approval."],
+              ["Fail-closed", "If policy cannot be verified or a decision cannot be reached, the transition does not execute."],
+            ] as [string, string][]).map(([term, plain]) => (
+              <div key={term}>
+                <span className="k">{term}</span>
+                <span className="v">{plain}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ===== NEXT STEPS ===== */}
-      <section className="section cta-final" aria-label="Next steps">
-        <div className="wrap">
-          <div className="inner reveal">
-            <span className="eyebrow" style={{ justifyContent: "center" }}>Next steps</span>
-            <h2 style={{ marginTop: 20 }}>Map the Admissible Operating Envelope in your environment.</h2>
-            <p>
-              Start with a live trajectory, then evaluate the real tools, permissions, policies,
-              and reachable states that define the boundary for your deployment.
-            </p>
-            <div className="hero-actions" style={{ marginTop: 38 }}>
-              <Link href="/live-demo" className="btn btn--primary">Try the Live Demo <span className="arr">→</span></Link>
-              <Link href="/quickstart" className="btn btn--ghost">Developer quickstart</Link>
-              <Link href="/book#assessment" className="btn btn--ghost">Book an Operating Envelope Assessment</Link>
-            </div>
+      {/* ══════════ RUN ONE ══════════ */}
+      <section className="rt-section rt-section--band" id="demo" aria-labelledby="demo-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Run one</span>
+          <h2 id="demo-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Evaluate a trajectory
+            <br />
+            against an envelope.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            Select a scenario. The proposed trajectory is evaluated before execution: admissible
+            paths pass through, boundary-violating and Ω-bound paths are terminated pre-action.
+          </p>
+          <div className="rt-demo-frame reveal" data-d="3">
+            <RuntimeGovernanceDemo />
+          </div>
+          <div className="rt-links reveal">
+            <Link href="/test-trajectory">Test a trajectory</Link>
+            <Link href="/test-without-agent">Test without your own agent</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ NEXT ══════════ */}
+      <section className="rt-section rt-closing" aria-labelledby="next-title">
+        <div className="rt-wrap">
+          <h2 id="next-title" className="rt-principle rt-principle--center reveal">
+            Declare the envelope.
+            <br />
+            Enforce the boundary.
+          </h2>
+          <p className="rt-lede rt-closing-lede reveal" data-d="1">
+            Start with a live evaluation, then map the real tools, permissions, policies and
+            reachable states that define the boundary for your deployment.
+          </p>
+          <div className="rt-actions rt-actions--center reveal" data-d="2">
+            <Link href="/live-demo" className="btn btn--primary btn--live">
+              <span className="live-pip" aria-hidden="true" />
+              Try Live Demo <span className="arr">→</span>
+            </Link>
+            <Link href="/book#assessment" className="btn btn--ghost">
+              Book Runtime Assessment <span className="arr">→</span>
+            </Link>
+            <Link href="/developers" className="btn btn--text">
+              Developer surface
+            </Link>
           </div>
         </div>
       </section>

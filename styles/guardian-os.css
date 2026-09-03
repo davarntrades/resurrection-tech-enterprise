@@ -28,14 +28,14 @@
    and honours prefers-reduced-motion — see design-system.css). */
 .gos-section, .gos-final { scroll-margin-top: 84px; }
 .gos-section { padding: clamp(76px, 10vw, 132px) 0; border-top: 1px solid var(--line); }
-.gos-section-alt { background: linear-gradient(180deg, rgba(255,255,255,0.014), transparent 60%); }
+.gos-section-alt { background: linear-gradient(180deg, rgba(var(--ink-rgb),0.014), transparent 60%); }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
 .gos-hero { position: relative; padding: clamp(56px, 9vw, 108px) 0 clamp(64px, 8vw, 104px); overflow: hidden; }
 .gos-hero::before {
   content: ""; position: absolute; inset: -30% 0 auto 50%; width: min(1100px, 120vw); height: 620px;
   transform: translateX(-50%); pointer-events: none;
-  background: radial-gradient(ellipse at 50% 40%, rgba(76,125,255,0.16), transparent 62%);
+  background: radial-gradient(ellipse at 50% 40%, rgba(var(--accent-rgb),0.16), transparent 62%);
   filter: blur(8px);
 }
 .gos-hero > * { position: relative; }
@@ -63,21 +63,21 @@
   text-decoration: none; border: 1px solid transparent; white-space: nowrap;
   transition: background .18s var(--ease-out), border-color .18s var(--ease-out), transform .18s var(--ease-out);
 }
-.gos-btn-primary { background: var(--ink); color: #0a0c0f; }
+.gos-btn-primary { background: var(--ink); color: var(--bg-1); }
 .gos-btn-primary:hover { background: #fff; transform: translateY(-1px); }
 .gos-btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-2); }
-.gos-btn-ghost:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.035); transform: translateY(-1px); }
+.gos-btn-ghost:hover { border-color: var(--line-strong); background: rgba(var(--ink-rgb),0.035); transform: translateY(-1px); }
 
 /* ── Control Room render ─────────────────────────────────────────────────── */
 .gos-render {
   margin-top: clamp(48px, 6vw, 82px); border: 1px solid var(--line-2); border-radius: 14px;
   background: linear-gradient(180deg, var(--panel), var(--bg-1));
-  box-shadow: 0 40px 120px -50px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  box-shadow: 0 40px 120px -50px rgba(var(--ink-rgb),0.9), 0 0 0 1px rgba(var(--ink-rgb),0.02) inset;
   overflow: hidden;
 }
 .gos-render-chrome {
   display: flex; align-items: center; gap: 7px; padding: 12px 16px;
-  border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.018);
+  border-bottom: 1px solid var(--line); background: rgba(var(--ink-rgb),0.018);
 }
 .gos-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
 .gos-render-url { margin-left: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
@@ -86,7 +86,7 @@
 .gos-render-title { font-size: clamp(16px, 1.8vw, 20px); font-weight: 600; color: var(--ink); }
 .gos-render-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.03em; }
 .gos-pill { font-family: var(--mono); font-size: 10.5px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-3); }
-.gos-pill-ok { color: var(--ok); border-color: rgba(63,178,127,0.4); }
+.gos-pill-ok { color: var(--ok); border-color: rgba(var(--ok-rgb),0.4); }
 .gos-render-phases { display: grid; gap: 7px; }
 .gos-render-phase {
   display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; align-items: center;
@@ -117,7 +117,7 @@
 .gos-launch {
   display: flex; align-items: center; gap: 18px; margin-top: 26px; padding: 24px clamp(22px, 3vw, 34px);
   border: 1px solid var(--line-2); border-radius: 14px;
-  background: linear-gradient(90deg, rgba(76,125,255,0.07), transparent 70%);
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),0.07), transparent 70%);
 }
 .gos-launch-arrow { font-size: 20px; color: var(--accent-bright); }
 .gos-launch-label { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
@@ -207,7 +207,7 @@
   width: 100%; padding: 20px 26px; border: 1px solid var(--line-2); border-radius: 12px;
   background: var(--panel); text-align: center;
 }
-.gos-stack-node.is-kernel { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.10), var(--panel)); box-shadow: 0 0 0 1px rgba(76,125,255,0.10); }
+.gos-stack-node.is-kernel { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(var(--accent-rgb),0.10), var(--panel)); box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.10); }
 .gos-stack-k { display: block; font-size: clamp(16px, 1.8vw, 20px); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .gos-stack-d { display: block; margin-top: 5px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-3); }
 .gos-stack-arrow { display: block; padding: 10px 0; font-size: 16px; color: var(--ink-4); }
@@ -229,7 +229,7 @@
 .gos-final::before {
   content: ""; position: absolute; inset: auto 0 -50% 50%; width: min(900px, 120vw); height: 460px;
   transform: translateX(-50%); pointer-events: none;
-  background: radial-gradient(ellipse at 50% 50%, rgba(76,125,255,0.13), transparent 64%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(var(--accent-rgb),0.13), transparent 64%);
 }
 .gos-final > * { position: relative; }
 .gos-final-h {
@@ -271,7 +271,7 @@
 .gos-tiers-sub { max-width: 62ch; margin: 12px 0 clamp(28px, 3.4vw, 40px); font-size: 14.5px; line-height: 1.62; color: var(--ink-2); }
 .gos-tier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 14px; }
 .gos-tier { display: flex; flex-direction: column; padding: clamp(24px, 2.8vw, 32px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
-.gos-tier.is-mid { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(76,125,255,0.06), var(--panel)); }
+.gos-tier.is-mid { border-color: var(--accent-dim); background: linear-gradient(180deg, rgba(var(--accent-rgb),0.06), var(--panel)); }
 .gos-tier-k { margin: 0; font-size: clamp(18px, 2vw, 22px); font-weight: 600; letter-spacing: -0.022em; color: var(--ink); }
 .gos-tier-who { margin: 10px 0 18px; font-size: 13px; line-height: 1.6; color: var(--ink-3); }
 .gos-tier-list { list-style: none; margin: 0; padding: 18px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; }
@@ -337,8 +337,8 @@
 }
 .gos-platform-node.is-os {
   border-color: var(--accent-dim);
-  background: linear-gradient(135deg, rgba(76,125,255,.12), var(--panel) 62%);
-  box-shadow: 0 26px 80px -54px rgba(76,125,255,.85);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),.12), var(--panel) 62%);
+  box-shadow: 0 26px 80px -54px rgba(var(--accent-rgb),.85);
 }
 .gos-platform-node.is-kernel { border-left: 3px solid var(--accent-bright); }
 .gos-platform-index {
@@ -363,7 +363,7 @@
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr); gap: 30px;
   align-items: center; margin-top: 16px; padding: clamp(24px, 3.2vw, 38px);
   border: 1px solid var(--accent-dim); border-radius: 14px;
-  background: linear-gradient(100deg, rgba(76,125,255,.09), var(--panel) 68%);
+  background: linear-gradient(100deg, rgba(var(--accent-rgb),.09), var(--panel) 68%);
 }
 .gos-kernel-band h3 { margin: 10px 0 0; font-size: clamp(20px, 2.5vw, 30px); font-weight: 600; letter-spacing: -.024em; color: var(--ink); }
 .gos-kernel-band ul { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -384,7 +384,7 @@
 .gos-continuous {
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 18px;
   padding: 20px 24px; border: 1px solid var(--line-2); border-radius: 12px;
-  background: linear-gradient(90deg, rgba(76,125,255,.08), transparent);
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),.08), transparent);
 }
 .gos-continuous span { font-family: var(--mono); font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-bright); }
 .gos-continuous strong { font-size: 13px; font-weight: 520; color: var(--ink); }
@@ -411,7 +411,7 @@
 .gos-comparison-row > * + *,
 .gos-comparison-head > * + * { border-left: 1px solid var(--line); }
 .gos-comparison-row strong { font-weight: 600; color: var(--ink); }
-.gos-comparison-row span:last-child { color: var(--ink); background: rgba(76,125,255,.035); }
+.gos-comparison-row span:last-child { color: var(--ink); background: rgba(var(--accent-rgb),.035); }
 
 .gos-pack-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(278px, 1fr)); gap: 12px; }
 .gos-pack-compact { display: flex; flex-direction: column; padding: 24px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
@@ -431,7 +431,7 @@
 .gos-deployment-kernel {
   display: grid; grid-template-columns: minmax(150px, .5fr) minmax(0, 1.5fr); gap: 10px 24px;
   margin-top: 18px; padding: 24px; border: 1px solid var(--accent-dim); border-radius: 12px;
-  background: rgba(76,125,255,.045);
+  background: rgba(var(--accent-rgb),.045);
 }
 .gos-deployment-kernel span { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
 .gos-deployment-kernel b { font-size: 13px; font-weight: 520; color: var(--ink); }

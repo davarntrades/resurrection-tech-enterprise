@@ -15,8 +15,8 @@
 .sip-sep-row p { margin: 7px 0 0; font-size: 13px; line-height: 1.62; color: var(--ink-2); }
 .sip-sep-row > b { position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%); font-weight: 400; color: var(--ink-4); }
 /* The two rows that carry the argument: the kernel never changes, the packs do. */
-.sip-sep-row.is-kernel { border-color: var(--line-2); background: linear-gradient(135deg, rgba(255,255,255,.04), var(--panel) 62%); }
-.sip-sep-row.is-pack { border-color: var(--accent-dim); background: linear-gradient(135deg, rgba(76,125,255,.12), var(--panel) 68%); }
+.sip-sep-row.is-kernel { border-color: var(--line-2); background: linear-gradient(135deg, rgba(var(--ink-rgb),.04), var(--panel) 62%); }
+.sip-sep-row.is-pack { border-color: var(--accent-dim); background: linear-gradient(135deg, rgba(var(--accent-rgb),.12), var(--panel) 68%); }
 
 /* Classification tiers: guarantees required → deployment profiles derived. */
 .sip-tiers { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
@@ -56,7 +56,7 @@
   display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(24px, 4vw, 52px); align-items: center;
   margin-top: clamp(30px, 4vw, 48px); padding: clamp(26px, 3.4vw, 40px);
   border: 1px solid var(--line-2); border-radius: 14px;
-  background: linear-gradient(135deg, rgba(76,125,255,.10), var(--panel) 66%);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),.10), var(--panel) 66%);
 }
 .sip-nocode h3 { margin: 12px 0 0; font-size: clamp(19px, 2.2vw, 26px); font-weight: 600; letter-spacing: -.024em; line-height: 1.28; color: var(--ink); }
 .sip-nocode p { margin: 0; font-size: 13.5px; line-height: 1.68; color: var(--ink-2); }
@@ -89,16 +89,16 @@
 }
 
 /* Deepen the page ground so gold has something to sit against. */
-.sip-page .gos-section { background: #08070a; }
-.sip-page .gos-section-alt { background: #050406; }
+.sip-page .gos-section { background: var(--bg-1); }
+.sip-page .gos-section-alt { background: var(--bg-1); }
 .sip-page .gos-hero {
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(213, 173, 90, 0.09), transparent 62%),
-    #050406;
+    var(--bg-1);
 }
 
 /* Gold CTA reads premium as dark foil rather than white-on-gold. */
-.sip-page .gos-btn-primary { color: #14100a; }
+.sip-page .gos-btn-primary { color: var(--escalate-dim); }
 
 /* The pack row keeps its emphasis, now in gold rather than blue. */
 .sip-page .sip-sep-row.is-pack {
@@ -133,9 +133,9 @@ body:has(main.sip-page) .nav-assess,
 body:has(main.sip-page) .nav-menu-cta .btn--primary {
   background: linear-gradient(180deg, #e2c07a, #d5ad5a);
   border-color: transparent;
-  color: #14100a;
+  color: var(--escalate-dim);
   /* `.btn--primary`'s focus ring is a hardcoded blue the accent tokens do not
      reach, which otherwise leaves a blue rim on a gold button. */
   box-shadow: 0 0 0 1px rgba(213, 173, 90, 0.45), 0 10px 30px -12px rgba(213, 173, 90, 0.4);
 }
-body:has(main.sip-page) .nav-assess .arr { color: #14100a; }
+body:has(main.sip-page) .nav-assess .arr { color: var(--escalate-dim); }
