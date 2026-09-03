@@ -3,8 +3,9 @@ import type { Config } from "tailwindcss";
 /**
  * Tailwind is configured for layout utilities only.
  * The Resurrection Tech design system (colours, type, components) lives in
- * styles/design-system.css and is reused verbatim from the approved design.
- * Tokens are mirrored here so utilities can reference the same palette.
+ * styles/design-system.css, with the editorial + control-system primitives in
+ * styles/rt-system.css. Tokens are mirrored here so utilities can reference the
+ * same palette.
  */
 const config: Config = {
   content: [
@@ -14,22 +15,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#08090b",
-        "bg-1": "#0b0d10",
-        panel: "#0f1216",
-        "panel-2": "#14181d",
-        ink: "#f3f5f7",
-        "ink-2": "#aab2bd",
-        "ink-3": "#6b7480",
-        "ink-4": "#474e58",
-        accent: "#4c7dff",
-        "accent-bright": "#6f97ff",
-        "accent-purple": "#6d5cff",
-        omega: "#e5484d",
-        ok: "#3fb27f",
+        bg: "#ffffff",
+        "bg-1": "#fbfaf7",
+        "bg-2": "#f6f4f0",
+        panel: "#ffffff",
+        "panel-2": "#f6f4f0",
+        ink: "#101114",
+        "ink-2": "#4a4e55",
+        "ink-3": "#767b83",
+        "ink-4": "#a2a7ae",
+        accent: "#123a9e",
+        "accent-bright": "#1746c4",
+        omega: "#a81e12",
+        ok: "#0b6b45",
+        escalate: "#8a5a00",
       },
       fontFamily: {
         sans: ["Geist", "Helvetica Neue", "Arial", "sans-serif"],
+        display: ["Instrument Serif", "Iowan Old Style", "Georgia", "serif"],
         mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       maxWidth: {

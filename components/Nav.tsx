@@ -11,10 +11,6 @@ export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isSovereignPage = pathname === "/guardian-os/sovereign";
-  const sovereignAssessStyle = isSovereignPage
-    ? { background: "#d5ad5a", borderColor: "#d5ad5a", color: "#050505" }
-    : undefined;
 
   useEffect(() => {
     // Solidify the bar almost immediately on scroll so content never bleeds
@@ -35,6 +31,13 @@ export function Nav() {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
+
+  // "Sovereign" sits under /guardian-os, so the Guardian OS link must not also
+  // claim the current page — match the deepest href that prefixes the path.
+  const activeHref = NAV_LINKS
+    .map((l) => l.href)
+    .filter((href) => pathname === href || pathname.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav className={`nav${scrolled ? " scrolled" : ""}`} aria-label="Primary">
@@ -69,15 +72,14 @@ export function Nav() {
 
         <div className="nav-links">
           {NAV_LINKS.map((l) => {
-            const isLive = l.href === "/live-demo";
+            const isActive = l.href === activeHref;
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={isLive ? "nav-live" : undefined}
-                onClick={isLive ? () => track(Events.CTA_CLICK, { location: "nav", cta: "live-demo" }) : undefined}
+                className={isActive ? "active" : undefined}
+                aria-current={isActive ? "page" : undefined}
               >
-                {isLive && <span className="nav-live-dot" aria-hidden="true" />}
                 {l.label}
               </Link>
             );
@@ -86,14 +88,20 @@ export function Nav() {
 
         <div className="nav-cta">
           <Link
-            href="/assessment"
-            className="btn btn--primary btn--sm nav-assess"
-            style={sovereignAssessStyle}
-            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
+            href="/book#assessment"
+            className="btn btn--ghost btn--sm"
+            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "book" })}
           >
-            <span className="nav-assess-full">Assess Your Agent</span>
-            <span className="nav-assess-short">Assess</span>
-            <span className="arr">→</span>
+            Book Assessment
+          </Link>
+          <Link
+            href="/live-demo"
+            className="btn btn--primary btn--sm btn--live nav-assess"
+            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "live-demo" })}
+          >
+            <span className="live-pip" aria-hidden="true" />
+            <span className="nav-assess-full">Try Live Demo</span>
+            <span className="nav-assess-short">Demo</span>
           </Link>
           <button
             type="button"
@@ -132,19 +140,18 @@ export function Nav() {
           {/* Conversion actions — pinned to the foot of the panel */}
           <div className="nav-menu-cta">
             <Link
-              href="/assessment"
+              href="/live-demo"
               className="btn btn--primary"
-              style={sovereignAssessStyle}
-              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "assess" }); setMenuOpen(false); }}
+              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "live-demo" }); setMenuOpen(false); }}
             >
-              Assess Your Agent — Free <span className="arr">→</span>
+              Try Live Demo <span className="arr">→</span>
             </Link>
             <Link
               href="/book#assessment"
               className="btn btn--ghost"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "book" }); setMenuOpen(false); }}
             >
-              Book a call <span className="arr">→</span>
+              Book Runtime Assessment <span className="arr">→</span>
             </Link>
           </div>
         </div>

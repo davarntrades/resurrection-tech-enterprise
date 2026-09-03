@@ -10,7 +10,7 @@
   height: 34px;
   padding: 0 13px;
   border: 1px solid var(--line-2);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--ink-2);
   font-family: var(--mono);
@@ -20,7 +20,7 @@
   cursor: pointer;
   transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease);
 }
-.nav-menu-btn:hover { color: var(--ink); border-color: var(--line-strong); background: rgba(255,255,255,0.04); }
+.nav-menu-btn:hover { color: var(--ink); border-color: var(--line-strong); background: var(--panel-2); }
 .nav-menu-bars { position: relative; width: 15px; height: 11px; flex: none; }
 .nav-menu-bars span {
   position: absolute; left: 0; width: 100%; height: 1.5px; border-radius: 2px;
@@ -36,7 +36,7 @@
 /* Scrim */
 .nav-menu-scrim {
   position: fixed; inset: 0; z-index: 48;
-  background: rgba(5,6,8,0.6);
+  background: rgba(16,17,20,0.34);
   backdrop-filter: blur(2px);
   opacity: 0; visibility: hidden;
   transition: opacity 0.25s var(--ease), visibility 0.25s var(--ease);
@@ -46,11 +46,9 @@
 /* Panel — a full-width mega-menu that drops down below the fixed 66px nav */
 .nav-menu-panel {
   position: fixed; top: 66px; left: 0; right: 0; z-index: 49;
-  background: rgba(8,9,11,0.985);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border-bottom: 1px solid var(--line-strong);
-  box-shadow: 0 40px 80px -40px rgba(0,0,0,0.8);
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-2);
+  box-shadow: 0 30px 60px -44px rgba(16,17,20,0.45);
   opacity: 0; visibility: hidden; transform: translateY(-14px); pointer-events: none;
   transition: opacity 0.3s var(--ease-out), transform 0.34s var(--ease-out), visibility 0.3s var(--ease-out);
   max-height: calc(100dvh - 66px); overflow-y: auto; will-change: opacity, transform;
@@ -58,7 +56,7 @@
 /* Hairline accent at the very top of the drop-down */
 .nav-menu-panel::before {
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5;
+  background: var(--accent); opacity: 0.6;
 }
 .nav-menu-panel.is-open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
 .nav-menu-panel .wrap { padding-block: clamp(26px, 4vw, 44px); }
@@ -97,7 +95,7 @@
   letter-spacing: -0.01em; transition: color 0.16s var(--ease), transform 0.16s var(--ease);
 }
 .nav-menu-col a::before {
-  content: ""; width: 0; height: 1px; background: var(--accent-bright);
+  content: ""; width: 0; height: 1px; background: var(--accent);
   transition: width 0.18s var(--ease); flex: none;
 }
 .nav-menu-col a:hover { color: var(--ink); transform: translateX(2px); }
