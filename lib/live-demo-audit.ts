@@ -123,6 +123,7 @@ export type AdmissibleOperatingEnvelopeEvidence = {
   envelope_id?: string;
   status: GovernedResult["safety_envelope"]["status"];
   inside_validated_configuration?: boolean;
+  inside_validated_configuration_scope?: "governance_configuration";
   safety_property?: string;
   validated_conditions?: Record<string, unknown>;
   evidence?: Record<string, unknown>;
@@ -135,6 +136,10 @@ export type AdmissibleOperatingEnvelopeEvidence = {
   warning?: string;
   boundary_mutation?: string;
   runtime_governance_active?: boolean;
+  configuration_membership?: GovernedResult["safety_envelope"]["configuration_membership"];
+  proposal_membership?: GovernedResult["safety_envelope"]["proposal_membership"];
+  execution_membership?: GovernedResult["safety_envelope"]["execution_membership"];
+  tool_governance_evidence?: GovernedResult["safety_envelope"]["tool_governance_evidence"];
 };
 
 export type EvalRecord = {
@@ -319,11 +324,15 @@ export function projectGovernedEvidence(result?: GovernedResult | null): Pick<
   if (!result) return {};
   const canonical = result.canonical_governance;
   const safety = result.safety_envelope;
-  const inside = safety.status === "UNVALIDATED"
-    ? false
-    : safety.status === "OBSERVED_LOCAL_SAFETY" || safety.status === "LOCAL_SAFETY_VIOLATION"
-      ? true
-      : undefined;
+  const inside = typeof safety.configuration_membership?.inside_validated_configuration === "boolean"
+    ? safety.configuration_membership.inside_validated_configuration
+    : typeof safety.inside_envelope === "boolean"
+      ? safety.inside_envelope
+      : safety.status === "UNVALIDATED"
+        ? false
+        : safety.status === "OBSERVED_LOCAL_SAFETY" || safety.status === "LOCAL_SAFETY_VIOLATION"
+          ? true
+          : undefined;
   return {
     runtime_outcome: {
       canonical_verdict: canonical.verdict,
@@ -339,7 +348,10 @@ export function projectGovernedEvidence(result?: GovernedResult | null): Pick<
     admissible_operating_envelope: sanitizeForEvidence({
       ...(safety.envelope ? { envelope_id: safety.envelope } : {}),
       status: safety.status,
-      ...(inside === undefined ? {} : { inside_validated_configuration: inside }),
+      ...(inside === undefined ? {} : {
+        inside_validated_configuration: inside,
+        inside_validated_configuration_scope: "governance_configuration" as const,
+      }),
       ...(safety.safety_property ? { safety_property: safety.safety_property } : {}),
       ...(safety.validated_conditions ? { validated_conditions: safety.validated_conditions } : {}),
       ...(safety.evidence ? { evidence: safety.evidence } : {}),
@@ -354,6 +366,14 @@ export function projectGovernedEvidence(result?: GovernedResult | null): Pick<
       ...(safety.boundary_mutation ? { boundary_mutation: safety.boundary_mutation } : {}),
       ...(typeof safety.runtime_governance_active === "boolean"
         ? { runtime_governance_active: safety.runtime_governance_active } : {}),
+      ...(safety.configuration_membership
+        ? { configuration_membership: safety.configuration_membership } : {}),
+      ...(safety.proposal_membership
+        ? { proposal_membership: safety.proposal_membership } : {}),
+      ...(safety.execution_membership
+        ? { execution_membership: safety.execution_membership } : {}),
+      ...(safety.tool_governance_evidence
+        ? { tool_governance_evidence: safety.tool_governance_evidence } : {}),
     }) as AdmissibleOperatingEnvelopeEvidence,
   };
 }

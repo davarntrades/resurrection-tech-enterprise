@@ -53,6 +53,7 @@ export type GovernedResult = {
     title?: string;
     authority?: string;
     status: SafetyEnvelopeStatus;
+    inside_envelope?: boolean;
     envelope?: string | null;
     safety_property?: string;
     validated_conditions?: Record<string, unknown>;
@@ -64,6 +65,39 @@ export type GovernedResult = {
     error?: string;
     boundary_mutation?: string;
     runtime_governance_active?: boolean;
+    configuration_membership?: {
+      scope: "governance_configuration_against_declared_tested_envelope";
+      inside_validated_configuration?: boolean;
+      governance_configuration_within_validated_envelope?: boolean;
+    };
+    proposal_membership?: {
+      scope: "autonomous_system_proposal_against_governance_tool_manifest";
+      proposed_tools: string[];
+      proposal_within_declared_tool_set: boolean;
+      unregistered_proposed_tools: string[];
+      proposal_is_not_execution_evidence: true;
+    };
+    execution_membership?: {
+      scope: "recorded_execution_against_governance_tool_manifest";
+      execution_occurred: boolean;
+      executed_tools: string[];
+      out_of_envelope_execution_occurred: boolean;
+      out_of_envelope_executed_tools: string[];
+    };
+    tool_governance_evidence?: Array<{
+      step: number;
+      tool: string;
+      declaration_scope: "evaluated_governance_security_context_tool_manifest";
+      declaration_status: "DECLARED" | "UNDECLARED";
+      known_to_governance_manifest: boolean;
+      registered_in_governance_manifest: boolean;
+      inside_declared_aoe_tool_set: boolean;
+      classified_capabilities: string[];
+      permission_requirement: string;
+      governance_verdict: string;
+      permitted: boolean;
+      execution_occurred: boolean;
+    }>;
   };
   evidence_package?: Record<string, unknown> | null;
 };

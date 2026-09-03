@@ -38,6 +38,7 @@ const governedResult = {
   },
   safety_envelope: {
     status: "UNVALIDATED",
+    inside_envelope: true,
     envelope: "aoe-public-demo-v1",
     safety_property: "No prohibited state is reachable within the declared tested envelope.",
     validated_conditions: {
@@ -46,11 +47,35 @@ const governedResult = {
       execution_mode: "decision_plane",
       model_planner: "operator_supplied:public_demo",
       scenario_family: "operator_supplied_trajectory",
+      tools: ["send_email"],
     },
     evidence: { source_evidence_hash: "source-hash" },
     unsupported_unvalidated_region: ["additional_agent", "broader_permission"],
     warning: "UNVALIDATED means outside tested conditions; it implies neither safe nor unsafe.",
     runtime_governance_active: true,
+    configuration_membership: {
+      scope: "governance_configuration_against_declared_tested_envelope",
+      inside_validated_configuration: true,
+      governance_configuration_within_validated_envelope: true,
+    },
+    proposal_membership: {
+      scope: "autonomous_system_proposal_against_governance_tool_manifest",
+      proposed_tools: ["read_account", "transfer_funds"],
+      proposal_within_declared_tool_set: false,
+      unregistered_proposed_tools: ["read_account", "transfer_funds"],
+      proposal_is_not_execution_evidence: true,
+    },
+    execution_membership: {
+      scope: "recorded_execution_against_governance_tool_manifest",
+      execution_occurred: false,
+      executed_tools: [],
+      out_of_envelope_execution_occurred: false,
+      out_of_envelope_executed_tools: [],
+    },
+    tool_governance_evidence: [
+      { step: 1, tool: "read_account", declaration_scope: "evaluated_governance_security_context_tool_manifest", declaration_status: "UNDECLARED", known_to_governance_manifest: false, registered_in_governance_manifest: false, inside_declared_aoe_tool_set: false, classified_capabilities: ["data.read"], permission_requirement: "allow", governance_verdict: "ESCALATE", permitted: false, execution_occurred: false },
+      { step: 2, tool: "transfer_funds", declaration_scope: "evaluated_governance_security_context_tool_manifest", declaration_status: "UNDECLARED", known_to_governance_manifest: false, registered_in_governance_manifest: false, inside_declared_aoe_tool_set: false, classified_capabilities: ["payment.move_funds"], permission_requirement: "approval", governance_verdict: "BLOCK", permitted: false, execution_occurred: false },
+    ],
   },
 };
 
@@ -181,9 +206,53 @@ test("BLOCK verdict and execution outcome remain independent evidence fields", (
 test("UNVALIDATED remains bounded and is never converted to SAFE or UNSAFE", () => {
   const envelope = projectGovernedEvidence(governedResult).admissible_operating_envelope;
   assert.equal(envelope.status, "UNVALIDATED");
-  assert.equal(envelope.inside_validated_configuration, false);
+  assert.equal(envelope.inside_validated_configuration, true);
+  assert.equal(envelope.inside_validated_configuration_scope, "governance_configuration");
   assert.equal(envelope.claim_boundary.inherits_outside_envelope, false);
   assert.equal("safety_classification" in envelope, false);
+});
+
+test("tool declaration and proposal membership use explicit scopes", () => {
+  const envelope = projectGovernedEvidence(governedResult).admissible_operating_envelope;
+  assert.equal(envelope.configuration_membership.inside_validated_configuration, true);
+  assert.equal(envelope.configuration_membership.governance_configuration_within_validated_envelope, true);
+  assert.equal(envelope.proposal_membership.proposal_within_declared_tool_set, false);
+  assert.deepEqual(envelope.proposal_membership.unregistered_proposed_tools, ["read_account", "transfer_funds"]);
+  assert.ok(!envelope.validated_conditions.tools.includes("read_account"));
+  assert.ok(!envelope.validated_conditions.tools.includes("transfer_funds"));
+  assert.equal(envelope.execution_membership.out_of_envelope_execution_occurred, false);
+  for (const tool of envelope.tool_governance_evidence) {
+    assert.equal(tool.declaration_scope, "evaluated_governance_security_context_tool_manifest");
+    assert.equal(tool.declaration_status, "UNDECLARED");
+    assert.equal(tool.registered_in_governance_manifest, false);
+    assert.equal(tool.inside_declared_aoe_tool_set, false);
+    assert.equal(tool.execution_occurred, false);
+  }
+});
+
+test("PHI proposal can leave the declared tool set while governance configuration and execution remain bounded", () => {
+  const healthcare = structuredClone(governedResult);
+  healthcare.canonical_governance.omega = ["undeclared_tool", "phi_exposure"];
+  healthcare.safety_envelope.proposal_membership = {
+    scope: "autonomous_system_proposal_against_governance_tool_manifest",
+    proposed_tools: ["read_patient_record", "send_email"],
+    proposal_within_declared_tool_set: false,
+    unregistered_proposed_tools: ["read_patient_record"],
+    proposal_is_not_execution_evidence: true,
+  };
+  healthcare.safety_envelope.execution_membership = {
+    scope: "recorded_execution_against_governance_tool_manifest",
+    execution_occurred: false,
+    executed_tools: [],
+    out_of_envelope_execution_occurred: false,
+    out_of_envelope_executed_tools: [],
+  };
+  const projected = projectGovernedEvidence(healthcare);
+  assert.equal(projected.runtime_outcome.canonical_verdict, "BLOCK");
+  assert.equal(projected.runtime_outcome.execution_occurred, false);
+  assert.equal(projected.admissible_operating_envelope.inside_validated_configuration, true);
+  assert.equal(projected.admissible_operating_envelope.proposal_membership.proposal_within_declared_tool_set, false);
+  assert.equal(projected.admissible_operating_envelope.execution_membership.out_of_envelope_execution_occurred, false);
 });
 
 test("missing causal evidence remains missing", () => {

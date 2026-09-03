@@ -257,6 +257,39 @@ def _governed_kernel(names: Optional[list[str]], horizon: int,
         evidence_key=EVIDENCE_SEALING_KEY, engine_version=ENGINE_COMMIT)
 
 
+def _projection_replay_config(kernel: GovernanceKernel,
+                              names: Optional[list[str]]):
+    """Describe the exact trusted runtime configuration used for this request.
+
+    The post-governance AOE projection previously fell back to the Frontier Lab
+    manifest.  That made its validated tool set disagree with the kernel that
+    issued the decision.  This adapter passes authoritative kernel context into
+    the shared Morrison evidence builder; it does not re-evaluate the verdict.
+    """
+    from runtime_eval.causal_overlay import ReplayConfig
+
+    ctx = kernel.ctx
+    values = dict(ctx.policy_values or {})
+    capability_policy = values.get("capability_policy") or {}
+    return ReplayConfig(
+        domains=tuple(domain.value for domain in _domains_from(names)),
+        internal_email_domains=tuple(ctx.internal_email_domains),
+        internal_url_hosts=tuple(ctx.internal_url_hosts),
+        tool_capabilities=tuple(sorted(
+            (tool, tuple(sorted(capabilities)))
+            for tool, capabilities in (ctx.tool_manifest or {}).items())),
+        capability_policy=tuple(sorted(
+            (str(capability), str(requirement))
+            for capability, requirement in capability_policy.items())),
+        principal_grants=tuple(sorted(ctx.principal.granted_capabilities)),
+        payment_auto_approve_max=float(
+            values.get("payment_auto_approve_max") or 0.0),
+        egress_requires_approval_after_read=bool(
+            values.get("egress_requires_approval_after_read", True)),
+        unknown_tool_policy=str(ctx.unknown_tool_policy or "escalate"),
+    )
+
+
 # ── Assessment layer + catalog (all domains, for the public /v1/assess) ────
 # The widest coverage so the exposure map + grounding see every loaded Ω rule,
 # including the reusable cross-domain patterns carried by the sector domains.
@@ -795,6 +828,7 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             execution_mode="decision_plane",
             horizon=req.horizon or HORIZON,
             scenario_family="operator_supplied_trajectory",
+            replay_config=_projection_replay_config(kernel, req.domains),
         )
     except Exception as exc:  # canonical result remains visible and unchanged
         body["governed_result"] = {

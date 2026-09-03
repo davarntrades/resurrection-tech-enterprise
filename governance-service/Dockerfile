@@ -6,7 +6,10 @@ WORKDIR /app
 
 # Pin the engine to a specific commit/tag for reproducible verdicts.
 ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
-# Pinned to PR #12 (2026-08-07): deterministic ruleset hash, single-step
+# Pinned through PR #31 (2026-09-03): the shared evidence projection uses the
+# evaluated governance manifest and separates proposal, configuration and
+# execution membership.  Canonical enforcement remains unchanged.  This also
+# includes PR #12 (2026-08-07): deterministic ruleset hash, single-step
 # sensitive-egress guard, fail-closed tenancy — on top of PR #11 which added
 # morrison_governance.kernel — the trust boundary (authority quarantine, signed
 # approval artifacts bound to a canonical action hash), semantic capability
@@ -18,7 +21,7 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=5cbba5f13f89dc852ac56241e4db54c056b7d72b
+ARG ENGINE_REF=331db2096632d2f7633a42c712a067320b495d43
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
