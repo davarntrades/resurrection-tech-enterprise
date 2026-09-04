@@ -87,21 +87,25 @@ export function Nav() {
         </div>
 
         <div className="nav-cta">
-          <Link
-            href="/book#assessment"
-            className="btn btn--ghost btn--sm"
-            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "book" })}
-          >
-            Book Assessment
-          </Link>
+          {/* The questionnaire is the primary top-level action: it is the
+              front door of the pipeline, so it holds the primary button and
+              the live demo sits beside it as the secondary. */}
           <Link
             href="/live-demo"
-            className="btn btn--primary btn--sm btn--live nav-assess"
+            className="btn btn--ghost btn--sm btn--live nav-demo"
             onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "live-demo" })}
           >
             <span className="live-pip" aria-hidden="true" />
-            <span className="nav-assess-full">Try Live Demo</span>
-            <span className="nav-assess-short">Demo</span>
+            Try Live Demo
+          </Link>
+          <Link
+            href="/assessment"
+            className="btn btn--primary btn--sm nav-assess"
+            onClick={() => track(Events.CTA_CLICK, { location: "nav", cta: "assess" })}
+          >
+            <span className="nav-assess-full">Assess Your Agent</span>
+            <span className="nav-assess-short">Assess</span>
+            <span className="arr">→</span>
           </Link>
           <button
             type="button"
@@ -140,10 +144,18 @@ export function Nav() {
           {/* Conversion actions — pinned to the foot of the panel */}
           <div className="nav-menu-cta">
             <Link
-              href="/live-demo"
+              href="/assessment"
               className="btn btn--primary"
+              onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "assess" }); setMenuOpen(false); }}
+            >
+              Assess Your Agent — Free <span className="arr">→</span>
+            </Link>
+            <Link
+              href="/live-demo"
+              className="btn btn--ghost btn--live"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "live-demo" }); setMenuOpen(false); }}
             >
+              <span className="live-pip" aria-hidden="true" />
               Try Live Demo <span className="arr">→</span>
             </Link>
             <Link
