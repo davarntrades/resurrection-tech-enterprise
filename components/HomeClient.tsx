@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
 import { ExecutionBoundaryFigure } from "@/components/iso";
-import { AsciiField } from "@/components/hero/AsciiField";
+import { ExecutionField } from "@/components/hero/ExecutionField";
 import { EvidenceRail } from "@/components/evidence/EvidenceRail";
 import { IntegrationMatrix } from "@/components/integrations/IntegrationMatrix";
 import { useSiteMotion } from "@/components/useSiteMotion";
@@ -95,10 +95,9 @@ export function HomeClient() {
       <main id="top" className="rt-home">
         {/* ══════════ 01 — WHO CONTROLS WHAT BECOMES EXECUTABLE? ══════════ */}
         <header className="rt-section rt-section--first rt-hero" aria-labelledby="hero-title">
-          {/* Decorative. The hero's meaning is in the copy below; the field
-              restates it — a reachability wave that only continues through
-              the gate in the authorization boundary. */}
-          <AsciiField />
+          {/* Decorative: the hero's meaning is in the copy below and in the
+              static figure the field falls back to. */}
+          <ExecutionField />
           <div className="rt-wrap">
             <span className="rt-eyebrow reveal in">Resurrection Tech™</span>
 
