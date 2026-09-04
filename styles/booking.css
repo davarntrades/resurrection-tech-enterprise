@@ -8,10 +8,10 @@
 .retainer-note {
   margin-top: 24px;
   padding: clamp(22px, 3.5vw, 34px) clamp(24px, 4vw, 40px);
-  border: 1px solid rgba(76, 125, 255, 0.28);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(76, 125, 255, 0.07), rgba(109, 92, 255, 0.035) 60%, transparent),
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.07), rgba(var(--accent-rgb), 0.035) 60%, transparent),
     var(--panel);
   display: flex;
   flex-direction: column;
@@ -96,13 +96,13 @@
   text-transform: uppercase;
   color: var(--accent-bright);
   padding: 5px 10px;
-  border: 1px solid rgba(76, 125, 255, 0.28);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: 100px;
-  background: rgba(76, 125, 255, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 .book-flag {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -144,8 +144,8 @@
 
 /* Focused (deep-linked) card */
 .book-card.is-focused {
-  border-color: rgba(76, 125, 255, 0.55);
-  box-shadow: 0 0 0 1px rgba(76, 125, 255, 0.2), 0 0 60px -16px var(--accent-glow);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 0 60px -16px var(--accent-glow);
 }
 
 /* Calendly pending state */
@@ -177,7 +177,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    radial-gradient(120% 90% at 0% 0%, rgba(76, 125, 255, 0.06), transparent 55%),
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--accent-rgb), 0.06), transparent 55%),
     var(--panel);
   padding: clamp(26px, 4vw, 44px);
   display: grid;
@@ -211,8 +211,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  background: rgba(76, 125, 255, 0.08);
-  border: 1px solid rgba(76, 125, 255, 0.2);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
 /* ---------- Contact routing ---------- */
@@ -236,7 +236,7 @@ a.contact-card {
 }
 a.contact-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(76, 125, 255, 0.4);
+  border-color: rgba(var(--accent-rgb), 0.4);
   box-shadow: 0 0 40px -16px var(--accent-glow);
 }
 a.contact-card:focus-visible {
@@ -310,7 +310,7 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
 .lead-field textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(76, 125, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
   background: var(--panel);
 }
 .lead-field.err input,
@@ -349,55 +349,49 @@ a.contact-card:hover .contact-email-ic { color: var(--accent-bright); }
   margin-bottom: env(safe-area-inset-bottom, 0px);
 }
 .sticky-bar.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(8px); }
+/* The bar floats over page content, so it needs its own ground to sit on. */
+.sticky-bar { box-shadow: 0 18px 44px -28px rgba(16,17,20,0.5); border-radius: var(--radius); }
 
 .sticky-book {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 13px 20px;
-  border-radius: 100px;
+  padding: 12px 18px;
+  border-radius: var(--radius);
   font-size: 14px;
-  font-weight: 580;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   text-decoration: none;
-  overflow: hidden;
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background 0.3s var(--ease), border-color 0.3s var(--ease);
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease), color 0.25s var(--ease);
 }
 .sticky-book--demo {
-  background: var(--accent);
-  color: #fff;
-  border: 1px solid rgba(111, 151, 255, 0.7);
-  box-shadow: 0 10px 34px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.25);
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
 }
-.sticky-book--demo:hover {
-  transform: translateY(-2px);
-  background: var(--accent-bright);
-  box-shadow: 0 16px 44px -10px var(--accent-glow), 0 0 0 1px rgba(76, 125, 255, 0.4);
-}
+.sticky-book--demo:hover { background: #000; color: #fff; }
 .sticky-book--book {
-  background: var(--panel-2);
+  background: var(--bg);
   color: var(--ink);
   border: 1px solid var(--line-2);
 }
-.sticky-book--book:hover { transform: translateY(-2px); background: var(--panel-3); border-color: var(--line-strong); }
+.sticky-book--book:hover { background: var(--panel-2); border-color: var(--line-strong); }
 .sticky-book:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-bright);
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 .sticky-book .arr { transition: transform 0.3s var(--ease); }
 .sticky-book:hover .arr { transform: translateX(3px); }
-.sticky-book-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(60% 140% at 50% 120%, rgba(255, 255, 255, 0.25), transparent 70%);
-  pointer-events: none;
-}
+/* The decorative glow is retired with the light system — the bar reads as a
+   control, not a lit button. The element stays for markup stability. */
+.sticky-book-glow { display: none; }
 .sticky-book-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  background: currentColor;
   animation: pulseDot 2.4s var(--ease) infinite;
 }
 @media (max-width: 640px) {

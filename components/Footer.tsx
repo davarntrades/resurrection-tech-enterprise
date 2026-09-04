@@ -25,22 +25,22 @@ export function Footer() {
             </div>
           </div>
           <div>
-            <h4>Platform</h4>
+            <h2>Platform</h2>
             <Link href="/guardian-os">Guardian OS™</Link>
             <Link href="/ai-twin">Your AI Twin™</Link>
             <Link href="/intelligence-packs">Industry Intelligence Packs</Link>
             <Link href="/sovereign-intelligence-packs">Sovereign Intelligence Packs</Link>
-            <Link href="/#what">What Runtime Governance is</Link>
-            <Link href="/why-runtime-governance">Why Runtime Governance</Link>
             <Link href="/technology">Technology &amp; architecture</Link>
+            <Link href="/why-runtime-governance">Why Runtime Governance</Link>
             <Link href="/solutions">Industries &amp; solutions</Link>
             <Link href="/integrations">How it integrates</Link>
+            <Link href="/developers">Developers</Link>
             <Link href="/#onboarding">Deployment pathway</Link>
             <Link href="/technology#reachability">Ω Reachability</Link>
             <Link href="/enterprise-pathways">Why pricing scales</Link>
           </div>
           <div>
-            <h4>Engage</h4>
+            <h2>Engage</h2>
             <Link href="/enterprise-pathways">Enterprise pathways</Link>
             <Link href="/solutions">Target domains</Link>
             <Link href="/partners">Partners</Link>
@@ -52,7 +52,7 @@ export function Footer() {
             <Link href="/request-audit">Request audit</Link>
           </div>
           <div>
-            <h4>Evidence &amp; trust</h4>
+            <h2>Evidence &amp; trust</h2>
             <Link href="/case-studies">Case studies</Link>
             <Link href="/evidence">Evidence &amp; methodology</Link>
             <Link href="/security">Security &amp; deployment</Link>

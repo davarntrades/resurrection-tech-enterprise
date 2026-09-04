@@ -1,19 +1,27 @@
 /* ============================================================
    Resurrection Tech™ — global stylesheet entry
-   The approved design system is reused verbatim (do not edit here).
-   Tailwind utilities are layered on top for incidental layout.
-   Preflight is disabled in tailwind.config.ts so the design
-   system fully owns base/reset styling.
+   design-system.css owns the tokens, base reset and shared primitives.
+   rt-system.css adds the editorial + control-system language used by the
+   redesigned pages. Both must be imported before any page stylesheet.
+   Tailwind utilities are layered on top for incidental layout;
+   preflight is disabled in tailwind.config.ts so the design system
+   fully owns base/reset styling.
    ============================================================ */
 
 @import "./design-system.css";
+@import "./rt-system.css";
+@import "./iso.css";
+@import "./hero-field.css";
+@import "./evidence-rail.css";
+@import "./integration-matrix.css";
 @import "./guardian-home.css";
 @import "./guardian-os.css";
+@import "./sovereign.css";
 @import "./ai-twin.css";
 @import "./intelligence-packs.css";
 @import "./sovereign-packs.css";
 @import "./upgrade.css";
-@import "./home-blueprint.css";
+@import "./home.css";
 @import "./audit.css";
 @import "./audit-upgrade.css";
 @import "./runtime-governance.css";

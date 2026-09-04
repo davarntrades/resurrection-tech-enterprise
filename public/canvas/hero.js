@@ -24,9 +24,14 @@
   let W = 0, H = 0, DPR = 1;
   const omega = { x: 0, y: 0, r: 0 };
   let boundary = 0;
-  const ACCENT = '76,125,255';
-  const PURPLE = '109,92,255';
-  const OMEGA = '229,72,77';
+  // Palette comes from the design system so the figure follows its surface.
+  // PURPLE is kept as an alias of ACCENT: the system carries one accent hue.
+  const cs = getComputedStyle(document.documentElement);
+  const tok = (name, fallback) => (cs.getPropertyValue(name).trim() || fallback);
+  const ACCENT = tok('--accent-rgb', '18,58,158');
+  const PURPLE = ACCENT;
+  const OMEGA = tok('--omega-rgb', '168,30,18');
+  const INK = tok('--ink-rgb', '16,17,20');
 
   // parallax state
   let mx = 0, my = 0, tmx = 0, tmy = 0, scrollY = 0;
@@ -66,7 +71,7 @@
       const ox = px * 22 * d.depth, oy = py * 16 * d.depth;
       ctx.beginPath();
       ctx.arc(d.x + ox, d.y + oy, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(150,165,190,${(d.a * d.depth).toFixed(3)})`;
+      ctx.fillStyle = `rgba(${INK},${(d.a * d.depth * 0.55).toFixed(3)})`;
       ctx.fill();
     }
   }
@@ -172,14 +177,14 @@
         ctx.beginPath();
         ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
         if (safe) { ctx.strokeStyle = `rgba(${ACCENT},${(a * 0.6).toFixed(3)})`; ctx.lineWidth = 1.5; }
-        else { const col = this.intercepted ? OMEGA : '170,178,189'; ctx.strokeStyle = `rgba(${col},${(a * 0.5).toFixed(3)})`; ctx.lineWidth = 1.2; }
+        else { const col = this.intercepted ? OMEGA : INK; ctx.strokeStyle = `rgba(${col},${(a * 0.5).toFixed(3)})`; ctx.lineWidth = 1.2; }
         ctx.stroke();
       }
       const head = this.trail[this.trail.length - 1];
       if (!this.fading) {
         ctx.beginPath();
         ctx.arc(head.x, head.y, safe ? 2.0 : 1.8, 0, Math.PI * 2);
-        ctx.fillStyle = safe ? `rgba(${ACCENT},0.95)` : (this.intercepted ? `rgba(${OMEGA},0.95)` : 'rgba(200,206,214,0.85)');
+        ctx.fillStyle = safe ? `rgba(${ACCENT},0.95)` : (this.intercepted ? `rgba(${OMEGA},0.95)` : `rgba(${INK},0.45)`);
         ctx.fill();
         if (safe) {
           ctx.beginPath(); ctx.arc(head.x, head.y, 6, 0, Math.PI * 2);
@@ -200,7 +205,7 @@
   function drawGrid(px, py) {
     const step = 64;
     const ox = px * 8, oy = py * 6;
-    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+    ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${INK},0.045)`;
     ctx.beginPath();
     for (let x = (W % step) / 2 + ox; x < W + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
     for (let y = (H % step) / 2 + oy; y < H + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
@@ -236,7 +241,7 @@
     // soft field gradient
     const fg = ctx.createRadialGradient(omega.x, omega.y, omega.r * 0.5, omega.x, omega.y, boundary);
     fg.addColorStop(0, `rgba(${ACCENT},0.055)`);
-    fg.addColorStop(1, 'rgba(76,125,255,0)');
+    fg.addColorStop(1, `rgba(${ACCENT},0)`);
     ctx.fillStyle = fg;
     ctx.beginPath(); ctx.arc(omega.x, omega.y, boundary, 0, Math.PI * 2); ctx.fill();
 
@@ -256,9 +261,9 @@
 
     // Ω void core
     const core = ctx.createRadialGradient(omega.x, omega.y, 0, omega.x, omega.y, omega.r);
-    core.addColorStop(0, 'rgba(3,3,5,0.97)');
-    core.addColorStop(0.68, 'rgba(8,8,11,0.92)');
-    core.addColorStop(1, `rgba(${OMEGA},0.13)`);
+    core.addColorStop(0, `rgba(${OMEGA},0.09)`);
+    core.addColorStop(0.68, `rgba(${OMEGA},0.06)`);
+    core.addColorStop(1, `rgba(${OMEGA},0.14)`);
     ctx.fillStyle = core;
     ctx.beginPath(); ctx.arc(omega.x, omega.y, omega.r, 0, Math.PI * 2); ctx.fill();
 

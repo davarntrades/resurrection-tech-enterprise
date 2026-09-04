@@ -29,15 +29,15 @@
   border-radius: 14px; padding: 18px 18px 15px;
 }
 .ladder-card.is-core {
-  border-color: rgba(111, 151, 255, 0.32);
-  background: linear-gradient(180deg, rgba(76, 125, 255, 0.07), rgba(76, 125, 255, 0.015));
+  border-color: rgba(var(--accent-rgb), 0.32);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.07), rgba(var(--accent-rgb), 0.015));
 }
 .ladder-core-tag {
   align-self: flex-start;
   font-family: var(--mono); font-size: 0.6rem;
   letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--accent-bright);
-  border: 1px solid rgba(111, 151, 255, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 999px; padding: 3px 8px;
 }
 .ladder-name {
@@ -88,8 +88,8 @@ a.choose-row .choose-path::after { content: " →"; color: var(--accent-bright);
   border-radius: 12px; padding: 16px;
 }
 .price-tile.is-hi {
-  border-color: rgba(111, 151, 255, 0.3);
-  background: linear-gradient(180deg, rgba(76, 125, 255, 0.06), transparent);
+  border-color: rgba(var(--accent-rgb), 0.3);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.06), transparent);
 }
 .price-tile-k { font-size: 0.88rem; font-weight: 500; color: var(--ink); line-height: 1.35; }
 .price-tile-v { font-family: var(--mono); font-size: 1.02rem; color: var(--accent-bright); }

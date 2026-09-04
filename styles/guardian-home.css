@@ -10,9 +10,9 @@
 .guardian-layer { border: 1px solid var(--line); border-radius: var(--radius-sm); background: transparent; padding: clamp(18px, 2.4vw, 24px) clamp(20px, 3vw, 30px); text-align: center; }
 .guardian-layer .gl-k { font-size: clamp(14px, 1.45vw, 15.5px); font-weight: 500; color: var(--ink); letter-spacing: -0.005em; }
 .guardian-layer .gl-v { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; line-height: 1.65; letter-spacing: 0.01em; }
-.guardian-layer.is-os { background: rgba(76,125,255,0.045); border-color: rgba(76,125,255,0.28); }
+.guardian-layer.is-os { background: rgba(var(--accent-rgb),0.045); border-color: rgba(var(--accent-rgb),0.28); }
 .guardian-layer.is-os .gl-k { color: var(--ink); font-weight: 560; }
-.guardian-layer .gl-tm { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
+.guardian-layer .gl-tm { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
 .guardian-layer.is-os .gl-tm { color: var(--accent-bright); }
 .guardian-conn { width: 1px; height: clamp(18px, 2.2vw, 26px); margin: 0 auto; background: var(--line-2); }
 .guardian-stack-caption { text-align: center; font-size: 12.5px; line-height: 1.6; color: var(--ink-3); margin: 20px auto 0; max-width: 560px; }
@@ -28,8 +28,8 @@
 /* Governed lifecycle — a quiet, precise flow. */
 .guardian-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; margin-top: clamp(52px, 6vw, 84px); }
 .guardian-flow-chip { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.02em; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 7px 15px; white-space: nowrap; }
-.guardian-flow-chip.is-omega { color: var(--accent-bright); border-color: rgba(76,125,255,0.3); }
-.guardian-flow-chip.is-evidence { color: var(--ok); border-color: rgba(63,178,127,0.3); }
+.guardian-flow-chip.is-omega { color: var(--accent-bright); border-color: rgba(var(--accent-rgb),0.3); }
+.guardian-flow-chip.is-evidence { color: var(--ok); border-color: rgba(var(--ok-rgb),0.3); }
 .guardian-flow-arr { color: var(--ink-4); font-family: var(--mono); font-size: 12px; }
 .guardian-flow-note { text-align: center; font-size: 12.5px; line-height: 1.6; color: var(--ink-3); margin: 16px auto 0; max-width: 620px; }
 

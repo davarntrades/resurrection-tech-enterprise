@@ -47,7 +47,7 @@
 .qs-verdict { border: 1px solid var(--line-2); border-radius: var(--radius-sm); padding: 14px 16px; background: var(--panel); }
 .qs-verdict-k { font-family: var(--mono); font-size: 13px; font-weight: 700; }
 .qs-verdict--allow .qs-verdict-k { color: var(--ok); }
-.qs-verdict--escalate .qs-verdict-k { color: #e0a93f; }
+.qs-verdict--escalate .qs-verdict-k { color: var(--escalate); }
 .qs-verdict--block .qs-verdict-k { color: var(--omega); }
 .qs-verdict-p { color: var(--ink-2); font-size: 13.5px; line-height: 1.5; margin: 6px 0 0; }
 

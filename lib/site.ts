@@ -23,14 +23,17 @@ export const SITE = {
   ],
 } as const;
 
-// Curated links shown inline in the desktop navbar. Kept short and free of
-// duplication — "Assess your agent" lives in the primary CTA; the full index is
-// one tap away under Menu.
+// Top-level navigation. Deliberately short: six destinations, each a
+// distinct depth of the same story (architecture → platform → deployment →
+// proof → integration → company). Everything else lives one tap away under
+// Menu. The conversion actions are the CTAs, not nav links.
 export const NAV_LINKS = [
-  { href: "/live-demo", label: "Live Demo" },
-  { href: "/solutions", label: "Solutions" },
   { href: "/technology", label: "Technology" },
-  { href: "/enterprise-pathways", label: "Pricing" },
+  { href: "/guardian-os", label: "Guardian OS" },
+  { href: "/guardian-os/sovereign", label: "Sovereign" },
+  { href: "/evidence", label: "Evidence" },
+  { href: "/developers", label: "Developers" },
+  { href: "/company", label: "Company" },
 ] as const;
 
 // Full enterprise IA — rendered in the drop-down menu (desktop + mobile).
@@ -49,6 +52,7 @@ export const NAV_MENU = [
       { href: "/technology", label: "Technology & architecture" },
       { href: "/solutions", label: "Industries & solutions" },
       { href: "/integrations", label: "How it integrates" },
+      { href: "/developers", label: "Developers" },
       { href: "/quickstart", label: "Developer quickstart" },
       { href: "/enterprise", label: "Enterprise readiness" },
     ],

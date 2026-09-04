@@ -14,7 +14,7 @@
 .ref-field { display: block; }
 .ref-label { display: block; font-size: 0.9rem; color: var(--ink); margin-bottom: 7px; font-weight: 500; }
 .ref-input, .ref-linkfield {
-  width: 100%; box-sizing: border-box; background: #0a0c0f; color: var(--ink);
+  width: 100%; box-sizing: border-box; background: var(--bg-1); color: var(--ink);
   border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px;
   font-size: 0.98rem; transition: border-color .15s var(--ease);
 }
@@ -26,7 +26,7 @@
 
 .ref-out { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
 .ref-out-k { display: block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }
-.ref-linkfield { font-family: var(--mono); font-size: 0.86rem; color: #cdd6e0; white-space: nowrap; overflow-x: auto; }
+.ref-linkfield { font-family: var(--mono); font-size: 0.86rem; color: var(--ink-2); white-space: nowrap; overflow-x: auto; }
 .ref-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .ref-code-note { margin-top: 12px; font-size: 0.86rem; color: var(--muted, #8a929c); }
 .ref-code-note b { color: var(--ink); font-family: var(--mono); }
@@ -54,7 +54,7 @@
 .home-referral .wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
 .home-referral-card {
   display: grid; grid-template-columns: 1.15fr 0.85fr; align-items: center; gap: clamp(24px, 4vw, 48px);
-  background: radial-gradient(120% 140% at 100% 0%, rgba(76,125,255,0.10), transparent 55%), var(--panel);
+  background: radial-gradient(120% 140% at 100% 0%, rgba(var(--accent-rgb),0.10), transparent 55%), var(--panel);
   border: 1px solid var(--line-2); border-radius: 18px;
   padding: clamp(24px, 4vw, 44px);
 }
@@ -77,12 +77,12 @@
 .rfl-conn { stroke: var(--line-strong); stroke-width: 1.4; }
 .rfl-arrowhead { fill: var(--line-strong); }
 .rfl-co { fill: var(--panel-2); stroke: var(--line-2); }
-.rfl-co--on { fill: rgba(76,125,255,0.10); stroke: var(--accent-dim); }
+.rfl-co--on { fill: rgba(var(--accent-rgb),0.10); stroke: var(--accent-dim); }
 .rfl-co-bar { fill: var(--ink-4); }
 .rfl-co-bar--sm { fill: var(--line-2); }
-.rfl-check-bg { fill: rgba(76,125,255,0.14); stroke: var(--accent); stroke-width: 1; }
+.rfl-check-bg { fill: rgba(var(--accent-rgb),0.14); stroke: var(--accent); stroke-width: 1; }
 .rfl-check { stroke: var(--accent-bright); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.rfl-foot { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; }
+.rfl-foot { fill: var(--ink-3); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; }
 
 @media (max-width: 720px) {
   .home-referral-card { grid-template-columns: 1fr; gap: clamp(20px, 5vw, 28px); text-align: left; }
@@ -99,7 +99,7 @@
 /* Assessment "Referred by" acknowledgment chip */
 .rgq-referral {
   display: inline-block; margin: 12px 0 0; font-size: 0.86rem; color: var(--muted, #aab2bd);
-  background: rgba(76,125,255,0.08); border: 1px solid rgba(76,125,255,0.3);
+  background: rgba(var(--accent-rgb),0.08); border: 1px solid rgba(var(--accent-rgb),0.3);
   border-radius: 999px; padding: 5px 13px;
 }
 .rgq-referral b { color: var(--accent-bright); }

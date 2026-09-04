@@ -13,7 +13,7 @@
 
 /* Progress */
 .rgq-progress { margin-bottom: 16px; }
-.rgq-progress-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.rgq-progress-bar { height: 6px; border-radius: 999px; background: rgba(var(--ink-rgb),0.07); overflow: hidden; }
 .rgq-progress-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius: 999px; transition: width .4s var(--ease); }
 .rgq-progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.04em; color: var(--muted, #8a929c); }
 
@@ -34,7 +34,7 @@
 .rgq-hint { display: block; margin-top: 5px; font-size: 0.78rem; color: var(--muted, #8a929c); }
 
 .rgq-input {
-  width: 100%; box-sizing: border-box; background: #0a0c0f; color: var(--ink);
+  width: 100%; box-sizing: border-box; background: var(--bg-1); color: var(--ink);
   border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 13px;
   font-family: inherit; font-size: 0.95rem; transition: border-color .15s var(--ease);
   appearance: none;
@@ -53,21 +53,21 @@ select.rgq-input {
 .rgq-seg { display: inline-flex; gap: 8px; }
 .rgq-seg-btn {
   flex: 1; min-width: 84px; cursor: pointer; font-family: inherit; font-size: 0.9rem;
-  background: #0a0c0f; color: var(--muted, #aab2bd); border: 1px solid var(--line);
+  background: var(--bg-1); color: var(--muted, #aab2bd); border: 1px solid var(--line);
   border-radius: var(--radius-sm); padding: 9px 14px; transition: border-color .15s var(--ease), background .15s var(--ease), color .15s var(--ease);
 }
 .rgq-seg-btn:hover { border-color: var(--line-strong); }
-.rgq-seg-btn.is-on { border-color: var(--accent); background: rgba(76,125,255,0.12); color: var(--ink); }
+.rgq-seg-btn.is-on { border-color: var(--accent); background: rgba(var(--accent-rgb),0.12); color: var(--ink); }
 
 /* Multi-select chips */
 .rgq-chips { display: flex; flex-wrap: wrap; gap: 9px; margin: 4px 0 18px; }
 .rgq-chip {
   cursor: pointer; font-family: inherit; font-size: 0.9rem; color: var(--ink);
-  background: #0a0c0f; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px;
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px;
   transition: border-color .15s var(--ease), background .15s var(--ease);
 }
 .rgq-chip:hover { border-color: var(--line-strong); }
-.rgq-chip.is-on { border-color: var(--accent); background: rgba(76,125,255,0.12); }
+.rgq-chip.is-on { border-color: var(--accent); background: rgba(var(--accent-rgb),0.12); }
 .rgq-chip.is-on::before { content: "✓ "; color: var(--accent-bright); }
 
 /* Actions */
@@ -78,7 +78,7 @@ select.rgq-input {
 /* Validation summary — names the missing/invalid answers and links to their stage */
 .rgq-summary {
   margin: 0 0 20px; padding: 14px 16px;
-  background: rgba(229, 72, 77, 0.07);
+  background: rgba(var(--omega-rgb), 0.07);
   border: 1px solid var(--omega); border-left: 3px solid var(--omega);
   border-radius: var(--radius-sm, 10px);
 }
@@ -109,11 +109,11 @@ select.rgq-input {
 .rgq-review-intro { color: var(--muted, #aab2bd); font-size: 0.92rem; margin: 0 0 14px; }
 .rgq-rev-group {
   display: block; width: 100%; text-align: left; cursor: pointer;
-  background: #0a0c0f; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--radius-sm);
   padding: 14px 16px; margin-bottom: 10px; transition: border-color .15s var(--ease);
 }
 .rgq-rev-group:hover { border-color: var(--line-strong); }
-.rgq-rev-group.is-invalid { border-color: var(--omega); background: rgba(229, 72, 77, 0.06); }
+.rgq-rev-group.is-invalid { border-color: var(--omega); background: rgba(var(--omega-rgb), 0.06); }
 .rgq-rev-group.is-invalid .rgq-rev-h { color: var(--omega); }
 .rgq-rev-h { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }
 .rgq-edit { font-size: 0.72rem; color: var(--muted, #8a929c); }
@@ -123,14 +123,14 @@ select.rgq-input {
 
 /* Result */
 .rgq-result {
-  background: linear-gradient(180deg, rgba(76,125,255,0.08), rgba(76,125,255,0.02));
+  background: linear-gradient(180deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.02));
   border: 1px solid var(--line-strong); border-radius: var(--radius); padding: clamp(24px, 4vw, 40px);
 }
 .rgq-result-eyebrow { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-bright); }
 .rgq-result-title { font-size: clamp(1.6rem, 3.4vw, 2.3rem); letter-spacing: -0.02em; margin: 10px 0 6px; }
 .rgq-result-tagline { color: var(--muted, #aab2bd); font-size: 1.05rem; line-height: 1.55; margin: 0 0 22px; max-width: 62ch; }
-.rgq-result-summary { color: var(--ink, #f3f5f7); font-size: 1.08rem; line-height: 1.6; margin: 0 0 22px; max-width: 64ch; padding: 14px 16px; background: linear-gradient(180deg, rgba(224,169,63,0.10), rgba(224,169,63,0.02)); border: 1px solid rgba(224,169,63,0.32); border-left: 3px solid #e0a93f; border-radius: var(--radius-sm, 10px); }
-.rgq-why { background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 22px; }
+.rgq-result-summary { color: var(--ink, #f3f5f7); font-size: 1.08rem; line-height: 1.6; margin: 0 0 22px; max-width: 64ch; padding: 14px 16px; background: linear-gradient(180deg, rgba(var(--escalate-rgb),0.10), rgba(var(--escalate-rgb),0.02)); border: 1px solid rgba(var(--escalate-rgb),0.32); border-left: 3px solid #e0a93f; border-radius: var(--radius-sm, 10px); }
+.rgq-why { background: rgba(var(--ink-rgb),0.25); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 22px; }
 .rgq-why-k { display: block; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted, #8a929c); margin-bottom: 10px; }
 .rgq-why ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
 .rgq-why li { color: var(--ink); line-height: 1.5; font-size: 0.96rem; }

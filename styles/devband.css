@@ -9,7 +9,7 @@
   gap: clamp(28px, 4vw, 56px);
   border: 1px solid var(--line-2); border-radius: 18px;
   background:
-    radial-gradient(110% 130% at 0% 0%, rgba(76,125,255,0.06), transparent 52%),
+    radial-gradient(110% 130% at 0% 0%, rgba(var(--accent-rgb),0.06), transparent 52%),
     var(--panel);
   padding: clamp(26px, 4vw, 48px);
 }
@@ -44,22 +44,22 @@
 .devband-caption { font-size: 13px; line-height: 1.45; color: var(--ink-3); text-align: center; margin: 0; }
 .devband-cta { width: 100%; justify-content: center; min-height: 46px; }
 .devband-note {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--ink-4); text-align: center;
 }
 
 /* SVG flow theming */
 .dbf-node { fill: var(--panel-2); stroke: var(--line-2); }
-.dbf-gate { fill: rgba(76,125,255,0.12); stroke: var(--accent-dim); }
-.dbf-label { fill: var(--ink-2); font-family: var(--mono); font-size: 9.5px; }
+.dbf-gate { fill: rgba(var(--accent-rgb),0.12); stroke: var(--accent-dim); }
+.dbf-label { fill: var(--ink-2); font-family: var(--mono); font-size: 11px; }
 .dbf-gate-label { fill: var(--accent-bright); font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .dbf-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 6.5px; letter-spacing: 0.12em; }
 .dbf-conn { stroke: var(--line-strong); stroke-width: 1.4; }
 .dbf-arrowhead { fill: var(--line-strong); }
 .dbf-chip { stroke-width: 1; }
-.dbf-chip--allow { fill: rgba(63,178,127,0.12); stroke: var(--ok); }
-.dbf-chip--esc { fill: rgba(224,169,63,0.12); stroke: #e0a93f; }
-.dbf-chip--block { fill: rgba(229,72,77,0.12); stroke: var(--omega); }
+.dbf-chip--allow { fill: rgba(var(--ok-rgb),0.12); stroke: var(--ok); }
+.dbf-chip--esc { fill: rgba(var(--escalate-rgb),0.12); stroke: #e0a93f; }
+.dbf-chip--block { fill: rgba(var(--omega-rgb),0.12); stroke: var(--omega); }
 .dbf-chip-t { font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 0.04em; }
 .dbf-chip-t--allow { fill: var(--ok); }
 .dbf-chip-t--esc { fill: #e0a93f; }

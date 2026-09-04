@@ -57,7 +57,7 @@ export function buildProfile(): string {
  * in a fallback face after a timeout. Emitted as an inline <style> that
  * overrides the design system's --font / --mono variables.
  */
-export const SYSTEM_FONT_CSS = `:root{--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono","DejaVu Sans Mono",monospace}`;
+export const SYSTEM_FONT_CSS = `:root{--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;--font-display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono","DejaVu Sans Mono",monospace}`;
 
 /** Hosts a sovereign build is allowed to *mention* (never to fetch). */
 export const ALLOWED_INERT_HOSTS = [

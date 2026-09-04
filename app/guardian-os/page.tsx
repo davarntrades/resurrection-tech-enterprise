@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { SovereignBoundaryFigure } from "@/components/iso";
 
 /* Shipping registries keep every quantified claim tied to the platform. */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -172,32 +173,33 @@ function PlatformMap() {
 
 export default function GuardianOSPage() {
   return (
-    <PageShell>
+    <PageShell className="theme-dark gos-page">
       <section className="gos-hero">
         <div className="gos-wrap">
-          <span className="gos-eyebrow">Enterprise operating platform</span>
+          <span className="gos-eyebrow">Guardian OS<span className="gos-tm">™</span> · Operating platform</span>
           <h1 className="gos-h1">
-            Guardian OS<span className="gos-tm">™</span>
-            <span className="gos-h1-sub">The operating platform for autonomous enterprises.</span>
+            One governance kernel.
+            <span className="gos-h1-sub">Multiple operating environments.</span>
           </h1>
           <p className="gos-lede">
-            Guardian OS gives organisations one operating environment for deploying, governing and supervising
-            AI systems and autonomous agents.
+            Guardian OS is one operating environment for deploying, governing and supervising AI
+            systems and autonomous agents — with Runtime Governance on the execution path.
           </p>
           <p className="gos-lede-2">
-            It combines Runtime Governance, a continuously derived AI Twin, Industry Intelligence Packs,
-            Executive Workspaces, enterprise provisioning and managed governance—without changing the
-            governance kernel for each deployment model or sector.
+            The deployment profile decides where enforcement runs and who holds the keys. It does
+            not change the control contract.
           </p>
           <div className="gos-cta-row">
             <Link href="/book" className="gos-btn gos-btn-primary">Book an enterprise briefing</Link>
             <a href="#platform" className="gos-btn gos-btn-ghost">See the operating model</a>
           </div>
-          <div className="gos-hero-proof" aria-label="Guardian OS platform attributes">
-            <span>Model independent</span>
-            <span>Policy enforced at runtime</span>
-            <span>Evidence by construction</span>
-            <span>Cloud to sovereign deployment</span>
+        </div>
+
+        {/* The whole positioning in one figure: six environments, one kernel,
+            one contract. Nothing in it is decorative. */}
+        <div className="gos-wrap">
+          <div className="rt-figure reveal">
+            <SovereignBoundaryFigure />
           </div>
         </div>
       </section>

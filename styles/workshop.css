@@ -28,7 +28,7 @@
 
 .dw-ladder {
   margin-top: 28px;
-  background: linear-gradient(180deg, rgba(76,125,255,0.06), rgba(76,125,255,0.02));
+  background: linear-gradient(180deg, rgba(var(--accent-rgb),0.06), rgba(var(--accent-rgb),0.02));
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: clamp(18px, 3vw, 28px);

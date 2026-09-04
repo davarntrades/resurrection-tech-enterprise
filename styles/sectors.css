@@ -26,20 +26,20 @@
 .sector-card:hover {
   transform: translateY(-3px);
   border-color: var(--line-strong);
-  box-shadow: 0 28px 64px -44px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 28px 64px -44px rgba(var(--shadow-rgb), 0.9);
 }
 
 .sector-omega {
   align-self: flex-start;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-bright);
   border: 1px solid var(--accent-dim);
   border-radius: 100px;
   padding: 4px 11px;
-  background: rgba(76, 125, 255, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 
 .sector-name {
@@ -85,7 +85,7 @@
 }
 .sector-scale-k {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);

@@ -1,0 +1,279 @@
+/* ============================================================
+   Isometric technical-illustration system.
+
+   One stroke system, one type scale, one motion model, four
+   semantic tones. Every figure on the site inherits from here, so
+   an illustration on the homepage and one on the sovereign page
+   read as parts of the same drawing set.
+
+   Colour is semantic only:
+     structure / environment / boundary → neutral
+     authorized transition, execution   → accent
+     blocked transition, forbidden      → omega
+     verified evidence                  → ok
+   ============================================================ */
+
+/* The illustration tokens are declared on the figure, not on :root.
+   A custom property whose value contains var() is substituted where it is
+   DECLARED, so `:root { --iso-ink: var(--ink) }` would bake in the light
+   value and inherit that same computed colour into every dark surface.
+   Declaring them here re-resolves them inside whatever scope the figure
+   sits in — light page, dark page, sovereign black — which is what makes
+   the system themeable. */
+.iso {
+  --iso-ink:          var(--ink);
+  --iso-line:         var(--line);
+  --iso-line-strong:  var(--ink-3);
+  --iso-accent:       var(--accent);
+  --iso-omega:        var(--omega);
+  --iso-ok:           var(--ok);
+}
+
+:root {
+  /* Stroke system — 1px structure, 1.5px for the things that carry
+     the concept (boundaries and trajectories). Nothing else. */
+  --iso-w-hair:   1;
+  --iso-w-struct: 1;
+  --iso-w-key:    1.5;
+
+  --iso-dur-draw: 1100ms;
+  --iso-dur-fade: 420ms;
+  --iso-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- Figure shell ---------- */
+.iso { margin: 0; }
+
+.iso-stage {
+  /* Illustrations fill their container. Below the point where the
+     notation would stop being legible the figure scrolls inside its
+     own frame rather than shrinking further. */
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.iso-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Consistent joins and caps everywhere. */
+.iso-svg line,
+.iso-svg path,
+.iso-svg polyline,
+.iso-svg polygon {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Structure ---------- */
+.iso-grid-line { stroke: var(--iso-line); stroke-width: var(--iso-w-hair); }
+.iso-grid.is-faded { opacity: 0.55; }
+
+.iso-face {
+  stroke-width: var(--iso-w-struct);
+  /* Fills stay transparent or patterned — never a solid wash. */
+}
+.iso-face.is-dashed { stroke-dasharray: 4 4; }
+
+.iso-box .iso-face { opacity: 0.9; }
+
+/* ---------- Boundary ---------- */
+.iso-boundary-frame { stroke-width: var(--iso-w-key); }
+.iso-boundary-mullion { stroke-width: var(--iso-w-hair); opacity: 0.5; }
+.iso-boundary-trace { stroke-width: var(--iso-w-key); }
+
+/* ---------- Gate ---------- */
+.iso-gate-jamb,
+.iso-gate-head { stroke-width: var(--iso-w-key); }
+.iso-gate-bar { stroke-width: var(--iso-w-key); }
+.iso-gate.is-closed { opacity: 1; }
+
+/* ---------- Forbidden region ---------- */
+/* Ω is marked by line density, not by a fill. Its silhouette is dashed and
+   its faces are held back so the region reads as a bounded volume the space
+   contains rather than a solid red block. */
+.iso-omega-wall,
+.iso-omega-top {
+  stroke-width: var(--iso-w-hair);
+  stroke-opacity: 0.5;
+  stroke-dasharray: 5 4;
+}
+.iso-omega-foot { stroke-width: var(--iso-w-hair); opacity: 0.55; }
+
+/* ---------- Nodes ---------- */
+.iso-node-ring { stroke-width: var(--iso-w-struct); opacity: 0.45; }
+.iso-node-drop { stroke-width: var(--iso-w-hair); stroke-dasharray: 2 3; opacity: 0.45; }
+.iso-evidence-frame { stroke-width: var(--iso-w-key); }
+.iso-evidence-tick { stroke-width: var(--iso-w-key); }
+
+/* ---------- Trajectories and connectors ---------- */
+.iso-traj-line {
+  stroke-width: var(--iso-w-key);
+  fill: none;
+}
+.iso-traj-line.is-dashed { stroke-dasharray: 6 5; }
+.iso-traj-stop line { stroke-width: var(--iso-w-key); }
+
+.iso-connector {
+  stroke-width: var(--iso-w-struct);
+  opacity: 0.8;
+}
+.iso-connector.is-dashed { stroke-dasharray: 4 4; }
+
+.iso-leader { stroke-width: var(--iso-w-hair); opacity: 0.45; }
+
+/* ---------- Typography ----------
+   Compact mono only. Labels are notation, not prose. */
+.iso-label {
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  paint-order: stroke;
+}
+.iso-label--label { font-size: 12.5px; }
+.iso-label--micro { font-size: 11px; letter-spacing: 0.1em; opacity: 0.8; }
+.iso-label--glyph {
+  font-size: 30px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+/* ============================================================
+   Motion.
+
+   Every animation explains the architecture:
+     · trajectories draw along their own length
+     · nodes and evidence fade in after the line reaches them
+     · a terminated path stops at the boundary and stays stopped
+     · the forbidden region resolves quietly, last
+   Nothing drifts, floats or loops.
+   ============================================================ */
+
+.iso-traj-line,
+.iso-connector {
+  stroke-dasharray: var(--iso-dash, 1000);
+  stroke-dashoffset: var(--iso-dash, 1000);
+}
+.iso-svg.is-drawn .iso-traj-line,
+.iso-svg.is-drawn .iso-connector {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--iso-dur-draw) var(--iso-ease);
+  transition-delay: var(--iso-delay, 0ms);
+}
+/* A dashed trajectory keeps its dash pattern once drawn. */
+.iso-svg.is-drawn .iso-traj-line.is-dashed { stroke-dasharray: 6 5; }
+.iso-svg.is-drawn .iso-connector.is-dashed { stroke-dasharray: 4 4; }
+
+.iso-node,
+.iso-traj-stop,
+.iso-label-g,
+.iso-gate {
+  opacity: 0;
+}
+.iso-svg.is-drawn .iso-node,
+.iso-svg.is-drawn .iso-traj-stop,
+.iso-svg.is-drawn .iso-label-g,
+.iso-svg.is-drawn .iso-gate {
+  opacity: 1;
+  transition: opacity var(--iso-dur-fade) var(--iso-ease);
+  transition-delay: calc(var(--iso-delay, 0ms) + 260ms);
+}
+
+/* The forbidden region reveals subtly, and after everything else. */
+.iso-omega { opacity: 0; }
+.iso-svg.is-drawn .iso-omega {
+  opacity: 1;
+  transition: opacity 700ms var(--iso-ease) 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iso-traj-line,
+  .iso-connector {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+  .iso-traj-line.is-dashed { stroke-dasharray: 6 5; }
+  .iso-connector.is-dashed { stroke-dasharray: 4 4; }
+  .iso-node,
+  .iso-traj-stop,
+  .iso-label-g,
+  .iso-gate,
+  .iso-omega {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* ---------- Caption and legend ----------
+   The explanation lives here, outside the drawing. */
+.iso-caption {
+  margin-top: clamp(18px, 2.2vw, 26px);
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.iso-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+}
+.iso-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.iso-key-mark {
+  width: 16px;
+  height: 10px;
+  flex: none;
+  display: block;
+}
+.iso-note {
+  margin: 14px 0 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--ink-3);
+  max-width: 72ch;
+}
+
+/* ---------- Mobile ----------
+   A wide axonometric cannot be both fully visible and legible on a
+   390px screen: shrinking it to fit takes the notation to ~4px. So
+   the figure keeps a legible minimum width and scrolls inside its
+   own frame — contained, never the page — and the labels are set
+   larger in user units so they survive the down-scale.
+   The affordance is explicit rather than left to be discovered. */
+@media (max-width: 720px) {
+  .iso-label--label { font-size: 19px; letter-spacing: 0.1em; }
+  .iso-label--micro { font-size: 19px; letter-spacing: 0.08em; }
+  .iso-label--glyph { font-size: 44px; }
+  .iso-legend { gap: 9px 18px; }
+
+  .iso-stage {
+    position: relative;
+    /* A hairline edge fade signals that the figure continues. */
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+  }
+  .iso-scrollhint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+}
+.iso-scrollhint { display: none; }
