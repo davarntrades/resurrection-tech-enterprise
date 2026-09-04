@@ -4,6 +4,9 @@ import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
 import { ExecutionBoundaryFigure } from "@/components/iso";
+import { ExecutionField } from "@/components/hero/ExecutionField";
+import { EvidenceRail } from "@/components/evidence/EvidenceRail";
+import { IntegrationMatrix } from "@/components/integrations/IntegrationMatrix";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { Events, track } from "@/lib/analytics";
 
@@ -92,6 +95,9 @@ export function HomeClient() {
       <main id="top" className="rt-home">
         {/* ══════════ 01 — WHO CONTROLS WHAT BECOMES EXECUTABLE? ══════════ */}
         <header className="rt-section rt-section--first rt-hero" aria-labelledby="hero-title">
+          {/* Decorative: the hero's meaning is in the copy below and in the
+              static figure the field falls back to. */}
+          <ExecutionField />
           <div className="rt-wrap">
             <span className="rt-eyebrow reveal in">Resurrection Tech™</span>
 
@@ -289,7 +295,27 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ══════════ 05 — FROM FEATURE TO INFRASTRUCTURE ══════════ */}
+        {/* ══════════ 05 — EXTERNAL SIGNAL ══════════ */}
+        <section className="rt-section" aria-labelledby="signal-title">
+          <div className="rt-wrap">
+            <span className="rt-eyebrow reveal">External signal</span>
+            <h2 id="signal-title" className="rt-h2 rt-narrow reveal" data-d="1">
+              When the control gap
+              <br />
+              becomes visible.
+            </h2>
+            <p className="rt-lede reveal" data-d="2">
+              Published incidents, and the direction major infrastructure providers are
+              independently stating. Each record carries its source; the architectural reading is
+              ours and is marked as such.
+            </p>
+          </div>
+          <div className="rt-wrap">
+            <EvidenceRail />
+          </div>
+        </section>
+
+        {/* ══════════ 06 — FROM FEATURE TO INFRASTRUCTURE ══════════ */}
         <section className="rt-section" aria-labelledby="infra-title">
           <div className="rt-wrap">
             <span className="rt-eyebrow reveal">When control becomes non-optional</span>
@@ -319,7 +345,26 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ══════════ 06 — SOVEREIGN ══════════ */}
+        {/* ══════════ 07 — WORKS ACROSS THE STACK ══════════ */}
+        <section className="rt-section rt-section--band" aria-labelledby="stack-title">
+          <div className="rt-wrap">
+            <span className="rt-eyebrow reveal">Works across the stack</span>
+            <h2 id="stack-title" className="rt-h2 rt-narrow reveal" data-d="1">
+              One authority layer.
+              <br />
+              Everything else changes.
+            </h2>
+            <p className="rt-lede reveal" data-d="2">
+              Models, orchestrators, tools and destinations are all replaceable. The control
+              contract is not — it is the same six steps wherever the boundary is placed.
+            </p>
+            <div className="reveal" data-d="3">
+              <IntegrationMatrix />
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════ 08 — SOVEREIGN ══════════ */}
         <section className="rt-section theme-dark rt-sovereign" aria-labelledby="sovereign-title">
           <div className="rt-wrap">
             <span className="rt-eyebrow reveal">Sovereign execution control</span>
@@ -355,7 +400,7 @@ export function HomeClient() {
           </div>
         </section>
 
-        {/* ══════════ 07 — CLOSING ══════════ */}
+        {/* ══════════ 09 — CLOSING ══════════ */}
         <section className="rt-section rt-closing" id="contact" aria-labelledby="closing-title">
           <span id="onboarding" className="rt-anchor" aria-hidden="true" />
           <span id="demo" className="rt-anchor" aria-hidden="true" />

@@ -1,0 +1,186 @@
+/* ============================================================
+   Integration matrix.
+   A precise grid of surfaces beneath one constant authority
+   layer, with a slow authorization pulse travelling each row.
+   No logo wall, no bouncing, no glow.
+   ============================================================ */
+
+.im { margin-top: clamp(40px, 5vw, 64px); }
+
+/* ---------- The constant ---------- */
+.im-authority {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  padding: clamp(18px, 2.2vw, 26px) clamp(18px, 2.4vw, 28px);
+  border: 1px solid var(--accent-dim);
+  background: var(--accent-wash);
+}
+.im-authority-k {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.im-authority strong {
+  font-size: clamp(16px, 1.8vw, 20px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.im-authority-contract {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+@media (max-width: 760px) { .im-authority-contract { margin-left: 0; } }
+
+/* ---------- Groups ---------- */
+.im-groups { display: grid; gap: clamp(26px, 3vw, 40px); margin-top: clamp(26px, 3vw, 38px); }
+.im-group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; margin-bottom: 14px; }
+.im-group-title {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 500;
+  margin: 0;
+}
+.im-group-note { font-size: 13px; line-height: 1.55; color: var(--ink-3); margin: 0; max-width: 62ch; }
+
+.im-grid-wrap { position: relative; }
+.im-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--im-cells, 6), minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+@media (max-width: 900px) { .im-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .im-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Tile ---------- */
+.im-tile {
+  appearance: none;
+  border: 0;
+  background: var(--panel);
+  padding: clamp(16px, 2vw, 22px) 14px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--ink-2);
+  transition: background .22s var(--ease), color .22s var(--ease);
+}
+.im-tile:hover,
+.im-tile.is-selected { background: var(--panel-2); color: var(--ink); }
+.im-tile.is-selected { box-shadow: inset 0 -2px 0 var(--accent); }
+.im-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.im-tile-label {
+  font-size: 13.5px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+/* Status is carried by the mark's shape as well as its tone. */
+.im-tile-mark { width: 9px; height: 9px; flex: none; border: 1.5px solid currentColor; }
+.im-tile--reference .im-tile-mark { background: var(--accent); border-color: var(--accent); }
+.im-tile--governed  .im-tile-mark { background: var(--accent); border-color: var(--accent); border-radius: 50%; }
+.im-tile--custody   .im-tile-mark { background: transparent; border-color: var(--ink-3); }
+.im-tile--surface   .im-tile-mark { background: transparent; border-color: var(--ink-4); border-style: dashed; }
+
+/* ---------- Signal track ----------
+   One authorization pulse per row, travelling slowly left to right.
+   Pure CSS on an SVG line: no per-frame JS, no canvas. */
+.im-track { display: block; width: 100%; height: 4px; margin-top: 1px; overflow: visible; }
+.im-track-rail { stroke: var(--line); stroke-width: 0.4; }
+.im-track-node { fill: var(--ink-4); opacity: 0.55; }
+.im-track-pulse {
+  stroke: var(--accent);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-dasharray: 9 91;
+  stroke-dashoffset: 100;
+  animation: imPulse 9s linear infinite;
+  animation-delay: var(--im-delay, 0ms);
+}
+@keyframes imPulse {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: -100; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-track-pulse { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0.25; }
+}
+
+/* ---------- Detail ---------- */
+.im-detail {
+  margin-top: clamp(26px, 3vw, 38px);
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--accent);
+  background: var(--panel);
+  padding: clamp(20px, 2.4vw, 28px);
+}
+.im-detail-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; margin-bottom: 18px; }
+.im-detail-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.im-detail-mark { width: 9px; height: 9px; flex: none; border: 1.5px solid var(--ink-3); }
+.im-detail-status--reference .im-detail-mark { background: var(--accent); border-color: var(--accent); }
+.im-detail-status--governed .im-detail-mark { background: var(--accent); border-color: var(--accent); border-radius: 50%; }
+.im-detail-status--custody .im-detail-mark { border-color: var(--ink-3); }
+.im-detail-status--surface .im-detail-mark { border-color: var(--ink-4); border-style: dashed; }
+.im-detail-status--reference,
+.im-detail-status--governed { color: var(--accent); }
+
+.im-detail-name {
+  font-size: clamp(18px, 2vw, 23px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.im-detail-rows { margin: 0; display: grid; border-top: 1px solid var(--line); }
+.im-detail-rows > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 130px) 1fr;
+  gap: clamp(14px, 3vw, 32px);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.im-detail-rows dt { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 0; }
+.im-detail-rows dd { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.im-detail-ev { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+.im-detail-link { color: var(--accent); border-bottom: 1px solid var(--accent-dim); white-space: nowrap; }
+.im-detail-link:hover { border-bottom-color: var(--accent); }
+@media (max-width: 560px) {
+  .im-detail-rows > div { grid-template-columns: 1fr; gap: 6px; }
+}
+
+.im-claim {
+  margin-top: clamp(20px, 2.4vw, 28px);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-3);
+  max-width: 78ch;
+}
