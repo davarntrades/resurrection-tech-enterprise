@@ -244,7 +244,7 @@ a.radmin-btn { text-decoration: none; display: inline-flex; align-items: center;
 /* ---------- Polish: help icons, chart animation, collapsible customers, sparklines ---------- */
 .radmin-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line-strong); color: var(--ink-3); font-size: 11px; font-family: var(--mono); cursor: help; position: relative; flex: none; }
 .radmin-info:hover, .radmin-info:focus { color: var(--ink); border-color: var(--accent); outline: none; }
-.radmin-info::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 240px; background: var(--panel-3); color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 11px; font-family: var(--mono); font-size: 11px; line-height: 1.5; letter-spacing: 0; text-transform: none; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .18s var(--ease); box-shadow: 0 12px 34px -18px rgba(var(--ink-rgb),0.9); }
+.radmin-info::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 240px; background: var(--panel-3); color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 11px; font-family: var(--mono); font-size: 11px; line-height: 1.5; letter-spacing: 0; text-transform: none; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .18s var(--ease); box-shadow: 0 12px 34px -18px rgba(var(--shadow-rgb),0.9); }
 .radmin-info:hover::after, .radmin-info:focus::after { opacity: 1; }
 @media (max-width: 560px) { .radmin-info::after { width: 200px; left: auto; right: 0; transform: none; } }
 

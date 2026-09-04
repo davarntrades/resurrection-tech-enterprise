@@ -1082,7 +1082,7 @@
 .pathway-step:hover .pathway-body {
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  box-shadow: 0 16px 40px -30px rgba(var(--ink-rgb),0.9);
+  box-shadow: 0 16px 40px -30px rgba(var(--shadow-rgb),0.9);
 }
 .pathway-step-head {
   display: flex;

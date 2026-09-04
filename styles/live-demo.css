@@ -473,7 +473,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: -40px 0 120px -40px rgba(var(--ink-rgb),0.9);
+  box-shadow: -40px 0 120px -40px rgba(var(--shadow-rgb),0.9);
 }
 .rgx-drawer.is-open { transform: none; }
 .rgx-drawer-head { display: flex; align-items: center; justify-content: space-between; }

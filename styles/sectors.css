@@ -26,7 +26,7 @@
 .sector-card:hover {
   transform: translateY(-3px);
   border-color: var(--line-strong);
-  box-shadow: 0 28px 64px -44px rgba(var(--ink-rgb), 0.9);
+  box-shadow: 0 28px 64px -44px rgba(var(--shadow-rgb), 0.9);
 }
 
 .sector-omega {

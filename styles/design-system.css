@@ -55,6 +55,11 @@
   --ok-rgb:       11,107,69;
   --escalate-rgb: 138,90,0;
   --ink-rgb:      16,17,20;
+
+  /* Drop shadows are cast light, not painted ink: the colour must stay dark in
+     every scope. Deriving them from --ink-rgb inverted them to near-white
+     inside the dark consoles, which read as a grey wash bleeding off panels. */
+  --shadow-rgb:   16,17,20;
   --bg-rgb:       255,255,255;
 
   /* Aliases used by page stylesheets written before the token names settled
@@ -166,6 +171,7 @@
   --ok-rgb:       79,211,155;
   --escalate-rgb: 240,185,74;
   --ink-rgb:      245,246,247;
+  --shadow-rgb:   0,0,0;
   --bg-rgb:       5,6,8;
 
   --shadow-lift: 0 1px 0 rgba(255,255,255,0.03), 0 24px 60px -34px rgba(0,0,0,0.9);

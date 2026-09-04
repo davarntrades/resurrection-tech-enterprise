@@ -233,7 +233,7 @@ textarea.twa-code::placeholder { color: var(--muted, #8a929c); }
 .twa-report {
   max-width: 820px; margin: 0 auto; background: #ffffff; color: #14181d;
   border: 1px solid #e4e7ec; border-radius: 14px; padding: clamp(24px, 5vw, 52px);
-  box-shadow: 0 10px 40px rgba(var(--ink-rgb), 0.08);
+  box-shadow: 0 10px 40px rgba(var(--shadow-rgb), 0.08);
 }
 .twa-report-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
 .twa-report-brand { font-weight: 700; letter-spacing: -0.01em; color: #14181d; }

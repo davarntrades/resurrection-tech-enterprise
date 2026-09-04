@@ -594,9 +594,12 @@
 }
 .rt-instrument-frame {
   /* The console's own stylesheet already declares the dark token scope on
-     `.rgx`; the frame supplies the rail around it. */
+     `.rgx`; the frame supplies the rail around it. The ground is one step
+     deeper than the page so the instrument reads as recessed into the
+     surface rather than pasted onto it — stated as a literal because the
+     frame must stay dark whatever scope encloses it. */
   border: 1px solid var(--line-2);
-  background: #08090b;
+  background: #050608;
   overflow: hidden;
 }
 .rt-instrument-bar {

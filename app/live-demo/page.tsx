@@ -17,9 +17,11 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <PageShell>
-      {/* The instrument is framed, not decorated: an operational header line,
-          then the console itself on its own dark ground. */}
+    <PageShell className="theme-dark ld-page">
+      {/* The console is an operational surface, so the whole page is the
+          instrument ground rather than a dark block floating in a light page:
+          `theme-dark` on the shell carries the dark tokens through the nav,
+          the header block, the console and the footer as one surface. */}
       <section className="rt-section rt-section--first rt-instrument-intro" aria-labelledby="ld-title">
         <div className="rt-wrap">
           <span className="rt-eyebrow">Live evaluation</span>
