@@ -57,6 +57,23 @@
   --ink-rgb:      16,17,20;
   --bg-rgb:       255,255,255;
 
+  /* Aliases used by page stylesheets written before the token names settled
+     (`var(--muted, #aab2bd)`, `var(--fg-1, #e7ecf3)` …). They were never
+     defined, so every one of those rules fell through to a hardcoded
+     dark-theme value and painted light-grey text on the light ground.
+     Defining them here makes those pages follow the surface; the fallbacks
+     stay in the page stylesheets, simply never reached. */
+  --fg-1: var(--ink);
+  --fg-2: var(--ink-2);
+  --fg-3: var(--ink-3);
+  --bg-0: var(--bg-1);
+  --bg-3: var(--panel-3);
+  --muted: var(--ink-2);
+  --border: var(--line);
+  --warn: var(--escalate);
+  --bad: var(--omega);
+  --ink2: var(--ink-2);
+
   /* ---- Type ---- */
   --font: "Geist", "Helvetica Neue", Arial, sans-serif;
   --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -110,6 +127,7 @@
 .rgx,
 .adm,
 .flab,
+.sov-eng-wrap,
 /* Code and evidence blocks are instrument surfaces: mono on a dark panel,
    inside an otherwise light page. */
 .qs-code {

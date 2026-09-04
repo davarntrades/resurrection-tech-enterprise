@@ -99,7 +99,7 @@
   border-radius: 999px; padding: 4px 11px; border: 1px solid;
 }
 .tp-pill.ok { color: var(--ok); border-color: rgba(var(--ok-rgb),0.4); background: rgba(var(--ok-rgb),0.08); }
-.tp-pill.warn { color: #e0a93f; border-color: rgba(var(--escalate-rgb),0.4); background: rgba(var(--escalate-rgb),0.08); }
+.tp-pill.warn { color: var(--escalate); border-color: rgba(var(--escalate-rgb),0.4); background: rgba(var(--escalate-rgb),0.08); }
 .tp-pill.info { color: var(--accent-bright); border-color: rgba(var(--accent-rgb),0.4); background: rgba(var(--accent-rgb),0.08); }
 
 /* Honest limitations / "what it does NOT mean" */
@@ -124,9 +124,9 @@
   margin-top: 12px;
   font-size: 13px;
   line-height: 1.55;
-  color: #e0a93f;
+  color: var(--escalate);
 }
-.tp-todo b { color: #f0c465; }
+.tp-todo b { color: var(--escalate); }
 
 /* Sample-audit "document" framing */
 .tp-doc {

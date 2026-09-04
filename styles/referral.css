@@ -26,7 +26,7 @@
 
 .ref-out { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
 .ref-out-k { display: block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 8px; }
-.ref-linkfield { font-family: var(--mono); font-size: 0.86rem; color: #cdd6e0; white-space: nowrap; overflow-x: auto; }
+.ref-linkfield { font-family: var(--mono); font-size: 0.86rem; color: var(--ink-2); white-space: nowrap; overflow-x: auto; }
 .ref-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .ref-code-note { margin-top: 12px; font-size: 0.86rem; color: var(--muted, #8a929c); }
 .ref-code-note b { color: var(--ink); font-family: var(--mono); }

@@ -19,7 +19,7 @@
   font-size: clamp(10.5px, 1.15vw, 13px); line-height: 1.9; color: var(--ink-2); white-space: pre;
 }
 .twin-gov { color: var(--ok); }
-.twin-priv { color: #d9a441; }
+.twin-priv { color: var(--escalate); }
 .twin-drift { color: var(--omega); }
 .twin-render-legend {
   display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; padding-top: 16px;

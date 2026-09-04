@@ -227,7 +227,7 @@
 .engage-tag.one { color: var(--ink-2); }
 .engage-tag.rec {
   color: #fff; border-color: transparent;
-  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+  background: var(--accent);
   box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.4), 0 6px 18px -8px var(--accent-glow);
 }
 
@@ -256,7 +256,7 @@
 .engage-note .en-key { display: flex; flex-direction: column; gap: 10px; }
 .engage-note .en-key .row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
 .engage-note .en-key .pill { width: 36px; height: 16px; border-radius: 100px; flex: none; border: 1px solid var(--line-2); }
-.engage-note .en-key .pill.rec { background: linear-gradient(180deg, var(--accent-bright), var(--accent)); border-color: transparent; }
+.engage-note .en-key .pill.rec { background: var(--accent); border-color: transparent; }
 .engage-note .en-divider { background: var(--line); align-self: stretch; }
 @media (max-width: 600px) { .engage-note .en-divider { display: none; } }
 .engage-note .en-text { color: var(--ink-2); font-size: 15px; line-height: 1.6; text-wrap: pretty; }
