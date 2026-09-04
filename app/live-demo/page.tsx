@@ -3,14 +3,14 @@ import { PageShell } from "@/components/PageShell";
 import { LiveDemoClient } from "@/components/LiveDemoClient";
 
 export const metadata: Metadata = {
-  title: "Live Demo — Admissible Operating Envelope Enforcement",
+  title: "Live Demo — Authorization Before Execution",
   description:
-    "See Morrison Runtime Governance evaluate proposed state transitions against an Admissible Operating Envelope before execution, with ALLOW, ESCALATE, or BLOCK decisions and evidence.",
+    "A working test instrument. Submit a proposed trajectory and see Morrison Runtime Governance evaluate it against an Admissible Operating Envelope before execution, with an ALLOW, ESCALATE or BLOCK verdict, the governing rule, measured latency and an evidence chain.",
   alternates: { canonical: "/live-demo" },
   openGraph: {
-    title: "Live Demo — Admissible Operating Envelope Enforcement",
+    title: "Live Demo — Authorization Before Execution",
     description:
-      "An enterprise governance console showing which proposed transitions remain admissible, require escalation, or are blocked before execution.",
+      "Submit a proposed trajectory and see which transitions are permitted to cross into execution, which are held for approval, and which are terminated at the boundary.",
     url: "/live-demo",
   },
 };
@@ -18,9 +18,42 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <PageShell>
-      <section className="section section--tight" aria-label="Live Admissible Operating Envelope and Runtime Governance demo">
-        <div className="wrap">
-          <LiveDemoClient />
+      {/* The instrument is framed, not decorated: an operational header line,
+          then the console itself on its own dark ground. */}
+      <section className="rt-section rt-section--first rt-instrument-intro" aria-labelledby="ld-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow">Live evaluation</span>
+          <h1 id="ld-title" className="rt-display rt-instrument-title">
+            A proposed transition
+            <br />
+            is not an authorized transition.
+          </h1>
+          <p className="rt-lede">
+            Submit a proposed trajectory. It is evaluated against an Admissible Operating Envelope
+            before execution, and returns the verdict, the governing rule, the layer that decided,
+            measured latency and a replayable evidence chain.
+          </p>
+          <p className="rt-note">
+            Nothing submitted here is executed. The console evaluates the proposed call as data.
+          </p>
+        </div>
+      </section>
+
+      <section
+        className="rt-instrument"
+        aria-label="Runtime Governance console"
+      >
+        <div className="rt-wrap">
+          <div className="rt-instrument-frame">
+            <div className="rt-instrument-bar" aria-hidden="true">
+              <span className="rt-instrument-id">RUNTIME GOVERNANCE CONSOLE</span>
+              <span className="rt-instrument-state">
+                <span className="rt-instrument-pip" />
+                LIVE
+              </span>
+            </div>
+            <LiveDemoClient />
+          </div>
         </div>
       </section>
     </PageShell>

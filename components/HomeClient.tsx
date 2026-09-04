@@ -43,14 +43,24 @@ const CONTROL_STACK: {
   },
 ];
 
-/* Only figures that exist in this repository or on this site are shown here.
-   No latency, certification or field-deployment figure is claimed until it is
-   measured and published on /evidence. */
+/* Only figures that this repository actually publishes are shown here. The
+   latency figures come from public/benchmarks/latency.json and are quoted with
+   the conditions that produced them; no certification or field-deployment
+   claim is made, because none is held. */
 const PROOF = [
   { value: "LIVE", label: <>Working runtime governance system, executable in the browser</> },
   { value: "129,857+", label: <>Recorded governance evaluations across model architectures</> },
   { value: "219", label: <>Test functions in the governance repository</> },
   { value: "0.0%", label: <>False positives and false negatives on the governed test suite</> },
+  {
+    value: "SUB-MS",
+    label: (
+      <>
+        Measured single-step authorization — <b>p50 0.298 ms</b>, p95 0.338 ms on the published
+        benchmark environment
+      </>
+    ),
+  },
   { value: "BOUNDED", label: <>State-space verification within a declared environment</> },
   { value: "AUDITABLE", label: <>Evidence chains and deterministic replay of every decision</> },
 ];

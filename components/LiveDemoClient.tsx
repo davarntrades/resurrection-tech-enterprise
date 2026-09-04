@@ -453,15 +453,15 @@ export function LiveDemoClient() {
       <header className="rgx-head">
         <div className="rgx-head-l">
           <span className="eyebrow">Runtime Governance™ · Live console</span>
-          <h1 className="rgx-title">
-            Paste a workflow.{" "}
-            <span className="rgx-title-accent">See ALLOW or BLOCK.</span>
-          </h1>
+          <p className="rgx-title">
+            Submit a proposed trajectory.{" "}
+            <span className="rgx-title-accent">Read the authorization decision.</span>
+          </p>
           <p className="rgx-lede">
-            Don&rsquo;t read the paper — put your agent&rsquo;s workflow in. Runtime
-            Governance evaluates the plan <b>before it executes</b> and returns a
-            real verdict, the rule and layer that fired, and a downloadable audit
-            trail.
+            The proposed sequence is evaluated against the Admissible Operating
+            Envelope <b>before execution</b>. The console returns the verdict, the
+            governing rule and layer, measured latency, and an exportable evidence
+            chain. Nothing submitted here is executed.
           </p>
         </div>
         <div className="rgx-head-r">

@@ -48,7 +48,7 @@
 .twin-vs-bad { border-left: 2px solid var(--omega-dim); }
 .twin-vs-good { border-left: 2px solid var(--ok); }
 .twin-vs-h {
-  display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  display: block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-3); margin-bottom: 16px;
 }
 .twin-vs-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -87,7 +87,7 @@
 .twin-isnot-col li { position: relative; padding-left: 20px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
 .twin-isnot-is li { color: var(--ink); }
 .twin-isnot-is li::before { content: "✓"; position: absolute; left: 0; top: 0; font-size: 11px; color: var(--ok); }
-.twin-isnot-not li::before { content: "✕"; position: absolute; left: 0; top: 0; font-size: 10px; color: var(--omega); }
+.twin-isnot-not li::before { content: "✕"; position: absolute; left: 0; top: 0; font-size: 11px; color: var(--omega); }
 
 /* ── Core design principles ──────────────────────────────────────────────── */
 .twin-principles { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -119,7 +119,7 @@
 }
 .twin-signal-line span {
   padding: 6px 11px; border: 1px solid var(--line-2); border-radius: 999px;
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .045em; color: var(--ink-3);
+  font-family: var(--mono); font-size: 11px; letter-spacing: .045em; color: var(--ink-3);
 }
 
 .twin-question-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -127,12 +127,12 @@
   display: grid; gap: 20px; min-height: 130px; padding: 20px;
   border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
 }
-.twin-question span { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: var(--accent-bright); }
+.twin-question span { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent-bright); }
 .twin-question strong { align-self: end; font-size: 15px; line-height: 1.35; font-weight: 560; color: var(--ink); }
 
 .twin-derivation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .twin-derive-step { padding: clamp(22px, 2.7vw, 30px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
-.twin-derive-step > span { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--accent-bright); }
+.twin-derive-step > span { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent-bright); }
 .twin-derive-step h3 { margin: 15px 0 0; font-size: clamp(18px, 2vw, 22px); font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
 .twin-derive-step p { margin: 9px 0 0; font-size: 13px; line-height: 1.62; color: var(--ink-2); }
 .twin-derived-rule {
@@ -154,7 +154,7 @@
   background: radial-gradient(circle at 50% 45%, rgba(var(--accent-rgb),.15), var(--panel) 62%); text-align: center;
 }
 .twin-graph-core span,
-.twin-graph-core small { font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.twin-graph-core small { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .twin-graph-core strong { margin: 10px 0; font-size: clamp(26px, 3.5vw, 42px); font-weight: 600; letter-spacing: -.035em; color: var(--ink); }
 .twin-graph-facets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .twin-graph-facet { padding: 19px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); }
@@ -163,7 +163,7 @@
 .twin-reachability { margin-top: 18px; padding: 24px; border: 1px solid var(--line-2); border-radius: 13px; background: var(--panel); }
 .twin-reachability > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
 .twin-reachability b { padding: 7px 11px; border: 1px solid var(--accent-dim); border-radius: 8px; font-size: 12.5px; font-weight: 560; color: var(--ink); }
-.twin-reachability i { font-family: var(--mono); font-size: 9.5px; font-style: normal; color: var(--ink-4); }
+.twin-reachability i { font-family: var(--mono); font-size: 11px; font-style: normal; color: var(--ink-4); }
 .twin-reachability p { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
 
 .twin-evidence-flow {
@@ -185,7 +185,7 @@
 
 .twin-stakeholder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .twin-stakeholder { padding: clamp(23px, 2.8vw, 32px); border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
-.twin-stakeholder > span { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-bright); }
+.twin-stakeholder > span { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-bright); }
 .twin-stakeholder h3 { margin: 13px 0 0; font-size: clamp(19px, 2.1vw, 24px); font-weight: 600; letter-spacing: -.022em; color: var(--ink); }
 .twin-stakeholder p { margin: 10px 0 0; font-size: 13px; line-height: 1.62; color: var(--ink-2); }
 
@@ -195,7 +195,7 @@
   border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
 }
 .twin-platform-role.is-twin { border-color: var(--accent-dim); background: linear-gradient(90deg, rgba(var(--accent-rgb),.08), var(--panel)); }
-.twin-platform-role > span { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; color: var(--accent-bright); }
+.twin-platform-role > span { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent-bright); }
 .twin-platform-role h3 { display: inline; margin: 0; font-size: 18px; font-weight: 600; color: var(--ink); }
 .twin-platform-role strong { margin-left: 12px; font-size: 13px; font-weight: 520; color: var(--ink); }
 .twin-platform-role p { margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); }

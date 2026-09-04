@@ -15,7 +15,7 @@
   padding: clamp(22px, 3.5vw, 32px);
 }
 .pay-primary-main { flex: 1 1 360px; min-width: 0; }
-.pay-primary-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); }
+.pay-primary-k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); }
 .pay-primary-main h2 { font-size: clamp(20px, 2.6vw, 26px); color: var(--ink); margin: 8px 0 8px; letter-spacing: -0.015em; }
 .pay-primary-main p { font-size: 14px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 62ch; }
 .pay-primary-cta { display: flex; flex-direction: column; gap: 10px; flex: none; }
@@ -73,7 +73,7 @@
 .pay-card.is-primary.is-invoice { background: radial-gradient(125% 165% at 0% 0%, rgba(var(--accent-rgb),0.10), transparent 58%), var(--panel); }
 .pay-primary-k-tag {
   display: block; margin-bottom: 10px;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--accent-bright);
 }
 .is-primary .pay-card-top h3 { font-size: 16.5px; }
@@ -89,7 +89,7 @@
 .pay-status {
   display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
   margin-top: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-2);
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3);
 }
 .pay-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-4); flex: none; }
 .pay-status.is-online { color: var(--ok); border-color: rgba(var(--ok-rgb),0.4); }
@@ -102,7 +102,7 @@
 .pay-tiers[disabled] { opacity: 0.55; }
 .pay-tiers-legend {
   padding: 0; margin-bottom: 9px;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
 }
 .pay-tier-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .pay-tier {
@@ -122,7 +122,7 @@
 .pay-tier-rec {
   margin-left: 8px; padding: 2px 7px; border-radius: 999px;
   background: rgba(var(--accent-rgb),0.18); color: var(--accent-bright);
-  font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
 }
 .pay-tier-note { margin: 9px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-3); }
 
@@ -187,7 +187,7 @@
 }
 .pay-gated-k {
   display: block; margin-bottom: 12px;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--accent-bright);
 }
 .is-gated .pay-card-top h3 { font-size: clamp(17px, 2.2vw, 21px); }
@@ -232,7 +232,7 @@
 .pay-buyers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .pay-buyer { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); padding: 18px 20px; }
 .pay-buyer-h { font-size: 14.5px; color: var(--ink); font-weight: 540; letter-spacing: -0.01em; }
-.pay-buyer-k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 12px 0 9px; }
+.pay-buyer-k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 12px 0 9px; }
 .pay-buyer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .pay-buyer li { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-2); }
 .pay-buyer li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-bright); flex: none; }

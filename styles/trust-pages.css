@@ -57,7 +57,7 @@
 .tp-card p { font-size: 13.5px; line-height: 1.55; color: var(--ink-2); margin: 0; }
 .tp-card .k {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -111,7 +111,7 @@
   padding: 16px 20px;
   margin-top: 14px;
 }
-.tp-note .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
+.tp-note .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
 .tp-note ul { margin: 0; padding-left: 18px; }
 .tp-note li { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); margin-bottom: 6px; }
 

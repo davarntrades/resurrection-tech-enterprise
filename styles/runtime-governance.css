@@ -80,7 +80,7 @@
 .rgd-tab-meta { margin-top: auto; }
 .rgd-tab-verdict {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -131,7 +131,7 @@
 .rgd-request.is-live { border-color: rgba(var(--accent-rgb), 0.3); }
 .rgd-request-label {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -356,7 +356,7 @@
   font-family: var(--mono);
   letter-spacing: 0.01em;
 }
-.rgd-gate-sub { font-size: 10.5px; color: var(--ink-3); }
+.rgd-gate-sub { font-size: 11px; color: var(--ink-3); }
 .rgd-scan {
   position: absolute;
   left: 0;
@@ -442,7 +442,7 @@
 }
 .rgd-verdict-tag {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -553,7 +553,7 @@
 .rgd-audit-grid > div:last-child { border-bottom: none; }
 .rgd-audit-grid dt {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);

@@ -12,7 +12,7 @@
 .guardian-layer .gl-v { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; line-height: 1.65; letter-spacing: 0.01em; }
 .guardian-layer.is-os { background: rgba(var(--accent-rgb),0.045); border-color: rgba(var(--accent-rgb),0.28); }
 .guardian-layer.is-os .gl-k { color: var(--ink); font-weight: 560; }
-.guardian-layer .gl-tm { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
+.guardian-layer .gl-tm { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
 .guardian-layer.is-os .gl-tm { color: var(--accent-bright); }
 .guardian-conn { width: 1px; height: clamp(18px, 2.2vw, 26px); margin: 0 auto; background: var(--line-2); }
 .guardian-stack-caption { text-align: center; font-size: 12.5px; line-height: 1.6; color: var(--ink-3); margin: 20px auto 0; max-width: 560px; }

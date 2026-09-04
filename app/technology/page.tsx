@@ -392,18 +392,32 @@ export default function Page() {
           </h2>
           <p className="rt-lede reveal" data-d="2">
             Because the evaluation is deterministic rather than model-mediated, its cost is a
-            function of the declared envelope and horizon, not of prompt length or sampling. Every
-            governed run records its own evaluation latency alongside the verdict, so the figure a
-            deployment quotes is one it measured.
+            function of the declared envelope and horizon, not of prompt length or sampling. It
+            scales with the number of steps in the evaluated trajectory.
           </p>
-          <div className="rt-defs reveal" data-d="3">
+
+          <div className="rt-proof reveal" data-d="3">
             {[
-              ["Recorded per run", "Evaluation latency, approval wait and downstream provider latency are recorded separately for each governed run."],
-              ["Visible in the console", "The runtime dashboard reports mean and p95 evaluation latency for the deployment it governs."],
-              ["Not asserted here", "No single latency figure is published as a product claim: it depends on the envelope, horizon and host. Ask for the measured figures from a governed run in your environment."],
-            ].map(([k, v]) => (
-              <div key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+              ["0.298 ms", <>Single-step authorization, p50 — <b>96 rules, 800 iterations</b></>],
+              ["0.338 ms", <>Single-step authorization, p95</>],
+              ["2.33 ms", <>Four-step trajectory, p50</>],
+              ["11.5 ms", <>Sixteen-step trajectory, p50</>],
+            ].map(([v, l], i) => (
+              <div className="rt-proof-row" key={i}>
+                <span className="p-value">{v}</span>
+                <span className="p-label">{l}</span>
+              </div>
             ))}
+          </div>
+
+          <div className="rt-claim reveal">
+            <span className="c-key">Measurement conditions</span>
+            <p>
+              Single-threaded, horizon 3, measured on the published build environment. These are{" "}
+              <strong>representative figures, not a production-hardware guarantee</strong>. Every
+              governed run also records its own evaluation latency, approval wait and downstream
+              provider latency separately, so the figure a deployment quotes is one it measured.
+            </p>
           </div>
           <div className="rt-links reveal">
             <Link href="/evidence">Measured results</Link>

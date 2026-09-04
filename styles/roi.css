@@ -247,7 +247,7 @@
   text-shadow: 0 0 26px rgba(var(--omega-rgb), 0.4);
 }
 .fc-mult-cap {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -267,7 +267,7 @@
 .fc-mult-vs .risk { color: var(--ink-2); }
 .fc-mult-arrow {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-4);
@@ -330,7 +330,7 @@
   align-items: center;
   gap: 7px;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ok);
@@ -394,7 +394,7 @@
 .fc-exec-roi-k {
   display: block;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent-bright);

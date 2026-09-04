@@ -32,7 +32,7 @@
 .sector-omega {
   align-self: flex-start;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-bright);
@@ -85,7 +85,7 @@
 }
 .sector-scale-k {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);

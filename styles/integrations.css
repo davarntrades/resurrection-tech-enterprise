@@ -55,14 +55,14 @@
   padding: 13px 20px; border-bottom: 1px solid var(--line); background: var(--bg);
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2);
 }
-.ig-impact-tag { font-size: 10px; letter-spacing: 0.08em; color: var(--ink-4); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; }
+.ig-impact-tag { font-size: 11px; letter-spacing: 0.08em; color: var(--ink-4); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; }
 .ig-impact-grid { display: grid; grid-template-columns: 1fr 1fr; }
 @media (max-width: 640px) { .ig-impact-grid { grid-template-columns: 1fr; } }
 .ig-impact-cell { padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .ig-impact-cell:nth-child(odd) { border-right: 1px solid var(--line); }
 @media (max-width: 640px) { .ig-impact-cell:nth-child(odd) { border-right: 0; } }
 .ig-impact-k {
-  display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  display: block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ok); margin-bottom: 6px;
 }
 .ig-impact-v { display: block; font-size: 14px; line-height: 1.45; color: var(--ink); }
@@ -91,7 +91,7 @@
 .ig-dash-tile .l { display: block; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
 .ig-dash-tile.danger .v { color: var(--omega); }
 .ig-dash-feed { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); overflow: hidden; }
-.ig-dash-feed-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.ig-dash-feed-h { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 10px 14px; border-bottom: 1px solid var(--line); }
 .ig-dash-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
   font-family: var(--mono); font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em;
@@ -125,7 +125,7 @@
 .ig-svg-label.tone-block { fill: var(--omega); }
 .ig-svg-label.tone-allow { fill: var(--ok); }
 .ig-svg-label.tone-escalate { fill: #e0a93f; }
-.ig-svg-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.02em; }
+.ig-svg-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; }
 .ig-svg-conn { stroke: var(--accent-dim); stroke-width: 1.5; }
 .ig-svg-arrowhead { fill: var(--accent); }
 
@@ -244,7 +244,7 @@
   padding: 20px 24px;
 }
 .ig-result.is-block { border-color: rgba(var(--omega-rgb),0.32); background: linear-gradient(180deg, rgba(var(--omega-rgb),0.07), transparent 50%), var(--panel); }
-.ig-result-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
+.ig-result-k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px; }
 .ig-result p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
 
 /* ── Plan (CRM) ── */
@@ -256,7 +256,7 @@
   max-width: 560px;
   margin: 0 auto;
 }
-.ig-plan-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.ig-plan-k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
 .ig-plan ol { margin: 12px 0 0; padding-left: 20px; }
 .ig-plan li { font-family: var(--mono); font-size: 14px; color: var(--ink); padding: 4px 0; }
 .ig-plan-note { margin: 14px 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
@@ -267,7 +267,7 @@
 .ig-tl-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); z-index: 1; }
 .ig-tl-line { position: absolute; top: 6px; left: 50%; width: 100%; height: 1px; background: var(--line-2); }
 .ig-tl-label { font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 12px; letter-spacing: 0.02em; }
-@media (max-width: 560px) { .ig-tl-label { font-size: 10.5px; } }
+@media (max-width: 560px) { .ig-tl-label { font-size: 11px; } }
 
 /* ── Tools row (Copilot) ── */
 .ig-tools { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
@@ -311,7 +311,7 @@
 .ig-deliverables {
   margin-top: 18px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--bg); padding: 20px 24px;
 }
-.ig-deliverables-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 12px; }
+.ig-deliverables-k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 12px; }
 .ig-deliverables ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; }
 .ig-deliverables li {
   font-family: var(--mono); font-size: 13px; color: var(--ink); border: 1px solid var(--line-2);

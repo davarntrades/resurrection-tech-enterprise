@@ -62,7 +62,10 @@
 /* Below this the control stack's three columns start breaking words, so the
    figure moves under it and both get the full measure. */
 @media (max-width: 1120px) {
-  .rt-boundary-grid { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr), not 1fr: a plain 1fr track takes its minimum from the
+     content, and the diagram declares a 460px min-width on small screens, so
+     the track would push the whole page wider than the viewport. */
+  .rt-boundary-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .rt-boundary-statement {
@@ -129,7 +132,7 @@
    figure is scaled up and allowed to scroll inside its own container rather
    than shrinking the notation. */
 @media (max-width: 560px) {
-  .bdg { overflow-x: auto; }
+  .bdg { overflow-x: auto; max-width: 100%; }
   .bdg-svg { min-width: 460px; }
 }
 

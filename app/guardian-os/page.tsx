@@ -146,6 +146,11 @@ const PATHWAYS = [
   ["Executive Advisory", "Support accountable adoption, operating-model decisions and executive oversight.", "Monthly or annual"],
 ];
 
+/* The six profiles named on the deployment section, and the contract that is
+   identical across all of them. */
+const ENVIRONMENTS = ["Cloud", "Hybrid", "Private cloud", "On-premises", "Sovereign", "Air-gapped"];
+const CONTRACT = ["Identity", "Policy", "Verdict", "Approval", "Execution", "Evidence"];
+
 const RUNTIMES = ["OpenAI Agents", "LangGraph", "LangChain", "AutoGen", "Amazon Bedrock", "MCP servers", "Custom orchestrators"];
 const ENTERPRISE_SYSTEMS = ["Microsoft 365", "Azure", "AWS", "Google Cloud", "Salesforce", "ServiceNow", "SAP", "Snowflake", "Databricks", "Palantir"];
 
@@ -172,33 +177,57 @@ function PlatformMap() {
 
 export default function GuardianOSPage() {
   return (
-    <PageShell>
+    <PageShell className="theme-dark gos-page">
       <section className="gos-hero">
         <div className="gos-wrap">
-          <span className="gos-eyebrow">Enterprise operating platform</span>
+          <span className="gos-eyebrow">Guardian OS<span className="gos-tm">™</span> · Operating platform</span>
           <h1 className="gos-h1">
-            Guardian OS<span className="gos-tm">™</span>
-            <span className="gos-h1-sub">The operating platform for autonomous enterprises.</span>
+            One governance kernel.
+            <span className="gos-h1-sub">Multiple operating environments.</span>
           </h1>
           <p className="gos-lede">
-            Guardian OS gives organisations one operating environment for deploying, governing and supervising
-            AI systems and autonomous agents.
+            Guardian OS is one operating environment for deploying, governing and supervising AI
+            systems and autonomous agents — with Runtime Governance on the execution path.
           </p>
           <p className="gos-lede-2">
-            It combines Runtime Governance, a continuously derived AI Twin, Industry Intelligence Packs,
-            Executive Workspaces, enterprise provisioning and managed governance—without changing the
-            governance kernel for each deployment model or sector.
+            The deployment profile decides where enforcement runs and who holds the keys. It does
+            not change the control contract.
           </p>
           <div className="gos-cta-row">
             <Link href="/book" className="gos-btn gos-btn-primary">Book an enterprise briefing</Link>
             <a href="#platform" className="gos-btn gos-btn-ghost">See the operating model</a>
           </div>
-          <div className="gos-hero-proof" aria-label="Guardian OS platform attributes">
-            <span>Model independent</span>
-            <span>Policy enforced at runtime</span>
-            <span>Evidence by construction</span>
-            <span>Cloud to sovereign deployment</span>
-          </div>
+        </div>
+
+        {/* The whole positioning in one figure: six environments, one kernel,
+            one contract. Nothing in it is decorative. */}
+        <div className="gos-wrap">
+          <figure className="gos-kernel-map reveal" aria-labelledby="gos-kernel-cap">
+            <div className="gos-kernel-envs">
+              {ENVIRONMENTS.map((env) => (
+                <span key={env}>{env}</span>
+              ))}
+            </div>
+            <div className="gos-kernel-converge" aria-hidden="true">
+              <span /><span /><span /><span /><span /><span />
+            </div>
+            <div className="gos-kernel-core">
+              <span className="gos-kernel-k">Morrison Runtime Governance™ kernel</span>
+              <strong>Independent authorization on the execution path</strong>
+            </div>
+            <ol className="gos-kernel-contract" aria-label="Control contract">
+              {CONTRACT.map((step, i) => (
+                <li key={step}>
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+            <figcaption id="gos-kernel-cap">
+              Six deployment profiles resolve to one kernel and one control contract:
+              identity → policy → verdict → approval → execution → evidence.
+            </figcaption>
+          </figure>
         </div>
       </section>
 

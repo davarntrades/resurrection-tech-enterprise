@@ -12,10 +12,10 @@
 .reco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 @media (max-width: 520px) { .reco-grid { grid-template-columns: 1fr; } }
 .reco-row { background: var(--panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
-.reco-row .rk { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.reco-row .rk { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
 .reco-row .rv { color: var(--ink); font-size: 16px; font-weight: 540; letter-spacing: -0.01em; transition: color .4s var(--ease); }
 .reco-exposures { margin-top: 18px; }
-.reco-exposures .lab { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; }
+.reco-exposures .lab { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; }
 .reco-exposures ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 @media (max-width: 520px) { .reco-exposures ul { grid-template-columns: 1fr; } }
 .reco-exposures li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
