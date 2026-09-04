@@ -624,25 +624,6 @@ p { margin: 0; }
   .flow-stage::before { transform: scaleX(1); }
 }
 
-/* ---------- Reachability section ---------- */
-.reach { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
-@media (max-width: 920px) { .reach { grid-template-columns: 1fr; } }
-.reach-stage {
-  position: relative; aspect-ratio: 1 / 1; width: 100%;
-  border: 1px solid var(--line); border-radius: var(--radius);
-  background: var(--panel);
-  overflow: hidden;
-}
-#reach-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.reach-legend { display: flex; flex-direction: column; gap: 18px; margin-top: 30px; }
-.legend-row { display: flex; gap: 14px; align-items: flex-start; }
-.legend-row .swatch { width: 14px; height: 14px; border-radius: 2px; margin-top: 4px; flex: none; }
-.legend-row .swatch.safe { background: var(--accent); }
-.legend-row .swatch.blocked { background: var(--ink-3); }
-.legend-row .swatch.omega { background: var(--omega-dim); border: 1px solid var(--omega); }
-.legend-row b { color: var(--ink); font-weight: 540; display: block; font-size: 15px; }
-.legend-row span { color: var(--ink-3); font-size: 13.5px; font-family: var(--mono); }
-
 /* ---------- Evidence ---------- */
 .ev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 @media (max-width: 900px) { .ev-grid { grid-template-columns: repeat(2,1fr); } }

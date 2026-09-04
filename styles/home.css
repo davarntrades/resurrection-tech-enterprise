@@ -52,88 +52,11 @@
 .rt-missing-body .rt-lede { margin-top: 0; }
 
 /* ---------- 03 · The control boundary ---------- */
-.rt-boundary-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: clamp(32px, 4.5vw, 64px);
-  align-items: start;
-  margin-top: clamp(48px, 6vw, 80px);
-}
-/* Below this the control stack's three columns start breaking words, so the
-   figure moves under it and both get the full measure. */
-@media (max-width: 1120px) {
-  /* minmax(0, 1fr), not 1fr: a plain 1fr track takes its minimum from the
-     content, and the diagram declares a 460px min-width on small screens, so
-     the track would push the whole page wider than the viewport. */
-  .rt-boundary-grid { grid-template-columns: minmax(0, 1fr); }
-}
-
 .rt-boundary-statement {
   margin-top: clamp(64px, 8vw, 112px);
   padding-top: clamp(36px, 4vw, 56px);
   border-top: 1px solid var(--line);
   font-size: clamp(26px, 4.2vw, 58px);
-}
-
-/* Boundary diagram */
-.bdg { margin: 0; }
-.bdg-svg { width: 100%; height: auto; display: block; overflow: visible; }
-.bdg-omega-glyph {
-  font-family: var(--mono);
-  font-size: 30px;
-  fill: var(--omega);
-}
-/* Sized for the rendered scale, not the viewBox: the figure sits in a ~460px
-   column, so 9px notation would land under 7px on screen. */
-.bdg-tick {
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  fill: var(--ink-3);
-}
-.bdg-label {
-  font-family: var(--mono);
-  font-size: 13.5px;
-  letter-spacing: 0.14em;
-  font-weight: 500;
-}
-.bdg-label--allow { fill: var(--accent); }
-.bdg-label--block { fill: var(--omega); }
-
-.bdg-legend {
-  display: grid;
-  gap: 10px;
-  margin-top: clamp(20px, 2.5vw, 28px);
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-.bdg-key {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  color: var(--ink-2);
-  line-height: 1.4;
-}
-.bdg-swatch { width: 14px; height: 2px; flex: none; }
-.bdg-key--allow .bdg-swatch { background: var(--accent); }
-.bdg-key--block .bdg-swatch {
-  background: repeating-linear-gradient(90deg, var(--omega) 0 4px, transparent 4px 7px);
-}
-.bdg-key--omega .bdg-swatch {
-  height: 12px;
-  background: var(--omega-dim);
-  border: 1px solid var(--omega);
-}
-
-/* On a small screen the SVG labels would fall below legible size, so the
-   figure is scaled up and allowed to scroll inside its own container rather
-   than shrinking the notation. */
-@media (max-width: 560px) {
-  .bdg { overflow-x: auto; max-width: 100%; }
-  .bdg-svg { min-width: 460px; }
 }
 
 /* ---------- 04 · Proof ---------- */

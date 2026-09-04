@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
-import { CanvasScript } from "@/components/CanvasScript";
 import { RuntimeGovernanceDemo } from "@/components/RuntimeGovernanceDemo";
+import {
+  ControlPathFigure,
+  EvidenceChainFigure,
+  ReachabilityFigure,
+  StateSpaceFigure,
+} from "@/components/iso";
 
 export const metadata: Metadata = {
   title: "Technology — Execution Control for Autonomous Systems",
@@ -137,24 +142,8 @@ export default function Page() {
             before the call is issued.
           </h2>
 
-          <div className="rt-path rt-tech-path reveal" data-d="2">
-            <div className="rt-path-node">
-              <span className="n-label">01 / Proposal</span>
-              <span className="n-title">Action proposed</span>
-              <span className="n-desc">A tool call or API invocation is requested, with arguments and target.</span>
-            </div>
-            <div className="rt-path-link" aria-hidden="true"><span className="rt-path-glyph">→</span></div>
-            <div className="rt-path-node rt-path-node--authority">
-              <span className="n-label">02 / Authorization</span>
-              <span className="n-title">Independently evaluated</span>
-              <span className="n-desc">Assessed against the envelope by a component outside the proposing system.</span>
-            </div>
-            <div className="rt-path-link" aria-hidden="true"><span className="rt-path-glyph">→</span></div>
-            <div className="rt-path-node">
-              <span className="n-label">03 / Execution</span>
-              <span className="n-title">Authorized call issued</span>
-              <span className="n-desc">Only a transition that satisfied authorization reaches the downstream system.</span>
-            </div>
+          <div className="rt-figure reveal" data-d="2">
+            <ControlPathFigure />
           </div>
 
           <p className="rt-note reveal">
@@ -210,6 +199,9 @@ export default function Page() {
               </div>
             ))}
           </div>
+          <div className="rt-figure reveal">
+            <StateSpaceFigure />
+          </div>
           <p className="rt-note reveal">
             This is why chained and cross-agent paths are visible to it: each step may be admissible
             in isolation while the sequence is not. The sequence is what gets evaluated.
@@ -227,42 +219,8 @@ export default function Page() {
             Transitions are edges.
           </h2>
 
-          <div className="rt-reach-grid">
-            <div className="reveal" data-d="2">
-              <div className="reach-stage">
-                <canvas id="reach-canvas" aria-hidden="true" />
-                <CanvasScript src="/canvas/reach.js" />
-              </div>
-              <p className="rt-figcaption">
-                A discrete state space. Transitions that would step into Ω are denied at the
-                boundary rather than reported afterwards.
-              </p>
-            </div>
-            <div className="reveal" data-d="3">
-              <div className="reach-legend">
-                <div className="legend-row">
-                  <span className="swatch safe" aria-hidden="true" />
-                  <div>
-                    <b>Inside the envelope</b>
-                    <span>Admissible transitions propagate under the declared constraints.</span>
-                  </div>
-                </div>
-                <div className="legend-row">
-                  <span className="swatch blocked" aria-hidden="true" />
-                  <div>
-                    <b>Boundary violation</b>
-                    <span>Transitions leaving the declared region are blocked or escalated pre-execution.</span>
-                  </div>
-                </div>
-                <div className="legend-row">
-                  <span className="swatch omega" aria-hidden="true" />
-                  <div>
-                    <b>Ω — forbidden region</b>
-                    <span>States the system must not reach under the governed transition system.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="rt-figure reveal" data-d="2">
+            <ReachabilityFigure />
           </div>
         </div>
       </section>
@@ -320,7 +278,10 @@ export default function Page() {
             <br />
             a record that can be replayed.
           </h2>
-          <div className="rt-stack reveal" data-d="2">
+          <div className="rt-figure reveal" data-d="2">
+            <EvidenceChainFigure />
+          </div>
+          <div className="rt-stack reveal" data-d="3">
             {EVIDENCE_CHAIN.map(([idx, name, body]) => (
               <div className="rt-stack-row" key={idx}>
                 <span className="s-idx">{idx}</span>

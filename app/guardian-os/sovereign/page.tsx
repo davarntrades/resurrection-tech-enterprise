@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { EvidenceChainFigure } from "@/components/iso";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sovereignProfiles = require("@/lib/sovereign/profiles").PROFILE_IDS as string[];
@@ -82,8 +83,6 @@ const VALUE_ROWS = [
   ["Operating responsibility", "Ongoing platform ownership and redevelopment", "Ongoing platform operation, policy configuration and assurance"],
 ];
 
-const CONTRACT = ["Identity", "Policy", "Verdict", "Approval", "Execution", "Evidence"];
-
 export default function GuardianOSSovereignPage() {
   return (
     <PageShell className="theme-dark sov-page">
@@ -144,11 +143,9 @@ export default function GuardianOSSovereignPage() {
             the evidence. It does not change the control contract.
           </p>
 
-          <ol className="sov-contract reveal" data-d="3" aria-label="Control contract">
-            {CONTRACT.map((step, i) => (
-              <li key={step}><span>{String(i + 1).padStart(2, "0")}</span>{step}</li>
-            ))}
-          </ol>
+          <div className="rt-figure reveal" data-d="3">
+            <EvidenceChainFigure />
+          </div>
 
           <ul className="rt-attrs sov-guarantees reveal">
             {GUARANTEES.map((g, i) => (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
-import { BoundaryDiagram } from "@/components/home/BoundaryDiagram";
+import { ExecutionBoundaryFigure } from "@/components/iso";
 import { useSiteMotion } from "@/components/useSiteMotion";
 import { Events, track } from "@/lib/analytics";
 
@@ -204,42 +204,40 @@ export function HomeClient() {
               between proposal and execution.
             </h2>
 
-            <div className="rt-boundary-grid">
-              <div className="reveal" data-d="2">
-                <div className="rt-stack">
-                  {CONTROL_STACK.map((row) => (
-                    <div
-                      key={row.idx}
-                      className={`rt-stack-row${row.authority ? " rt-stack-row--authority" : ""}`}
-                    >
-                      <span className="s-idx">{row.idx}</span>
-                      <div>
-                        <span className="s-name">{row.name}</span>
-                        <span className="s-verb">{row.verb}</span>
-                      </div>
-                      <p className="s-body">{row.body}</p>
-                    </div>
-                  ))}
-                </div>
+            {/* The illustration takes the full measure: at half width the
+                notation would render below its stated size. */}
+            <div className="rt-figure reveal" data-d="2">
+              <ExecutionBoundaryFigure />
+            </div>
 
-                <div className="rt-verdicts">
-                  <div className="rt-verdict rt-verdict--allow">
-                    <span className="v-key"><span className="v-mark" aria-hidden="true" />Allow</span>
-                    <span className="v-desc">The transition is admissible and proceeds to execution.</span>
+            <div className="rt-stack reveal" data-d="3">
+              {CONTROL_STACK.map((row) => (
+                <div
+                  key={row.idx}
+                  className={`rt-stack-row${row.authority ? " rt-stack-row--authority" : ""}`}
+                >
+                  <span className="s-idx">{row.idx}</span>
+                  <div>
+                    <span className="s-name">{row.name}</span>
+                    <span className="s-verb">{row.verb}</span>
                   </div>
-                  <div className="rt-verdict rt-verdict--escalate">
-                    <span className="v-key"><span className="v-mark" aria-hidden="true" />Escalate</span>
-                    <span className="v-desc">Authorization is withheld pending an independent approval.</span>
-                  </div>
-                  <div className="rt-verdict rt-verdict--block">
-                    <span className="v-key"><span className="v-mark" aria-hidden="true" />Block</span>
-                    <span className="v-desc">The transition is terminated before it reaches the execution path.</span>
-                  </div>
+                  <p className="s-body">{row.body}</p>
                 </div>
+              ))}
+            </div>
+
+            <div className="rt-verdicts reveal">
+              <div className="rt-verdict rt-verdict--allow">
+                <span className="v-key"><span className="v-mark" aria-hidden="true" />Allow</span>
+                <span className="v-desc">The transition is admissible and proceeds to execution.</span>
               </div>
-
-              <div className="reveal" data-d="3">
-                <BoundaryDiagram />
+              <div className="rt-verdict rt-verdict--escalate">
+                <span className="v-key"><span className="v-mark" aria-hidden="true" />Escalate</span>
+                <span className="v-desc">Authorization is withheld pending an independent approval.</span>
+              </div>
+              <div className="rt-verdict rt-verdict--block">
+                <span className="v-key"><span className="v-mark" aria-hidden="true" />Block</span>
+                <span className="v-desc">The transition is terminated before it reaches the execution path.</span>
               </div>
             </div>
 

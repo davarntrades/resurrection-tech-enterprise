@@ -691,3 +691,15 @@
   border-bottom: 1px solid var(--accent-dim);
 }
 .rt-defs .v a:hover { border-bottom-color: var(--accent); }
+
+/* ============================================================
+   Illustration slot.
+   A figure is a full-width element in the reading column, not a
+   chart boxed into a corner — the drawing occupies its container.
+   ============================================================ */
+.rt-figure {
+  margin-top: clamp(44px, 5.5vw, 76px);
+  width: 100%;
+}
+.rt-figure + .rt-note,
+.rt-figure + .rt-stack { margin-top: clamp(32px, 4vw, 48px); }

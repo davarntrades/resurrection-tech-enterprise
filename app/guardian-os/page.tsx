@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { SovereignBoundaryFigure } from "@/components/iso";
 
 /* Shipping registries keep every quantified claim tied to the platform. */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -146,11 +147,6 @@ const PATHWAYS = [
   ["Executive Advisory", "Support accountable adoption, operating-model decisions and executive oversight.", "Monthly or annual"],
 ];
 
-/* The six profiles named on the deployment section, and the contract that is
-   identical across all of them. */
-const ENVIRONMENTS = ["Cloud", "Hybrid", "Private cloud", "On-premises", "Sovereign", "Air-gapped"];
-const CONTRACT = ["Identity", "Policy", "Verdict", "Approval", "Execution", "Evidence"];
-
 const RUNTIMES = ["OpenAI Agents", "LangGraph", "LangChain", "AutoGen", "Amazon Bedrock", "MCP servers", "Custom orchestrators"];
 const ENTERPRISE_SYSTEMS = ["Microsoft 365", "Azure", "AWS", "Google Cloud", "Salesforce", "ServiceNow", "SAP", "Snowflake", "Databricks", "Palantir"];
 
@@ -202,32 +198,9 @@ export default function GuardianOSPage() {
         {/* The whole positioning in one figure: six environments, one kernel,
             one contract. Nothing in it is decorative. */}
         <div className="gos-wrap">
-          <figure className="gos-kernel-map reveal" aria-labelledby="gos-kernel-cap">
-            <div className="gos-kernel-envs">
-              {ENVIRONMENTS.map((env) => (
-                <span key={env}>{env}</span>
-              ))}
-            </div>
-            <div className="gos-kernel-converge" aria-hidden="true">
-              <span /><span /><span /><span /><span /><span />
-            </div>
-            <div className="gos-kernel-core">
-              <span className="gos-kernel-k">Morrison Runtime Governance™ kernel</span>
-              <strong>Independent authorization on the execution path</strong>
-            </div>
-            <ol className="gos-kernel-contract" aria-label="Control contract">
-              {CONTRACT.map((step, i) => (
-                <li key={step}>
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-            <figcaption id="gos-kernel-cap">
-              Six deployment profiles resolve to one kernel and one control contract:
-              identity → policy → verdict → approval → execution → evidence.
-            </figcaption>
-          </figure>
+          <div className="rt-figure reveal">
+            <SovereignBoundaryFigure />
+          </div>
         </div>
       </section>
 
