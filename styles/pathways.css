@@ -6,6 +6,21 @@
    Reuses design-system tokens; dark theme only, like the rest.
    ============================================================ */
 
+/* ---------- Lifecycle strip: the six AOE stages, stated once ----------
+   Uses the existing mono/eyebrow language rather than a new visual device, so
+   the lifecycle reads as a caption to the section head. It wraps naturally at
+   narrow widths instead of scrolling, so nothing is clipped on mobile. */
+.aoe-cycle {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px 10px; margin-top: 18px;
+  font-family: var(--mono); font-size: 0.72rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.aoe-cycle > span { display: inline-flex; align-items: center; gap: 10px; }
+.aoe-cycle b { font-weight: 500; color: var(--ink-2); }
+.aoe-cycle-arr { color: var(--ink-4); }
+
 /* ---------- Engagement ladder: tiered cards ---------- */
 .ladder { display: grid; gap: clamp(26px, 3.5vw, 40px); margin-top: 6px; }
 

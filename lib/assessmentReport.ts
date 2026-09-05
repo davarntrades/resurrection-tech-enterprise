@@ -260,7 +260,7 @@ const OUTCOMES: Record<PathwayId, string> = {
 const TIMELINES_BY_PATHWAY: Record<PathwayId, string[]> = {
   discovery: ["Discovery call", "Questionnaire review", "Fit & risk context", "Recommended pathway"],
   workshop: ["Discovery", "Workshop sessions", "Risk summary & Ω analysis", "Commercial proposal", "Audit or Pilot"],
-  audit: ["Scoping", "48-hour audit", "Exposure report", "Executive review", "Pilot or Integration"],
+  audit: ["Scoping", "48-hour discovery", "Exposure report", "Executive review", "Pilot or Integration"],
   enterprise_assessment: ["Discovery", "Architecture review", "Cross-system Ω mapping", "Executive & technical workshops", "Roadmap & integration blueprint"],
   pilot: ["Scoping", "Shadow-mode deployment", "Evidence gathering (30–60 days)", "Executive review", "Enterprise Integration"],
   integration: ["Deployment assessment", "Integration plan", "Production deployment", "Enforcement enabled", "Annual License"],

@@ -3,14 +3,14 @@ import { AuditForm } from "@/components/AuditForm";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Request Audit — 48-Hour Runtime Governance Audit™",
+  title: "Request Envelope Discovery — 48-Hour Operating Envelope Discovery™",
   description:
-    "Request a 48-Hour Runtime Governance Audit. Identify reachable Ω exposure before deployment — executable trajectories, tool interactions, autonomy boundaries, and operational risk.",
+    "Request 48-Hour Operating Envelope Discovery. Map consequential execution paths, reachable Ω exposure, and candidate operating-envelope boundaries in a bounded environment — before deployment.",
   alternates: { canonical: "/request-audit" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Request Audit — Resurrection Tech™`,
-    description: "Identify reachable Ω exposure before deployment.",
+    title: `Request Envelope Discovery — Resurrection Tech™`,
+    description: "Map reachable Ω exposure and candidate envelope boundaries before deployment.",
     url: `${SITE.url}/request-audit`,
   },
 };

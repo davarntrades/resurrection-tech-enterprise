@@ -156,7 +156,7 @@ export function AuditForm() {
       // store human-readable capability labels for the team
       risk_capabilities: selectedCapLabels,
       estimated_investment: investment,
-      audit_scope: "48-Hour Runtime Governance Audit™",
+      audit_scope: "48-Hour Operating Envelope Discovery™",
       company_url_confirm: honey,
     };
     try {
@@ -208,11 +208,12 @@ export function AuditForm() {
             <div id="workflow">
               <div className="audit-head">
                 <span className="eyebrow">Runtime Governance intake</span>
-                <h1>48-Hour Runtime Governance Audit™</h1>
-                <p className="sub">Identify reachable Ω exposure before deployment.</p>
+                <h1>48-Hour Operating Envelope Discovery™</h1>
+                <p className="sub">Map reachable Ω exposure and candidate envelope boundaries before deployment.</p>
                 <p className="desc">
-                  // The audit evaluates executable trajectories, tool interactions, autonomy
-                  boundaries, and operational risk before incidents occur.
+                  // Discovery maps consequential execution paths, tool interactions, autonomy
+                  boundaries, and reachable operational risk in a bounded environment. It produces
+                  candidate boundaries for an Admissible Operating Envelope, not a finished one.
                 </p>
               </div>
 
@@ -413,7 +414,7 @@ export function AuditForm() {
                         </ul>
                       </div>
                       <div className="scope-side">
-                        <div className="scope-stat"><div className="k">Engagement</div><div className="v" style={{ fontSize: 16 }}>48-Hour Runtime Governance Audit™</div></div>
+                        <div className="scope-stat"><div className="k">Engagement</div><div className="v" style={{ fontSize: 16 }}>48-Hour Operating Envelope Discovery™</div></div>
                         <div className="scope-stat"><div className="k">Timeline</div><div className="v">48 hours</div></div>
                         <div className="scope-stat accent"><div className="k">Estimated investment</div><div className="v">{investment}</div></div>
                       </div>
@@ -434,7 +435,7 @@ export function AuditForm() {
                 <div className="grp">
                   <button className="btn btn--ghost" onClick={back} disabled={step === 0 || submitting}>Back</button>
                   <button className="btn btn--primary" onClick={next} disabled={submitting}>
-                    {submitting ? "Submitting…" : step === TOTAL - 1 ? "Request Runtime Governance Audit" : "Continue"} <span className="arr">→</span>
+                    {submitting ? "Submitting…" : step === TOTAL - 1 ? "Request Envelope Discovery" : "Continue"} <span className="arr">→</span>
                   </button>
                 </div>
               </div>
@@ -459,12 +460,12 @@ function RecoRow({ k, v, color }: { k: string; v: string; color?: string }) {
 
 function execText(level: RiskLevel): string {
   if (level === "Critical")
-    return "Based on the submitted information, this environment combines autonomous actions, regulated or high-consequence data, and production execution capabilities. Multiple executable pathways are capable of producing operational, regulatory, financial, or safety consequences. A Runtime Governance Audit is strongly recommended before any deployment expansion.";
+    return "Based on the submitted information, this environment combines autonomous actions, regulated or high-consequence data, and production execution capabilities. Multiple executable pathways are capable of producing operational, regulatory, financial, or safety consequences. Operating Envelope Discovery is strongly recommended before any deployment expansion.";
   if (level === "High")
-    return "Based on the submitted information, this environment contains multiple executable pathways capable of producing operational, regulatory, or financial consequences. A Runtime Governance Audit is recommended before deployment expansion.";
+    return "Based on the submitted information, this environment contains multiple executable pathways capable of producing operational, regulatory, or financial consequences. Operating Envelope Discovery is recommended before deployment expansion.";
   if (level === "Medium")
-    return "Based on the submitted information, this environment contains operationally significant executable pathways. Boundary partitioning and a Runtime Governance Audit are advised ahead of broader rollout.";
-  return "Based on the submitted information, the current exposure surface is limited. A baseline Runtime Governance Audit will establish reachable-state coverage before capabilities expand.";
+    return "Based on the submitted information, this environment contains operationally significant executable pathways. Boundary partitioning and Operating Envelope Discovery are advised ahead of broader rollout.";
+  return "Based on the submitted information, the current exposure surface is limited. Baseline Operating Envelope Discovery will map reachable-state coverage before capabilities expand.";
 }
 
 function ConfirmScreen({ reference }: { reference: string }) {

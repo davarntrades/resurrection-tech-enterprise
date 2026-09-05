@@ -95,9 +95,10 @@ export default function Page() {
                 <p>
                   The Enterprise Runtime Governance Assessment™ is the broader-scope engagement for
                   organisations running multiple agents across connected systems. Where the{" "}
-                  <Link href="/request-audit">48-Hour Runtime Governance Audit</Link> measures a single
-                  environment in a fixed, fast engagement, the Enterprise Assessment maps reachable Ω
-                  exposure across your <b>multi-agent architecture</b> and the systems they touch.
+                  <Link href="/request-audit">48-Hour Operating Envelope Discovery</Link> maps candidate
+                  envelope boundaries in a single bounded environment, the Enterprise Assessment models
+                  your <b>multi-agent architecture</b> and the systems it touches, and defines the
+                  initial Admissible Operating Envelope over it.
                 </p>
                 <p>
                   It produces board-ready evidence, a concrete governance roadmap, and an integration
@@ -213,7 +214,7 @@ export default function Page() {
             <div className="section-head reveal">
               <span className="eyebrow">Indicative scale</span>
               <h2>Where it sits.</h2>
-              <p>The enterprise step up from the fixed 48-hour Audit, ahead of a Limited Pilot.</p>
+              <p>The step from discovery to envelope definition, ahead of a Limited Pilot that tests it.</p>
             </div>
             <div className="tbl-wrap reveal" data-rowreveal>
               <table className="tbl">
@@ -221,9 +222,9 @@ export default function Page() {
                   <tr><th>Engagement</th><th>Scope</th><th>Timeline</th><th>Indicative scale</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td data-l="Engagement" className="t-main">Runtime Governance Audit</td><td data-l="Scope">Single environment, fixed engagement</td><td data-l="Timeline" className="t-time">48 hours</td><td data-l="Indicative scale" className="t-price">£40K–£75K</td></tr>
+                  <tr><td data-l="Engagement" className="t-main">Operating Envelope Discovery™</td><td data-l="Scope">Single bounded environment, fixed engagement</td><td data-l="Timeline" className="t-time">48 hours</td><td data-l="Indicative scale" className="t-price">£40K–£75K</td></tr>
                   <tr><td data-l="Engagement" className="t-main">Enterprise Runtime Governance Assessment™</td><td data-l="Scope">Multi-agent, cross-system, executive evidence + roadmap</td><td data-l="Timeline" className="t-time">2–4 weeks</td><td data-l="Indicative scale" className="t-price">£100K+</td></tr>
-                  <tr><td data-l="Engagement" className="t-main">Limited Pilot™</td><td data-l="Scope">Validation against real workflows in your environment</td><td data-l="Timeline" className="t-time">30–60 days</td><td data-l="Indicative scale" className="t-price">£250K–£750K+</td></tr>
+                  <tr><td data-l="Engagement" className="t-main">Limited Pilot™</td><td data-l="Scope">Falsification against real workflows and adversarial trajectories</td><td data-l="Timeline" className="t-time">30–60 days</td><td data-l="Indicative scale" className="t-price">£250K–£750K+</td></tr>
                 </tbody>
               </table>
             </div>

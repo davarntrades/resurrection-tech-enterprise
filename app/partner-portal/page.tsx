@@ -114,10 +114,10 @@ const MATRIX: [string, string, string, string][] = [
 const COMMERCIAL_PATHS: { h: string; p: string }[] = [
   { h: "Partner Discovery Workshop™", p: "Structured scoping of a prospective partnership — fit, customers, and go-to-market. Credited toward onboarding." },
   { h: "Managed Governance Partner™ Onboarding", p: "Strategic enablement that prepares you to sell and deliver governed AI before introducing it to customers." },
-  { h: "Limited Pilot™", p: "Validate Runtime Governance against real workflows in a bounded, observable engagement." },
-  { h: "Runtime Governance Audit", p: "Identify catastrophic trajectory exposure and governance gaps in a fixed, fast engagement." },
-  { h: "Enterprise Integration", p: "One-time production deployment into operational systems." },
-  { h: "Annual Runtime Governance Licence™", p: "Ongoing governance — monitoring, updates, support, and revalidation." },
+  { h: "Limited Pilot™", p: "Attempt to falsify the proposed operating envelope against real workflows and adversarial trajectories, in a bounded, observable engagement." },
+  { h: "Operating Envelope Discovery™", p: "Map consequential execution paths, reachable risk, and candidate operating-envelope boundaries in a fixed, fast engagement." },
+  { h: "Enterprise Integration", p: "Deploy independent execution authority into the production path and enforce the validated envelope across mediated execution." },
+  { h: "Annual Runtime Governance Licence™", p: "Production operation — support, monitoring, enforcement updates, and scheduled revalidation of the deployed envelope." },
   { h: "Executive Reporting", p: "Monthly board-ready evidence, included with engagements (not a separate purchase)." },
   { h: "Board Reporting", p: "Executive summaries packaged for leadership and governance committees." },
   { h: "OEM / Enterprise Licensing™", p: "Embedded, white-label, sovereign, or large-scale licensing by commercial review." },
@@ -306,7 +306,7 @@ export default function Page() {
               <h2>How pricing works.</h2>
             </div>
             <div className="mgp-prose reveal" data-d="1">
-              <p><b>When fixed pricing applies.</b> Standard-ladder engagements have indicative bands — Runtime Governance Audit (£40K–£75K), Limited Pilot (£250K–£750K+), Annual Licence (£75K–£500K+/yr), Advisory Retainer (£35K–£100K+/mo), and Managed Governance Partner onboarding (£25K–£50K, recommended £35K).</p>
+              <p><b>When fixed pricing applies.</b> Standard-ladder engagements have indicative bands — Operating Envelope Discovery (£40K–£75K), Limited Pilot (£250K–£750K+), Annual Licence (£75K–£500K+/yr), Advisory Retainer (£35K–£100K+/mo), and Managed Governance Partner onboarding (£25K–£50K, recommended £35K).</p>
               <p><b>When commercial review applies.</b> Enterprise Integration, embedded/OEM/enterprise licensing, white-label, exclusivity, territory, and large-scale or sovereign deployments are scoped commercially.</p>
               <p><b>When annual commitments apply.</b> Ongoing platform access, licensing, and embedded models carry a minimum annual commitment confirmed during review.</p>
               <p><b>Onboarding vs implementation.</b> Onboarding is <b>strategic enablement</b> — it prepares a partner to sell and deliver governed AI. It is not a discount on enterprise pricing, and customer engagements continue through the standard ladder unchanged. Implementation is the technical work to deploy for a specific customer.</p>

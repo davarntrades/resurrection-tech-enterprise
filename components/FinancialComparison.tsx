@@ -66,7 +66,7 @@ const MULTIPLIERS: Mult[] = [
 
 type Row = { label: string; display: string; value: number; kind: "gov" | "risk" };
 const ROWS: Row[] = [
-  { label: "48-Hour Runtime Governance Audit", display: "£75K", value: 75_000, kind: "gov" },
+  { label: "48-Hour Operating Envelope Discovery", display: "£75K", value: 75_000, kind: "gov" },
   { label: "Annual Retainer", display: "£1.2M", value: 1_200_000, kind: "gov" },
   { label: "Healthcare / PHI breach", display: "£7.7M", value: 7_700_000, kind: "risk" },
   { label: "Credential exposure", display: "£10.22M", value: 10_220_000, kind: "risk" },
