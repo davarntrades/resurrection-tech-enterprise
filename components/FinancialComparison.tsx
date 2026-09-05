@@ -92,21 +92,31 @@ const EXPOSURE_TABLE: [string, string, string, "gov" | "risk"][] = [
   ["Major funds transfer", "£2B+", "~26,666× audit cost", "risk"],
 ];
 
-export function FinancialComparison() {
+export function FinancialComparison({ embedded = false }: { embedded?: boolean } = {}) {
   const reduce = useReducedMotion();
 
-  return (
-    <section className="section section--tight" id="cost-of-failure" aria-label="Financial risk comparison">
-      <div className="wrap">
-        <div className="section-head reveal">
-          <span className="eyebrow">Risk comparison</span>
-          <h2>The financial asymmetry of one unsafe execution.</h2>
-          <p>
-            Governance cost is bounded. Catastrophic exposure is not. The figures below weigh
-            the cost of a Runtime Governance engagement against the documented cost of{" "}
-            <span className="om">Ω</span> becoming reachable.
-          </p>
+  const Frame = ({ children }: { children: React.ReactNode }) =>
+    embedded ? (
+      <>{children}</>
+    ) : (
+      <section className="section section--tight" id="cost-of-failure" aria-label="Financial risk comparison">
+        <div className="wrap">
+          <div className="section-head reveal">
+            <span className="eyebrow">Risk comparison</span>
+            <h2>The financial asymmetry of one unsafe execution.</h2>
+            <p>
+              Governance cost is bounded. Catastrophic exposure is not. The figures below weigh
+              the cost of a Runtime Governance engagement against the documented cost of{" "}
+              <span className="om">Ω</span> becoming reachable.
+            </p>
+          </div>
+          {children}
         </div>
+      </section>
+    );
+
+  return (
+    <Frame>
 
         {/* 1 — Risk-multiplier chips (multiplier leads the eye) */}
         <div className="fc-mults reveal" aria-label="Exposure multiples versus a £75K audit baseline">
@@ -234,7 +244,6 @@ export function FinancialComparison() {
             Book a Runtime Safety Assessment <span className="arr">→</span>
           </Link>
         </div>
-      </div>
-    </section>
+    </Frame>
   );
 }

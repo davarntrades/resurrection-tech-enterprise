@@ -6,6 +6,101 @@
    Reuses design-system tokens; dark theme only, like the rest.
    ============================================================ */
 
+/* ---------- Collapsible detail sections ----------
+   The page carries the entire commercial model, so the product deep-dives,
+   partner routes, pricing rationale, delivery pathway and ROI dashboard fold
+   away by default. Closed, they read as an index a buyer can scan to find
+   themselves; open, they are exactly the sections that were there before.
+   Nothing is removed from the document, so search, deep links and indexing
+   are unaffected. */
+.pw-folds {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  margin-top: clamp(48px, 6vw, 76px);
+}
+.pw-fold { border-bottom: 1px solid var(--line); }
+
+.pw-fold > summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(16px, 3vw, 40px);
+  padding: clamp(22px, 3vw, 30px) 0;
+  cursor: pointer;
+  list-style: none;
+  transition: opacity .25s var(--ease);
+}
+.pw-fold > summary::-webkit-details-marker { display: none; }
+.pw-fold > summary:hover { opacity: 0.72; }
+.pw-fold > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius);
+}
+
+.pw-fold-text { display: grid; gap: 6px; min-width: 0; }
+.pw-fold-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pw-fold-h {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.pw-fold-blurb {
+  color: var(--ink-2);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* A plus that becomes a minus, matching the disclosure idiom used on
+   /case-studies rather than introducing a second one. */
+.pw-fold-cue {
+  position: relative;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  transition: border-color .25s var(--ease), background .25s var(--ease);
+}
+.pw-fold-cue::before,
+.pw-fold-cue::after {
+  content: "";
+  position: absolute;
+  inset: 50% 5px auto 5px;
+  height: 1px;
+  background: var(--ink-2);
+  transform: translateY(-50%);
+  transition: transform .3s var(--ease), opacity .2s var(--ease);
+}
+.pw-fold-cue::after { transform: translateY(-50%) rotate(90deg); }
+.pw-fold[open] .pw-fold-cue { border-color: var(--accent); background: var(--accent-wash); }
+.pw-fold[open] .pw-fold-cue::after { transform: translateY(-50%) rotate(0deg); opacity: 0; }
+
+/* The folded content keeps its own internal rhythm; the fold only supplies the
+   space between the summary and the first element inside it. */
+.pw-fold-body { padding: 4px 0 clamp(34px, 5vw, 56px); }
+.pw-fold-body > *:first-child { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-fold > summary,
+  .pw-fold-cue,
+  .pw-fold-cue::before,
+  .pw-fold-cue::after { transition: none; }
+}
+
 /* ---------- Lifecycle strip: the six AOE stages, stated once ----------
    Uses the existing mono/eyebrow language rather than a new visual device, so
    the lifecycle reads as a caption to the section head. It wraps naturally at
@@ -38,7 +133,12 @@
   grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
   gap: 14px; margin-top: 14px;
 }
+/* The card is a link: every engagement leads somewhere it can be bought,
+   scoped or invoiced, so the price is never a dead end. */
 .ladder-card {
+  text-decoration: none;
+  color: inherit;
+  
   display: flex; flex-direction: column; gap: 10px;
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 14px; padding: 18px 18px 15px;
@@ -55,6 +155,24 @@
   border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 999px; padding: 3px 8px;
 }
+.ladder-act {
+  margin-top: auto;
+  padding-top: 12px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.ladder-act .arr { transition: transform .25s var(--ease); }
+.ladder-card:hover { border-color: var(--line-strong); }
+.ladder-card:hover .ladder-act .arr { transform: translateX(3px); }
+.ladder-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .ladder-act .arr { transition: none; } }
+
 .ladder-name {
   font-size: 1rem; font-weight: 600; letter-spacing: -0.01em;
   color: var(--ink); line-height: 1.3; margin: 0;
