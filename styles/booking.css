@@ -42,6 +42,45 @@
 }
 .retainer-note .rn-t b { color: var(--ink); font-weight: 540; }
 
+/* What recurring revalidation actually examines. A definition list rather than
+   prose so the five assurance surfaces are scannable, using the same mono key /
+   body value pairing as the rest of the note. Collapses to stacked rows on
+   narrow screens so neither column is ever squeezed. */
+.retainer-note .rn-surfaces {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.retainer-note .rn-surfaces li {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.28fr) 1fr;
+  gap: 6px 20px;
+  padding: 13px 16px;
+  background: var(--panel);
+}
+.retainer-note .rn-s-k {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.retainer-note .rn-s-v {
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+@media (max-width: 620px) {
+  .retainer-note .rn-surfaces li { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* ---------- Footer company block ---------- */
 .fcontact {
   display: flex;

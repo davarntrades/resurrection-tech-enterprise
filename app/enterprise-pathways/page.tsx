@@ -22,12 +22,6 @@ const Check = () => (
     <path d="M3 8.5 L6.5 12 L13 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const ArrowR = () => (
-  <svg width="28" height="14" viewBox="0 0 28 14" fill="none" aria-hidden="true">
-    <path d="M0 7 H24 M19 2 L25 7 L19 12" stroke="currentColor" strokeWidth="1.4" />
-  </svg>
-);
-
 function EngageStage({ name, stage, dur, kind, recurring = false }: { name: string; stage: string; dur: string; kind: string; recurring?: boolean }) {
   return (
     <div className={`engage-stage${recurring ? " recurring" : ""}`}>
@@ -50,6 +44,19 @@ function EngageStage({ name, stage, dur, kind, recurring = false }: { name: stri
     </div>
   );
 }
+
+/* The canonical lifecycle. Each stage names the engagement that carries it, so
+   the track and the DISCOVER → … → REVALIDATE strip above the page cannot drift
+   apart. Both recurring stages are marked recurring — operating the enforcement
+   layer and revalidating the envelope are both continuous, not one-off. */
+const LIFECYCLE: { stage: string; name: string; dur: string; kind: string; recurring?: boolean }[] = [
+  { stage: "Discover", name: "Envelope Discovery", dur: "48 hours", kind: "Map reachable execution risk" },
+  { stage: "Define", name: "Enterprise Assessment", dur: "2–6 weeks", kind: "Define the initial AOE" },
+  { stage: "Falsify", name: "Limited Pilot", dur: "4–8 weeks", kind: "Test the envelope against reality" },
+  { stage: "Enforce", name: "Integration", dur: "Deployment phase", kind: "Authorize before execution" },
+  { stage: "Operate", name: "Annual Governance", dur: "Annual", kind: "Operate and maintain the enforced envelope", recurring: true },
+  { stage: "Revalidate", name: "Advisory Retainer", dur: "Monthly or annual", kind: "Challenge and revise the envelope", recurring: true },
+];
 
 type Verdict = {
   id: string;
@@ -117,10 +124,10 @@ const LADDER: LadderTier[] = [
     ],
   },
   {
-    label: "Sustain, oversee, lead",
+    label: "Operate, revalidate, lead",
     cards: [
-      { name: "Annual Runtime Governance™ License™", pos: "Production operation, support, monitoring, enforcement updates, and scheduled revalidation of the deployed Admissible Operating Envelope.", time: "Annual", price: "£75K–£500K+ / yr" },
-      { name: "Advisory Retainer™", pos: "Continuous AOE governance, falsification, revalidation, and execution assurance.", time: "Monthly", price: "£35K–£100K+ / mo" },
+      { name: "Annual Runtime Governance™ License™", pos: "Operate and maintain the enforced envelope in production: support, monitoring, enforcement updates, governance evidence, and scheduled revalidation.", time: "Annual", price: "£75K–£500K+ / yr" },
+      { name: "Advisory Retainer™", pos: "Continuous AOE governance, adversarial falsification, revalidation, and execution assurance as the operational environment changes.", time: "Monthly", price: "£35K–£100K+ / mo" },
       { name: "Executive Governance Partnership™", pos: "Executive-level governance leadership beyond operational support.", time: "Annual", price: "£150K–£500K+ / yr" },
       { name: "Fractional Chief AI Officer (CAIO) / Executive AI Governance Lead™", pos: "Executive AI strategy, deployment governance, operational assurance, and executive risk oversight.", time: "Annual", price: "£250K–£1M+ / yr" },
       { name: "Frontier AI Strategic Partnership™", pos: "Strategic governance for frontier, foundation-model, infrastructure, and sovereign AI programmes.", time: "Annual / multi-year", price: "Commercial review · minimum annual commitment", priceDim: true },
@@ -135,7 +142,7 @@ const CHOOSE: { sit: string; path: string; href?: string }[] = [
   { sit: "Need the envelope defined across the estate before pilot", path: "Enterprise Runtime Governance Assessment™", href: "#enterprise-assessment" },
   { sit: "Envelope defined, need it tested against reality", path: "Limited Pilot™", href: "/pilot" },
   { sit: "Approved for enterprise deployment", path: "Enterprise Integration™" },
-  { sit: "In production; need ongoing governance", path: "Annual Runtime Governance™ License™" },
+  { sit: "In production; need the enforced envelope operated", path: "Annual Runtime Governance™ License™" },
   { sit: "Deployed envelope needs continuous revalidation", path: "Advisory Retainer™" },
   { sit: "Executive governance leadership required", path: "Executive Governance Partnership™", href: "#executive-leadership" },
   { sit: "Part-time executive AI leadership required", path: "Fractional CAIO / Executive AI Governance Lead™", href: "#executive-leadership" },
@@ -221,18 +228,39 @@ export default function Page() {
             <span className="rn-k">Why the retainer exists — Ω is neither static nor assumed complete</span>
             <p className="rn-eq"><b>ℛ(t) ∩ Ω = ∅</b></p>
             <p className="rn-t">
-              The objective is unchanged, and it holds relative to a declared model and a
-              declared forbidden set. A bounded verification result establishes properties
-              against that declared model; it does not establish that every possible
-              real-world harm has been represented in it. So the envelope is maintained as a
-              closed loop — <b>model, enforce, observe, falsify, revise</b> — rather than
-              signed off once. <b>Ω governance</b> is the continuous work of challenging
-              whether the deployed envelope and its enforcement assumptions still correspond
-              sufficiently to operational reality: newly reachable trajectories, new tools,
-              models and integrations, changed states and transitions, complete-mediation
-              assumptions, authorization-to-execution correspondence, evidence integrity, and
-              revision of Ω where evidence requires it.
+              The objective is unchanged. It is a statement about reachability relative to a
+              declared model, forbidden set, governance configuration, and assumptions — a
+              bounded verification result establishes a property against that declared model,
+              not that every possible real-world harm has been represented in it. A stronger
+              real-world claim requires those modelling and deployment assumptions to remain
+              adequate, and nothing about an operating environment guarantees that they will.
+              This is precisely what revalidation is for.
             </p>
+            <p className="rn-t">
+              What the retainer maintains is the correspondence between
+              {" "}<b>modelled reality</b>, <b>executed reality</b> and <b>recorded reality</b>
+              {" "}— an assurance loop of <b>observe, challenge, falsify, revise,
+              revalidate</b> rather than a schedule of meetings. The deployed envelope may
+              require revision when models, agents, tools, integrations, permissions,
+              workflows, system state, transition semantics, attack surfaces, or regulatory
+              requirements change; when an external incident reveals a previously unknown
+              failure class; when adversarial testing exposes an omitted state or transition;
+              or when execution behaviour diverges from modelled behaviour.
+            </p>
+            <ul className="rn-surfaces">
+              {[
+                ["AOE adequacy", "Does the declared permitted and forbidden state model still represent the relevant operational risks?"],
+                ["Complete mediation", "Do all consequential execution paths intended to be governed still cross the governance boundary?"],
+                ["Authorization ↔ execution", "Does the transition that was authorized correspond to the effect actually committed in the environment?"],
+                ["Evidence correspondence", "Does the governance record remain an accurate and sufficiently complete representation of mediated execution, within its stated evidence boundary?"],
+                ["Reachability", "Have system changes introduced new trajectories capable of reaching prohibited states represented by the current envelope?"],
+              ].map(([k, v]) => (
+                <li key={k}>
+                  <span className="rn-s-k">{k}</span>
+                  <span className="rn-s-v">{v}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <p className="retainer-note reveal" data-d="1" style={{ marginTop: 24 }}>
@@ -800,13 +828,9 @@ export default function Page() {
 
           <div className="flow reveal">
             <div className="engage-track">
-              <EngageStage stage="Discover" name="Envelope Discovery" dur="48 hours" kind="Map reachable execution risk" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage stage="Falsify" name="Pilot" dur="4–8 weeks" kind="Test the envelope against reality" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage stage="Enforce" name="Integration" dur="Deployment phase" kind="Authorize before execution" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage stage="Revalidate" name="Retainer" dur="Monthly or annual" kind="Challenge and revise the envelope" recurring />
+              {LIFECYCLE.map((s) => (
+                <EngageStage key={s.stage} {...s} />
+              ))}
             </div>
           </div>
         </div>

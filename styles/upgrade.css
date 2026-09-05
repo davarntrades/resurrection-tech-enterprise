@@ -193,7 +193,7 @@
 
 /* ---------- Engagement model (one-time vs recurring) ---------- */
 .engage-track {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; position: relative;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; position: relative;
 }
 @media (max-width: 920px) { .engage-track { grid-template-columns: 1fr 1fr; gap: 14px; } }
 @media (max-width: 540px) { .engage-track { grid-template-columns: 1fr; } }
@@ -235,10 +235,6 @@
 .engage-stage .es-dur { font-family: var(--mono); font-size: 13px; color: var(--accent-bright); letter-spacing: 0.02em; }
 .engage-stage .es-kind { color: var(--ink-2); font-size: 14px; margin-top: 6px; }
 .engage-stage.recurring .es-kind { color: var(--ink); font-weight: 500; }
-
-.engage-arrow { position: absolute; top: 50%; right: -14px; transform: translateY(-50%); color: var(--ink-4); z-index: 2; transition: color .4s var(--ease); }
-.engage-stage.lit + .engage-arrow { color: var(--accent); }
-@media (max-width: 920px) { .engage-arrow { display: none; } }
 
 .engage-stage.recurring .es-loop {
   position: absolute; right: 18px; bottom: 16px; color: var(--accent); opacity: 0.5;
