@@ -140,6 +140,9 @@ function PayGrid({
         <div
           className={`pay-card${s.online ? "" : " is-invoice"}${s.gated ? " is-gated" : ""}${s.primaryPathway ? " is-primary" : ""}`}
           key={s.id}
+          // Addressable so Enterprise Pathways can link straight to the
+          // engagement a buyer picked, rather than the top of the page.
+          id={s.id}
         >
           {s.primaryPathway && <span className="pay-primary-k-tag">Primary pathway</span>}
           {s.gated && <span className="pay-gated-k">Strategic relationship · by negotiation</span>}
