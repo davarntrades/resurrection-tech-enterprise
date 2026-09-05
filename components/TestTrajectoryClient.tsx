@@ -402,7 +402,7 @@ export function TestTrajectoryClient() {
               use the complete Morrison Runtime Governance<span className="tm">™</span> stack.
             </p>
             <p>This demo does not execute tool calls. It evaluates proposed trajectories before runtime.</p>
-            <p className="tt-disclaimers-strong">For full system evaluation, book a Runtime Governance Audit.</p>
+            <p className="tt-disclaimers-strong">For full system evaluation, book Operating Envelope Discovery.</p>
           </div>
           <Link
             href="/book#assessment"

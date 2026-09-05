@@ -367,7 +367,7 @@ export default function Page() {
               Try Live Demo <span className="arr">→</span>
             </Link>
             <Link href="/book#assessment" className="btn btn--ghost">
-              Book Runtime Assessment <span className="arr">→</span>
+              Define Your Operating Envelope <span className="arr">→</span>
             </Link>
             <Link href="/security" className="btn btn--text">
               Security &amp; deployment

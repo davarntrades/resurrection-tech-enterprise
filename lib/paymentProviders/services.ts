@@ -24,7 +24,7 @@ export const SERVICES: ServiceDef[] = [
     // id stays "assessment-deposit" — it keys existing provider metadata and
     // recorded payments; only the customer-facing name changed.
     id: "assessment-deposit",
-    name: "48-Hour Runtime Governance Audit",
+    name: "48-Hour Operating Envelope Discovery™",
     amountMinor: 10_000_00, // £10,000 deposit
     currency: "gbp",
     kind: "deposit",
@@ -39,7 +39,7 @@ export const SERVICES: ServiceDef[] = [
     gateNote: "Schedule required before payment.",
     buyers: ["CFO", "Chief Risk Officer", "Compliance Officer", "Controller", "Head of AI"],
     blurb:
-      "Reserve a 48-hour Runtime Governance Audit engagement slot. Deposit is credited against the final engagement fee.",
+      "Reserve a 48-hour Operating Envelope Discovery engagement slot. Deposit is credited against the final engagement fee.",
   },
   {
     id: "pilot-deposit",

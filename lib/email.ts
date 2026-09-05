@@ -189,7 +189,7 @@ export async function sendAuditEmails(data: AuditRequestInput, reference: string
     resend.emails.send({
       from: FROM,
       to: data.contact_email,
-      subject: "Runtime Governance Audit Request Received™",
+      subject: "Operating Envelope Discovery Request Received™",
       html: confirm,
     }),
   ]);

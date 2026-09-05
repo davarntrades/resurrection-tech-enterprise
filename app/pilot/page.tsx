@@ -108,7 +108,7 @@ export default function Page() {
             <p className="prog-pricedetail">
               Indicative investment: <strong>£250K–£750K+</strong> depending on agent complexity,
               integration surface, and sector. Founding <Link href="/design-partners">design partners</Link>{" "}
-              receive preferential terms. The 48-Hour Runtime Governance Audit (£40K–£75K) is a faster,
+              receive preferential terms. The 48-Hour Operating Envelope Discovery (£40K–£75K) is a faster,
               lower-commitment entry point that de-risks the pilot.
             </p>
             <PricingDisclaimer variant="short" />

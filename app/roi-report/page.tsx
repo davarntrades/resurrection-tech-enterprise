@@ -21,7 +21,7 @@ function str(v: string | string[] | undefined, fallback: string): string {
 }
 
 function recommend(inv: number): { name: string; band: string; href: string } {
-  if (inv < 80_000) return { name: "48-Hour Runtime Governance Audit", band: "£40K–£75K", href: "/request-audit" };
+  if (inv < 80_000) return { name: "48-Hour Operating Envelope Discovery™", band: "£40K–£75K", href: "/request-audit" };
   if (inv < 250_000) return { name: "Annual Runtime Governance Licence™", band: "£75K–£500K+ / yr", href: "/enterprise-pathways" };
   if (inv <= 750_000) return { name: "Limited Pilot™", band: "£250K–£750K+", href: "/pilot" };
   return { name: "Enterprise Integration", band: "By commercial review", href: "/contact" };

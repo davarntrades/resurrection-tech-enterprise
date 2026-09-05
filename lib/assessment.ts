@@ -266,7 +266,7 @@ export const NUM_AGENTS: string[] = ["0", "1", "2–5", "6–20", "20+"];
  * internal-governance journeys are unchanged. */
 export const ENGAGEMENT_INTENTS: Option[] = [
   { value: "assess_own", label: "We need to assess risk in our own AI/agent environment." },
-  { value: "audit_exposure", label: "We need a 48-hour audit of our current agentic risk exposure." },
+  { value: "audit_exposure", label: "We need a 48-hour view of our current reachable execution exposure." },
   { value: "validate_workflows", label: "We want to validate Runtime Governance against real workflows." },
   { value: "production_deploy", label: "We are preparing for production deployment." },
   { value: "ongoing_assurance", label: "We want ongoing governance assurance." },
@@ -485,15 +485,15 @@ export const PATHWAYS: Record<PathwayId, Pathway> = {
   workshop: {
     id: "workshop",
     title: "Paid Discovery Workshop™",
-    tagline: "Structured scoping before an audit, pilot, or integration.",
+    tagline: "Structured scoping before envelope discovery, a pilot, or integration.",
     ctaLabel: "Book Discovery Workshop",
     ctaHref: "/book#workshop",
   },
   audit: {
     id: "audit",
-    title: "48-Hour Runtime Governance Audit",
-    tagline: "A catastrophic-trajectory exposure assessment of your live agent.",
-    ctaLabel: "Request the Audit",
+    title: "48-Hour Operating Envelope Discovery™",
+    tagline: "Maps consequential execution paths and candidate envelope boundaries for your live agent.",
+    ctaLabel: "Request Envelope Discovery",
     ctaHref: "/request-audit",
   },
   enterprise_assessment: {
@@ -840,7 +840,7 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
       if (production) why.push("Agents are in production with tool access and the ability to take actions.");
       if (sensitive) why.push("Agents can reach sensitive systems (e.g. customer, financial, payment, health, or security data).");
       if (regulated) why.push("You operate in a regulated context, so exposure must be measured and evidenced.");
-      if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — a 48-hour audit quantifies it fast.`);
+      if (s.exposure >= 70) why.push(`Ω exposure is ${s.exposureBand.toLowerCase()} — 48-hour Envelope Discovery maps it fast.`);
     }
   } else if (
     // Truly exploratory: no agents built, no committed timeline, nothing in
@@ -852,7 +852,7 @@ export function recommend(d: AssessmentData, s: Scores): Recommendation {
     id = "discovery";
     why.push("You are at the exploration stage — no agents deployed and no committed timeline yet.");
     why.push("A free discovery call establishes fit and high-level risk context before any paid engagement.");
-    why.push("When you begin building, the Paid Discovery Workshop or 48-Hour Audit is the natural next rung.");
+    why.push("When you begin building, the Paid Discovery Workshop or 48-Hour Envelope Discovery is the natural next step.");
   } else {
     id = "workshop";
     why.push("You are early in the journey, so structured scoping comes before a full audit, pilot, or integration.");

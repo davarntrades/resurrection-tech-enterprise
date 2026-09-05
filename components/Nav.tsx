@@ -163,7 +163,7 @@ export function Nav() {
               className="btn btn--ghost"
               onClick={() => { track(Events.CTA_CLICK, { location: "nav-menu", cta: "book" }); setMenuOpen(false); }}
             >
-              Book Runtime Assessment <span className="arr">→</span>
+              Define Your Operating Envelope <span className="arr">→</span>
             </Link>
           </div>
         </div>

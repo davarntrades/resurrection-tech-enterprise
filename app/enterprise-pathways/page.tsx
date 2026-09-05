@@ -8,7 +8,7 @@ import { PricingDisclaimer } from "@/components/PricingDisclaimer";
 export const metadata: Metadata = {
   title: "Enterprise Pathways",
   description:
-    "Ways to engage Resurrection Tech: Free Discovery, the Paid Discovery Workshop, the Runtime Governance Audit, the Enterprise Runtime Governance Assessment, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, executive pathways (Executive Governance Partnership, Fractional CAIO, Frontier AI Strategic Partnership), and Partner & Licensing pathways. Priced against the cost of Ω becoming reachable.",
+    "Ways to engage Resurrection Tech across the Admissible Operating Envelope lifecycle: Free Discovery, the Paid Discovery Workshop, Operating Envelope Discovery, the Enterprise Runtime Governance Assessment, the Limited Pilot, Enterprise Integration, the Annual Runtime Governance License, the Advisory Retainer, executive pathways (Executive Governance Partnership, Fractional CAIO, Frontier AI Strategic Partnership), and Partner & Licensing pathways. Priced against the cost of Ω becoming reachable.",
   alternates: { canonical: "/enterprise-pathways" },
 };
 
@@ -22,17 +22,11 @@ const Check = () => (
     <path d="M3 8.5 L6.5 12 L13 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const ArrowR = () => (
-  <svg width="28" height="14" viewBox="0 0 28 14" fill="none" aria-hidden="true">
-    <path d="M0 7 H24 M19 2 L25 7 L19 12" stroke="currentColor" strokeWidth="1.4" />
-  </svg>
-);
-
-function EngageStage({ name, dur, kind, recurring = false }: { name: string; dur: string; kind: string; recurring?: boolean }) {
+function EngageStage({ name, stage, dur, kind, recurring = false }: { name: string; stage: string; dur: string; kind: string; recurring?: boolean }) {
   return (
     <div className={`engage-stage${recurring ? " recurring" : ""}`}>
       <div className="es-top">
-        <span className="es-name">{name}</span>
+        <span className="es-name">{stage}</span>
         <span className={`engage-tag${recurring ? " rec" : " one"}`}>
           {recurring ? "Recurring" : "One-time"}
         </span>
@@ -50,6 +44,19 @@ function EngageStage({ name, dur, kind, recurring = false }: { name: string; dur
     </div>
   );
 }
+
+/* The canonical lifecycle. Each stage names the engagement that carries it, so
+   the track and the DISCOVER → … → REVALIDATE strip above the page cannot drift
+   apart. Both recurring stages are marked recurring — operating the enforcement
+   layer and revalidating the envelope are both continuous, not one-off. */
+const LIFECYCLE: { stage: string; name: string; dur: string; kind: string; recurring?: boolean }[] = [
+  { stage: "Discover", name: "Envelope Discovery", dur: "48 hours", kind: "Map reachable execution risk" },
+  { stage: "Define", name: "Enterprise Assessment", dur: "2–6 weeks", kind: "Define the initial AOE" },
+  { stage: "Falsify", name: "Limited Pilot", dur: "4–8 weeks", kind: "Test the envelope against reality" },
+  { stage: "Enforce", name: "Integration", dur: "Deployment phase", kind: "Authorize before execution" },
+  { stage: "Operate", name: "Annual Governance", dur: "Annual", kind: "Operate and maintain the enforced envelope", recurring: true },
+  { stage: "Revalidate", name: "Advisory Retainer", dur: "Monthly or annual", kind: "Challenge and revise the envelope", recurring: true },
+];
 
 type Verdict = {
   id: string;
@@ -103,24 +110,24 @@ const LADDER: LadderTier[] = [
     label: "Establish & scope",
     cards: [
       { name: "Free Discovery / Questionnaire Review", pos: "Establish fit and high-level risk context.", time: "Discovery call", price: "No charge" },
-      { name: "Paid Discovery Workshop™", pos: "Structured scoping before audit, pilot, or integration.", time: "Short engagement", price: "£5K–£50K+" },
+      { name: "Paid Discovery Workshop™", pos: "Structured scoping before envelope discovery, pilot, or integration.", time: "Short engagement", price: "£5K–£50K+" },
     ],
   },
   {
-    label: "Assess, validate, deploy — the core ladder",
+    label: "Discover, define, falsify, enforce — the core path",
     core: true,
     cards: [
-      { name: "Runtime Governance Audit", pos: "Identify catastrophic trajectory exposure and governance gaps.", time: "48 hours", price: "£40K–£75K" },
-      { name: "Enterprise Runtime Governance Assessment™", pos: "Comprehensive governance assessment across enterprise workflows, environments, controls, and evidence requirements.", time: "2–6 weeks", price: "£100K–£250K+" },
-      { name: "Limited Pilot™", pos: "Validate governance against real workflows and operational environments.", time: "30–60 days", price: "£250K–£750K+" },
-      { name: "Enterprise Integration™", pos: "One-time production deployment into operational systems.", time: "Deployment dependent", price: "Commercial review following deployment assessment", priceDim: true },
+      { name: "Operating Envelope Discovery™", pos: "Map consequential execution paths, reachable risk, and candidate operating-envelope boundaries in a bounded environment.", time: "48 hours", price: "£40K–£75K" },
+      { name: "Enterprise Runtime Governance Assessment™", pos: "Model the operational environment and define the initial Admissible Operating Envelope across agents, systems, tools, states, transitions, controls, and evidence requirements.", time: "2–6 weeks", price: "£100K–£250K+" },
+      { name: "Limited Pilot™", pos: "Attempt to falsify the proposed operating envelope against real workflows, adversarial trajectories, and operational conditions before production deployment.", time: "30–60 days", price: "£250K–£750K+" },
+      { name: "Enterprise Integration™", pos: "Deploy independent execution authority into the production path and causally enforce the validated Admissible Operating Envelope across mediated execution.", time: "Deployment dependent", price: "Commercial review following deployment assessment", priceDim: true },
     ],
   },
   {
-    label: "Sustain, oversee, lead",
+    label: "Operate, revalidate, lead",
     cards: [
-      { name: "Annual Runtime Governance™ License™", pos: "Ongoing runtime governance, monitoring, updates, support, and revalidation.", time: "Annual", price: "£75K–£500K+ / yr" },
-      { name: "Advisory Retainer™", pos: "Ongoing governance evolution, validation, and oversight.", time: "Monthly", price: "£35K–£100K+ / mo" },
+      { name: "Annual Runtime Governance™ License™", pos: "Operate and maintain the enforced envelope in production: support, monitoring, enforcement updates, governance evidence, and scheduled revalidation.", time: "Annual", price: "£75K–£500K+ / yr" },
+      { name: "Advisory Retainer™", pos: "Continuous AOE governance, adversarial falsification, revalidation, and execution assurance as the operational environment changes.", time: "Monthly", price: "£35K–£100K+ / mo" },
       { name: "Executive Governance Partnership™", pos: "Executive-level governance leadership beyond operational support.", time: "Annual", price: "£150K–£500K+ / yr" },
       { name: "Fractional Chief AI Officer (CAIO) / Executive AI Governance Lead™", pos: "Executive AI strategy, deployment governance, operational assurance, and executive risk oversight.", time: "Annual", price: "£250K–£1M+ / yr" },
       { name: "Frontier AI Strategic Partnership™", pos: "Strategic governance for frontier, foundation-model, infrastructure, and sovereign AI programmes.", time: "Annual / multi-year", price: "Commercial review · minimum annual commitment", priceDim: true },
@@ -131,12 +138,12 @@ const LADDER: LadderTier[] = [
 const CHOOSE: { sit: string; path: string; href?: string }[] = [
   { sit: "Exploring; need to establish fit", path: "Free Discovery / Questionnaire Review", href: "/book" },
   { sit: "Need structured scoping before committing", path: "Paid Discovery Workshop™", href: "#discovery-workshop" },
-  { sit: "Need a rapid fixed-scope risk diagnostic", path: "Runtime Governance Audit", href: "/request-audit" },
-  { sit: "Need a deeper enterprise-wide assessment before pilot", path: "Enterprise Runtime Governance Assessment™", href: "#enterprise-assessment" },
-  { sit: "Risks known, need validation", path: "Limited Pilot™", href: "/pilot" },
+  { sit: "Need a rapid fixed-scope view of reachable execution risk", path: "Operating Envelope Discovery™", href: "/request-audit" },
+  { sit: "Need the envelope defined across the estate before pilot", path: "Enterprise Runtime Governance Assessment™", href: "#enterprise-assessment" },
+  { sit: "Envelope defined, need it tested against reality", path: "Limited Pilot™", href: "/pilot" },
   { sit: "Approved for enterprise deployment", path: "Enterprise Integration™" },
-  { sit: "In production; need ongoing governance", path: "Annual Runtime Governance™ License™" },
-  { sit: "Existing deployment, ongoing operational oversight", path: "Advisory Retainer™" },
+  { sit: "In production; need the enforced envelope operated", path: "Annual Runtime Governance™ License™" },
+  { sit: "Deployed envelope needs continuous revalidation", path: "Advisory Retainer™" },
   { sit: "Executive governance leadership required", path: "Executive Governance Partnership™", href: "#executive-leadership" },
   { sit: "Part-time executive AI leadership required", path: "Fractional CAIO / Executive AI Governance Lead™", href: "#executive-leadership" },
   { sit: "Frontier, foundation-model, infrastructure, or sovereign programme", path: "Frontier AI Strategic Partnership™", href: "#executive-leadership" },
@@ -161,12 +168,21 @@ export default function Page() {
         <div className="wrap">
           <div className="section-head reveal">
             <span className="eyebrow">Enterprise pathways</span>
-            <h2>The engagement ladder.</h2>
+            <h2>The operating envelope lifecycle.</h2>
             <p>
-              The engagement model takes organisations from first discovery to enforced,
-              continuously governed production — progressing only as far along the ladder as
-              each organisation needs. The governance layer is evaluated against reachable
-              operational risk, not model quality or benchmark performance.
+              Engagements are not progressively larger assessments. Each one advances a single
+              piece of work: discovering the real execution surface, defining an Admissible
+              Operating Envelope over it, attempting to falsify that envelope, enforcing it
+              causally at execution time, operating it in production, and revalidating it as the
+              environment changes. Organisations progress only as far as they need.
+            </p>
+            <p className="aoe-cycle" aria-label="Lifecycle: discover, define, falsify, enforce, operate, revalidate">
+              {["Discover", "Define", "Falsify", "Enforce", "Operate", "Revalidate"].map((stage, i) => (
+                <span key={stage}>
+                  {i > 0 && <span className="aoe-cycle-arr" aria-hidden="true">→</span>}
+                  <b>{stage}</b>
+                </span>
+              ))}
             </p>
           </div>
 
@@ -209,18 +225,42 @@ export default function Page() {
           </div>
 
           <div className="retainer-note reveal" data-d="1" style={{ marginTop: 40 }}>
-            <span className="rn-k">Why the retainer exists — Ω is not static</span>
+            <span className="rn-k">Why the retainer exists — Ω is neither static nor assumed complete</span>
             <p className="rn-eq"><b>ℛ(t) ∩ Ω = ∅</b></p>
             <p className="rn-t">
-              The objective remains unchanged. But Ω must remain aligned with the
-              client&rsquo;s evolving environment — as systems, tools, models,
-              regulations, and attack surfaces change. <b>Ω governance</b> is the
-              continuous work of reviewing and updating the definition of forbidden
-              states, validating that runtime constraints still reflect operational
-              reality, and ensuring no new reachable trajectories have emerged through
-              system updates, new tools, model changes, workflow changes, or regulatory
-              requirements.
+              The objective is unchanged. It is a statement about reachability relative to a
+              declared model, forbidden set, governance configuration, and assumptions — a
+              bounded verification result establishes a property against that declared model,
+              not that every possible real-world harm has been represented in it. A stronger
+              real-world claim requires those modelling and deployment assumptions to remain
+              adequate, and nothing about an operating environment guarantees that they will.
+              This is precisely what revalidation is for.
             </p>
+            <p className="rn-t">
+              What the retainer maintains is the correspondence between
+              {" "}<b>modelled reality</b>, <b>executed reality</b> and <b>recorded reality</b>
+              {" "}— an assurance loop of <b>observe, challenge, falsify, revise,
+              revalidate</b> rather than a schedule of meetings. The deployed envelope may
+              require revision when models, agents, tools, integrations, permissions,
+              workflows, system state, transition semantics, attack surfaces, or regulatory
+              requirements change; when an external incident reveals a previously unknown
+              failure class; when adversarial testing exposes an omitted state or transition;
+              or when execution behaviour diverges from modelled behaviour.
+            </p>
+            <ul className="rn-surfaces">
+              {[
+                ["AOE adequacy", "Does the declared permitted and forbidden state model still represent the relevant operational risks?"],
+                ["Complete mediation", "Do all consequential execution paths intended to be governed still cross the governance boundary?"],
+                ["Authorization ↔ execution", "Does the transition that was authorized correspond to the effect actually committed in the environment?"],
+                ["Evidence correspondence", "Does the governance record remain an accurate and sufficiently complete representation of mediated execution, within its stated evidence boundary?"],
+                ["Reachability", "Have system changes introduced new trajectories capable of reaching prohibited states represented by the current envelope?"],
+              ].map(([k, v]) => (
+                <li key={k}>
+                  <span className="rn-s-k">{k}</span>
+                  <span className="rn-s-v">{v}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <p className="retainer-note reveal" data-d="1" style={{ marginTop: 24 }}>
@@ -267,17 +307,19 @@ export default function Page() {
           <div className="section-head reveal">
             <span className="eyebrow">Premium engagement tier</span>
             <h2>Enterprise Runtime Governance Assessment™</h2>
-            <p>We reduce uncertainty before deployment by identifying catastrophic trajectories, producing executive evidence, and recommending governance actions.</p>
+            <p>Moves from discovery to definition: models the operational environment and defines the initial Admissible Operating Envelope, with executive evidence and a route to enforcement.</p>
           </div>
 
           <div className="dw-intro reveal" data-d="1">
             <p>
               The broader-scope engagement for organisations running multiple agents across
-              connected systems. Where the 48-Hour Runtime Governance Audit measures a single
-              environment, the Enterprise Assessment maps reachable Ω exposure across your
-              multi-agent architecture, produces board-ready evidence, and hands you a concrete
-              governance roadmap and integration blueprint — delivered with executive and technical
-              stakeholders in the room.
+              connected systems. Where Operating Envelope Discovery maps candidate boundaries in a
+              single bounded environment, the Enterprise Assessment models the estate — agents,
+              systems, tools, states, transitions, controls and evidence requirements — and defines
+              the initial Admissible Operating Envelope over it, with board-ready evidence, a
+              governance roadmap and an integration blueprint, delivered with executive and
+              technical stakeholders in the room. The envelope it produces is an initial
+              definition, written to be tested rather than assumed correct.
             </p>
           </div>
 
@@ -324,14 +366,14 @@ export default function Page() {
             <span className="dw-range-k">Indicative scale</span>
             <div className="price-tiles">
               <div className="price-tile">
-                <span className="price-tile-k">Runtime Governance Audit</span>
+                <span className="price-tile-k">Operating Envelope Discovery™</span>
                 <span className="price-tile-v">£40K–£75K</span>
-                <span className="price-tile-s">Single environment · fixed 48-hour engagement</span>
+                <span className="price-tile-s">Single bounded environment · fixed 48-hour engagement</span>
               </div>
               <div className="price-tile is-hi">
                 <span className="price-tile-k">Enterprise Runtime Governance Assessment™</span>
                 <span className="price-tile-v">£100K–£250K+</span>
-                <span className="price-tile-s">Multi-agent, cross-system · executive evidence + roadmap · 2–6 weeks</span>
+                <span className="price-tile-s">Multi-agent, cross-system · initial AOE definition + executive evidence · 2–6 weeks</span>
               </div>
             </div>
             <PricingDisclaimer variant="short" />
@@ -340,10 +382,10 @@ export default function Page() {
           <div className="dw-ladder reveal" data-d="1">
             <span className="dw-ladder-k">Where it sits in the ladder</span>
             <ol>
-              <li><b>The Runtime Governance Audit</b> measures exposure in a single environment, fast.</li>
-              <li><b>The Enterprise Runtime Governance Assessment</b> extends that across a multi-agent, cross-system estate with board-ready evidence, a governance roadmap, and an integration blueprint.</li>
-              <li><b>The Limited Pilot</b> validates Runtime Governance against real workflows in the client environment.</li>
-              <li><b>Enterprise Integration</b> deploys governance into production.</li>
+              <li><b>Operating Envelope Discovery™</b> maps consequential execution paths, reachable risk, and candidate envelope boundaries in a bounded environment.</li>
+              <li><b>The Enterprise Runtime Governance Assessment™</b> models the operational environment and defines the initial Admissible Operating Envelope.</li>
+              <li><b>The Limited Pilot™</b> attempts to falsify the proposed envelope and its enforcement assumptions against real workflows and adversarial trajectories.</li>
+              <li><b>Enterprise Integration™</b> places independent authorization in the production execution path and enforces the validated envelope across mediated transitions.</li>
             </ol>
           </div>
 
@@ -360,7 +402,7 @@ export default function Page() {
           <div className="section-head reveal">
             <span className="eyebrow">New engagement tier</span>
             <h2>Paid Discovery Workshop™</h2>
-            <p>For teams that need structured scoping before an audit, pilot, or integration.</p>
+            <p>For teams that need structured scoping before envelope discovery, a pilot, or integration.</p>
           </div>
 
           <div className="dw-intro reveal" data-d="1">
@@ -432,21 +474,21 @@ export default function Page() {
             <span className="dw-ladder-k">Where it sits in the ladder</span>
             <ol>
               <li><b>Free Discovery / Questionnaire Review</b> establishes fit and high-level risk context.</li>
-              <li><b>The Paid Discovery Workshop</b> defines the scope.</li>
-              <li><b>The Runtime Governance Audit</b> measures exposure.</li>
-              <li><b>The Enterprise Runtime Governance Assessment</b> extends this across a multi-agent, cross-system estate with board-ready evidence.</li>
-              <li><b>The Limited Pilot</b> validates Runtime Governance in the client environment.</li>
-              <li><b>Enterprise Integration</b> deploys governance into production.</li>
-              <li><b>The Annual Runtime Governance™ License</b> sustains governance — monitoring, updates, support, and revalidation.</li>
-              <li><b>The Advisory Retainer</b> provides ongoing governance evolution, validation, and oversight.</li>
+              <li><b>The Paid Discovery Workshop™</b> defines the scope.</li>
+              <li><b>Operating Envelope Discovery™</b> maps consequential execution paths, reachable risk, and candidate envelope boundaries.</li>
+              <li><b>The Enterprise Runtime Governance Assessment™</b> models the environment and defines the initial Admissible Operating Envelope.</li>
+              <li><b>The Limited Pilot™</b> attempts to falsify that envelope against real workflows and adversarial trajectories.</li>
+              <li><b>Enterprise Integration™</b> places independent authorization in the production execution path and enforces the validated envelope.</li>
+              <li><b>The Annual Runtime Governance™ License™</b> operates the enforcement layer — support, monitoring, enforcement updates, and scheduled revalidation.</li>
+              <li><b>The Advisory Retainer™</b> continuously challenges, revalidates, and revises the deployed envelope as the environment changes.</li>
             </ol>
           </div>
 
           <p className="dw-note reveal" data-d="1">
             The workshop is <b>optional and never mandatory</b>. The questionnaire remains the
             primary qualification mechanism — if sufficient information is already available, we can
-            move directly into an Audit, Pilot, or Integration discussion. In some cases,
-            Resurrection Tech may recommend exactly that.
+            move directly into an Envelope Discovery, Pilot, or Integration discussion. In some
+            cases, Resurrection Tech may recommend exactly that.
           </p>
 
           <div className="hero-actions reveal" style={{ marginTop: 40 }}>
@@ -666,8 +708,8 @@ export default function Page() {
             <p className="rn-t">
               The governance layer is priced against the cost of catastrophic risk becoming
               reachable, not against the complexity of the software itself. Organisations may
-              enter through Free Discovery, a Paid Discovery Workshop, a Runtime Governance
-              Audit, an Enterprise Runtime Governance Assessment™, or a Limited Pilot™,
+              enter through Free Discovery, a Paid Discovery Workshop, Operating Envelope
+              Discovery™, an Enterprise Runtime Governance Assessment™, or a Limited Pilot™,
               depending on maturity, validation requirements, and existing understanding of
               their risk landscape. Production governance is sustained through Enterprise
               Integration and the Annual Runtime Governance™ License; executive involvement is
@@ -786,13 +828,9 @@ export default function Page() {
 
           <div className="flow reveal">
             <div className="engage-track">
-              <EngageStage name="Audit" dur="48 hours" kind="One-time engagement" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage name="Pilot" dur="4–8 weeks" kind="One-time engagement" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage name="Integration" dur="Deployment phase" kind="One-time engagement" />
-              <div className="engage-arrow" aria-hidden="true"><ArrowR /></div>
-              <EngageStage name="Retainer" dur="Monthly or annual" kind="Ongoing governance assurance" recurring />
+              {LIFECYCLE.map((s) => (
+                <EngageStage key={s.stage} {...s} />
+              ))}
             </div>
           </div>
         </div>
