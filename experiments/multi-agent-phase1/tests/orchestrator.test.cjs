@@ -25,10 +25,14 @@ const { identityFor, parseLabel, IDENTITY_DISCLOSURE } = require("../orchestrato
 const { probe } = require("../orchestrator/state-probe.cjs");
 const { PHASES, OMEGA_TEST } = require("../orchestrator/scenarios.cjs");
 
+/* A stand-in calibration file. The verdicts it names are the corrected,
+ * PRE-CALIBRATED taxonomy — predictions from the offline reconstruction against
+ * the pinned engine, never live-confirmed results. This fixture exercises the
+ * orchestrator's plumbing; it asserts nothing about what Morrison will do. */
 const CALIBRATION = {
   admissible: { selected: "update_config", calibrated: true, required_verdict: "ALLOW" },
-  prohibited: { selected: "drop_database", calibrated: true, required_verdict: "BLOCK" },
-  escalating: { selected: "synthetic_unlisted_operation", calibrated: true, required_verdict: "ESCALATE" },
+  prohibited: { selected: "delete_logs", calibrated: true, required_verdict: "BLOCK" },
+  escalating: { selected: "create_cron", calibrated: true, required_verdict: "ESCALATE" },
 };
 
 const baseConfig = (overrides = {}) => ({
@@ -186,7 +190,7 @@ const stubAgent = async (task) => ({
   const before = (await probe(envBaseUrl, config.envToken)).applied_count;
   const mixedJournal = [];
   const mixedTransport = makeTransport(envBaseUrl, (tool) =>
-    tool === "update_config" ? "ALLOW" : tool === "drop_database" ? "BLOCK" : "ESCALATE");
+    tool === "update_config" ? "ALLOW" : tool === "delete_logs" ? "BLOCK" : "ESCALATE");
   const mixed = await runner.runPhase({
     phaseId: "P3", config: baseConfig({ envBaseUrl }), calibration: CALIBRATION,
     deps: {

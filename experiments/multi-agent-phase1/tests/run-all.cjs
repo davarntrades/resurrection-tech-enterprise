@@ -22,6 +22,7 @@ const SUITES = [
   { name: "synthetic environment", file: path.join(__dirname, "env-service.test.cjs") },
   { name: "agent isolation", file: path.join(__dirname, "isolation.test.cjs") },
   { name: "orchestrator", file: path.join(__dirname, "orchestrator.test.cjs") },
+  { name: "candidate taxonomy", file: path.join(__dirname, "candidates.test.cjs") },
   { name: "analyser", file: path.join(__dirname, "analyser.test.cjs") },
   {
     name: "platform governed-execution contract (unmodified)",
