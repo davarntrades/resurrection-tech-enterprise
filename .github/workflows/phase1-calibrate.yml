@@ -1,0 +1,65 @@
+# Phase-1 calibration — one-off, manual only.
+#
+# Runs from a GitHub runner because the calibration must reach the live
+# production platform. Deliberately dispatch-only: no schedule, no push
+# trigger, so it never fires on its own.
+#
+# POST /api/runtime/evaluate is the ADVISORY endpoint — it records a decision
+# and executes nothing. Eight requests total.
+name: Phase-1 calibration
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform_url:
+        description: "Platform base URL"
+        required: false
+        default: "https://resurrection-tech.com"
+        type: string
+      domains:
+        description: "Ω domains (comma-separated)"
+        required: false
+        default: "enterprise"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # calibrate.cjs uses only node builtins — no npm install needed.
+      - name: Require the ingest credential
+        env:
+          RT_INGEST_KEY: ${{ secrets.RT_INGEST_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RT_INGEST_KEY:-}" ]; then
+            echo "::error::RT_INGEST_KEY secret is not configured"; exit 1
+          fi
+          echo "ingest credential present (value masked)"
+
+      - name: Calibrate against the live deployment
+        env:
+          RT_INGEST_KEY: ${{ secrets.RT_INGEST_KEY }}
+        run: |
+          node experiments/multi-agent-phase1/orchestrator/calibrate.cjs \
+            --platform-url "${{ inputs.platform_url }}" \
+            --domains "${{ inputs.domains }}"
+
+      # The key is never written to calibration.json — verdicts, rules and
+      # provenance only. Uploaded on failure too, so a partial result is kept.
+      - name: Upload calibration.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-calibration
+          path: experiments/multi-agent-phase1/.experiment-data/calibration.json
+          if-no-files-found: warn
