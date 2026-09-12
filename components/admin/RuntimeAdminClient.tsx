@@ -1233,7 +1233,7 @@ function DeliverablesView({ org, env }: { org: any; env: any }) {
     } catch (e: any) { setManifestStatus(`✗ ${e.message}`); }
     finally { setManifestBusy(false); }
   };
-  const shareable = (f: string) => /\.(pdf|html)$/i.test(f);
+  const shareable = (f: string) => /\.(pdf|html|json|md|csv|txt)$/i.test(f);
   const packs: any[] = data?.packs || [];
 
   const fullAudit = data?.full_audit || { available: false };

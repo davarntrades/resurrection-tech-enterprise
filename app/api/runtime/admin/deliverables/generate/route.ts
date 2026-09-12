@@ -18,6 +18,7 @@ import * as rt from "@/lib/runtime";
 import { notifyCustomer } from "@/lib/customerNotify";
 import { renderPdfs, rendererConfigured } from "@/lib/renderer";
 import { buildExecutiveReportHtml } from "@/lib/reportHtml";
+import { controlRoomAuditDoc } from "@/lib/audit-surface-adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,36 @@ const PACK_NAME: Record<ReportType, string> = {
   full_audit: "48-Hour Runtime Governance Audit",
   enterprise_assessment: "Enterprise Runtime Governance Assessment",
 };
+
+async function runtimeEvidenceExport({
+  org_id, environment_id, report_type, period, window,
+}: {
+  org_id: string;
+  environment_id: string;
+  report_type: ReportType;
+  period: string;
+  window: { since: string; until: string };
+}) {
+  const [decisionRows, executions] = await Promise.all([
+    rt.store.queryDecisions({ org_id, environment_id, since: window.since, until: window.until, limit: 100000 }),
+    (rt.executionAdapters as any).evidence.listExecutionRecords({ org_id, environment_id, since: window.since, until: window.until, limit: 100000 }),
+  ]);
+  // Reports use a half-open [since, until) window. queryDecisions historically
+  // treats `until` as inclusive, so enforce report parity here without changing
+  // that public query contract.
+  const decisions = decisionRows.filter((row: any) => String(row.created_at) < window.until);
+  return controlRoomAuditDoc(decisions, {
+    source: "Customer Evidence Hub",
+    report_type,
+    period,
+    window,
+    organization_id: org_id,
+    environment_id,
+    decision_records: decisions.length,
+    execution_records: executions.length,
+    integrity_scope: "Export hash-chain consistency; external event occurrence requires comparison with evaluator-controlled logs.",
+  }, executions);
+}
 
 export async function POST(req: NextRequest) {
   const authz = authorize(req);
@@ -121,6 +152,8 @@ export async function POST(req: NextRequest) {
         { filename: "executive-report.html", bytes: Buffer.from(execHtml, "utf8"), mime: "text/html; charset=utf-8" },
         { filename: "run-summary.json", bytes: Buffer.from(JSON.stringify(report, null, 2), "utf8"), mime: "application/json" },
       ];
+      const audit = await runtimeEvidenceExport({ org_id, environment_id, report_type, period, window: report.window });
+      files.push({ filename: "morrison-audit-v2.json", bytes: Buffer.from(JSON.stringify(audit, null, 2), "utf8"), mime: "application/json" });
       notifyExec = true;
     } else {
       // monthly_evidence — concise recurring report from live telemetry.
@@ -131,6 +164,8 @@ export async function POST(req: NextRequest) {
         { filename: "monthly-evidence.md", bytes: Buffer.from(rt.reports.toMarkdown(report), "utf8"), mime: "text/markdown; charset=utf-8" },
         { filename: "run-summary.json", bytes: Buffer.from(JSON.stringify(report, null, 2), "utf8"), mime: "application/json" },
       ];
+      const audit = await runtimeEvidenceExport({ org_id, environment_id, report_type, period, window: report.window });
+      files.push({ filename: "morrison-audit-v2.json", bytes: Buffer.from(JSON.stringify(audit, null, 2), "utf8"), mime: "application/json" });
       if (rendererConfigured()) {
         try {
           const pdfs = await renderPdfs([{ name: "monthly-evidence.pdf", html }]);

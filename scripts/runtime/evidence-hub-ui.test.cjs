@@ -23,6 +23,8 @@ assert.match(page, /Evidence library/, "evidence has a clear primary section");
 assert.match(page, /Action register/, "recommendations are presented as tracked actions");
 assert.match(page, /Recent activity/, "publication history remains available");
 assert.doesNotMatch(page, /Evidence verified/, "UI does not invent an unsupported verification claim");
+assert.match(page, /pdf\|html\|json\|md\|csv\|txt/, "machine-readable evidence is available for customer retention");
+assert.match(page, /Runtime evidence \(verifiable JSON\)/, "audit-v2 JSON has a precise non-marketing label");
 
 // Responsive and accessible behavior is part of the contract, not decoration.
 assert.match(css, /@media \(max-width: 620px\)/, "mobile reflow is defined");

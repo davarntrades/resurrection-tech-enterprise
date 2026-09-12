@@ -53,7 +53,20 @@ export async function GET(req: NextRequest) {
       });
     }
     if (sp.get("format") === "audit-v2") {
-      const doc = await controlRoomAuditDoc(rows as Array<Record<string, any>>);
+      const executionRows = await (rt.executionAdapters as any).evidence.listExecutionRecords({
+        org_id,
+        environment_id: filter.environment_id,
+        since: filter.since,
+        until: filter.until,
+        limit: filter.limit,
+      });
+      const doc = await controlRoomAuditDoc(rows as Array<Record<string, any>>, {
+        source: "Control Room",
+        organization_id: org_id,
+        environment_id: filter.environment_id || null,
+        decision_records: rows.length,
+        execution_records: executionRows.length,
+      }, executionRows);
       return new NextResponse(JSON.stringify(doc, null, 2), {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "content-disposition": `attachment; filename="decisions-${org_id}-morrison-audit-v2.json"`, "cache-control": "private, no-store" },

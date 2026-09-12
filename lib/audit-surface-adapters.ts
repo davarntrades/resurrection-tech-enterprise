@@ -89,8 +89,97 @@ export function controlRoomRecord(row: Record<string, any>): EvalRecord {
   });
 }
 
-export async function controlRoomAuditDoc(rows: Array<Record<string, any>>, bundleContext?: Record<string, unknown>) {
-  const records = rows.map(controlRoomRecord);
+/**
+ * Project the existing Universal Governed Execution evidence row into the same
+ * customer-retainable audit chain as its Morrison decision. This is a read-only
+ * projection: the execution record remains the source and no second authority is
+ * created. Unknown fields stay unknown rather than being inferred.
+ */
+export function controlRoomExecutionRecord(row: Record<string, any>): EvalRecord {
+  const executionOccurred = typeof row.executed === "boolean" ? row.executed : undefined;
+  const status = String(row.execution_status || "NOT_RECORDED");
+  const attempted = row.execution_attempted === true;
+  const outcome = row.verdict === "BLOCK" || row.verdict === "ESCALATE"
+    ? `${row.verdict} withheld execution (${status}).`
+    : attempted
+      ? `Authorized execution was ${status}.`
+      : `Execution was not attempted (${status}).`;
+  return buildCanonicalAuditRecord({
+    timestamp: String(row.finalized_at || row.created_at || new Date(0).toISOString()),
+    source: "custom",
+    surface: "control_room",
+    record_type: "execution_record",
+    scenario: String(row.scenario_id || "Governed external execution"),
+    trajectory: row.trajectory_hash ? `TRAJECTORY_HASH:${row.trajectory_hash}` : "PROPOSAL_NOT_PERSISTED",
+    triggeredRule: String(row.rule || "NOT_RECORDED"),
+    verdict: String(row.verdict || "UNKNOWN"),
+    // This row reports the consequence of an earlier governance decision; it is
+    // not itself another governance layer or authority.
+    governanceLayer: "NOT_APPLICABLE",
+    omegaDomain: String(row.omega_domain || "NOT_RECORDED"),
+    reasoning: outcome,
+    evaluator_source: "morrison",
+    runtime_outcome: {
+      canonical_verdict: String(row.verdict || "UNKNOWN"),
+      ...(executionOccurred === undefined ? {} : { execution_occurred: executionOccurred }),
+    },
+    provenance: {
+      ...(row.trajectory_hash ? { trajectory_hash: String(row.trajectory_hash) } : {}),
+      ...(row.mode ? { evaluation_mode: String(row.mode) } : {}),
+      evidence_generation_timestamp: new Date().toISOString(),
+    },
+    audit_events: [
+      { timestamp: String(row.created_at || new Date(0).toISOString()), event: "execution_evidence_initialized" },
+      ...(row.finalized_at ? [{ timestamp: String(row.finalized_at), event: "execution_evidence_finalized" }] : []),
+    ],
+    surface_metadata: {
+      control_room_execution: sanitizeForEvidence({
+        evidence_id: row.id,
+        evidence_version: row.evidence_version,
+        source_evidence_hash: row.evidence_hash,
+        source_evidence_hash_verified: row.evidence_verified === true,
+        morrison_decision_id: row.morrison_decision_id,
+        organization_id: row.org_id,
+        deployment_environment_id: row.environment_id,
+        session_id: row.session_id,
+        scenario_id: row.scenario_id,
+        correlation_id: row.correlation_id,
+        request_id: row.request_id,
+        adapter: {
+          id: row.adapter_id,
+          name: row.adapter_name,
+          version: row.adapter_version,
+          target: row.execution_target,
+          capabilities: row.adapter_capabilities,
+        },
+        authorization_result: row.authorization_result,
+        execution: {
+          status: row.execution_status,
+          attempted: row.execution_attempted,
+          occurred: row.executed,
+          success: row.execution_success,
+          error: row.execution_error,
+          receipt: row.execution_receipt,
+          external_state_changed: row.external_state_changed,
+          state_observability: row.state_observability,
+          state_before_hash: row.state_before_hash,
+          state_after_hash: row.state_after_hash,
+          state_delta: row.state_delta,
+        },
+      }) as Record<string, unknown>,
+    },
+  });
+}
+
+export async function controlRoomAuditDoc(
+  rows: Array<Record<string, any>>,
+  bundleContext?: Record<string, unknown>,
+  executionRows: Array<Record<string, any>> = [],
+) {
+  const records = [
+    ...rows.map(controlRoomRecord),
+    ...executionRows.map(controlRoomExecutionRecord),
+  ].sort((left, right) => String(right.timestamp).localeCompare(String(left.timestamp)));
   if (!records.length && bundleContext) {
     records.push(buildCanonicalAuditRecord({
       timestamp: new Date().toISOString(), source: "custom", surface: "control_room", record_type: "session_summary",

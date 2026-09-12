@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const SHAREABLE = /\.(pdf|html)$/i;
+// The Evidence Library is also the customer's retention surface. Machine-readable
+// evidence must not be hidden behind the operator UI: JSON is what an evaluator
+// can independently hash-check and correlate with its own environment logs.
+const SHAREABLE = /\.(pdf|html|json|md|csv|txt)$/i;
 const OPEN_STATES = new Set(["open", "acknowledged", "in_progress"]);
 const STATUS_LABEL: Record<string, string> = {
   open: "Open",
@@ -24,10 +27,16 @@ const fmt = (iso?: string | null) => iso
   ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
   : "—";
 const kindLabel = (filename: string) => (
-  /enterprise-assessment/i.test(filename) ? "Enterprise assessment"
+  /morrison-audit-v2\.json$/i.test(filename) ? "Runtime evidence (verifiable JSON)"
+    : /enterprise-assessment-model\.json$/i.test(filename) ? "Enterprise assessment model"
+      : /full-audit-model\.json$/i.test(filename) ? "48-Hour Audit model"
+        : /run-summary\.json$/i.test(filename) ? "Run summary"
+          : /enterprise-assessment/i.test(filename) ? "Enterprise assessment"
     : /executive/i.test(filename) ? "Executive report"
       : /full-audit/i.test(filename) ? "48-Hour Audit"
         : /monthly-evidence/i.test(filename) ? "Monthly evidence"
+          : /\.json$/i.test(filename) ? "Machine-readable evidence"
+            : /\.md$/i.test(filename) ? "Evidence document"
           : /\.pdf$/i.test(filename) ? "Audit report"
             : /\.html$/i.test(filename) ? "Interactive report"
               : "Evidence"
@@ -165,7 +174,7 @@ export default async function EvidenceHubPage({ params }: { params: Promise<{ to
                   )}
                   <ul className={styles.fileList}>
                     {pack.shareable.map((file: any) => {
-                      const format = /\.pdf$/i.test(file.filename) ? "PDF" : "HTML";
+                      const format = (file.filename.split(".").pop() || "FILE").toUpperCase();
                       return (
                         <li key={file.id} className={styles.fileRow}>
                           <span className={styles.fileType} aria-hidden="true">{format}</span>

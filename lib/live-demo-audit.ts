@@ -146,7 +146,7 @@ export type EvalRecord = {
   timestamp: string;
   source: "scenario" | "custom";
   surface?: "live_demo" | "control_room" | "frontier_lab";
-  record_type?: "governance_decision" | "session_summary";
+  record_type?: "governance_decision" | "execution_record" | "session_summary";
   scenario: string;
   trajectory: string;
   triggeredRule: string;
