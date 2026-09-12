@@ -1,0 +1,3 @@
+# Run artefacts: journals, environment logs, calibration, reconciliation reports.
+# Experiment output is evidence for a specific run, not source.
+.experiment-data/
