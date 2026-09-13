@@ -13,6 +13,19 @@ async function gateway(path = "", opts: RequestInit = {}) {
   return data;
 }
 
+async function setGmailSmokeControl(input: { org_id: string; connector_id: string; enabled: boolean }) {
+  const res = await fetch("/api/runtime/admin/gmail-smoke-control", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(input),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
 const ago = (iso?: string | null) => {
   if (!iso) return "—";
   const n = Date.now() - Date.parse(iso);
@@ -134,7 +147,7 @@ export default function IntegrationGatewayPanel() {
 
       {orgId && <BedrockPanel organisation={org} envs={envs} connectors={data.bedrock || []} busy={busy} mutate={mutate} />}
 
-      {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} />}
+      {orgId && <GmailPanel connectors={(data.connectors || []).filter((c: any) => c.type === "gmail")} busy={busy} mutate={mutate} reload={() => load(orgId)} />}
 
       {orgId && <ExecutionEnvironments environments={data.execution_environments || []} records={data.execution_records || []} comparisons={data.experiment_comparisons || []} />}
 
@@ -409,8 +422,11 @@ function ExecutionEnvironments({ environments, records, comparisons }: { environ
 /* Post-creation Gmail administration. Every button is a governed operation
  * against the SAME communication connector framework the runtime uses — this
  * panel adds no second Gmail path, it only drives the existing one. */
-function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boolean; mutate: (body: any) => Promise<void> }) {
+function GmailPanel({ connectors, busy, mutate, reload }: { connectors: any[]; busy: boolean; mutate: (body: any) => Promise<void>; reload: () => Promise<void> }) {
   const [rotating, setRotating] = useState("");
+  const [smokeBusy, setSmokeBusy] = useState("");
+  const [smokeNote, setSmokeNote] = useState("");
+  const [smokeError, setSmokeError] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
@@ -423,13 +439,26 @@ function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boo
       });
     } finally { clear(); }
   };
+  const setSmoke = async (connector: any, enabled: boolean) => {
+    if (enabled && !confirm("Turn on real production smoke emails? Scheduled and deployment checks will be allowed to send test messages.")) return;
+    setSmokeBusy(connector.id); setSmokeNote(""); setSmokeError("");
+    try {
+      await setGmailSmokeControl({ org_id: connector.org_id, connector_id: connector.id, enabled });
+      setSmokeNote(`Production Gmail smoke ${enabled ? "enabled" : "disabled"}.`);
+      await reload();
+    } catch (error: any) {
+      setSmokeError(error?.message || "Could not update production Gmail smoke control");
+    } finally { setSmokeBusy(""); }
+  };
   return (
     <section className="radmin-card">
       <h2>Gmail connectors</h2>
-      <p className="radmin-muted">A new Gmail connector starts <strong>unknown</strong> and cannot send, reply, draft, list or read until credential validation succeeds and health becomes healthy.</p>
+      <p className="radmin-muted">A new Gmail connector starts <strong>unknown</strong> and cannot send, reply, draft, list or read until credential validation succeeds and health becomes healthy. Production smoke delivery is a separate operator control and defaults to <strong>OFF</strong>.</p>
+      {smokeNote && <div className="radmin-keyreveal">{smokeNote}</div>}
+      {smokeError && <div className="radmin-err">{smokeError}</div>}
       {!connectors.length ? <p className="radmin-muted">No Gmail connector configured for this organisation.</p> : (
         <div className="radmin-table-wrap"><table className="radmin-table">
-          <thead><tr><th>Name</th><th>Mailbox</th><th>Environment</th><th>Health</th><th>Status</th><th>Capabilities</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Mailbox</th><th>Environment</th><th>Health</th><th>Status</th><th>Production smoke</th><th>Capabilities</th><th>Actions</th></tr></thead>
           <tbody>
             {connectors.map((c: any) => (
               <tr key={c.id}>
@@ -438,6 +467,19 @@ function GmailPanel({ connectors, busy, mutate }: { connectors: any[]; busy: boo
                 <td>{c.environment_id}</td>
                 <td>{c.health}{c.health !== "healthy" && <div className="radmin-muted" style={{ fontSize: 11 }}>not usable</div>}</td>
                 <td>{c.status}</td>
+                <td>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={c.config?.production_smoke_enabled === true}
+                    className={`radmin-btn sm${c.config?.production_smoke_enabled === true ? " primary" : ""}`}
+                    disabled={busy || smokeBusy === c.id || c.status === "disabled"}
+                    onClick={() => setSmoke(c, c.config?.production_smoke_enabled !== true)}
+                  >
+                    {smokeBusy === c.id ? "Saving…" : c.config?.production_smoke_enabled === true ? "ON" : "OFF"}
+                  </button>
+                  <div className="radmin-muted" style={{ fontSize: 11 }}>Real test email</div>
+                </td>
                 <td>{(c.config?.capabilities || []).join(", ") || "—"}</td>
                 <td><div className="radmin-row" style={{ flexWrap: "wrap", gap: 6 }}>
                   <button className="radmin-btn sm" disabled={busy} onClick={() => mutate({ operation: "gmail.credentials.check", connector_id: c.id })}>Validate</button>
