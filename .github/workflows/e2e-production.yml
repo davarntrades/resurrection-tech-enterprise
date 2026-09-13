@@ -194,21 +194,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       # ── Governed Gmail delivery ────────────────────────────────────────────
-      # Real Gmail delivery is disabled for routine production E2E runs so the
-      # recurring drift check cannot send test messages to the founder's inbox.
-      # This does not disable the Gmail connector or governed customer email.
+      # The Control Room owns this switch. Any unavailable, missing or malformed
+      # control response fails closed to OFF; the Gmail connector itself remains
+      # independently available for governed customer email.
       - name: Gmail governed smoke preflight
         id: gmail_preflight
         if: ${{ always() && steps.production_preflight.outcome == 'success' }}
         shell: bash
         env:
-          GMAIL_SMOKE_ENABLED: "false"
           GMAIL_SMOKE_RECIPIENT: davarn@resurrection-tech.com
         run: |
           set -euo pipefail
+          control="$(curl --fail --silent --show-error \
+            --header "x-admin-key: ${RUNTIME_ADMIN_KEY}" \
+            --get --data-urlencode "environment_id=${E2E_ENVIRONMENT_ID}" \
+            "${E2E_BASE_URL}/api/runtime/admin/gmail-smoke-control" 2>/dev/null || true)"
+          GMAIL_SMOKE_ENABLED="$(jq -r 'if .enabled == true then "true" else "false" end' <<<"$control" 2>/dev/null || echo "false")"
           if [[ ! "${GMAIL_SMOKE_ENABLED:-}" =~ ^(1|true|yes|on)$ ]]; then
             echo "enabled=no" >> "$GITHUB_OUTPUT"
-            echo "GMAIL_SMOKE_ENABLED is not set — governed Gmail delivery will NOT be validated by this run."
+            echo "Control Room production Gmail smoke is OFF (or unavailable) — no test email will be sent."
             exit 0
           fi
           missing=0
@@ -247,11 +251,10 @@ jobs:
             {
               echo "## Gmail governed production smoke"
               echo
-              echo "**NOT VALIDATED** — \`GMAIL_SMOKE_ENABLED\` is not set for this repository."
+              echo "**NOT VALIDATED** — production Gmail smoke is OFF in the Control Room."
               echo
-              echo "Governed Gmail delivery has not been proven by this run. Provision the Gmail"
-              echo "connector, set the required configuration, then set the repository variable"
-              echo "\`GMAIL_SMOKE_ENABLED=true\` to make this gate enforcing."
+              echo "Governed Gmail delivery has not been exercised by this run. An operator can"
+              echo "enable the separate Production smoke control on the Gmail connector when needed."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Upload governed Gmail smoke report
