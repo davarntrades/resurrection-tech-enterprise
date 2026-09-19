@@ -32,7 +32,7 @@ async function api(path: string, opts: RequestInit = {}) {
   return data;
 }
 
-type Tab = "overview" | "sessions" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "alerts" | "audit";
+type Tab = "overview" | "sessions" | "customers" | "onboard" | "integrations" | "readiness" | "assurance" | "verification" | "alerts" | "audit";
 
 export default function RuntimeAdminClient({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
@@ -58,7 +58,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
           </div>
         </div>
         <nav className="radmin-tabs">
-          {(["overview", "sessions", "customers", "onboard", "integrations", "readiness", "assurance", "alerts", "audit"] as Tab[]).map((t) => (
+          {(["overview", "sessions", "customers", "onboard", "integrations", "readiness", "assurance", "verification", "alerts", "audit"] as Tab[]).map((t) => (
             <button key={t} className={`radmin-tab${tab === t ? " is-active" : ""}`} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -78,6 +78,7 @@ export default function RuntimeAdminClient({ initialTab = "overview" }: { initia
         {tab === "integrations" && <IntegrationGatewayPanel />}
         {tab === "readiness" && <ReadinessPanel />}
         {tab === "assurance" && <AssurancePanel />}
+        {tab === "verification" && <VerificationPanel />}
         {tab === "alerts" && <AlertsPanel />}
         {tab === "audit" && <AuditPanel />}
       </main>
@@ -1392,6 +1393,182 @@ function ReadinessPanel() {
 // They rest on different evidence: one is the deployment describing itself, the
 // other is an independent reading of the system. Rendering both green would
 // re-flatten exactly the distinction this panel exists to draw.
+
+const VERIFICATION_TAG: Record<string, { tag: string; cls: string }> = {
+  verified: { tag: "VERIFIED", cls: "pass" },
+  reported: { tag: "REPORTED", cls: "configured" },
+  degraded: { tag: "DEGRADED", cls: "fail" },
+  unknown: { tag: "UNKNOWN", cls: "unknown" },
+};
+
+// ── Finite-model verification (read-only) ────────────────────────────────────
+// Four classes of evidence, rendered separately and never merged. There is no
+// overall indicator here on purpose: a finite-model result, a runtime
+// governance status, pilot operational evidence and universal safety are four
+// different claims, and one green light would assert a fifth that nothing
+// supports. If an operator wants a single number, that is the thing this panel
+// exists to refuse.
+function VerificationPanel() {
+  const [data, setData] = useState<any>(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    setErr("");
+    try { setData(await api("verification")); } catch (e: any) { setErr(e.message); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (err) return <div className="radmin-err">Verification surface unavailable — {err}. Treat every class below as UNKNOWN until this resolves.</div>;
+  if (!data) return <div className="radmin-muted">Reading verification status…</div>;
+
+  const C = data.classes || {};
+  const v = C.verification || {};
+  const rg = C.runtime_governance || {};
+  const drift = C.integrity_drift || {};
+  const ce = C.counterexamples || {};
+  const a = v.artifact || null;
+  const tag = (state: string) => VERIFICATION_TAG[state] || VERIFICATION_TAG.unknown;
+  const Tag = ({ state }: { state: string }) => (
+    <span className={`radmin-check-tag ${tag(state).cls}`}>{tag(state).tag}</span>
+  );
+
+  return (
+    <section className="radmin-card">
+      <div className="radmin-row">
+        <h2>Finite-model verification</h2>
+        <button className="radmin-btn sm" onClick={load}>Refresh</button>
+      </div>
+
+      {drift.revalidation_required ? (
+        <div className="radmin-err">
+          Verification no longer matches current configuration — revalidation required.
+        </div>
+      ) : null}
+
+      <p className="radmin-muted">
+        Read-only view over evidence produced elsewhere. This surface computes no verdict.
+        Four classes are shown separately and are <b>not</b> combined into an overall status.
+      </p>
+      <ul className="radmin-legend">
+        {(["verified", "reported", "degraded", "unknown"] as const).map((k) => (
+          <li key={k}>
+            <span className={`radmin-check-tag radmin-legend-tag ${VERIFICATION_TAG[k].cls}`}>{VERIFICATION_TAG[k].tag}</span>
+            <span className="radmin-muted">{data.legend?.[k]}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* 1 — VERIFICATION */}
+      <h3>1 · Verification <Tag state={v.state} /></h3>
+      <p className="radmin-muted">{v.summary}</p>
+      {a ? (
+        <ul className="radmin-checks">
+          <li><span className="radmin-check-name">Verification ID</span><span className="radmin-check-detail"><code>{a.verification_id}</code></span></li>
+          <li><span className="radmin-check-name">Model</span><span className="radmin-check-detail">{a.model_identity?.name} v{a.model_identity?.version}</span></li>
+          <li><span className="radmin-check-name">Model hash</span><span className="radmin-check-detail"><code>{a.model_identity?.model_hash}</code></span></li>
+          <li><span className="radmin-check-name">Transition relation</span><span className="radmin-check-detail"><code>{a.model_identity?.transition_relation_id}</code></span></li>
+          <li><span className="radmin-check-name">Ruleset hash</span><span className="radmin-check-detail"><code>{a.ruleset_hash}</code></span></li>
+          <li><span className="radmin-check-name">Environment</span><span className="radmin-check-detail">{a.environment_identity ?? "—"}</span></li>
+          <li><span className="radmin-check-name">Verifier</span><span className="radmin-check-detail">{a.verifier?.verifier_version} · python {a.verifier?.python}</span></li>
+          <li><span className="radmin-check-name">Repository commit</span><span className="radmin-check-detail"><code>{a.repository_commit ?? "unknown"}</code></span></li>
+          <li><span className="radmin-check-name">Verdict</span><span className="radmin-check-detail"><b>{a.verdict}</b></span></li>
+          <li><span className="radmin-check-name">Complete enumeration</span><span className="radmin-check-detail">{String(a.complete_enumeration)}</span></li>
+          <li><span className="radmin-check-name">Escalations enumerated</span><span className="radmin-check-detail">{(a.escalation_outcomes_admitted || []).join(", ") || "—"}</span></li>
+          <li><span className="radmin-check-name">Last verification</span><span className="radmin-check-detail">{a.last_verification ?? "—"}</span></li>
+        </ul>
+      ) : null}
+      {a?.scope ? <p className="radmin-muted"><b>Scope.</b> {a.scope}</p> : null}
+      {a?.assumptions?.length ? (
+        <><h4>Assumptions</h4><ul className="radmin-checks">{a.assumptions.map((x: string, i: number) => <li key={i}><span className="radmin-check-detail radmin-muted">{x}</span></li>)}</ul></>
+      ) : null}
+      {a?.limitations?.length ? (
+        <><h4>Limitations</h4><ul className="radmin-checks">{a.limitations.map((x: string, i: number) => <li key={i}><span className="radmin-check-detail radmin-muted">{x}</span></li>)}</ul></>
+      ) : null}
+      {v.independent_recheck ? (
+        <p className="radmin-muted">
+          <b>What this deployment confirmed.</b> {v.independent_recheck.what_this_confirms}{" "}
+          Producer-reported integrity is shown as REPORTED and is not re-checked here.
+        </p>
+      ) : null}
+
+      {/* 2 — RUNTIME GOVERNANCE */}
+      <h3>2 · Runtime governance <Tag state={rg.state} /></h3>
+      <p className="radmin-muted">{rg.summary}</p>
+      <ul className="radmin-checks">
+        <li><span className="radmin-check-name">Actions evaluated</span><span className="radmin-check-detail">{rg.actions_evaluated ?? "—"}</span></li>
+        <li><span className="radmin-check-name">PERMIT</span><span className="radmin-check-detail">{rg.counts?.PERMIT ?? "—"}</span></li>
+        <li><span className="radmin-check-name">BLOCK</span><span className="radmin-check-detail">{rg.counts?.BLOCK ?? "—"}</span></li>
+        <li><span className="radmin-check-name">ESCALATE</span><span className="radmin-check-detail">{rg.counts?.ESCALATE ?? "—"}</span></li>
+        <li><span className="radmin-check-name">Unresolved escalation</span><span className="radmin-check-detail">{rg.unresolved_escalation ?? "—"}</span></li>
+        <li><span className="radmin-check-name">Executed</span><span className="radmin-check-detail">{rg.execution_decisions?.executed ?? "—"}</span></li>
+        <li><span className="radmin-check-name">Evidence chain</span><span className="radmin-check-detail">{rg.evidence_chain ? (rg.evidence_chain.ok ? "intact" : "BROKEN") : "not evaluated"}</span></li>
+      </ul>
+
+      {/* 3 — INTEGRITY / DRIFT */}
+      <h3>3 · Integrity and drift <Tag state={drift.state} /></h3>
+      <p className="radmin-muted">{drift.summary}</p>
+      <ul className="radmin-checks">
+        {(drift.dimensions || []).map((d: any) => (
+          <li key={d.dimension}>
+            <span className={`radmin-check-tag ${d.matches ? "pass" : "fail"}`}>{d.matches ? "MATCHES" : "DRIFT"}</span>
+            <span className="radmin-check-name">{d.dimension}</span>
+            <span className="radmin-check-detail radmin-muted">
+              verified <code>{String(d.verified ?? "—")}</code> · observed <code>{String(d.observed ?? "unreadable")}</code>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {drift.note ? <p className="radmin-muted">{drift.note}</p> : null}
+
+      {/* 4 — COUNTEREXAMPLES */}
+      <h3>4 · Counterexamples and incidents <Tag state={ce.state} /></h3>
+      <p className="radmin-muted">{ce.summary}</p>
+      {ce.modelled ? (
+        <ul className="radmin-checks">
+          <li><span className="radmin-check-name">Prohibited states reachable</span><span className="radmin-check-detail">{ce.modelled.unsafe_reachable_states}</span></li>
+          <li><span className="radmin-check-name">Prohibited transitions</span><span className="radmin-check-detail">{ce.modelled.unsafe_reachable_transitions}</span></li>
+          <li><span className="radmin-check-name">Blocked transitions</span><span className="radmin-check-detail">{ce.modelled.blocked_transitions}</span></li>
+          <li><span className="radmin-check-name">Blocked into prohibited</span><span className="radmin-check-detail">{ce.modelled.blocked_into_prohibited}</span></li>
+          <li><span className="radmin-check-name">Escalations denied</span><span className="radmin-check-detail">{ce.modelled.escalations_denied}</span></li>
+          <li><span className="radmin-check-name">Escalations approved &amp; executed</span><span className="radmin-check-detail">{ce.modelled.escalations_approved_and_executed}</span></li>
+          <li><span className="radmin-check-name">Shortest unsafe path</span><span className="radmin-check-detail">{ce.modelled.shortest_unsafe_path ?? "—"}</span></li>
+        </ul>
+      ) : null}
+      {ce.modelled?.counterexample_path?.length ? (
+        <>
+          <h4>Counterexample path (inside the declared model)</h4>
+          <ol className="radmin-checks">
+            {ce.modelled.counterexample_path.map((s: any, i: number) => (
+              <li key={i}>
+                <span className="radmin-check-name">{s.action}</span>
+                <span className="radmin-check-detail radmin-muted">
+                  {s.governance_verdict}{s.escalation_outcome ? ` · escalation ${s.escalation_outcome}` : ""}
+                  {s.unsafe_invariants?.length ? ` · Ω ${s.unsafe_invariants.join(", ")}` : ""}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : null}
+      {ce.runtime_events ? (
+        <p className="radmin-muted">
+          Runtime events — BLOCK {ce.runtime_events.blocked}, ESCALATE {ce.runtime_events.escalated},
+          unresolved escalation {ce.runtime_events.unresolved_escalation}. {ce.runtime_events.note}
+        </p>
+      ) : null}
+
+      <h4>What these classes do and do not mean</h4>
+      <ul className="radmin-checks">
+        {(data.separation_notice || []).map((n: string, i: number) => (
+          <li key={i}><span className="radmin-check-detail radmin-muted">{n}</span></li>
+        ))}
+        {(data.notes || []).map((n: string, i: number) => (
+          <li key={`n${i}`}><span className="radmin-check-detail radmin-muted">{n}</span></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 const ASSURANCE_TAG: Record<string, { tag: string; cls: string }> = {
   verified: { tag: "VERIFIED", cls: "pass" },
   configured: { tag: "CONFIGURED", cls: "configured" },
