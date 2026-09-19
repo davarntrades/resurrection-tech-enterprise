@@ -57,23 +57,30 @@ const SECTIONS: {
   },
   {
     id: "verification",
-    eyebrow: "Bounded verification",
-    title: "Reach_G(X₀) ∩ Ω = ∅, within a declared model.",
+    eyebrow: "Finite-model verification",
+    title: "Reach_G(X₀) ∩ Ω = ∅, inside a model we declare in full.",
     body:
-      "The verification condition is that no configured forbidden state remains reachable under the governed transition system, within the declared environment, tools, permissions, policies and horizon.",
+      "A finite verifier enumerates every reachable state of a declared model, submitting each proposed transition to the same GovernanceKernel the service runs, and reports whether any prohibited state remains reachable. Enumeration is exhaustive over that model, not sampled. The result is SAFE_WITHIN_MODEL — and the qualifier is the claim, not a hedge.",
     rows: [
-      ["What is verified", <>That the declared Ω set is unreachable under the governed transition system, over the declared horizon.</>],
-      ["What is not verified", <>That the underlying model is safe in every environment, under every tool set, or under every future configuration.</>],
-      ["Revalidation trigger", <>A material change to tools, permissions, policies, agent architecture or deployment context.</>],
+      ["What is established", <>That no declared prohibited state is reachable <b>within the declared finite model and its stated assumptions</b>, with the enumeration proven complete.</>],
+      ["What is not established", <>Anything outside that model. Not this deployment, not every tool set, not every future configuration, and not universal or open-world safety.</>],
+      ["How it fails", <>An incomplete enumeration returns INCONCLUSIVE and can never be reported as safe. A counterexample returns the trajectory that reaches Ω.</>],
+      ["Evidence produced", <>A versioned artifact (<code>mrg.global-verification.v2</code>) carrying the model hash, transition-relation fingerprint, ruleset hash, verifier commit, verdict, completeness, assumptions, limitations, and the kernel evidence record behind every decision.</>],
+      ["Reproduce it", <><code>python -m morrison_governance.global_verification.ci_gate --out DIR</code> at the commit the artifact records. Re-running the enumeration is the only way to confirm it happened.</>],
+      ["Revalidation trigger", <>A material change to the model, ruleset, tools, permissions, environment or transition semantics. A verification that no longer matches the running configuration is reported as stale rather than carried forward.</>],
+      ["Source", <a key="g" href={REPO} target="_blank" rel="noopener noreferrer">morrison_governance/global_verification<span className="sr-only"> (opens in a new tab)</span></a>],
       ["Read the method", <Link key="t" href="/technology#verification">Technology — bounded verification</Link>],
     ],
   },
   {
     id: "harness",
-    eyebrow: "Global Safety Verification Harness",
+    // Named for what it is. "Global Safety Verification Harness" is the finite
+    // verifier above; this is the runtime engine's layer stack, and sharing a
+    // name with a different mechanism made both harder to check.
+    eyebrow: "Runtime evaluation layers",
     title: "The evaluation hierarchy, layer by layer.",
     body:
-      "Evaluation runs as a layered hierarchy. Each layer answers a different question about the proposed trajectory, and every layer runs before execution.",
+      "Separate from the finite-model verification above: this is what the engine runs against a real proposed trajectory, before execution. Each layer answers a different question, and every layer runs pre-execution.",
     rows: [
       ["A_safe", <>Single-step forbidden actions.</>],
       ["V2", <>Source → sink data-flow taint, including cross-agent paths.</>],
