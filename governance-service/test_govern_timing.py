@@ -46,6 +46,25 @@ AUTH_HEADERS = (
     if os.environ.get("GOVERNANCE_TOKEN") else {}
 )
 
+# Identity, as the authenticating gateway sets it.
+#
+# Without these the request is ANONYMOUS, and an anonymous principal escalates
+# on the continuity layer: "governed history cannot be attributed to a
+# persistent identity — refusing to treat this execution as having a clean
+# history". That is correct enforcement, not a timing defect, but it made the
+# PERMIT case below read ESCALATE and the failure looked like a governance
+# regression every time somebody ran this file.
+#
+# These tests pin TIMING. The verdicts are the control that proves adding the
+# instrumentation did not change enforcement, so they have to be taken in the
+# configuration a real deployment runs: an identified caller. `read_file` is
+# declared in TOOL_MANIFEST with CAP_DATA_READ and PERMITs for one.
+IDENTITY_HEADERS = {
+    "x-governance-principal": "govern-timing-svc",
+    "x-governance-tenant": "acme",
+}
+AUTH_HEADERS = {**AUTH_HEADERS, **IDENTITY_HEADERS}
+
 # The eight kernel pipeline stages, plus the explicitly-labelled remainder.
 EXPECTED_STAGES = {
     "canonicalization",
