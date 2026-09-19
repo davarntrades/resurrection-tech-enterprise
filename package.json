@@ -91,6 +91,7 @@
     "runtime:report-window": "node scripts/runtime/report-window.test.cjs",
     "runtime:share-password": "node scripts/runtime/share-password.test.cjs",
     "runtime:assurance": "node scripts/runtime/assurance-status.test.cjs",
+    "runtime:verification": "node scripts/runtime/verification-surface.test.cjs",
     "runtime:full-audit-connector": "node scripts/runtime/full-audit-connector-evidence.test.cjs",
     "runtime:safety-envelope-ui": "node scripts/runtime/safety-envelope-ui.test.cjs",
     "runtime:execution-adapters": "node scripts/runtime/universal-governed-execution.test.cjs",
