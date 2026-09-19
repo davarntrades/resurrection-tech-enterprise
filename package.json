@@ -5,7 +5,7 @@
     "node": ">=22"
   },
   "private": true,
-  "description": "Resurrection Tech™ — Runtime Governance for Autonomous Systems. Production enterprise platform.",
+  "description": "Resurrection Tech\u2122 \u2014 Runtime Governance for Autonomous Systems. Production enterprise platform.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -96,7 +96,9 @@
     "runtime:safety-envelope-ui": "node scripts/runtime/safety-envelope-ui.test.cjs",
     "runtime:execution-adapters": "node scripts/runtime/universal-governed-execution.test.cjs",
     "runtime:evidence-hub-ui": "node scripts/runtime/evidence-hub-ui.test.cjs",
-    "runtime:control-room-latency": "node scripts/runtime/control-room-latency.test.cjs && node scripts/runtime/control-room-load-paths.test.cjs"
+    "runtime:control-room-latency": "node scripts/runtime/control-room-latency.test.cjs && node scripts/runtime/control-room-load-paths.test.cjs",
+    "runtime:ingest-verification": "node scripts/runtime/ingest-verification.cjs",
+    "runtime:ingest-verification-test": "node scripts/runtime/ingest-verification.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1095.0",

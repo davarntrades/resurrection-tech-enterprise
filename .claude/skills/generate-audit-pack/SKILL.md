@@ -32,6 +32,36 @@ python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py
 #   --engine PATH    Morrison-Runtime-Governance checkout (auto-resolved otherwise)
 ```
 
+## Finite-model verification (optional)
+
+Pass `--finite-verification PATH` (an artifact, or a directory of them such as
+`ci_gate` output) to carry a bounded verification claim. Omit it and the pack
+states plainly that it makes no such claim — absence is never implied.
+
+When the claim IS made, the pack fails closed rather than hedging. It refuses
+to write anything if an artifact does not validate, if the enumeration was
+incomplete, or if the artifact was not enumerated against this deployment's
+ruleset. An honest `UNSAFE_COUNTEREXAMPLE_FOUND` verdict is carried, not
+filtered: the gate rejects unsound evidence, not unwelcome results.
+
+Artifacts must be produced against the DEPLOYMENT's ruleset, not the verifier's
+default kernel — those differ, and a mismatch is refused. Use:
+
+```bash
+python .claude/skills/generate-audit-pack/scripts/verify_against_deployment.py \
+  --out /tmp/verification --engine <engine path>
+python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py \
+  --finite-verification /tmp/verification --engine <engine path>
+```
+
+Note the two ruleset identities: `ruleset_hash` binds the kernel's whole
+configuration and compares two verifier runs; `rules_logic_hash` is the
+logic-binding hash over the rules alone, which is what a deployment publishes
+about itself and therefore the one the pack compares.
+
+`SAFE_WITHIN_MODEL` is never restated as "production safe". The scope travels
+with the verdict everywhere it appears, and a test asserts it.
+
 ## Inputs (auto-collected)
 - **Benchmark data** — `public/benchmarks/latency.json`.
 - **Evaluation results** — labelled corpus via `governance-service/test_corpus.py`.
@@ -39,6 +69,7 @@ python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py
 - **Audit logs** — a SHA-256 hash-chained sample trail (mirrors the site export).
 - **Governance coverage** — rules per Ω domain + live sectors + deployment rules.
 - **Validation corpus** — `governance-service/tests/corpus.json`.
+- **Finite-model verification** — optional, via `--finite-verification`.
 
 ## Outputs (`./audit-pack/`)
 - `audit-pack.md` — the full pack.
@@ -47,6 +78,14 @@ python .claude/skills/generate-audit-pack/scripts/generate_audit_pack.py
 - `evidence-manifest.json` — artefact list with SHA-256 of each source file plus
   the attestation (engine ref/commit, `ruleset_hash`, corpus precision/recall,
   latency p50/p95, audit-chain head hash, UTC timestamp).
+
+## Evidence classes
+
+The pack carries four distinct classes and never combines them into one figure:
+formal (finite-model), empirical (runtime: corpus, latency, replay), pilot
+(operational), and attestation. The manifest records the mapping under
+`evidence_classes`, and `finite_verification` is a separate key from
+`verification` — the latter has always meant the deployment check suite.
 
 ## Sections
 Executive Summary · Governance Architecture Summary · Benchmark Summary ·
