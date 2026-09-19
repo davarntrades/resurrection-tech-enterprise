@@ -16,6 +16,9 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_HERE, "..", "..", "verify-production", "scripts"))
 import verify_production as vp  # noqa: E402
 
+sys.path.insert(0, _HERE)
+import finite_verification as fv  # noqa: E402
+
 
 def _sha256_file(path: str) -> str:
     try:
@@ -39,7 +42,8 @@ def _coverage(domains: list[str]):
     return by_domain, sectors, sorted({r.name for r in DEPLOYMENT_RULES})
 
 
-def build(root: str, engine: str | None, customer: str | None) -> tuple[str, str, dict]:
+def build(root: str, engine: str | None, customer: str | None,
+          verification_path: str | None = None) -> tuple[str, str, dict]:
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     bench_path = os.path.join(root, "public/benchmarks/latency.json")
     corpus_path = os.path.join(root, "governance-service/tests/corpus.json")
@@ -48,6 +52,12 @@ def build(root: str, engine: str | None, customer: str | None) -> tuple[str, str
     # verification core (replay/audit/attestation)
     checks, meta = vp.run(root, engine)
     ruleset_hash = meta.get("ruleset_hash")
+
+    # Finite-model verification, if this pack claims one. Built BEFORE any
+    # document is composed: a pack that cannot support the claim must fail
+    # rather than emit a document that hedges.
+    verification_section = fv.build_section(
+        verification_path, deployment_ruleset_hash=ruleset_hash)
 
     # validation corpus
     corpus_metrics = None
@@ -100,8 +110,17 @@ def build(root: str, engine: str | None, customer: str | None) -> tuple[str, str
       f"verdict **before** any tool executes. This pack is generated from live repository assets and "
       f"the pinned engine; every figure below is reproducible.")
     H("")
-    H(f"- **Verification status:** `{overall}` — {len(checks.passed())} passed, "
-      f"{len(checks.failed())} failed, {len(checks.skipped())} skipped.")
+    H(f"- **Deployment verification status:** `{overall}` — {len(checks.passed())} passed, "
+      f"{len(checks.failed())} failed, {len(checks.skipped())} skipped. "
+      f"(This is the deployment check suite, not finite-model verification.)")
+    if verification_section:
+        _v = ", ".join(f"{k} × {n}" for k, n in verification_section["verdicts"].items())
+        H(f"- **Finite-model verification:** {verification_section['artifact_count']} "
+          f"artifact(s) carried — {_v}. Holds within each declared model and its "
+          f"stated assumptions only; not a production-environment claim.")
+    else:
+        H("- **Finite-model verification:** not claimed in this pack. Nothing here "
+          "asserts a prohibited state is unreachable in any model.")
     if corpus_metrics and "error" not in corpus_metrics:
         H(f"- **Validation:** precision {corpus_metrics['precision']:.4f} · recall {corpus_metrics['recall']:.4f} "
           f"over {corpus_metrics['evaluated']} labelled cases (FP {corpus_metrics['fp']}, FN {corpus_metrics['fn']}).")
@@ -222,6 +241,13 @@ def build(root: str, engine: str | None, customer: str | None) -> tuple[str, str
     H("**Reproduce**")
     H("")
     H("- Verification: `python .claude/skills/verify-production/scripts/verify_production.py`")
+    for _line in fv.markdown(verification_section):
+        H(_line)
+    H("## Evidence classes in this pack")
+    H("")
+    for _line in fv.CLASS_NOTE.split("\n"):
+        H(_line)
+    H("")
     H("- Corpus: `cd governance-service && PYTHONPATH=<engine> python test_corpus.py`")
     H("- Replay: `cd governance-service && PYTHONPATH=<engine> python test_replay.py`")
     H("- Benchmark: `cd governance-service && PYTHONPATH=<engine> python benchmark.py`")
@@ -238,9 +264,20 @@ def build(root: str, engine: str | None, customer: str | None) -> tuple[str, str
             "engine_ref": meta.get("engine_ref"),
             "ruleset_hash": ruleset_hash,
         },
+        # NOTE: `verification` here has always meant the DEPLOYMENT check suite
+        # (benchmarks, replay, attestation). Finite-model verification is a
+        # different claim and gets its own key so the two cannot be conflated.
         "verification": {"status": overall, "passed": [r["check"] for r in checks.passed()],
                          "failed": [r["check"] for r in checks.failed()],
                          "skipped": [r["check"] for r in checks.skipped()]},
+        "finite_verification": verification_section,
+        "evidence_classes": {
+            "formal_finite_model": "finite_verification",
+            "empirical_runtime": ["validation", "benchmark", "audit_chain"],
+            "pilot_operational": None,
+            "attestation": "attestation",
+            "note": "Distinct claims. Never combined into one figure.",
+        },
         "validation": (None if not corpus_metrics or "error" in corpus_metrics else
                        {k: corpus_metrics[k] for k in ("total", "evaluated", "skipped", "tp", "fp", "tn", "fn",
                                                        "precision", "recall", "accuracy")}),
@@ -278,11 +315,19 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--customer", default=None)
     ap.add_argument("--engine", default=None)
+    ap.add_argument("--finite-verification", default=None, dest="finite_verification",
+                    help="path to a verification artifact, or a directory of them "
+                         "(e.g. the ci_gate output). Omit to make no such claim.")
     a = ap.parse_args()
 
     root = vp.repo_root()
     engine = vp.resolve_engine(root, a.engine)
-    md, pdf_md, manifest = build(root, engine, a.customer)
+    try:
+        md, pdf_md, manifest = build(root, engine, a.customer, a.finite_verification)
+    except fv.FiniteVerificationError as exc:
+        # Fail-closed: no pack is written at all.
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
 
     out = a.out or os.path.join(root, "audit-pack")
     os.makedirs(out, exist_ok=True)
@@ -290,7 +335,12 @@ def main() -> int:
     open(os.path.join(out, "audit-pack.pdf.md"), "w").write(pdf_md)
     open(os.path.join(out, "evidence-manifest.json"), "w").write(json.dumps(manifest, indent=2))
     print(f"wrote {out}/audit-pack.md, audit-pack.pdf.md, evidence-manifest.json")
-    print(f"verification: {manifest['verification']['status']} · "
+    _fvs = manifest.get("finite_verification")
+    print("finite verification: " + (
+        f"{_fvs['artifact_count']} artifact(s) — "
+        + ", ".join(f"{k} x {n}" for k, n in _fvs["verdicts"].items())
+        if _fvs else "not claimed"))
+    print(f"deployment verification: {manifest['verification']['status']} · "
           f"validation precision/recall: "
           f"{(manifest['validation'] or {}).get('precision','?')}/{(manifest['validation'] or {}).get('recall','?')}")
     return 0
