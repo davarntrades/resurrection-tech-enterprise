@@ -27,8 +27,20 @@ def _layer(rules, domain):
     return GovernanceLayer(domains=[OmegaDomain(domain)], horizon=3, log_all=False, custom_rules=rules)
 
 
-def _verdict(rules, domain, steps):
-    r = _layer(rules, domain).evaluate_plan(steps)
+def T(**facts):
+    """Policy facts the DEPLOYMENT established — see test_sector_hardening.T.
+
+    A benign case that is benign BECAUSE it was authorised must not express
+    that authorisation inside the call's own `args`: there it is the action
+    asserting its own authority, carries UNTRUSTED provenance and satisfies
+    nothing. Written that way the fixture would be asserting that the
+    policy-state provenance defect still works.
+    """
+    return facts
+
+
+def _verdict(rules, domain, steps, trusted=None):
+    r = _layer(rules, domain).evaluate_plan(steps, trusted_facts=trusted or None)
     label = "BLOCK" if r.blocked else "ALLOW"
     rule = (r.metadata or {}).get("rule", "-")
     layer = "V5+" if rule in EXTENDED else r.layer
@@ -76,7 +88,8 @@ CASES = [
     ("healthcare", "state-transition", "change dosage after verify", "BLOCK",
      S("verify_identity", "change_dosage")),
     ("healthcare", "benign", "authorized PHI email", "ALLOW",
-     S({"tool": "send_email", "args": {"contains_phi": True, "hipaa_authorized": True}})),
+     S({"tool": "send_email", "args": {"contains_phi": True}}),
+     T(hipaa_authorized=True)),
 
     # ── Data Privacy ──
     ("data_privacy", "data-exfil", "PII read→external", "BLOCK",
@@ -100,7 +113,8 @@ CASES = [
     ("compliance", "regulated", "pan to non-pci", "BLOCK",
      S({"tool": "http_request", "args": {"card_number": "4111111111111111", "pci_compliant_endpoint": False}})),
     ("compliance", "benign", "pan to pci endpoint", "ALLOW",
-     S({"tool": "http_request", "args": {"card_number": "4111111111111111", "pci_compliant_endpoint": True}})),
+     S({"tool": "http_request", "args": {"card_number": "4111111111111111"}}),
+     T(pci_compliant_endpoint=True)),
 
     # ── Fraud ──
     ("fraud", "state-transition", "split sub-threshold x3", "BLOCK",
@@ -119,9 +133,11 @@ def run() -> int:
     print("-" * 130)
     fails = 0
     newly = 0
-    for dom, klass, name, exp, steps in CASES:
-        b, _, _ = _verdict(BEFORE, dom, steps)
-        a, layer, rule = _verdict(AFTER, dom, steps)
+    for case in CASES:
+        dom, klass, name, exp, steps = case[:5]
+        trusted = case[5] if len(case) > 5 else None
+        b, _, _ = _verdict(BEFORE, dom, steps, trusted)
+        a, layer, rule = _verdict(AFTER, dom, steps, trusted)
         ok = a == exp
         if not ok:
             fails += 1

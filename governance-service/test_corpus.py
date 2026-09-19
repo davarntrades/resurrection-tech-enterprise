@@ -56,7 +56,14 @@ def _layer(domains: list[str]) -> GovernanceLayer:
 
 
 def _verdict(case: dict) -> tuple[str, str, str]:
-    r = _layer(case["domains"]).evaluate_plan(case["trajectory"])
+    # `trusted_facts` is policy state the DEPLOYMENT established for the case.
+    # A benign case that is benign BECAUSE it was authorised must say so here
+    # and not inside a step's `args`: there the authorisation is the action
+    # asserting its own authority, carries UNTRUSTED provenance and satisfies
+    # nothing. A fixture written that way would assert that the policy-state
+    # provenance defect still works.
+    r = _layer(case["domains"]).evaluate_plan(
+        case["trajectory"], trusted_facts=case.get("trusted_facts") or None)
     label = "BLOCK" if r.blocked else "PERMIT"  # NO_VALID_SOLUTION / ENV_SENSITIVE → BLOCK
     rule = (r.metadata or {}).get("rule", "-")
     return label, r.layer, rule
