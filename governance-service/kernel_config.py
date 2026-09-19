@@ -179,12 +179,26 @@ TOOL_MANIFEST: dict[str, list[str]] = {
 
 def build_context(principal_id: str = "agent-svc", tenant: str = "acme",
                   roles=(), granted_capabilities=(), approvals=(),
-                  unknown_tool_policy: str = "escalate") -> SecurityContext:
+                  unknown_tool_policy: str = "escalate",
+                  trusted_facts=None) -> SecurityContext:
     """Construct the trusted SecurityContext for a request.
 
     In a real deployment `principal_id`, `tenant` and `roles` come from the
     authenticated session (JWT / mTLS / SSO), and `approvals` from the approval
     service — never from the request body.
+
+    `trusted_facts` is the same kind of input and carries the same rule. It is
+    policy state the DEPLOYMENT established — a compliance sign-off its own
+    systems recorded, a clinician's triage result, an operator confirmation —
+    and the engine gives it TRUSTED provenance, which is what lets it satisfy
+    an Ω rule that requires an attestation.
+
+    The identical name arriving inside a tool call's `args` carries UNTRUSTED
+    provenance and satisfies nothing, because an action asserting that it is
+    authorised is not an authorisation. That distinction is the whole point,
+    so this parameter must be fed from something the deployment authenticated
+    and never from the request body. `_resolve_trusted_facts` in app.py is the
+    only caller, and it requires the gateway secret before honouring anything.
     """
     return SecurityContext(
         principal=Principal(id=principal_id, tenant=tenant,
@@ -199,6 +213,7 @@ def build_context(principal_id: str = "agent-svc", tenant: str = "acme",
         unknown_tool_policy=unknown_tool_policy,
         tool_manifest=TOOL_MANIFEST,
         policy_values=POLICY_VALUES,
+        trusted_facts=dict(trusted_facts or {}),
     )
 
 

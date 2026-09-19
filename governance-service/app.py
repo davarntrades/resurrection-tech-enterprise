@@ -121,6 +121,10 @@ MAX_STEPS = int(os.getenv("GOVERNANCE_MAX_STEPS", "25"))
 AUTH_TOKEN = os.getenv("GOVERNANCE_TOKEN", "")  # if set, require Bearer token
 HORIZON = int(os.getenv("GOVERNANCE_HORIZON", "3"))
 # Public self-serve assessment (the Day-1 front door) — abuse caps.
+# A trusted fact is a policy assertion, not a payload. The cap keeps the
+# gateway header a place for a handful of established facts rather than a
+# second, unaudited channel for request data.
+MAX_TRUSTED_FACTS = int(os.getenv("GOVERNANCE_MAX_TRUSTED_FACTS", "32"))
 MAX_ASSESS_TOOLS = int(os.getenv("ASSESS_MAX_TOOLS", "300"))
 MAX_ASSESS_BYTES = int(os.getenv("ASSESS_MAX_BYTES", str(512 * 1024)))
 ASSESS_RATE_PER_MIN = int(os.getenv("ASSESS_RATE_PER_MIN", "30"))
@@ -241,9 +245,56 @@ def _kernel_for(names: Optional[list[str]], horizon: int) -> GovernanceKernel:
     return k
 
 
+def _resolve_trusted_facts(request: Request) -> tuple[dict, str]:
+    """Policy facts the DEPLOYMENT established, from the gateway — not the body.
+
+    A pilot needs a way to say "our adjuster system approved this claim" or
+    "our clinician triaged this conversation". Without one, every Ω rule that
+    requires an attestation escalates and the pilot has no route to resolve
+    it. With the WRONG one — reading the fact out of the request body — the
+    caller authorises itself, which is exactly the policy-state provenance
+    defect the engine change closes.
+
+    So this mirrors `_resolve_identity` exactly: the header is honoured only
+    when the request also carries the gateway shared secret, and a deployment
+    with no gateway configured gets nothing and is told so in the response.
+    Fail-closed: no facts, so governed capabilities escalate rather than
+    silently proceeding on an unverified claim.
+    """
+    raw = request.headers.get("x-governance-trusted-facts", "")
+    if not raw:
+        return {}, "none_presented"
+    if not GATEWAY_SECRET:
+        log.warning("trusted-facts header ignored: no gateway secret configured")
+        return {}, "ignored_no_gateway_secret"
+    presented = request.headers.get("x-governance-gateway-auth", "")
+    if hashlib.sha256(presented.encode()).hexdigest() != \
+            hashlib.sha256(GATEWAY_SECRET.encode()).hexdigest():
+        log.warning("trusted-facts header ignored: gateway auth absent or invalid")
+        return {}, "rejected_untrusted_header"
+    try:
+        parsed = json.loads(raw)
+    except (ValueError, TypeError):
+        log.warning("trusted-facts header ignored: not valid JSON")
+        return {}, "rejected_malformed"
+    if not isinstance(parsed, dict):
+        return {}, "rejected_not_an_object"
+    if len(parsed) > MAX_TRUSTED_FACTS:
+        log.warning("trusted-facts header ignored: %d facts exceeds the cap",
+                    len(parsed))
+        return {}, "rejected_too_many"
+    # Scalars only. A nested object here would be a payload, not a fact, and
+    # the engine's Ω namespace is flat — anything deeper could not be read as
+    # a fact anyway and would only obscure what was asserted.
+    facts = {str(k): v for k, v in parsed.items()
+             if isinstance(v, (bool, int, float, str)) or v is None}
+    return facts, "gateway_verified"
+
+
 def _governed_kernel(names: Optional[list[str]], horizon: int,
                      principal: str, tenant: str,
-                     approvals: tuple = ()) -> GovernanceKernel:
+                     approvals: tuple = (),
+                     trusted_facts: Optional[dict] = None) -> GovernanceKernel:
     """A kernel bound to THIS request's authenticated identity.
 
     In production `principal`/`tenant`/`approvals` come from the verified
@@ -253,7 +304,8 @@ def _governed_kernel(names: Optional[list[str]], horizon: int,
     layer = _layer_for(names, horizon)
     return GovernanceKernel(
         layer,
-        build_context(principal_id=principal, tenant=tenant, approvals=approvals),
+        build_context(principal_id=principal, tenant=tenant, approvals=approvals,
+                      trusted_facts=trusted_facts),
         evidence_key=EVIDENCE_SEALING_KEY, engine_version=ENGINE_COMMIT)
 
 
@@ -716,8 +768,9 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
     """
     t0 = time.perf_counter()
     principal, tenant, identity_source = _resolve_identity(request)
+    trusted_facts, trusted_facts_source = _resolve_trusted_facts(request)
     kernel = _governed_kernel(req.domains, req.horizon or HORIZON,
-                              principal, tenant)
+                              principal, tenant, trusted_facts=trusted_facts)
 
     decisions: list[dict] = []
     try:
@@ -797,6 +850,22 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             "principal": principal, "tenant": tenant,
             "source": identity_source,
             "gateway_auth_configured": bool(GATEWAY_SECRET),
+        },
+        # PROVENANCE. A pilot refused on an attestation needs to see WHY, and
+        # "the flag you set in args was ignored" is only obvious to someone who
+        # already knows the rule. `accepted` names the facts this deployment
+        # established for the request; `source` says whether the gateway
+        # actually vouched for them. Both are echoed even when empty, so a
+        # deployment relying on an unverified header sees that it is not
+        # taking effect instead of quietly getting escalations.
+        "trusted_facts": {
+            "accepted": sorted(trusted_facts),
+            "count": len(trusted_facts),
+            "source": trusted_facts_source,
+            "gateway_auth_configured": bool(GATEWAY_SECRET),
+            "note": ("policy facts asserted inside a call's args are caller "
+                     "data and never satisfy an attestation rule; establish "
+                     "them here, via the gateway"),
         },
         "engine_compute_ms": round((time.perf_counter() - t0) * 1000, 3),
     }
