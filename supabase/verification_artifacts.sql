@@ -58,3 +58,9 @@ create index if not exists rg_verif_org_idx
   on public.rg_verification_artifacts(org_id, ingested_at desc);
 create unique index if not exists rg_verif_unique_idx
   on public.rg_verification_artifacts(environment_id, verification_id, content_sha256);
+
+-- Same posture as every other rg_* table: RLS on, and no permissive policies,
+-- so only the service role can read or write. The browser never touches this
+-- table directly — reads go through the authenticated admin API, which is
+-- read-only by design (see app/api/runtime/admin/verification/route.ts).
+alter table public.rg_verification_artifacts enable row level security;
