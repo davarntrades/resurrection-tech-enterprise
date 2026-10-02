@@ -21,7 +21,12 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=331db2096632d2f7633a42c712a067320b495d43
+# Bumped 2026-10-02: 331db20 predates `SecurityContext.trusted_facts`, which
+# kernel_config.build_context() passes on every request — an image built at
+# that ref raised TypeError on every governed call. 0ba8f88 is engine main.
+# NOTE: the payment auto-approve currency/sign fix lands in a later engine
+# commit; bump again once it merges.
+ARG ENGINE_REF=0ba8f882590f34ee4f2ab7cee09b0d5e57d44248
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \

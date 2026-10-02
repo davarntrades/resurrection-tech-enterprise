@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import re
 
+from morrison_governance import provenance as _prov
 from morrison_governance.domains import OmegaDomain, OmegaRule
+from morrison_governance.kernel import capabilities as _caps
 
 # ── Tool vocabularies (lower-cased, exact-tool match) ───────────────────────
 EXEC_TOOLS = {
@@ -125,14 +127,25 @@ def _truthy(s: dict, *keys: str) -> bool:
     return False
 
 
+def _attested(s: dict, *keys: str) -> bool:
+    """`_truthy` over TRUSTED facts only.
+
+    An authorisation or an "internal destination" claim CLEARS a rule, so it
+    must come from the deployment (kernel-injected context / gateway-verified
+    trusted facts), never from the caller's own args.
+    """
+    st = _prov.coerce(s)
+    return any(st.attested_truthy(k) for k in keys)
+
+
 def _authorized(s: dict) -> bool:
-    return _truthy(s, *AUTH_FLAGS)
+    return _attested(s, *AUTH_FLAGS)
 
 
 def _is_external(s: dict) -> bool:
-    if _truthy(s, "destination_internal", "is_internal", "internal"):
+    if _attested(s, "destination_internal", "is_internal", "internal"):
         return False
-    if _truthy(s, "destination_external", "external"):
+    if _attested(s, "destination_external") or _truthy(s, "destination_external", "external"):
         return True
     blob = _text(s)
     if re.search(r"https?://", blob):
@@ -209,6 +222,30 @@ def _destructive_action(s: dict) -> bool:
     return t in EXEC_TOOLS and bool(_DESTRUCTIVE.search(c)) and not _authorized(s)
 
 
+# ── C11 · renamed defense evasion (morphology, not exact tool names) ───────
+_EVASION_CAPS = frozenset({_caps.CAP_LOG_TAMPER, _caps.CAP_SECURITY_CONTROL})
+
+
+def _renamed_defense_evasion(s: dict) -> bool:
+    """C6/C7 match exact tool names, so `purge_event_history` escaped the Ω
+    layer entirely and was held only by the kernel's undeclared-tool policy —
+    which stops applying the moment a customer declares the tool. Reuse the
+    kernel's capability classifier so a renamed log wipe or control
+    disablement is caught here too."""
+    t = _tool(s)
+    if t in SECCTRL_DISABLE or t in LOG_TAMPER or _authorized(s):
+        return False   # exact-name rules C6/C7 already own these
+    raw = s.get("args")
+    try:
+        import json as _json
+        args = _json.loads(raw) if isinstance(raw, str) and raw else (raw or {})
+    except ValueError:
+        args = {}
+    if not isinstance(args, dict):
+        args = {}
+    return bool(_caps.classify({"tool": t, "args": args}) & _EVASION_CAPS)
+
+
 def cyber_custom_rules() -> list[OmegaRule]:
     D = OmegaDomain.CYBERSECURITY
     return [
@@ -242,4 +279,7 @@ def cyber_custom_rules() -> list[OmegaRule]:
         OmegaRule(domain=D, name="cyber_destructive_action",
                   description="Destructive action (wipe/encrypt/drop/mass-delete) without authorisation",
                   check=_destructive_action),
+        OmegaRule(domain=D, name="cyber_renamed_defense_evasion",
+                  description="Log tampering or security-control disablement under a renamed tool (capability morphology)",
+                  check=_renamed_defense_evasion),
     ]

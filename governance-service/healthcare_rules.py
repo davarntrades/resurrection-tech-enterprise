@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 
+from morrison_governance import provenance as _prov
 from morrison_governance.domains import OmegaDomain, OmegaRule
 
 # ── Tool vocabularies (lower-cased, exact-tool match) ───────────────────────
@@ -153,26 +154,44 @@ def _truthy(s: dict, *keys: str) -> bool:
     return False
 
 
+def _attested(s: dict, *keys: str) -> bool:
+    """`_truthy` over TRUSTED facts only.
+
+    Every flag that CLEARS a rule — a clinician sign-off, a BAA, consent,
+    de-identification, an internal destination — is an assertion about
+    somebody else's decision. A caller writing `clinician_approved: true` into
+    its own args is not a clinician, so only facts the deployment established
+    (kernel-injected context / gateway-verified trusted facts) count here.
+    Flags that TRIGGER a rule stay on `_truthy`: a caller can only turn those on.
+    """
+    st = _prov.coerce(s)
+    return any(st.attested_truthy(k) for k in keys)
+
+
 def _hipaa_ok(s: dict) -> bool:
-    return _truthy(s, *HIPAA_FLAGS)
+    return _attested(s, *HIPAA_FLAGS)
 
 
 def _clinician_ok(s: dict) -> bool:
-    return _truthy(s, *CLINICIAN_FLAGS)
+    return _attested(s, *CLINICIAN_FLAGS)
 
 
 def _deid_ok(s: dict) -> bool:
-    return _truthy(s, *DEID_FLAGS)
+    return _attested(s, *DEID_FLAGS)
 
 
 def _consent_ok(s: dict) -> bool:
-    return _truthy(s, *CONSENT_FLAGS)
+    return _attested(s, *CONSENT_FLAGS)
 
 
 def _is_external(s: dict) -> bool:
-    if _truthy(s, "destination_internal", "is_internal", "internal", "internal_system",
-               "self_hosted", "on_prem", "local"):
+    if _attested(s, "destination_internal", "is_internal", "internal", "internal_system",
+                 "self_hosted", "on_prem", "local"):
         return False
+    # The kernel resolves the destination from trusted configuration; when it
+    # has said "external", caller text naming `internal` cannot overrule it.
+    if _attested(s, "destination_external"):
+        return True
     if _truthy(s, "destination_external", "external", "third_party", "cross_border",
                "offshore"):
         return True
@@ -200,7 +219,7 @@ def _has_phi(s: dict) -> bool:
 def _phi_to_external_llm(s: dict) -> bool:
     if _tool(s) not in LLM_TOOLS:
         return False
-    if _truthy(s, "self_hosted", "internal_model", "on_prem", "local_model", "internal"):
+    if _attested(s, "self_hosted", "internal_model", "on_prem", "local_model", "internal"):
         return False
     return _has_phi(s) and not _hipaa_ok(s)
 
@@ -244,7 +263,7 @@ def _research_export_no_deid(s: dict) -> bool:
                         "analytics_export")
                or bool(_RESEARCH.search(_text(s))))
     return (research and _has_phi(s) and not _deid_ok(s)
-            and not _truthy(s, "irb_approved", "irb"))
+            and not _attested(s, "irb_approved", "irb"))
 
 
 # ── H8 · PHI cross-border / no-BAA transfer ─────────────────────────────────
@@ -256,7 +275,7 @@ def _phi_cross_border(s: dict) -> bool:
     cross = (_truthy(s, "cross_border", "offshore", "international_transfer", "foreign")
              or bool(_CROSS_BORDER.search(_text(s))))
     third_party_no_baa = (_truthy(s, "third_party") and _is_external(s)
-                          and not _truthy(s, *BAA_FLAGS))
+                          and not _attested(s, *BAA_FLAGS))
     return cross or third_party_no_baa
 
 

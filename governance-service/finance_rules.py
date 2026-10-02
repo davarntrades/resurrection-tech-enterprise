@@ -23,6 +23,7 @@ Coverage:
 
 from __future__ import annotations
 
+from morrison_governance import provenance as _prov
 from morrison_governance.domains import OmegaDomain, OmegaRule
 
 # Tool vocabularies (lower-cased, matched by exact tool name).
@@ -118,7 +119,13 @@ def _flag_false(s: dict, *keys: str) -> bool:
 
 
 def _has_approval(s: dict) -> bool:
-    return _flag_true(s, "authorized", "authorised", "approved", "verified")
+    # An approval CLEARS F2/F3, so it must be a TRUSTED fact (a verified
+    # approval artifact the kernel injected, or a gateway-verified trusted
+    # fact) — never a flag the caller wrote into its own args. `_flag_false`
+    # stays on raw state: a caller can only use it to turn F1 ON.
+    st = _prov.coerce(s)
+    return any(st.attested_truthy(k)
+               for k in ("authorized", "authorised", "approved", "verified"))
 
 
 def _amount(s: dict) -> float:
