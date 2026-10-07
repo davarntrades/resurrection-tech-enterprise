@@ -238,8 +238,55 @@ export default function Page() {
             {SECTIONS.map((s) => (
               <a key={s.id} href={`#${s.id}`}>{s.eyebrow}</a>
             ))}
+            <a href="#independent-reproduction">Independent reproduction</a>
             <a href="#open">Open items</a>
           </nav>
+        </div>
+      </section>
+
+      {/* ══════════ INDEPENDENT EXTERNAL REPRODUCTION ══════════ */}
+      <section className="rt-section rt-section--band" id="independent-reproduction" aria-labelledby="external-reproduction-title">
+        <div className="rt-wrap">
+          <span className="rt-eyebrow reveal">Independent external research</span>
+          <h2 id="external-reproduction-title" className="rt-h2 rt-narrow reveal" data-d="1">
+            Independently reproduced.
+            <br />
+            Including the failures.
+          </h2>
+          <p className="rt-lede reveal" data-d="2">
+            Sayan Chowdhury of Kalaris Labs independently reran selected Morrison experiments at
+            pinned commit <code>fba06b75</code> and published the methodology, bounded findings,
+            adversarial counterexamples and deployment limitations.
+          </p>
+          <div className="rt-defs rt-defs--wide reveal" data-d="3">
+            <div>
+              <span className="k">Independent reproduction</span>
+              <span className="v">
+                <a href="https://kalarislabs.com/research/morrison-agent-execution-boundary" target="_blank" rel="noopener noreferrer">
+                  Morrison Runtime Governance: A Bounded Reproduction
+                </a>
+                {" "}— 154 selected tests passed; three declared finite models had zero unsafe governed states.
+                Seven synthetic all-PERMIT counterexamples and lease-continuity/redemption weaknesses were also reproduced.
+              </span>
+            </div>
+            <div>
+              <span className="k">External architecture analysis</span>
+              <span className="v">
+                <a href="https://kalarislabs.com/blog/can-the-agent-bypass-the-gate" target="_blank" rel="noopener noreferrer">
+                  Can the Agent Bypass the Gate?
+                </a>
+                {" "}— analysis of shell, MCP, credentials, network routes and complete mediation at the execution boundary.
+              </span>
+            </div>
+            <div>
+              <span className="k">Evidence boundary</span>
+              <span className="v">
+                Independent reproduction of repository-supplied tests, finite models and local mocks.
+                Not a deployed gateway evaluation, third-party certification or full repository-suite audit.
+                The documented counterexamples remain open evidence, not omitted exceptions.
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
