@@ -157,6 +157,21 @@ async function connectorEvidence() {
   ok(r0.governance_decision === "executed",
     "1w. the underlying projection value is unchanged — only the audit's label moved");
 
+  // ══ 1c. The register must physically fit the printed page ══════════════
+  // Found in pre-acceptance: with auto table layout, one long model ID
+  // (anthropic.claude-sonnet-4-5-20250929-v1:0) widened the 11-column table
+  // past the 6.5in print area and CLIPPED the response-hash and hash-check
+  // columns out of the PDF — present in the HTML, absent from the artefact an
+  // auditor actually reads. Exactly the HTML/PDF divergence this section exists
+  // to prevent, so it is pinned rather than left to visual review.
+  ok(/<table class="creg">/.test(html),
+    "1x. the register table carries the fixed-layout class");
+  const cg = (html.match(/<colgroup>([\s\S]*?)<\/colgroup>/) || [])[1] || "";
+  const widths = [...cg.matchAll(/width:(\d+)%/g)].map((m) => Number(m[1]));
+  ok(widths.length === 11, `1y. every one of the 11 columns has an explicit width (${widths.length})`);
+  ok(widths.reduce((a, b) => a + b, 0) === 100,
+    `1z. the column widths sum to exactly 100% so nothing overflows the page (${widths.reduce((a, b) => a + b, 0)}%)`);
+
   // ══ 2. No activity must be STATED, not silently omitted ══════════════════
   const empty = {
     available: true, totals: { governed_actions: 0, permitted: 0, blocked: 0, escalated: 0, provider_invocations: 0 },
