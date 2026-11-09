@@ -25,8 +25,11 @@ concurrency:
   group: governance-corpus-gate-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  ENGINE_REF: main
+# The engine is tested at the EXACT commit the image pins (Dockerfile
+# ENGINE_REF), read from the Dockerfile below. This used to test engine `main`
+# while the image shipped an older pin, so a service change that needed a
+# newer engine (trusted_facts, 19 Sep) passed CI and failed every governed
+# request in production.
 
 jobs:
   corpus-gate:
@@ -42,11 +45,25 @@ jobs:
       # rule-composition drift reaches production unnoticed (it did once).
       - name: Install engine service deps
         run: pip install pytest -r governance-service/requirements.txt
-      - name: Vendor the engine
+      - name: Vendor the engine at the pinned commit
         run: |
+          ENGINE_REF="$(grep -oP '^ARG ENGINE_REF=\K\S+' governance-service/Dockerfile)"
+          test -n "$ENGINE_REF" || { echo "no ENGINE_REF pin in the Dockerfile"; exit 1; }
+          echo "ENGINE_REF=$ENGINE_REF" >> "$GITHUB_ENV"
           git clone --filter=blob:none --no-checkout \
             https://github.com/davarntrades/Morrison-Runtime-Governance.git /tmp/engine
-          git -C /tmp/engine checkout "${ENGINE_REF:-main}"
+          git -C /tmp/engine checkout "$ENGINE_REF"
+          echo "testing the service against engine $(git -C /tmp/engine rev-parse HEAD)"
+      - name: Engine compatibility contract (pinned engine)
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python engine_compat.py
+      - name: Service integration with the pinned engine
+        working-directory: governance-service
+        run: PYTHONPATH=/tmp/engine python -m pytest -q test_pilot_integration.py test_trusted_facts_provenance.py test_govern_timing.py
+      - name: Boundary scenarios and Round 2 regressions (pinned engine)
+        run: |
+          cd /tmp/engine
+          python -m pytest -q runtime_eval/tests/test_frontier_boundary.py morrison_governance/test_integration_r2_repairs.py
       - name: Production image startup import (Railway /app)
         run: |
           docker build --tag governance-service:ci governance-service

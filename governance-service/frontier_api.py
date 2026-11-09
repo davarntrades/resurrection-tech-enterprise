@@ -363,6 +363,12 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
                     "experiment_record_hash"),
             }
         governed_results[item.record["run_id"]] = projection
+        # Lab single runs used to exist only in the browser's sessionStorage:
+        # the Control Room never saw them. Each run is now stored in the same
+        # server-side session store the Control Room lists, as kind
+        # "single_run", built from the sealed experiment record itself (no
+        # event is invented or duplicated: one stored row per sealed run).
+        _record_single_run(item.record, projection, req)
         evidence_bundle_downloads[item.record["run_id"]] = json.dumps(
             scrub_secrets(deterministic_evidence_bundle(
                 item.record, projection)), indent=2, sort_keys=True,
@@ -393,6 +399,80 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
             "evidence_sealed",
         ],
     })
+
+
+def single_run_snapshot(record: dict[str, Any], projection: dict[str, Any] | None,
+                        provider: str, model: str) -> dict[str, Any]:
+    """A sealed single-run record in the session shape the Control Room reads.
+
+    Every field is copied from the sealed record; none is computed afresh here
+    except the strictest verdict, which is derived from the recorded decisions.
+    """
+    rank = {"PERMIT": 0, "ESCALATE": 1, "BLOCK": 2}
+    steps = []
+    for d in record.get("governance_decisions") or []:
+        meta = d.get("metadata") or {}
+        steps.append({
+            "step": d.get("step"),
+            "normalized_call": d.get("proposed") or {},
+            "morrison_decision": {
+                "verdict": d.get("verdict"), "layer": d.get("layer"),
+                "rule": d.get("rule"), "reason": d.get("reason"),
+                "local_verdict": meta.get("local_verdict"),
+                "global_verdict": meta.get("global_verdict"),
+                "strictest_verdict": meta.get("strictest_verdict", d.get("verdict")),
+                "checks": meta.get("checks", []),
+                "decision_id": meta.get("decision_id"),
+                "evidence_hash": meta.get("evidence_hash"),
+            },
+            "execution_outcome": meta.get("outcome"),
+            "authorized_action_hash": meta.get("authorized_action_hash"),
+            "executed_action_hash": meta.get("executed_action_hash"),
+            "action_binding_held": meta.get("action_binding_held"),
+            "execution_occurred": bool(d.get("executed")),
+            "execution_mode": "SIMULATED",
+        })
+    verdicts = [s["morrison_decision"]["verdict"] for s in steps if s["morrison_decision"]["verdict"]]
+    integrity = record.get("evidence_integrity") or {}
+    return {
+        "session_id": record["run_id"],
+        "kind": "single_run",
+        "status": "completed",
+        "mode": "enforced",
+        "execution_mode": "SIMULATED",
+        "provider": provider, "model": model,
+        "scenario_id": record.get("scenario_id"),
+        "current_step": len(steps), "max_steps": len(steps),
+        "started_at": record.get("timestamp"), "ended_at": record.get("timestamp"),
+        "steps": steps,
+        "strictest_verdict": (max(verdicts, key=lambda v: rank.get(v, 2))
+                              if verdicts else "NOT_EXERCISED"),
+        "admissibility": record.get("admissibility"),
+        "classification": record.get("classification"),
+        "model_refused_adversarial_action": record.get("model_refused_adversarial_action"),
+        "morrison_intervened": record.get("morrison_intervened"),
+        "morrison_intervened_on_adversarial": record.get("morrison_intervened_on_adversarial"),
+        "summary": {"unauthorized_executions": record.get("unauthorized_execution_count", 0)},
+        "experiment_record_hash": record.get("experiment_record_hash"),
+        "evidence_status": integrity.get("status"),
+        "evidence_independently_verified": False,
+        # Kept for the existing UI; a self-check of the run's own chain.
+        "evidence_verified": None,
+        "morrison_evidence_integrity": integrity,
+        "governed_result": projection,
+    }
+
+
+def _record_single_run(record: dict[str, Any], projection, req) -> None:
+    try:
+        from frontier_sessions import MANAGER
+        MANAGER.store.save(single_run_snapshot(record, projection,
+                                               req.provider, req.model))
+    except Exception:  # noqa: BLE001 — persistence never changes the run result
+        import logging
+        logging.getLogger("governance.frontier").exception(
+            "single run %s could not be stored for the Control Room",
+            record.get("run_id"))
 
 
 async def run_frontier(req: FrontierRunRequest, request: Request) -> dict[str, Any]:
@@ -493,3 +573,66 @@ def list_frontier_sessions(limit: int = 20) -> dict:
     from frontier_sessions import MANAGER
     return scrub_secrets({"ok": True, "sessions": MANAGER.recent(limit),
                           "persistence": MANAGER.store.durability()})
+
+
+def boundary_snapshot(record: dict[str, Any]) -> dict[str, Any]:
+    """A boundary-scenario run in the session shape the Control Room reads."""
+    import uuid
+    rank = {"PERMIT": 0, "ESCALATE": 1, "BLOCK": 2}
+    steps = [{
+        "step": i,
+        "scenario": row["scenario"], "label": row["label"],
+        "normalized_call": row["proposed_action"],
+        "morrison_decision": {
+            "verdict": row["verdict"], "layer": row["layer"], "rule": row["rule"],
+            "reason": row["reason"], "local_verdict": row["local_verdict"],
+            "global_verdict": row["global_verdict"],
+            "strictest_verdict": row["strictest_verdict"],
+            "checks": row["checks"], "decision_id": row["decision_id"],
+            "evidence_hash": row["evidence_record_hash"],
+        },
+        "execution_outcome": row["outcome"],
+        "expected_outcome": row["expected_outcome"],
+        "matches_expectation": row["matches_expectation"],
+        "authorized_action_hash": row["authorized_action_hash"],
+        "executed_action_hash": row["executed_action_hash"],
+        "action_binding_held": row.get("action_binding_held"),
+        "execution_occurred": row["outcome"] == "executed_simulated",
+        "execution_mode": "SIMULATED",
+    } for i, row in enumerate(record["steps"])]
+    statuses = {e["status"] for e in record["evidence"]}
+    return {
+        "session_id": f"boundary-{uuid.uuid4().hex[:12]}",
+        "kind": "boundary_scenarios",
+        "status": "completed", "mode": "enforced", "execution_mode": "SIMULATED",
+        "provider": "deterministic", "model": "no model (scripted boundary scenarios)",
+        "current_step": len(steps), "max_steps": len(steps), "steps": steps,
+        "strictest_verdict": max((s["morrison_decision"]["verdict"] for s in steps),
+                                 key=lambda v: rank.get(v, 2)),
+        "all_expectations_met": record["all_expectations_met"],
+        "summary": {"unauthorized_executions": sum(
+            1 for s in steps if s["execution_occurred"]
+            and s["expected_outcome"] != "executed_simulated")},
+        "evidence_status": statuses.pop() if len(statuses) == 1 else "MIXED",
+        "evidence_independently_verified": False,
+        "evidence_note": record["evidence_note"],
+        "evidence_verified": None,
+        "note": record["note"],
+    }
+
+
+def run_boundary(request: Request) -> dict[str, Any]:
+    """Run the deterministic execution-boundary scenarios (no model, no cost)."""
+    from runtime_eval.frontier.boundary import run_boundary_scenarios
+    _rate_limit(request)
+    record = run_boundary_scenarios()
+    snapshot = boundary_snapshot(record)
+    try:
+        from frontier_sessions import MANAGER
+        MANAGER.store.save(snapshot)
+    except Exception:  # noqa: BLE001
+        import logging
+        logging.getLogger("governance.frontier").exception(
+            "boundary run could not be stored for the Control Room")
+    return scrub_secrets({"ok": True, "record": record, "session": snapshot})
+

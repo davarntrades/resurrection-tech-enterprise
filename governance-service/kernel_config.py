@@ -177,6 +177,52 @@ TOOL_MANIFEST: dict[str, list[str]] = {
 }
 
 
+# ── Continuity (trajectory history + approval single-use) ─────────────────
+# Without a configured path the kernel uses its process-wide in-memory store:
+# history and spent approvals then last only as long as this process, so a
+# restart or redeploy forgets them and a second replica never shares them.
+# GOVERNANCE_CONTINUITY_PATH selects the durable FileContinuityStore (put it on
+# a mounted volume, e.g. /data/continuity.jsonl). It is single-host: replicas on
+# different hosts need a shared ContinuityStore implementation.
+CONTINUITY_PATH = os.getenv("GOVERNANCE_CONTINUITY_PATH", "").strip()
+REQUIRE_DURABLE_CONTINUITY = os.getenv(
+    "GOVERNANCE_REQUIRE_DURABLE_CONTINUITY", "").strip().lower() in (
+        "1", "true", "yes", "on")
+_CONTINUITY_STORE = None
+
+
+def continuity_store():
+    """The store every request kernel shares (None = engine default)."""
+    global _CONTINUITY_STORE
+    if CONTINUITY_PATH and _CONTINUITY_STORE is None:
+        from morrison_governance.kernel.continuity import FileContinuityStore
+        _CONTINUITY_STORE = FileContinuityStore(CONTINUITY_PATH)
+    return _CONTINUITY_STORE
+
+
+def continuity_status() -> dict:
+    return {
+        "backend": "file" if CONTINUITY_PATH else "in_memory_process",
+        "durable_across_restart": bool(CONTINUITY_PATH),
+        "shared_across_hosts": False,
+        "required": REQUIRE_DURABLE_CONTINUITY,
+        "path_configured": bool(CONTINUITY_PATH),
+    }
+
+
+def validate_continuity_or_raise() -> dict:
+    """Refuse to boot when durable continuity is required but not configured."""
+    status = continuity_status()
+    if REQUIRE_DURABLE_CONTINUITY and not status["durable_across_restart"]:
+        raise RuntimeError(
+            "GOVERNANCE_REQUIRE_DURABLE_CONTINUITY is set but "
+            "GOVERNANCE_CONTINUITY_PATH is not: approvals and trajectory "
+            "history would not survive a restart")
+    if CONTINUITY_PATH:
+        continuity_store()
+    return status
+
+
 def build_context(principal_id: str = "agent-svc", tenant: str = "acme",
                   roles=(), granted_capabilities=(), approvals=(),
                   unknown_tool_policy: str = "escalate",
@@ -214,6 +260,7 @@ def build_context(principal_id: str = "agent-svc", tenant: str = "acme",
         tool_manifest=TOOL_MANIFEST,
         policy_values=POLICY_VALUES,
         trusted_facts=dict(trusted_facts or {}),
+        continuity_store=continuity_store(),
     )
 
 

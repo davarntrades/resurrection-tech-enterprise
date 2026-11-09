@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { evidenceLabel } from "@/lib/evidence-status";
 
 async function gateway(path = "", opts: RequestInit = {}) {
   const res = await fetch(`/api/runtime/admin/integration-gateway${path}`, {
@@ -399,7 +400,7 @@ function ExecutionEnvironments({ environments, records, comparisons }: { environ
         <td>{row.external_state_changed === true ? "YES" : row.external_state_changed === false ? "NO" : row.state_observability === "NOT_APPLICABLE" ? "NOT APPLICABLE" : "UNKNOWN"}</td>
         <td><span className="radmin-muted">{row.state_before_hash?.slice(0, 10) || "—"} → {row.state_after_hash?.slice(0, 10) || "—"}</span></td>
         <td>{row.execution_receipt ? "CAPTURED" : "—"}</td><td>{row.correlation_id || "—"}</td>
-        <td>{row.evidence_verified ? "VERIFIED" : "UNVERIFIED"}</td>
+        <td>{evidenceLabel({ status: row.evidence_status, evidence_verified: row.evidence_verified })}</td>
       </tr>)}</tbody>
     </table></div>}
     <h3 style={{ marginTop: 22 }}>Pilot comparisons</h3>
@@ -413,7 +414,7 @@ function ExecutionEnvironments({ environments, records, comparisons }: { environ
         <td>{row.governed?.verdict}</td><td>{row.governed?.execution_attempted ? row.governed?.execution_status : "NOT ATTEMPTED"}</td>
         <td>{row.governed?.state_delta ? JSON.stringify(row.governed.state_delta) : "—"}</td>
         <td>{row.prevented_unsafe_transition ? "YES" : "NOT ESTABLISHED"}</td>
-        <td>{row.baseline?.evidence_verified && row.governed?.evidence_verified ? "VERIFIED" : "INCOMPLETE"}</td>
+        <td>{row.baseline?.evidence_verified && row.governed?.evidence_verified ? "INTEGRITY CHECKED (self-check)" : "INCOMPLETE"}</td>
       </tr>)}</tbody>
     </table></div>}
   </section>;

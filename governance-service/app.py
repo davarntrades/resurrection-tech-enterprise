@@ -40,7 +40,12 @@ from morrison_governance.kernel.attestation import AnchorLog
 from kernel_config import (
     APPROVAL_SIGNING_KEY, ATTESTATION_PUBLIC_KEY, EVIDENCE_SEALING_KEY,
     TOOL_MANIFEST, build_context, secrets_status, validate_secrets_or_raise,
+    continuity_status, validate_continuity_or_raise,
 )
+import engine_compat
+
+# Checked at import so /health can always report it; ENFORCED at startup.
+ENGINE_COMPATIBILITY = engine_compat.check_engine()
 
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
@@ -379,6 +384,17 @@ def _rate_ok(ip: str) -> bool:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # The vendored engine must provide every interface this service calls.
+    # The 19 September deployment ran service code against an engine without
+    # `trusted_facts`; every governed request raised. Refuse to start instead.
+    if not ENGINE_COMPATIBILITY["compatible"]:
+        msg = ("vendored engine is incompatible with this service: "
+               + "; ".join(ENGINE_COMPATIBILITY["missing"]))
+        if os.getenv("GOVERNANCE_ALLOW_INCOMPATIBLE_ENGINE", "").strip().lower() \
+                not in ("1", "true", "yes", "on"):
+            raise RuntimeError(msg)
+        log.error("GOVERNANCE_ALLOW_INCOMPATIBLE_ENGINE is set — %s", msg)
+    validate_continuity_or_raise()
     _layer_for(None, HORIZON)  # warm the default layer at startup
     # Startup secret gate. In production a missing load-bearing secret raises
     # and the service does not start; elsewhere it boots degraded and says so.
@@ -565,6 +581,12 @@ def health() -> dict:
         "service_version": SERVICE_VERSION,
         "engine": "morrison_governance",
         "engine_commit": ENGINE_COMMIT,
+        "engine_compatibility": {
+            "compatible": ENGINE_COMPATIBILITY["compatible"],
+            "service_engine_contract": ENGINE_COMPATIBILITY["service_engine_contract"],
+            "missing": ENGINE_COMPATIBILITY["missing"],
+        },
+        "continuity": continuity_status(),
         "default_rules": len(default.rules),
         "default_domains": [d.value for d in DEFAULT_DOMAINS],
         "live_sectors": live_sector_ids(),
@@ -675,6 +697,15 @@ async def frontier_run(payload: dict[str, Any],
     return JSONResponse(await run_frontier(req, request))
 
 
+@app.post("/v1/frontier/boundary", dependencies=[Depends(require_frontier_token)])
+def frontier_boundary(request: Request) -> JSONResponse:
+    """Deterministic execution-boundary scenarios: approval, rejection,
+    mutation, replay, expiry, revocation, trajectory and restart. No model is
+    called and every executor is inert."""
+    from frontier_api import run_boundary
+    return JSONResponse(run_boundary(request))
+
+
 @app.post("/v1/frontier/regulatory-context",
           dependencies=[Depends(require_frontier_token)])
 def frontier_regulatory_context(payload: dict[str, Any]) -> JSONResponse:
@@ -776,31 +807,49 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
     try:
         for step in req.trajectory:
             d = kernel.authorize({"tool": step.tool, "args": step.args})
-            decisions.append(d.as_dict())
-            if d.permitted:
-                # Nothing is executed here: the service is a decision plane.
-                # The caller's runtime executes only on a PERMIT and must
-                # re-present the action hash, so the binding check still
-                # applies at the point of execution. The prefix is advanced so
-                # step N+1 is evaluated against the real trajectory rather than
-                # in isolation.
-                kernel.record_remote_execution(d)
+            row = d.as_dict()
+            # Nothing is executed here: the service is a decision plane. This
+            # used to call record_remote_execution() on every PERMIT, which
+            # sealed an EXECUTED record for an action nobody had run yet. A
+            # PERMIT now holds a reservation, which is already part of the
+            # trajectory step N+1 is evaluated against (and stays in it as
+            # UNCONFIRMED if never confirmed), so the history is the same
+            # without the false execution record.
+            row["execution"] = {"executed_by_service": False,
+                                "state": "authorized_not_executed"
+                                if d.permitted else "withheld"}
+            decisions.append(row)
     except HTTPException:
         raise
     except Exception as exc:
         raise _eval_error(exc, "govern")
 
-    terminal = decisions[-1] if decisions else {}
+    # STRICTEST verdict across the trajectory. The response used to carry the
+    # LAST step's verdict, so [BLOCK, PERMIT] was reported as PERMIT and the
+    # gateway acted on it.
+    _rank = {"PERMIT": 0, "ESCALATE": 1, "BLOCK": 2}
+    terminal = (max(decisions, key=lambda r: _rank.get(r.get("verdict"), 2))
+                if decisions else {})
+    strictest_verdict = terminal.get("verdict")
+
+    def _strictest(key: str):
+        values = [r.get(key) or "PERMIT" for r in decisions]
+        return max(values, key=lambda v: _rank.get(v, 2)) if values else None
     integrity = kernel.integrity()
     # The top-level fields mirror GovernanceResult.to_dict() so the existing
     # Next.js adapter (lib/governance-client.ts) consumes this endpoint without
     # a shape change — the surfaces get kernel enforcement for free.
     body = {
-        "verdict": terminal.get("verdict"),
-        "permitted": terminal.get("verdict") == "PERMIT",
-        "blocked": terminal.get("verdict") == "BLOCK",
-        "escalated": terminal.get("verdict") == "ESCALATE",
-        "requires_human_review": terminal.get("verdict") == "ESCALATE",
+        "verdict": strictest_verdict,
+        "strictest_verdict": strictest_verdict,
+        "local_verdict": _strictest("local_verdict"),
+        "global_verdict": _strictest("global_verdict"),
+        "authorization_verdict": _strictest("authorization_verdict"),
+        "deciding_step": decisions.index(terminal) if decisions else None,
+        "permitted": strictest_verdict == "PERMIT",
+        "blocked": strictest_verdict == "BLOCK",
+        "escalated": strictest_verdict == "ESCALATE",
+        "requires_human_review": strictest_verdict == "ESCALATE",
         "layer": terminal.get("layer", ""),
         "reason": terminal.get("reason", ""),
         "omega_domain": terminal.get("omega_domain"),
@@ -840,11 +889,18 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         "attestation": _attestation(_layer_for(req.domains, req.horizon or HORIZON),
                                     req.horizon or HORIZON),
         "evidence": {
+            # `verified` is kept for existing consumers; it is the writer's
+            # self-check of an in-memory chain, which `status` names honestly.
             "verified": integrity["evidence_verified"],
+            "status": integrity.get("status"),
+            "checked_by": integrity.get("checked_by", "writer_self_check"),
+            "independently_verified": False,
+            "anchor": integrity.get("anchor"),
             "records": integrity["records"],
             "head": integrity["head"],
             "problems": integrity["problems"],
         },
+        "continuity": continuity_status(),
         "enforcement": "kernel",
         "identity": {
             "principal": principal, "tenant": tenant,
