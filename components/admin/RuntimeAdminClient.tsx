@@ -147,7 +147,7 @@ function GovernedSessionsPanel() {
         <div><span>Execution</span><code>{selected.execution_mode === "SIMULATED" || selected.kind ? "SIMULATED (inert)" : "per step"}</code></div>
         <div><span>Unauthorized executions</span><code>{selected.summary?.unauthorized_executions ?? 0}</code></div>
         <div><span>Session chain</span><code>{selected.evidence_verified == null && !selected.evidence_status ? "IN PROGRESS" : evidenceLabel({ status: selected.evidence_status, evidence_verified: selected.evidence_verified })}</code></div>
-        <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity ? evidenceLabel(selected.morrison_evidence_integrity) : "IN PROGRESS"}</code></div>
+        <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity ? evidenceLabel(selected.morrison_evidence_integrity) : selected.evidence_status ? evidenceLabel({ status: selected.evidence_status }) : "IN PROGRESS"}</code></div>
         <div><span>Independently verified</span><code>NO — checked by the service that wrote it</code></div>
       </div>
       <GovernedEvidencePanels result={selected.governed_result} compact />
@@ -1790,7 +1790,7 @@ function AuditPanel() {
             <td>{session.mode === "shadow" ? `WOULD ${strictestStepVerdict(session.steps)}` : (session.strictest_verdict || strictestStepVerdict(session.steps))}</td>
             <td>{frameworks.length ? frameworks.map((item: any) => item.framework_name).join(", ") : "—"}</td>
             <td>{session.evidence_verified == null && !session.evidence_status ? "IN PROGRESS" : evidenceLabel({ status: session.evidence_status, evidence_verified: session.evidence_verified })}</td>
-            <td>{session.morrison_evidence_integrity ? evidenceLabel(session.morrison_evidence_integrity) : "IN PROGRESS"}</td>
+            <td>{session.morrison_evidence_integrity ? evidenceLabel(session.morrison_evidence_integrity) : session.evidence_status ? evidenceLabel({ status: session.evidence_status }) : "IN PROGRESS"}</td>
           </tr>;
         })}</tbody>
       </table></div>}
