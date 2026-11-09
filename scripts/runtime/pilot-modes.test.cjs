@@ -213,6 +213,16 @@ async function check(name, fn) {
     } finally { delete process.env.RUNTIME_EXECUTION_ADAPTER_ALLOWLIST; }
   });
 
+  await check("org wildcard targets apply to the inert recorder only", async () => {
+    const wild = { "*/shared": { adapter: "inert-recorder", config: { label: "shared" } }, "*/realwild": { adapter: "pilot-recorder", config: {} } };
+    const ok = await execution.governAndExecute({ auth: auth("enforce", "env_wild"), trajectory: [{ tool: "summarize", args: { text: "y" } }], adapter: "inert-recorder", executionTarget: "shared" }, { executionEnabled: true, govern: allowEnforced, targets: wild });
+    assert.equal(ok.execution.status, "executed", JSON.stringify(ok.error || {}));
+    const before = calls;
+    const no = await execution.governAndExecute({ auth: auth("enforce", "env_wild"), trajectory, adapter: "pilot-recorder", executionTarget: "realwild" }, { executionEnabled: true, govern: allowEnforced, targets: wild });
+    assert.equal(no.error.code, "UNKNOWN_EXECUTION_TARGET");
+    assert.equal(calls, before);
+  });
+
   console.log("Evidence integrity");
   await check("truncation of the newest decisions is detected", async () => {
     engineSays({ verdict: "PERMIT", strictest_verdict: "PERMIT" });
