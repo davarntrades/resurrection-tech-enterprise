@@ -190,6 +190,29 @@ async function check(name, fn) {
     assert.throws(() => gate.issue({ verdict: "ALLOW", decision_id: "d", recorded: true, enforcement_active: false }, { action_digest: "x" }));
   });
 
+  await check("inert recorder: no effect, simulated receipt, exact binding", async () => {
+    const r = await execution.governAndExecute({ auth: auth("enforce", "env_inert"), trajectory: [{ tool: "summarize", args: { text: "x" } }], adapter: "inert-recorder", executionTarget: "inert" },
+      { executionEnabled: true, govern: allowEnforced, targets: { "org_pilot/inert": { adapter: "inert-recorder", config: { label: "demo-ledger" } } } });
+    assert.equal(r.execution.status, "executed", JSON.stringify(r.error || {}));
+    assert.equal(r.execution.receipt.simulated, true);
+    assert.equal(r.action_binding.held, true);
+    const { recent } = require("../../lib/runtime/execution-adapters/adapters/inert-recorder");
+    assert.equal(recent(1)[0].target, "demo-ledger");
+  });
+  await check("inert recorder refuses configuration it could act on", async () => {
+    const adapter = execution.registry.get("inert-recorder");
+    assert.equal(adapter.validateConfiguration({ endpoint: "x", method: "POST" }).ok, false);
+  });
+  await check("adapter allowlist refuses every adapter not listed", async () => {
+    process.env.RUNTIME_EXECUTION_ADAPTER_ALLOWLIST = "inert-recorder";
+    try {
+      const before = calls;
+      const r = await execution.governAndExecute({ auth: auth("enforce"), trajectory, adapter: "pilot-recorder", executionTarget: "ledger" }, { executionEnabled: true, targets, govern: allowEnforced });
+      assert.equal(r.error.code, "ADAPTER_NOT_ALLOWED");
+      assert.equal(calls, before);
+    } finally { delete process.env.RUNTIME_EXECUTION_ADAPTER_ALLOWLIST; }
+  });
+
   console.log("Evidence integrity");
   await check("truncation of the newest decisions is detected", async () => {
     engineSays({ verdict: "PERMIT", strictest_verdict: "PERMIT" });

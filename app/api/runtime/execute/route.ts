@@ -48,6 +48,6 @@ export async function POST(req: NextRequest) {
   const status = result.ok || ["BLOCK", "ESCALATE"].includes(result.verdict) ? 200
     : ["UNKNOWN_ADAPTER", "INVALID_ADAPTER_CONFIGURATION", "CALLER_ADAPTER_CONFIG_REFUSED",
        "UNKNOWN_EXECUTION_TARGET", "EXECUTION_TARGET_ADAPTER_MISMATCH"].includes(result.error?.code) ? 400
-    : ["EXECUTION_DISABLED", "ENFORCEMENT_INACTIVE"].includes(result.error?.code) ? 409 : 502;
+    : ["EXECUTION_DISABLED", "ENFORCEMENT_INACTIVE", "ADAPTER_NOT_ALLOWED"].includes(result.error?.code) ? 409 : 502;
   return NextResponse.json(result, { status, headers: { "cache-control": "no-store" } });
 }
