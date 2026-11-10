@@ -16,6 +16,7 @@ Nothing is ever executed: the engine only inspects the proposed trajectory.
 from __future__ import annotations
 
 import asyncio
+import functools
 import hashlib
 import json
 import logging
@@ -40,7 +41,12 @@ from morrison_governance.kernel.attestation import AnchorLog
 from kernel_config import (
     APPROVAL_SIGNING_KEY, ATTESTATION_PUBLIC_KEY, EVIDENCE_SEALING_KEY,
     TOOL_MANIFEST, build_context, secrets_status, validate_secrets_or_raise,
+    continuity_status, validate_continuity_or_raise,
 )
+import engine_compat
+
+# Checked at import so /health can always report it; ENFORCED at startup.
+ENGINE_COMPATIBILITY = engine_compat.check_engine()
 
 from finance_rules import finance_custom_rules
 from coverage_rules import coverage_custom_rules
@@ -379,6 +385,17 @@ def _rate_ok(ip: str) -> bool:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # The vendored engine must provide every interface this service calls.
+    # The 19 September deployment ran service code against an engine without
+    # `trusted_facts`; every governed request raised. Refuse to start instead.
+    if not ENGINE_COMPATIBILITY["compatible"]:
+        msg = ("vendored engine is incompatible with this service: "
+               + "; ".join(ENGINE_COMPATIBILITY["missing"]))
+        if os.getenv("GOVERNANCE_ALLOW_INCOMPATIBLE_ENGINE", "").strip().lower() \
+                not in ("1", "true", "yes", "on"):
+            raise RuntimeError(msg)
+        log.error("GOVERNANCE_ALLOW_INCOMPATIBLE_ENGINE is set — %s", msg)
+    validate_continuity_or_raise()
     _layer_for(None, HORIZON)  # warm the default layer at startup
     # Startup secret gate. In production a missing load-bearing secret raises
     # and the service does not start; elsewhere it boots degraded and says so.
@@ -476,9 +493,12 @@ class AssessRequest(BaseModel):
 
 
 # ── Core eval with timeout protection ───────────────────────────────────
-async def _run(layer: GovernanceLayer, fn: str, payload: Any) -> GovernanceResult:
+async def _run(layer: GovernanceLayer, fn: str, payload: Any,
+               **kwargs: Any) -> GovernanceResult:
     loop = asyncio.get_running_loop()
     call = getattr(layer, fn)
+    if kwargs:
+        call = functools.partial(call, **kwargs)
     try:
         return await asyncio.wait_for(loop.run_in_executor(None, call, payload), EVAL_TIMEOUT_S)
     except asyncio.TimeoutError:
@@ -565,6 +585,12 @@ def health() -> dict:
         "service_version": SERVICE_VERSION,
         "engine": "morrison_governance",
         "engine_commit": ENGINE_COMMIT,
+        "engine_compatibility": {
+            "compatible": ENGINE_COMPATIBILITY["compatible"],
+            "service_engine_contract": ENGINE_COMPATIBILITY["service_engine_contract"],
+            "missing": ENGINE_COMPATIBILITY["missing"],
+        },
+        "continuity": continuity_status(),
         "default_rules": len(default.rules),
         "default_domains": [d.value for d in DEFAULT_DOMAINS],
         "live_sectors": live_sector_ids(),
@@ -601,13 +627,22 @@ def health() -> dict:
 
 
 @app.post("/v1/evaluate", dependencies=[Depends(require_token)])
-async def evaluate(req: EvaluateRequest) -> JSONResponse:
+async def evaluate(req: EvaluateRequest, request: Request) -> JSONResponse:
     t0 = time.perf_counter()
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     steps = [s.model_dump() for s in req.trajectory]
+    # Same trusted channel as /v1/govern: facts the deployment established,
+    # honoured only with the gateway secret. A claim in the step arguments
+    # (`"authorized": true`) is never promoted by this endpoint.
+    trusted_facts, trusted_facts_source = _resolve_trusted_facts(request)
     try:
         c0 = time.perf_counter()
-        result = await _run(layer, "evaluate_plan", steps)
+        if trusted_facts:
+            result = await _run(
+                layer, "evaluate_plan",
+                steps, trusted_facts=trusted_facts)
+        else:
+            result = await _run(layer, "evaluate_plan", steps)
         compute_ms = round((time.perf_counter() - c0) * 1000, 3)  # pure engine compute
     except HTTPException:
         raise
@@ -615,6 +650,9 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
         raise _eval_error(exc, "evaluate_plan")
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    body["trusted_facts"] = {"accepted": sorted(trusted_facts),
+                             "count": len(trusted_facts),
+                             "source": trusted_facts_source}
     # Engine compute time (excludes HTTP/network/transport). Lets the client grade
     # the governance engine on its true compute, not deployment round-trip.
     body["engine_compute_ms"] = compute_ms
@@ -673,6 +711,15 @@ async def frontier_run(payload: dict[str, Any],
     except Exception as exc:
         raise HTTPException(status_code=422, detail="Invalid frontier request") from exc
     return JSONResponse(await run_frontier(req, request))
+
+
+@app.post("/v1/frontier/boundary", dependencies=[Depends(require_frontier_token)])
+def frontier_boundary(request: Request) -> JSONResponse:
+    """Deterministic execution-boundary scenarios: approval, rejection,
+    mutation, replay, expiry, revocation, trajectory and restart. No model is
+    called and every executor is inert."""
+    from frontier_api import run_boundary
+    return JSONResponse(run_boundary(request))
 
 
 @app.post("/v1/frontier/regulatory-context",
@@ -776,31 +823,49 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
     try:
         for step in req.trajectory:
             d = kernel.authorize({"tool": step.tool, "args": step.args})
-            decisions.append(d.as_dict())
-            if d.permitted:
-                # Nothing is executed here: the service is a decision plane.
-                # The caller's runtime executes only on a PERMIT and must
-                # re-present the action hash, so the binding check still
-                # applies at the point of execution. The prefix is advanced so
-                # step N+1 is evaluated against the real trajectory rather than
-                # in isolation.
-                kernel.record_remote_execution(d)
+            row = d.as_dict()
+            # Nothing is executed here: the service is a decision plane. This
+            # used to call record_remote_execution() on every PERMIT, which
+            # sealed an EXECUTED record for an action nobody had run yet. A
+            # PERMIT now holds a reservation, which is already part of the
+            # trajectory step N+1 is evaluated against (and stays in it as
+            # UNCONFIRMED if never confirmed), so the history is the same
+            # without the false execution record.
+            row["execution"] = {"executed_by_service": False,
+                                "state": "authorized_not_executed"
+                                if d.permitted else "withheld"}
+            decisions.append(row)
     except HTTPException:
         raise
     except Exception as exc:
         raise _eval_error(exc, "govern")
 
-    terminal = decisions[-1] if decisions else {}
+    # STRICTEST verdict across the trajectory. The response used to carry the
+    # LAST step's verdict, so [BLOCK, PERMIT] was reported as PERMIT and the
+    # gateway acted on it.
+    _rank = {"PERMIT": 0, "ESCALATE": 1, "BLOCK": 2}
+    terminal = (max(decisions, key=lambda r: _rank.get(r.get("verdict"), 2))
+                if decisions else {})
+    strictest_verdict = terminal.get("verdict")
+
+    def _strictest(key: str):
+        values = [r.get(key) or "PERMIT" for r in decisions]
+        return max(values, key=lambda v: _rank.get(v, 2)) if values else None
     integrity = kernel.integrity()
     # The top-level fields mirror GovernanceResult.to_dict() so the existing
     # Next.js adapter (lib/governance-client.ts) consumes this endpoint without
     # a shape change — the surfaces get kernel enforcement for free.
     body = {
-        "verdict": terminal.get("verdict"),
-        "permitted": terminal.get("verdict") == "PERMIT",
-        "blocked": terminal.get("verdict") == "BLOCK",
-        "escalated": terminal.get("verdict") == "ESCALATE",
-        "requires_human_review": terminal.get("verdict") == "ESCALATE",
+        "verdict": strictest_verdict,
+        "strictest_verdict": strictest_verdict,
+        "local_verdict": _strictest("local_verdict"),
+        "global_verdict": _strictest("global_verdict"),
+        "authorization_verdict": _strictest("authorization_verdict"),
+        "deciding_step": decisions.index(terminal) if decisions else None,
+        "permitted": strictest_verdict == "PERMIT",
+        "blocked": strictest_verdict == "BLOCK",
+        "escalated": strictest_verdict == "ESCALATE",
+        "requires_human_review": strictest_verdict == "ESCALATE",
         "layer": terminal.get("layer", ""),
         "reason": terminal.get("reason", ""),
         "omega_domain": terminal.get("omega_domain"),
@@ -840,11 +905,18 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         "attestation": _attestation(_layer_for(req.domains, req.horizon or HORIZON),
                                     req.horizon or HORIZON),
         "evidence": {
+            # `verified` is kept for existing consumers; it is the writer's
+            # self-check of an in-memory chain, which `status` names honestly.
             "verified": integrity["evidence_verified"],
+            "status": integrity.get("status"),
+            "checked_by": integrity.get("checked_by", "writer_self_check"),
+            "independently_verified": False,
+            "anchor": integrity.get("anchor"),
             "records": integrity["records"],
             "head": integrity["head"],
             "problems": integrity["problems"],
         },
+        "continuity": continuity_status(),
         "enforcement": "kernel",
         "identity": {
             "principal": principal, "tenant": tenant,

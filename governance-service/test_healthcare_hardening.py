@@ -26,8 +26,17 @@ def _layer(rules):
                            log_all=False, custom_rules=rules)
 
 
-def _verdict(rules, steps):
-    r = _layer(rules).evaluate_plan(steps)
+# Authorisations the DEPLOYMENT established, passed through the engine's explicit
+# trusted channel. Since the engine's policy-state provenance change, a claim in
+# the step arguments alone (`"hipaa_authorized": true`) no longer authorises.
+TRUSTED_FACTS = {
+    "benign · authorised PHI email": {"hipaa_authorized": True},
+}
+
+
+def _verdict(rules, steps, trusted_facts=None):
+    r = (_layer(rules).evaluate_plan(steps, trusted_facts=trusted_facts)
+         if trusted_facts else _layer(rules).evaluate_plan(steps))
     return ("BLOCK" if r.blocked else "ALLOW"), (r.metadata or {}).get("rule", "-")
 
 
@@ -82,9 +91,12 @@ def main() -> int:
     print(f"{'risk class':40} {'before':7} {'after':7} rule")
     fails = []
     for name, expected, steps in CASES:
-        before, _ = _verdict([], steps)            # engine defaults only
-        after, rule = _verdict(AFTER, steps)
+        facts = TRUSTED_FACTS.get(name)
+        before, _ = _verdict([], steps, facts)     # engine defaults only
+        after, rule = _verdict(AFTER, steps, facts)
         ok = after == expected
+        if facts and _verdict(AFTER, steps)[0] != "BLOCK":
+            fails.append(f"{name}: permitted on the argument claim alone")
         flag = "" if ok else "  <-- MISMATCH"
         if not ok:
             fails.append(f"{name}: expected {expected}, got {after}")

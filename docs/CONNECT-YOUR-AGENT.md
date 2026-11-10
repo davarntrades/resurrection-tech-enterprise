@@ -107,11 +107,22 @@ curl -X POST https://resurrection-tech.com/api/runtime/evaluate \
 **Reading the response:**
 
 - **`verdict`** — what your agent should do *right now* (`ALLOW` · `ESCALATE` · `BLOCK`).
-- **`engine_verdict`** — what governance *actually decided*. In **shadow mode** `verdict` is always
-  `ALLOW` (observe-only) while `engine_verdict` shows what *would* have happened in enforcement.
+- **`operating_mode`** / **`enforcement_active`** — `shadow` with `enforcement_active: false`, or
+  `enforce` with `enforcement_active: true`. An environment with no mode, or an unrecognised one,
+  is **enforce** (`mode_source` says which); nothing silently turns enforcement off.
+- **`would_be_verdict`** — what enforcement *would* do. In **shadow mode** `verdict` is always
+  `ALLOW` so your existing execution path is never interrupted — including when governance itself
+  is unavailable (`evaluation_failed: true`, recorded and alerted) — and `would_be_verdict` carries
+  the strictest verdict Morrison reached. A shadow `ALLOW` never authorises Morrison's own
+  `/execute` adapters.
+- **`engine_verdict`** — the engine's strictest verdict across the whole trajectory (not the last
+  step), or `ENGINE_UNAVAILABLE`.
+- **`local_verdict`** / **`global_verdict`** — whether the action is admissible on its own, and
+  whether it is admissible given the trajectory and session history.
 - **`ESCALATE`** + `requires_human_review: true` — route to a human approver instead of executing.
 - **`engine_commit` / `ruleset_hash` / `trajectory_hash`** — provenance for audit and deterministic
-  replay. Every decision is independently reproducible.
+  replay. Decisions are reproducible from the retained trajectory; evidence integrity is checked by
+  the deployment that wrote it (see `/admin` evidence status), which is not independent verification.
 
 **Integration rule of thumb:** call `/evaluate` immediately **before** executing a tool, and gate on
 `verdict`:
@@ -163,7 +174,8 @@ Rollback is the same flip in reverse — **`enforce → shadow`** — and is **i
 - Governance immediately reverts to observe-only; your agents continue uninterrupted.
 - The switch is timestamped and captured in the audit trail.
 
-Because production defaults to shadow, the safe state is always one flip away.
+Production environments default to **enforce**. Shadow is always an explicit choice, shown on every
+decision as `operating_mode: "shadow"` and `enforcement_active: false`.
 
 ---
 
@@ -200,8 +212,8 @@ or alteration is detectable on verification). From your key you get:
 ## 10. Common Integration Examples
 
 The pattern is identical everywhere: **wrap tool execution with a pre-execution call to `/evaluate`.**
-In shadow mode this only records (verdict is always `ALLOW`); in enforce mode the same wrapper
-actually gates. Below, `govern(tool, args)` posts to `/evaluate` and returns the verdict.
+In shadow mode this only records (verdict is always `ALLOW`; read `would_be_verdict` for what
+enforcement would do); in enforce mode the same wrapper actually gates. Below, `govern(tool, args)` posts to `/evaluate` and returns the verdict.
 
 **Shared helper (Python):**
 

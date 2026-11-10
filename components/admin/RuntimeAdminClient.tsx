@@ -10,6 +10,7 @@
  */
 import "@/styles/runtime-admin.css";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { evidenceLabel, operatingModeLabel, strictestStepVerdict } from "@/lib/evidence-status";
 import { VolumeChart, RatioBar, LatencySpark, FreqBars, Info, MiniSpark } from "./Charts";
 import { deliverableFileUrl } from "@/lib/deliverable-url";
 import IntegrationGatewayPanel from "./IntegrationGatewayPanel";
@@ -117,7 +118,7 @@ function GovernedSessionsPanel() {
     <p className="radmin-muted">Active and recent continuous sessions. Every recorded proposal uses the same Morrison runtime boundary as the single-run Lab.</p>
     {persistence?.volume_required && <div className="radmin-err">Session history is process-local until a Railway volume is mounted at the configured database path.</div>}
     {!sessions.length ? <div className="radmin-empty">No governed sessions recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
-      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Last verdict</th><th>Operating Envelope</th><th>Frameworks</th><th>Evidence</th></tr></thead>
+      <thead><tr><th>Session</th><th>Mode</th><th>Provider / model</th><th>Step</th><th>Highest risk</th><th>Strictest verdict</th><th>Operating Envelope</th><th>Frameworks</th><th>Evidence</th></tr></thead>
       <tbody>{sessions.map((session) => {
         const steps = session.steps || [];
         const risky = [...steps].reverse().find((step: any) => step.morrison_decision?.verdict !== "PERMIT");
@@ -125,14 +126,14 @@ function GovernedSessionsPanel() {
         const frameworks = session.regulatory_exposure?.frameworks || [];
         return <tr key={session.session_id}>
           <td><button className="radmin-linkbutton" onClick={() => setSelectedId(session.session_id)}><code>{session.session_id}</code></button></td>
-          <td>{String(session.mode || "").replaceAll("_", " ")}</td>
+          <td>{operatingModeLabel(session.mode, session.kind)}<br /><span className="radmin-muted">{session.execution_mode === "SIMULATED" ? "simulated execution" : ""}</span></td>
           <td>{session.provider}<br /><span className="radmin-muted">{session.model}</span></td>
           <td>{session.current_step} / {session.max_steps}</td>
           <td>{risky?.normalized_call?.tool || "—"}</td>
-          <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
+          <td>{session.mode === "shadow" ? `WOULD ${strictestStepVerdict(steps)}` : (session.strictest_verdict || strictestStepVerdict(steps))}</td>
           <td>{session.governed_result?.safety_envelope?.status || "UNAVAILABLE"}<br /><span className="radmin-muted">{session.governed_result?.safety_envelope?.envelope || "not established"}</span></td>
           <td>{frameworks.length ? frameworks.map((item: any) => item.framework_name).join(", ") : "—"}</td>
-          <td>{session.evidence_verified === true ? "VERIFIED" : String(session.status || "").replaceAll("_", " ")}</td>
+          <td>{session.evidence_status || session.evidence_verified != null ? evidenceLabel({ status: session.evidence_status, evidence_verified: session.evidence_verified }) : String(session.status || "").replaceAll("_", " ")}</td>
         </tr>;
       })}</tbody>
     </table></div>}
@@ -140,10 +141,14 @@ function GovernedSessionsPanel() {
       <div className="radmin-row"><h2>Session evidence</h2><span style={{ flex: 1 }} /><button className="radmin-btn sm" onClick={() => void downloadSelected()}>Download evidence bundle</button><a className="radmin-btn sm" href={`/lab?session=${encodeURIComponent(selected.session_id)}`}>Open full session</a></div>
       <div className="radmin-kv">
         <div><span>Session</span><code>{selected.session_id}</code></div>
-        <div><span>Last verdict</span><code>{selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict || "—"}</code></div>
+        <div><span>Operating mode</span><code>{operatingModeLabel(selected.mode, selected.kind)}</code></div>
+        <div><span>Strictest verdict</span><code>{selected.strictest_verdict || strictestStepVerdict(selected.steps)}</code></div>
+        <div><span>Last step</span><code>{selectedLast?.shadow_decision || selectedLast?.morrison_decision?.verdict || "—"}{selectedLast?.morrison_decision?.local_verdict ? ` (local ${selectedLast.morrison_decision.local_verdict}, global ${selectedLast.morrison_decision.global_verdict})` : ""}</code></div>
+        <div><span>Execution</span><code>{selected.execution_mode === "SIMULATED" || selected.kind ? "SIMULATED (inert)" : "per step"}</code></div>
         <div><span>Unauthorized executions</span><code>{selected.summary?.unauthorized_executions ?? 0}</code></div>
-        <div><span>Session chain</span><code>{selected.evidence_verified === true ? "VERIFIED" : "IN PROGRESS"}</code></div>
-        <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS"}</code></div>
+        <div><span>Session chain</span><code>{selected.evidence_verified == null && !selected.evidence_status ? "IN PROGRESS" : evidenceLabel({ status: selected.evidence_status, evidence_verified: selected.evidence_verified })}</code></div>
+        <div><span>Morrison chain</span><code>{selected.morrison_evidence_integrity ? evidenceLabel(selected.morrison_evidence_integrity) : selected.evidence_status ? evidenceLabel({ status: selected.evidence_status }) : "IN PROGRESS"}</code></div>
+        <div><span>Independently verified</span><code>NO — checked by the service that wrote it</code></div>
       </div>
       <GovernedEvidencePanels result={selected.governed_result} compact />
       {/* Protected Value and regulatory/compliance context remain separate. */}
@@ -1395,7 +1400,9 @@ function ReadinessPanel() {
 // re-flatten exactly the distinction this panel exists to draw.
 
 const VERIFICATION_TAG: Record<string, { tag: string; cls: string }> = {
-  verified: { tag: "VERIFIED", cls: "pass" },
+  // "CHECKED", not "VERIFIED": the reading is recomputed by this deployment
+  // from its own stored data, which is a self-check, not independent proof.
+  verified: { tag: "CHECKED", cls: "pass" },
   reported: { tag: "REPORTED", cls: "configured" },
   degraded: { tag: "DEGRADED", cls: "fail" },
   unknown: { tag: "UNKNOWN", cls: "unknown" },
@@ -1570,7 +1577,7 @@ function VerificationPanel() {
 }
 
 const ASSURANCE_TAG: Record<string, { tag: string; cls: string }> = {
-  verified: { tag: "VERIFIED", cls: "pass" },
+  verified: { tag: "CHECKED", cls: "pass" },
   configured: { tag: "CONFIGURED", cls: "configured" },
   degraded: { tag: "DEGRADED", cls: "fail" },
   unknown: { tag: "UNKNOWN", cls: "unknown" },
@@ -1773,17 +1780,17 @@ function AuditPanel() {
       <h2>Governed runtime evidence</h2>
       <p className="radmin-muted">Read-only session evidence sealed by the Frontier service. Regulatory context is linked to the model-generated trajectory and is not an operator-entered legal conclusion.</p>
       {!sessions.length ? <div className="radmin-muted">No governed session evidence recorded yet.</div> : <div className="radmin-table-wrap"><table className="radmin-table">
-        <thead><tr><th>Session</th><th>Mode</th><th>Last verdict</th><th>Regulatory context</th><th>Step chain</th><th>Morrison chain</th></tr></thead>
+        <thead><tr><th>Session</th><th>Mode</th><th>Strictest verdict</th><th>Regulatory context</th><th>Step chain</th><th>Morrison chain</th></tr></thead>
         <tbody>{sessions.map((session: any) => {
           const last = session.steps?.at(-1);
           const frameworks = session.regulatory_exposure?.frameworks || [];
           return <tr key={session.session_id}>
             <td><a href={`/lab?session=${encodeURIComponent(session.session_id)}`}><code>{session.session_id}</code></a></td>
-            <td>{String(session.mode || "").replaceAll("_", " ")}</td>
-            <td>{last?.shadow_decision || last?.morrison_decision?.verdict || "—"}</td>
+            <td>{operatingModeLabel(session.mode, session.kind)}</td>
+            <td>{session.mode === "shadow" ? `WOULD ${strictestStepVerdict(session.steps)}` : (session.strictest_verdict || strictestStepVerdict(session.steps))}</td>
             <td>{frameworks.length ? frameworks.map((item: any) => item.framework_name).join(", ") : "—"}</td>
-            <td>{session.evidence_verified === true ? "VERIFIED" : "IN PROGRESS"}</td>
-            <td>{session.morrison_evidence_integrity?.evidence_verified ? "VERIFIED" : "IN PROGRESS"}</td>
+            <td>{session.evidence_verified == null && !session.evidence_status ? "IN PROGRESS" : evidenceLabel({ status: session.evidence_status, evidence_verified: session.evidence_verified })}</td>
+            <td>{session.morrison_evidence_integrity ? evidenceLabel(session.morrison_evidence_integrity) : session.evidence_status ? evidenceLabel({ status: session.evidence_status }) : "IN PROGRESS"}</td>
           </tr>;
         })}</tbody>
       </table></div>}

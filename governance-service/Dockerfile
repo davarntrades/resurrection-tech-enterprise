@@ -21,7 +21,15 @@ ARG ENGINE_REPO=https://github.com/davarntrades/Morrison-Runtime-Governance.git
 # Previously: 4fafc68 (governance kernel PR #11); before that 96ecd39 (PR #9 + sector
 # authorisation-awareness PR #10). Bump deliberately so verdicts stay
 # reproducible.
-ARG ENGINE_REF=331db2096632d2f7633a42c712a067320b495d43
+#
+# 2026-11-09: f25d300 on branch claude/elegant-planck-galciz (engine
+# integration: November remediation + DeepSeek Round 1 repairs + Round 2
+# repairs + Lab boundary scenarios + local/global admissibility + anchored
+# evidence). The previous pin, 331db20, predates SecurityContext.trusted_facts,
+# which this service has passed since 19 Sep: every governed request raised
+# TypeError on it. engine_compat.py (build gate below) now refuses such a pin.
+# CI tests the service against exactly this commit (deploy-governance.yml).
+ARG ENGINE_REF=f25d300807b4c9750f0e9df80548e5be79200edb
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
@@ -44,7 +52,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # image builds without it. kernel_config.py is imported by app.py at module
 # scope; attest.py is the offline evidence auditor, shipped so an operator can
 # verify an exported chain from inside the container.
-COPY app.py frontier_api.py frontier_sessions.py vllm_frontier_planner.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py ./
+COPY app.py frontier_api.py frontier_sessions.py vllm_frontier_planner.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py engine_compat.py ./
+
+# BUILD GATE: the vendored engine must provide every interface this service
+# calls. An incompatible ENGINE_REF fails here, so it cannot produce an image
+# and cannot be deployed. (The service checks again at boot and on /health.)
+RUN python engine_compat.py
 
 # ── Sovereign deployment (Phase 6) ──────────────────────────────────────────
 # A cloud image is built exactly as before: POLICY_BUNDLE/TRUST_BUNDLE are empty,

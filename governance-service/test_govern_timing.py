@@ -87,9 +87,17 @@ CASES = [
 ]
 
 
+def _headers():
+    """Identity headers are honoured only with the gateway secret when one is
+    configured. Another test module may configure (and reload) the service in
+    the same process, so read the secret at request time, not import time."""
+    secret = getattr(sys.modules.get("app", service), "GATEWAY_SECRET", "")
+    return {**AUTH_HEADERS, **({"x-governance-gateway-auth": secret} if secret else {})}
+
+
 def _govern(trajectory):
     res = CLIENT.post("/v1/govern", json={"trajectory": trajectory},
-                      headers=AUTH_HEADERS)
+                      headers=_headers())
     assert res.status_code == 200, res.text
     return res.json()
 

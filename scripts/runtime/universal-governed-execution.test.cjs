@@ -14,9 +14,14 @@ const httpAdapter = require("../../lib/runtime/execution-adapters/adapters/gener
 
 const auth = { org: { id: "org_test" }, environment: { id: "env_test", mode: "enforce" }, key_id: "key_test", role: "ingest" };
 let decisionCounter = 0;
+// The existing cases exercise adapter mechanics with a caller-supplied
+// configuration, which the public route now refuses. They run as a trusted
+// harness so their assertions keep their meaning; the new cases at the end
+// exercise the refusals themselves.
+const trusted = { executionEnabled: true, allowCallerAdapterConfig: true };
 const decision = (verdict) => async ({ correlation_id }) => ({
   ok: true, verdict, engine_verdict: verdict, decision_id: `dec_${++decisionCounter}`,
-  recorded: true, mode: "enforce", trajectory_hash: `trajectory_${decisionCounter}`,
+  recorded: true, mode: "enforce", enforcement_active: true, trajectory_hash: `trajectory_${decisionCounter}`,
   rule: verdict === "BLOCK" ? "test_block" : null, omega_domain: verdict === "BLOCK" ? "test" : null,
   correlation_id,
 });
@@ -50,7 +55,7 @@ function fakeAdapter(id, options = {}) {
   const adapter = execution.registry.register(raw);
   const trajectory = [{ tool: "increment", args: {} }];
 
-  const allowed = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, correlationId: "corr_allow" }, { govern: decision("ALLOW") });
+  const allowed = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, correlationId: "corr_allow" }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(allowed.ok, true, "ALLOW completes");
   assert.equal(raw.calls, 1, "ALLOW executes exactly once");
   assert.equal(allowed.execution.executed, true);
@@ -61,24 +66,24 @@ function fakeAdapter(id, options = {}) {
   assert.equal(allowed.evidence.verified, true, "execution evidence verifies");
 
   const callsAfterAllow = raw.calls;
-  const blocked = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, morrison_verdict: "ALLOW", correlationId: "corr_block" }, { govern: decision("BLOCK") });
+  const blocked = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, morrison_verdict: "ALLOW", correlationId: "corr_block" }, { ...trusted, govern: decision("BLOCK") });
   assert.equal(blocked.verdict, "BLOCK", "caller ALLOW string cannot forge authorization");
   assert.equal(raw.calls, callsAfterAllow, "BLOCK executes zero times");
   assert.equal(blocked.execution.status, "blocked_before_execution");
   assert.equal(blocked.execution.state_observability, "NOT_APPLICABLE");
 
-  const escalated = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, correlationId: "corr_escalate" }, { govern: decision("ESCALATE") });
+  const escalated = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, correlationId: "corr_escalate" }, { ...trusted, govern: decision("ESCALATE") });
   assert.equal(escalated.verdict, "ESCALATE");
   assert.equal(raw.calls, callsAfterAllow, "ESCALATE executes zero times before approval");
 
-  const unavailable = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {} }, { govern: async () => { throw new Error("engine offline"); } });
+  const unavailable = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {} }, { ...trusted, govern: async () => { throw new Error("engine offline"); } });
   assert.equal(unavailable.error.code, "MORRISON_UNAVAILABLE");
   assert.equal(raw.calls, callsAfterAllow, "engine unavailable executes zero times");
 
-  const invalid = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: { invalid: true } }, { govern: decision("ALLOW") });
+  const invalid = await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: { invalid: true } }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(invalid.error.code, "INVALID_ADAPTER_CONFIGURATION");
   assert.equal(raw.calls, callsAfterAllow, "invalid adapter config executes zero times");
-  const unknown = await execution.governAndExecute({ auth, trajectory, adapter: "does-not-exist", adapterConfig: {} }, { govern: decision("ALLOW") });
+  const unknown = await execution.governAndExecute({ auth, trajectory, adapter: "does-not-exist", adapterConfig: {} }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(unknown.error.code, "UNKNOWN_ADAPTER");
   assert.equal(raw.calls, callsAfterAllow, "unknown adapter executes zero times");
 
@@ -89,28 +94,28 @@ function fakeAdapter(id, options = {}) {
 
   const noStateRaw = fakeAdapter("test-no-state", { stateRead: false });
   execution.registry.register(noStateRaw);
-  const noState = await execution.governAndExecute({ auth, trajectory, adapter: noStateRaw.id, adapterConfig: {} }, { govern: decision("ALLOW") });
+  const noState = await execution.governAndExecute({ auth, trajectory, adapter: noStateRaw.id, adapterConfig: {} }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(noState.execution.state_observability, "UNKNOWN");
   assert.equal(noState.execution.external_state_changed, null, "unavailable state is UNKNOWN, never false");
 
   const failRaw = fakeAdapter("test-failure", { fail: true });
   execution.registry.register(failRaw);
-  const failed = await execution.governAndExecute({ auth, trajectory, adapter: failRaw.id, adapterConfig: {} }, { govern: decision("ALLOW") });
+  const failed = await execution.governAndExecute({ auth, trajectory, adapter: failRaw.id, adapterConfig: {} }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(failed.verdict, "ALLOW", "execution failure does not rewrite Morrison verdict");
   assert.equal(failed.execution.status, "execution_failed");
   assert.equal(failed.execution.executed, false);
 
   const timeoutRaw = fakeAdapter("test-timeout", { timeout: true });
   execution.registry.register(timeoutRaw);
-  const timedOut = await execution.governAndExecute({ auth, trajectory, adapter: timeoutRaw.id, adapterConfig: {} }, { govern: decision("ALLOW") });
+  const timedOut = await execution.governAndExecute({ auth, trajectory, adapter: timeoutRaw.id, adapterConfig: {} }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(timedOut.verdict, "ALLOW");
   assert.equal(timedOut.execution.status, "state_unknown", "ambiguous timeout never claims no execution");
   assert.equal(timedOut.execution.executed, null);
 
   const idemRaw = fakeAdapter("test-idempotent");
   execution.registry.register(idemRaw);
-  const first = await execution.governAndExecute({ auth, trajectory, adapter: idemRaw.id, adapterConfig: {}, idempotencyKey: "idem-1" }, { govern: decision("ALLOW") });
-  const second = await execution.governAndExecute({ auth, trajectory, adapter: idemRaw.id, adapterConfig: {}, idempotencyKey: "idem-1" }, { govern: decision("ALLOW") });
+  const first = await execution.governAndExecute({ auth, trajectory, adapter: idemRaw.id, adapterConfig: {}, idempotencyKey: "idem-1" }, { ...trusted, govern: decision("ALLOW") });
+  const second = await execution.governAndExecute({ auth, trajectory, adapter: idemRaw.id, adapterConfig: {}, idempotencyKey: "idem-1" }, { ...trusted, govern: decision("ALLOW") });
   assert.equal(first.ok, true); assert.equal(second.idempotent_replay, true);
   assert.equal(idemRaw.calls, 1, "supported idempotent duplicate executes once");
   assert.equal(second.evidence.id, first.evidence.id);
@@ -139,7 +144,8 @@ function fakeAdapter(id, options = {}) {
   assert.equal(baseline.morrison_decision_id, null, "baseline truthfully has no Morrison decision");
   assert.equal(baseline.evidence_verified, true);
   await execution.governAndExecute({ auth, trajectory, adapter: adapter.id, adapterConfig: {}, correlationId: "pilot-corr", context: { scenario_id: "pilot-1", experiment_role: "UNGOVERNED_BASELINE" } }, {
-    govern: async () => ({ ok: true, verdict: "BLOCK", engine_verdict: "BLOCK", decision_id: "dec_pilot", recorded: true, mode: "enforce", trajectory_hash: "pilot-trajectory", rule: "test_block", omega_domain: "test" }),
+    ...trusted,
+    govern: async () => ({ ok: true, verdict: "BLOCK", engine_verdict: "BLOCK", decision_id: "dec_pilot", recorded: true, mode: "enforce", enforcement_active: true, trajectory_hash: "pilot-trajectory", rule: "test_block", omega_domain: "test" }),
     pilotHarness: { trusted: true, reset_evidence_hash: "reset-checkpoint-1" },
   });
   const comparisons = await execution.evidence.experimentComparisons(auth.org.id);

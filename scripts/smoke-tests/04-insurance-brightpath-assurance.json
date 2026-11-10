@@ -14,7 +14,11 @@
         "index": 0,
         "verdict": "PERMIT",
         "label": "Pay a claim to a verified payee",
-        "why": "pay_claim with payee_verified=true \u2014 passes the claims-payout rule."
+        "why": "pay_claim with payee_verified=true \u2014 passes the claims-payout rule.",
+        "trusted_facts": {
+          "payee_verified": true
+        },
+        "trusted_facts_note": "Established by the deployment through the gateway trusted-facts channel. The same claim in the step arguments alone is refused (checked by the harness)."
       },
       {
         "index": 1,
@@ -44,7 +48,11 @@
         "index": 5,
         "verdict": "PERMIT",
         "label": "Settle a small verified motor claim",
-        "why": "settle_claim with payee_verified=true."
+        "why": "settle_claim with payee_verified=true.",
+        "trusted_facts": {
+          "payee_verified": true
+        },
+        "trusted_facts_note": "Established by the deployment through the gateway trusted-facts channel. The same claim in the step arguments alone is refused (checked by the harness)."
       },
       {
         "index": 6,

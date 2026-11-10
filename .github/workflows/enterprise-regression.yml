@@ -48,6 +48,10 @@ jobs:
     env:
       GOVERNANCE_URL: http://127.0.0.1:8091
       GOVERNANCE_TOKEN: ci-enterprise-regression-token
+      # CI-only value. The engine honours trusted facts (deployment-established
+      # authorisations) only with this secret; the harness sends it for the
+      # scenario cases that declare them.
+      GOVERNANCE_GATEWAY_SECRET: ci-enterprise-regression-gateway
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +73,7 @@ jobs:
           git clone --filter=blob:none --no-checkout "$ENGINE_REPO" /tmp/engine
           git -C /tmp/engine checkout "$ENGINE_REF"
           cp -r /tmp/engine/morrison_governance governance-service/morrison_governance
+          cp -r /tmp/engine/runtime_eval governance-service/runtime_eval
 
       - name: Install engine service deps
         run: pip install -r governance-service/requirements.txt

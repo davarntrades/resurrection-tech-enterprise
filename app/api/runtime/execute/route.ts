@@ -37,11 +37,17 @@ export async function POST(req: NextRequest) {
   const result = await (rt.executionAdapters as any).governAndExecute({
     auth, trajectory: body.trajectory, domains: body.domains, horizon: body.horizon,
     label: body.label, agent: body.agent, adapter: body.adapter,
-    adapterConfig: body.adapter_config || {}, context: body.context || {},
+    // Adapter configuration is server-side only (RUNTIME_EXECUTION_TARGETS):
+    // the caller names a registered target. A caller-supplied adapter_config
+    // is passed through only so governAndExecute can refuse it explicitly.
+    adapterConfig: body.adapter_config || {}, executionTarget: body.execution_target,
+    context: body.context || {},
     correlationId: body.correlation_id, requestId: req.headers.get("x-request-id") || undefined,
     idempotencyKey: body.idempotency_key,
   });
   const status = result.ok || ["BLOCK", "ESCALATE"].includes(result.verdict) ? 200
-    : result.error?.code === "UNKNOWN_ADAPTER" || result.error?.code === "INVALID_ADAPTER_CONFIGURATION" ? 400 : 502;
+    : ["UNKNOWN_ADAPTER", "INVALID_ADAPTER_CONFIGURATION", "CALLER_ADAPTER_CONFIG_REFUSED",
+       "UNKNOWN_EXECUTION_TARGET", "EXECUTION_TARGET_ADAPTER_MISMATCH"].includes(result.error?.code) ? 400
+    : ["EXECUTION_DISABLED", "ENFORCEMENT_INACTIVE", "ADAPTER_NOT_ALLOWED"].includes(result.error?.code) ? 409 : 502;
   return NextResponse.json(result, { status, headers: { "cache-control": "no-store" } });
 }
