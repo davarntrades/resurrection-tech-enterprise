@@ -1,0 +1,72 @@
+{
+ "before": {
+  "info": 0,
+  "low": 4,
+  "moderate": 10,
+  "high": 8,
+  "critical": 1,
+  "total": 23
+ },
+ "after": {
+  "info": 0,
+  "low": 4,
+  "moderate": 8,
+  "high": 1,
+  "critical": 0,
+  "total": 13
+ },
+ "remaining": {
+  "@react-email/render": {
+   "severity": "low",
+   "direct": false
+  },
+  "@typescript-eslint/eslint-plugin": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "@typescript-eslint/parser": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "@typescript-eslint/type-utils": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "@typescript-eslint/typescript-estree": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "@typescript-eslint/utils": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "deepmerge": {
+   "severity": "low",
+   "direct": false
+  },
+  "eslint-config-next": {
+   "severity": "moderate",
+   "direct": true
+  },
+  "html-to-text": {
+   "severity": "low",
+   "direct": false
+  },
+  "minimatch": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "resend": {
+   "severity": "low",
+   "direct": true
+  },
+  "typescript-eslint": {
+   "severity": "moderate",
+   "direct": false
+  },
+  "zod": {
+   "severity": "high",
+   "direct": true
+  }
+ }
+}
