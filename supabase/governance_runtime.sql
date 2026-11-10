@@ -480,3 +480,11 @@ alter table public.rg_engagements        enable row level security;
 -- Make newly-added columns immediately visible to PostgREST after an
 -- idempotent re-application of this canonical schema file.
 notify pgrst, 'reload schema';
+
+-- Explicit observation/enforcement metadata emitted by the runtime gateway.
+-- Apply to the actual production database before activating this release.
+alter table public.rg_decisions add column if not exists shadow_observed_only boolean default false;
+alter table public.rg_decisions add column if not exists mode_source text;
+alter table public.rg_decisions add column if not exists enforcement_active boolean;
+alter table public.rg_decisions add column if not exists would_be_verdict text;
+alter table public.rg_decisions add column if not exists evaluation_failed boolean default false;

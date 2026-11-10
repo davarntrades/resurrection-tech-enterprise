@@ -20,3 +20,9 @@ test('other providers keep exact allowlist checks', () => {
   assert.equal(modelSelectable({ ...provider, provider: 'anthropic' }, 'org/live'), true);
   assert.equal(modelSelectable({ ...provider, provider: 'anthropic' }, ''), false);
 });
+test('OpenAI requires exact account availability, never configuration alone', () => {
+ const openai={...provider,provider:'openai'};
+ assert.equal(modelSelectable(openai,'org/live'),true);
+ assert.equal(modelSelectable(openai,'org/dead'),false);
+ assert.equal(modelSelectable({...openai,model_availability:undefined},'org/live'),false);
+});

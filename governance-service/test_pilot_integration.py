@@ -178,3 +178,9 @@ def test_boundary_scenarios_endpoint(monkeypatch, session_store):
     assert session_store.get(body["session"]["session_id"]) is not None
     unauth = client.post("/v1/frontier/boundary")
     assert unauth.status_code in (401, 403)
+
+
+def test_full_trajectory_binding_includes_non_deciding_steps():
+    one = govern([DROP, BENIGN])
+    two = govern([DROP, {**BENIGN, 'args': {'text': 'different context'}}])
+    assert one['trajectory_hash'] != two['trajectory_hash']

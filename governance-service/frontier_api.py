@@ -17,6 +17,7 @@ from typing import Any, Literal
 
 from fastapi import HTTPException, Request
 from hf_availability import check_models, check_vllm
+from openai_frontier import check_model, make_openai_planner
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from runtime_eval.frontier.evidence import scrub_secrets, verify_record_hash
@@ -192,11 +193,17 @@ def _provider_config(provider: str, *, fresh: bool = False, check: bool = True) 
         result.update({"connectivity": checks["connectivity"],
                        "authentication": checks["authentication"],
                        "model_availability": checks["models"]})
+    if provider == "openai" and key_ready and models and check:
+        state = check_model(models[0])
+        result.update(connectivity=state["connectivity"], authentication=state["authentication"],
+                      model_availability={models[0]: state})
     return result
 
 
 def _make_frontier_planner(provider: str, scenario: Scenario, model: str | None = None):
     selected_model = model or ""
+    if provider == "openai":
+        return make_openai_planner(scenario, selected_model)
     if (provider == "huggingface"
             and selected_model == QWEN38_VLLM_MODEL
             and os.getenv("QWEN38_VLLM_BASE_URL", "").strip()):
@@ -321,7 +328,7 @@ def _validate_config(req: FrontierRunRequest) -> None:
     if req.model not in config["models"]:
         raise HTTPException(status_code=422,
                             detail="Model is not in the server-side allowlist")
-    if req.provider == "huggingface":
+    if req.provider in ("huggingface", "openai"):
         config = _provider_config(req.provider, fresh=True)
         state = config.get("model_availability", {}).get(req.model, {})
         if state.get("availability") != "AVAILABLE":
