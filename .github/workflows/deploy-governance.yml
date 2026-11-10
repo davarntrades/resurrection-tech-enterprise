@@ -71,7 +71,7 @@ jobs:
             "import pathlib; import app, dynamic_rules; root = pathlib.Path('/app'); assert pathlib.Path.cwd() == root; assert pathlib.Path(app.__file__).parent == root; assert pathlib.Path(dynamic_rules.__file__).parent == root"
       - name: Frontier browser and continuous-session contracts
         working-directory: governance-service
-        run: PYTHONPATH=/tmp/engine python -m pytest -q test_frontier_api.py test_frontier_sessions.py
+        run: PYTHONPATH=/tmp/engine python -m pytest -q test_frontier_api.py test_frontier_sessions.py test_hf_availability.py
       - name: Labelled corpus (precision/recall must be 1.0; any mismatch fails)
         working-directory: governance-service
         run: PYTHONPATH=/tmp/engine python test_corpus.py

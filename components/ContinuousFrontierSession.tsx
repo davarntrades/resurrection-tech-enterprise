@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { FrontierConfig } from "@/components/FrontierLabClient";
+import { modelSelectable } from "@/lib/frontier-availability";
 import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
 import type { GovernedResult } from "@/lib/governed-result";
 import RegulatoryExposureCard from "@/components/RegulatoryExposureCard";
@@ -28,7 +29,7 @@ const LABELS: Record<Mode, string> = { shadow: "SHADOW MODE", guarded_pilot: "GU
 const FINAL = new Set(["completed", "stopped", "terminated", "failed"]);
 
 export default function ContinuousFrontierSession({ config }: { config: FrontierConfig }) {
-  const firstReady = config.providers.find((entry) => entry.status === "READY") || config.providers[0];
+  const firstReady = config.providers.find((entry) => entry.status !== "NOT_CONFIGURED") || config.providers[0];
   const [provider, setProvider] = useState(firstReady?.provider || "anthropic");
   const selectedProvider = config.providers.find((entry) => entry.provider === provider);
   const [model, setModel] = useState(firstReady?.models?.[0] || "");
@@ -82,6 +83,7 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
   }, [activeSessionId, activeSessionStatus]);
 
   const start = async () => {
+    if (!modelSelectable(selectedProvider, model)) return;
     setBusy(true); setError(""); setSession(null);
     const parsedTurnover = Number(turnover);
     const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, objective, mode, domain, max_steps: maxSteps, max_runtime_s: maxRuntime, block_behavior: "return_denial_and_replan", safety_boundary_mutation: boundaryMutation, organization_profile: {
@@ -120,7 +122,8 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
       <div className="flab-panel flab-controls">
         <div className="flab-section-title">Continuous session configuration</div>
         <label>Provider<select value={provider} onChange={(event) => { const next = event.target.value as typeof provider; setProvider(next); setModel(config.providers.find((item) => item.provider === next)?.models?.[0] || ""); }}>{config.providers.map((item) => <option key={item.provider} value={item.provider}>{item.provider} · {item.status}</option>)}</select></label>
-        <label>Model<select value={model} onChange={(event) => setModel(event.target.value)}>{selectedProvider?.models.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <p className="flab-pending">Connectivity: {selectedProvider?.connectivity || "NOT_VERIFIED"} · Inference: {selectedProvider?.inference || "NOT_VERIFIED"}. {selectedProvider?.model_availability?.[model]?.reason}</p>
+        <label>Model<select value={model} onChange={(event) => setModel(event.target.value)}>{selectedProvider?.models.map((item) => <option key={item} disabled={!modelSelectable(selectedProvider, item)}>{item}</option>)}</select></label>
         <label>Governance mode<select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>{(config.session_modes || []).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <div className={`flab-mode-note ${mode}`}><strong>{LABELS[mode]}</strong><span>{modeDescription}</span></div>
         <label>Governance domain<select value={domain} onChange={(event) => setDomain(event.target.value)}>{config.domains.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -141,7 +144,7 @@ export default function ContinuousFrontierSession({ config }: { config: Frontier
           <div className="flab-inline"><label>EU AI Act classification<select value={aiActClass} onChange={(event) => setAiActClass(event.target.value)}><option value="unknown">Unknown</option><option value="high_risk">High-risk (configured)</option><option value="prohibited">Prohibited practice (configured)</option><option value="not_applicable">Not applicable</option></select></label><label>EU AI Act context tier<select value={aiActTier} onChange={(event) => setAiActTier(event.target.value)}><option value="unknown">Unknown</option><option value="prohibited_practice">Prohibited practice</option><option value="other_obligation">Other obligation</option><option value="incorrect_information">Incorrect information</option></select></label></div>
           <label>EU AI Act SME classification<select value={aiActSme} onChange={(event) => setAiActSme(event.target.value)}><option value="unknown">Unknown</option><option value="true">SME (configured)</option><option value="false">Not an SME (configured)</option></select></label>
         </details>
-        <button className="flab-run" disabled={busy || !!running || selectedProvider?.status !== "READY" || !objective.trim() || (custom && (!customTask.trim() || !customContent.trim()))} onClick={start}>{busy ? "STARTING…" : "START SESSION"}</button>
+        <button className="flab-run" disabled={busy || !!running || !modelSelectable(selectedProvider, model) || !objective.trim() || (custom && (!customTask.trim() || !customContent.trim()))} onClick={start}>{busy ? "STARTING…" : "START SESSION"}</button>
         {error && <div className="flab-error"><strong>FAIL CLOSED</strong>{error}<span>Protected execution reached: NO</span></div>}
       </div>
       <div className="flab-stack">

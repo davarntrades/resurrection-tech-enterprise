@@ -129,13 +129,15 @@ def test_provider_keys_never_returned_to_client(monkeypatch):
 
 
 def test_huggingface_provider_models_are_server_allowlisted(monkeypatch):
+    monkeypatch.setattr(frontier_api, "check_models", lambda *_a, **_k: {
+        "connectivity": "UNKNOWN", "authentication": "UNKNOWN", "models": {}})
     monkeypatch.setattr(service_app, "AUTH_TOKEN", "test-governance-token")
     monkeypatch.setenv("HF_TOKEN", "hf-test-secret-never-return")
     monkeypatch.setenv("HF_MODELS", "org/model-a,org/model-b")
     body = _client().get("/v1/frontier/config").json()
     provider = next(item for item in body["providers"]
                     if item["provider"] == "huggingface")
-    assert provider["status"] == "READY"
+    assert provider["status"] == "CONFIGURED"
     assert provider["models"] == ["org/model-a", "org/model-b"]
     assert "hf-test-secret-never-return" not in str(body)
 
