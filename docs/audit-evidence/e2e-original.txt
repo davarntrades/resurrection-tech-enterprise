@@ -1,0 +1,28 @@
+  ✓ enforce: a destructive step after a benign one is BLOCKed and nothing executes
+  ✓ enforce: a benign read is decided by the engine; it executes only if ALLOW was recorded
+  ✓ shadow: the caller is not interrupted, the would-be BLOCK is reported, and nothing executes
+  ✗ trajectory binding: the same deciding action after different prefixes has different trajectory hashes
+      Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'morrison.trajectory.v1'
+
+  ✗ persisted rows carry shadow_observed_only, binding hashes and a record MAC
+      row null persisted
+  ✗ replay of every recorded decision is deterministic and hash-matched
+      null: {"ok":false,"error":"decision not found"}
++ actual - expected
+
++ undefined
+- true
+
+  ✗ the decision chain read back from timestamptz verifies, keyed
+      Expected values to be strictly equal:
++ actual - expected
+
++ 'INTEGRITY_CHECKED'
+- 'KEYED_VERIFIED'
+
+
+Production-equivalent e2e (local engine + disposable DB, not hosted production): 3 passed, 4 failed

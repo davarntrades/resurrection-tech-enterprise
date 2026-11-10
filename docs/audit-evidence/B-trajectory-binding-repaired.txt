@@ -1,0 +1,16 @@
+ERROR    governance.service:app.py:452 GOVERNANCE DEGRADED — missing GOVERNANCE_APPROVAL_KEY, GOVERNANCE_EVIDENCE_KEY, GOVERNANCE_GATEWAY_SECRET. GOVERNANCE_APPROVAL_KEY: verifies approval artifacts. Absent → approval verification is DISABLED and no approval-based PERMIT can be produced (fail-closed): every approvable capability escalates and legitimate work stalls.; GOVERNANCE_EVIDENCE_KEY: seals the evidence chain. Absent → falls back to the approval key, so the key sealing the audit trail is the key minting approvals; if it is also absent, records are hash-chained but unsigned.; GOVERNANCE_GATEWAY_SECRET: authenticates the identity headers. Absent → x-governance-principal and x-governance-tenant are believed unverified, so any caller holding GOVERNANCE_TOKEN can impersonate any principal or tenant.
+PASSED test_trajectory_hash_binding.py::test_reproduction_same_deciding_step_different_history
+PASSED test_trajectory_hash_binding.py::test_reproduction_all_permitted_trajectories_differing_after_the_first_step
+PASSED test_trajectory_hash_binding.py::test_material_trajectory_changes_change_the_hash[left0-right0]
+PASSED test_trajectory_hash_binding.py::test_material_trajectory_changes_change_the_hash[left1-right1]
+PASSED test_trajectory_hash_binding.py::test_material_trajectory_changes_change_the_hash[left2-right2]
+PASSED test_trajectory_hash_binding.py::test_material_trajectory_changes_change_the_hash[left3-right3]
+PASSED test_trajectory_hash_binding.py::test_material_trajectory_changes_change_the_hash[left4-right4]
+PASSED test_trajectory_hash_binding.py::test_hash_is_stable_across_repeats_key_order_and_restart
+PASSED test_trajectory_hash_binding.py::test_replay_endpoint_reports_the_same_trajectory_identity
+PASSED test_trajectory_hash_binding.py::test_trajectory_hash_is_recomputable_from_the_evaluated_steps
+PASSED test_trajectory_hash_binding.py::test_deciding_action_hash_keeps_the_old_value_under_an_honest_name
+PASSED test_trajectory_hash_binding.py::test_trajectory_identity_is_independent_of_who_asked_but_the_decision_binding_is_not
+PASSED test_trajectory_hash_binding.py::test_policy_context_changes_the_decision_binding
+PASSED test_trajectory_hash_binding.py::test_decision_binding_is_recomputable_from_the_response
+14 passed, 1 warning in 0.82s

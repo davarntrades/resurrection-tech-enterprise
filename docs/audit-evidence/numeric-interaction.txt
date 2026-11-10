@@ -1,0 +1,46 @@
+# Isolated run: fresh principal per request, freshly started engines; two consecutive runs identical.
+# Ports: 8787 = governance-service on engine f25d300; 8788 = same service on f25d300 + 6e6205d (scratch, unpushed).
+
+ tool=transfer_funds
+ amount                   | f25d300 (pinned)                          | f25d300 + numeric fix (scratch)
+ 50                       | ESCALATE undeclared_tool          auto=None| ESCALATE undeclared_tool          auto=None
+ 500 (<= auto cap 1000)   | ESCALATE undeclared_tool          auto=None| ESCALATE undeclared_tool          auto=None
+ 1e9                      | ESCALATE excessive_amount         auto=None| ESCALATE excessive_amount         auto=None
+ '1000000000'             | BLOCK    TypeError→fail_closed    auto=None| ESCALATE excessive_amount         auto=None
+ '1,000,000,000'          | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ -1e9                     | ESCALATE payment.move_funds       auto=None| ESCALATE excessive_amount         auto=None
+ -5                       | ESCALATE payment.move_funds       auto=None| ESCALATE payment.move_funds       auto=None
+ 0                        | ESCALATE payment.move_funds       auto=None| ESCALATE payment.move_funds       auto=None
+ true                     | ESCALATE payment.move_funds       auto=None| BLOCK    malformed_amount         auto=None
+ false                    | ESCALATE payment.move_funds       auto=None| BLOCK    malformed_amount         auto=None
+ 'abc'                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ null                     | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ 'NaN'                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ 'Infinity'               | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ '1e9'                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ '1e2'                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ '500'                    | BLOCK    TypeError→fail_closed    auto=None| ESCALATE undeclared_tool          auto=None
+ [1e9]                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ {value:1e9}              | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+
+ tool=send_payment
+ amount                   | f25d300 (pinned)                          | f25d300 + numeric fix (scratch)
+ 50                       | PERMIT   V4                       auto=None| PERMIT   V4                       auto=None
+ 500 (<= auto cap 1000)   | PERMIT   V4                       auto=None| PERMIT   V4                       auto=None
+ 1e9                      | ESCALATE unauthorized_transfer    auto=None| ESCALATE unauthorized_transfer    auto=None
+ '1000000000'             | BLOCK    unauthorized_transfer    auto=None| ESCALATE unauthorized_transfer    auto=None
+ '1,000,000,000'          | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ -1e9                     | ESCALATE unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ -5                       | ESCALATE unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ 0                        | ESCALATE unauthorized_transfer    auto=None| ESCALATE unauthorized_transfer    auto=None
+ true                     | ESCALATE unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ false                    | ESCALATE unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ 'abc'                    | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ null                     | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ 'NaN'                    | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ 'Infinity'               | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ '1e9'                    | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ '1e2'                    | BLOCK    TypeError→fail_closed    auto=None| BLOCK    malformed_amount         auto=None
+ '500'                    | BLOCK    TypeError→fail_closed    auto=None| PERMIT   V4                       auto=None
+ [1e9]                    | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
+ {value:1e9}              | BLOCK    unauthorized_transfer    auto=None| BLOCK    malformed_amount         auto=None
