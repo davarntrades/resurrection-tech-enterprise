@@ -35,6 +35,7 @@ from pydantic import BaseModel, Field
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.result import GovernanceResult
 from morrison_governance.kernel import GovernanceKernel
+from morrison_governance.kernel.canonical import action_hash as canonical_action_hash
 from morrison_governance.kernel.evidence import ruleset_hash as logic_ruleset_hash
 from morrison_governance.kernel.hierarchy import audit_hierarchy
 from morrison_governance.kernel.attestation import AnchorLog
@@ -122,6 +123,52 @@ def _attestation(layer, horizon: int) -> dict:
         "service_version": SERVICE_VERSION,
         "horizon": horizon,
     }
+# ── Evidence binding (docs/EVIDENCE-BINDING.md) ────────────────────────────
+# `trajectory_hash` used to be the canonical action hash of the single DECIDING
+# step on /v1/govern, and the engine's own 16-hex state/trajectory hash on
+# /v1/evaluate. Different trajectories sharing a deciding step therefore shared
+# a "trajectory" hash, and the gateway's replay compared two unrelated values.
+#
+# trajectory_hash        WHAT was evaluated: every step, in order, by its
+#                        canonical action hash (tool + canonical args). Same on
+#                        every endpoint, across key order and restarts, and
+#                        independent of who asked or under which policy.
+# decision_binding_hash  THIS decision about it: the trajectory hash plus
+#                        principal, tenant, identity source, domains, horizon,
+#                        ruleset hash, engine commit and every verdict.
+TRAJECTORY_HASH_SCHEMA = "morrison.trajectory.v1"
+DECISION_BINDING_SCHEMA = "morrison.decision-binding.v1"
+
+
+def _sha256_json(payload: Any) -> str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def _trajectory_identity(steps: list[dict]) -> str:
+    return _sha256_json({
+        "schema": TRAJECTORY_HASH_SCHEMA,
+        "action_hashes": [canonical_action_hash({"tool": s.get("tool"), "args": s.get("args") or {}})
+                          for s in steps],
+    })
+
+
+def _decision_binding(trajectory_hash: str, principal: str, tenant: str, identity_source: str,
+                      domains: Optional[list[str]], horizon: int, attestation: dict,
+                      step_verdicts: list, strictest_verdict: Optional[str]) -> dict:
+    return {
+        "schema": DECISION_BINDING_SCHEMA,
+        "trajectory_hash": trajectory_hash,
+        "principal": principal, "tenant": tenant, "identity_source": identity_source,
+        "domains": sorted(domains) if domains else None,
+        "horizon": horizon,
+        "ruleset_hash": attestation.get("ruleset_hash"),
+        "engine_commit": attestation.get("engine_commit"),
+        "step_verdicts": list(step_verdicts),
+        "strictest_verdict": strictest_verdict,
+    }
+
+
 EVAL_TIMEOUT_S = float(os.getenv("GOVERNANCE_EVAL_TIMEOUT_S", "4.0"))
 MAX_STEPS = int(os.getenv("GOVERNANCE_MAX_STEPS", "25"))
 AUTH_TOKEN = os.getenv("GOVERNANCE_TOKEN", "")  # if set, require Bearer token
@@ -650,6 +697,11 @@ async def evaluate(req: EvaluateRequest, request: Request) -> JSONResponse:
         raise _eval_error(exc, "evaluate_plan")
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    # Same trajectory identity as /v1/govern, so a governed decision can be
+    # replayed here and compared. The engine's own value is kept, labelled.
+    body["engine_trajectory_hash"] = body.get("trajectory_hash")
+    body["trajectory_hash"] = _trajectory_identity(steps)
+    body["trajectory_hash_schema"] = TRAJECTORY_HASH_SCHEMA
     body["trusted_facts"] = {"accepted": sorted(trusted_facts),
                              "count": len(trusted_facts),
                              "source": trusted_facts_source}
@@ -852,6 +904,13 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         values = [r.get(key) or "PERMIT" for r in decisions]
         return max(values, key=lambda v: _rank.get(v, 2)) if values else None
     integrity = kernel.integrity()
+    steps = [s.model_dump() for s in req.trajectory]
+    horizon = req.horizon or HORIZON
+    attestation = _attestation(_layer_for(req.domains, horizon), horizon)
+    trajectory_hash = _trajectory_identity(steps)
+    binding = _decision_binding(trajectory_hash, principal, tenant, identity_source, req.domains,
+                                horizon, attestation, [r.get("verdict") for r in decisions],
+                                strictest_verdict)
     # The top-level fields mirror GovernanceResult.to_dict() so the existing
     # Next.js adapter (lib/governance-client.ts) consumes this endpoint without
     # a shape change — the surfaces get kernel enforcement for free.
@@ -869,7 +928,11 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         "layer": terminal.get("layer", ""),
         "reason": terminal.get("reason", ""),
         "omega_domain": terminal.get("omega_domain"),
-        "trajectory_hash": terminal.get("action_hash", ""),
+        "trajectory_hash": trajectory_hash,
+        "trajectory_hash_schema": TRAJECTORY_HASH_SCHEMA,
+        "deciding_action_hash": terminal.get("action_hash", ""),
+        "decision_binding_hash": _sha256_json(binding),
+        "binding": binding,
         "reachability_distance": None,
         "metadata": {
             "rule": terminal.get("rule"),
@@ -901,9 +964,8 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
             "eval_number": len(decisions),
         },
         "decisions": decisions,
-        "steps": [s.model_dump() for s in req.trajectory],
-        "attestation": _attestation(_layer_for(req.domains, req.horizon or HORIZON),
-                                    req.horizon or HORIZON),
+        "steps": steps,
+        "attestation": attestation,
         "evidence": {
             # `verified` is kept for existing consumers; it is the writer's
             # self-check of an in-memory chain, which `status` names honestly.
