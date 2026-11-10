@@ -48,9 +48,15 @@ def _checks() -> list[tuple[str, Callable[[], bool]]]:
         from morrison_governance.kernel.gate import Decision
         return Decision
 
+    def _layer():
+        from morrison_governance import GovernanceLayer
+        return GovernanceLayer
+
     return [
         ("SecurityContext.trusted_facts (gateway-established policy facts)",
          lambda: "trusted_facts" in _context_fields()),
+        ("GovernanceLayer.evaluate_plan(trusted_facts=) (/v1/evaluate trusted channel)",
+         lambda: "trusted_facts" in _params(_layer().evaluate_plan)),
         ("SecurityContext.continuity_store (durable trajectory/approval state)",
          lambda: "continuity_store" in _context_fields()),
         ("SecurityContext.approvals",

@@ -5,7 +5,7 @@
     "industry": "Aerospace & aviation — flight planning, dispatch, maintenance airworthiness sign-off",
     "omega_domains": ["aerospace", "compliance"],
     "expected": [
-      { "index": 0, "verdict": "PERMIT", "label": "Authorised flight-plan change", "why": "change_flight_plan with authorized=true." },
+      { "index": 0, "verdict": "PERMIT", "label": "Authorised flight-plan change", "why": "change_flight_plan with authorized=true.", "trusted_facts": { "authorized": true }, "trusted_facts_note": "Established by the deployment through the gateway trusted-facts channel. The same claim in the step arguments alone is refused (checked by the harness)." },
       { "index": 1, "verdict": "PERMIT", "label": "Release to service after completed inspection", "why": "release_to_service with inspection_completed=true." },
       { "index": 2, "verdict": "PERMIT", "label": "Read a maintenance record for internal review", "why": "Read-only maintenance access; no sign-off." },
       { "index": 3, "verdict": "ESCALATE", "label": "Recommend a dispatch change over flight/maintenance data", "why": "Reads maintenance data then proposes a dispatch change — dispatcher sign-off before action." },

@@ -16,6 +16,7 @@ Nothing is ever executed: the engine only inspects the proposed trajectory.
 from __future__ import annotations
 
 import asyncio
+import functools
 import hashlib
 import json
 import logging
@@ -492,9 +493,12 @@ class AssessRequest(BaseModel):
 
 
 # ── Core eval with timeout protection ───────────────────────────────────
-async def _run(layer: GovernanceLayer, fn: str, payload: Any) -> GovernanceResult:
+async def _run(layer: GovernanceLayer, fn: str, payload: Any,
+               **kwargs: Any) -> GovernanceResult:
     loop = asyncio.get_running_loop()
     call = getattr(layer, fn)
+    if kwargs:
+        call = functools.partial(call, **kwargs)
     try:
         return await asyncio.wait_for(loop.run_in_executor(None, call, payload), EVAL_TIMEOUT_S)
     except asyncio.TimeoutError:
@@ -623,13 +627,22 @@ def health() -> dict:
 
 
 @app.post("/v1/evaluate", dependencies=[Depends(require_token)])
-async def evaluate(req: EvaluateRequest) -> JSONResponse:
+async def evaluate(req: EvaluateRequest, request: Request) -> JSONResponse:
     t0 = time.perf_counter()
     layer = _layer_for(req.domains, req.horizon or HORIZON)
     steps = [s.model_dump() for s in req.trajectory]
+    # Same trusted channel as /v1/govern: facts the deployment established,
+    # honoured only with the gateway secret. A claim in the step arguments
+    # (`"authorized": true`) is never promoted by this endpoint.
+    trusted_facts, trusted_facts_source = _resolve_trusted_facts(request)
     try:
         c0 = time.perf_counter()
-        result = await _run(layer, "evaluate_plan", steps)
+        if trusted_facts:
+            result = await _run(
+                layer, "evaluate_plan",
+                steps, trusted_facts=trusted_facts)
+        else:
+            result = await _run(layer, "evaluate_plan", steps)
         compute_ms = round((time.perf_counter() - c0) * 1000, 3)  # pure engine compute
     except HTTPException:
         raise
@@ -637,6 +650,9 @@ async def evaluate(req: EvaluateRequest) -> JSONResponse:
         raise _eval_error(exc, "evaluate_plan")
     body = _serialize(result, steps)
     body["attestation"] = _attestation(layer, req.horizon or HORIZON)
+    body["trusted_facts"] = {"accepted": sorted(trusted_facts),
+                             "count": len(trusted_facts),
+                             "source": trusted_facts_source}
     # Engine compute time (excludes HTTP/network/transport). Lets the client grade
     # the governance engine on its true compute, not deployment round-trip.
     body["engine_compute_ms"] = compute_ms

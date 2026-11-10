@@ -72,7 +72,12 @@ const eq = (g, w, m) => ok(JSON.stringify(g) === JSON.stringify(w), `${m} — ex
   const safe = await rt.gateway.govern({ auth: authShadow, trajectory: [{ tool: "read_account", args: {} }], domains: ["finance"], label: "read" });
   const bad = await rt.gateway.govern({ auth: authShadow, trajectory: [{ tool: "transfer_funds", args: { destination_account: "attacker" } }], domains: ["finance"], label: "wire" });
   eq(safe.verdict, "ALLOW", "shadow: safe trajectory ALLOW");
-  eq(bad.verdict, "BLOCK", "shadow: catastrophic trajectory is BLOCKED, not observed-and-allowed");
+  // Shadow is observe-only: the customer's call is never interrupted, and the
+  // verdict enforcement WOULD have applied is recorded. Blocking is ENFORCE's
+  // job (below); a shadow that blocks is enforcement under another name.
+  eq(bad.verdict, "ALLOW", "shadow: catastrophic trajectory observed, customer not interrupted");
+  eq(bad.would_be_verdict, "BLOCK", "shadow: would-be BLOCK recorded");
+  eq(bad.enforcement_active, false, "shadow: enforcement not active");
   eq(bad.engine_verdict, "BLOCK", "shadow: engine verdict recorded");
   eq(bad.shadow_observed_only, true, "shadow: run is marked observe-only for reporting");
   eq(bad.enforced, false, "shadow: not counted as enforced");

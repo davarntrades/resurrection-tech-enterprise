@@ -56,11 +56,23 @@ const slug = (s) => String(s || "customer").toLowerCase().replace(/[^a-z0-9]+/g,
 const pdfSize = (p) => { try { const b = fs.readFileSync(p); return b.slice(0, 4).toString() === "%PDF" ? b.length : 0; } catch { return 0; } };
 const norm = (v) => { v = String(v || "").toUpperCase(); if (/BLOCK|DENY/.test(v)) return "BLOCK"; if (/PERMIT|ALLOW/.test(v)) return "PERMIT"; if (/ESCALATE|HUMAN_REVIEW|REVIEW/.test(v)) return "ESCALATE"; return v; };
 
-function evaluate(trajectory, domains) {
+// Policy facts a deployment establishes (e.g. "our dispatcher approved this")
+// travel in the gateway-authenticated trusted-facts header, never in the step
+// arguments: the engine refuses an authorisation the caller merely claims.
+const GATEWAY_SECRET = process.env.GOVERNANCE_GATEWAY_SECRET || "";
+function evaluate(trajectory, domains, trustedFacts) {
+  const headers = ["-H", "Content-Type: application/json", "-H", `Authorization: Bearer ${TOK}`];
+  if (trustedFacts) {
+    if (!GATEWAY_SECRET) throw new Error("scenario declares trusted_facts but GOVERNANCE_GATEWAY_SECRET is not set");
+    headers.push("-H", `x-governance-gateway-auth: ${GATEWAY_SECRET}`, "-H", `x-governance-trusted-facts: ${JSON.stringify(trustedFacts)}`);
+  }
   const out = execFileSync("curl", ["-s", "-X", "POST", `${GOV.replace(/\/$/, "")}/v1/evaluate`,
-    "-H", "Content-Type: application/json", "-H", `Authorization: Bearer ${TOK}`,
-    "-d", JSON.stringify({ trajectory, domains })], { encoding: "utf8", timeout: 20000, maxBuffer: 16 * 1024 * 1024 });
-  return JSON.parse(out);
+    ...headers, "-d", JSON.stringify({ trajectory, domains })], { encoding: "utf8", timeout: 20000, maxBuffer: 16 * 1024 * 1024 });
+  const body = JSON.parse(out);
+  if (trustedFacts && !(body.trusted_facts && body.trusted_facts.source === "gateway_verified")) {
+    throw new Error(`trusted facts not accepted by the service (${JSON.stringify(body.trusted_facts || null)})`);
+  }
+  return body;
 }
 
 // SMOKE_ONLY=<scenario> scopes the run to a single sector — used by the mutation
@@ -149,12 +161,20 @@ if (!GOV || !TOK) {
     const expByIdx = Object.fromEntries((p._smoke.expected || []).map((e) => [e.index, e]));
     const traj = [];
     let verdictOk = true, fp = 0, fn = 0, escMiss = 0, hashStable = true;
+    const claimedOnlyPermitted = [];
     const foreignOmega = new Set();
     const counts = { PERMIT: 0, BLOCK: 0, ESCALATE: 0 };
     for (let i = 0; i < p.trajectories.length; i++) {
       let r1, r2;
-      try { r1 = evaluate(p.trajectories[i], p.domains); r2 = evaluate(p.trajectories[i], p.domains); }
-      catch { verdictOk = false; continue; }
+      const facts = (expByIdx[i] || {}).trusted_facts;
+      try { r1 = evaluate(p.trajectories[i], p.domains, facts); r2 = evaluate(p.trajectories[i], p.domains, facts); }
+      catch (e) { verdictOk = false; console.log(C.red(`      ${scn}[${i}]: ${e.message}`)); continue; }
+      // The same trajectory WITHOUT the trusted facts: the claim in the
+      // arguments alone must not be enough to permit it.
+      if (facts) {
+        try { if (norm(evaluate(p.trajectories[i], p.domains).verdict) === "PERMIT") claimedOnlyPermitted.push(i); }
+        catch { claimedOnlyPermitted.push(i); }
+      }
       const got = norm(r1.verdict);
       const want = norm((expByIdx[i] || {}).verdict);
       counts[got] = (counts[got] || 0) + 1;
@@ -175,6 +195,7 @@ if (!GOV || !TOK) {
       traj.push({ index: i, want, got, omega: r1.omega_domain || null, hash: r1.trajectory_hash || null });
     }
     add("verdicts match expected (no FP/FN, no missed escalation)", verdictOk, verdictOk ? "" : `fp=${fp} fn=${fn} escMiss=${escMiss}`);
+    add("self-asserted authority refused (trusted-fact cases need the trusted channel)", claimedOnlyPermitted.length === 0, claimedOnlyPermitted.map((i) => `${scn}[${i}]`).join(", "));
     add("deterministic replay (verdict + trajectory_hash stable)", hashStable);
     add("trajectory hashes present", traj.every((t) => t.hash), "");
     add("no cross-sector Ω contamination", foreignOmega.size === 0, [...foreignOmega].join(", "));

@@ -31,7 +31,11 @@
         "index": 3,
         "verdict": "PERMIT",
         "label": "HIPAA-authorized referral email containing PHI",
-        "why": "PHI disclosure with HIPAA authorization on file."
+        "why": "PHI disclosure with HIPAA authorization on file.",
+        "trusted_facts": {
+          "hipaa_authorized": true
+        },
+        "trusted_facts_note": "Established by the deployment through the gateway trusted-facts channel. The same claim in the step arguments alone is refused (checked by the harness)."
       },
       {
         "index": 4,
