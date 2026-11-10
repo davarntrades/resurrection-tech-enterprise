@@ -16,6 +16,7 @@ from collections import defaultdict, deque
 from typing import Any, Literal
 
 from fastapi import HTTPException, Request
+from hf_availability import check_models, check_vllm
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from runtime_eval.frontier.evidence import scrub_secrets, verify_record_hash
@@ -164,20 +165,34 @@ class RegulatoryContextRequest(BaseModel):
         return self
 
 
-def _provider_config(provider: str) -> dict[str, Any]:
+def _provider_config(provider: str, *, fresh: bool = False, check: bool = True) -> dict[str, Any]:
     key_env, model_env = PROVIDER_ENV[provider]
     key_ready = bool(os.getenv(key_env))
     configured = os.getenv(model_env, "").strip()
     models = ([item.strip() for item in configured.split(",") if item.strip()]
               if provider == "huggingface" else ([configured] if configured else []))
-    return {
+    result = {
         "provider": provider,
-        "status": "READY" if key_ready and models else "NOT_CONFIGURED",
+        "status": "CONFIGURED" if key_ready and models else "NOT_CONFIGURED",
+        "connectivity": "NOT_VERIFIED",
+        "authentication": "NOT_VERIFIED",
+        "inference": "NOT_VERIFIED",
         "model": models[0] if models else None,
         "models": models,
         "missing": [name for name, ready in ((key_env, key_ready),
                                                (model_env, bool(models))) if not ready],
     }
+
+    if provider == "huggingface" and key_ready and models and check:
+        checks = check_models(models, os.environ[key_env], fresh=fresh)
+        if QWEN38_VLLM_MODEL in models and os.getenv("QWEN38_VLLM_BASE_URL", "").strip():
+            checks["models"][QWEN38_VLLM_MODEL] = check_vllm(
+                QWEN38_VLLM_MODEL, os.environ["QWEN38_VLLM_BASE_URL"],
+                os.getenv("QWEN38_VLLM_API_KEY") or os.environ[key_env])
+        result.update({"connectivity": checks["connectivity"],
+                       "authentication": checks["authentication"],
+                       "model_availability": checks["models"]})
+    return result
 
 
 def _make_frontier_planner(provider: str, scenario: Scenario, model: str | None = None):
@@ -297,8 +312,8 @@ def _validate_config(req: FrontierRunRequest) -> None:
     if req.runs > MAX_RUNS:
         raise HTTPException(status_code=422,
                             detail=f"Maximum {MAX_RUNS} trials per request")
-    config = _provider_config(req.provider)
-    if config["status"] != "READY":
+    config = _provider_config(req.provider, check=False)
+    if config["status"] == "NOT_CONFIGURED":
         raise HTTPException(status_code=503, detail={
             "error": "provider_not_configured", "provider": req.provider,
             "missing": config["missing"],
@@ -306,6 +321,16 @@ def _validate_config(req: FrontierRunRequest) -> None:
     if req.model not in config["models"]:
         raise HTTPException(status_code=422,
                             detail="Model is not in the server-side allowlist")
+    if req.provider == "huggingface":
+        config = _provider_config(req.provider, fresh=True)
+        state = config.get("model_availability", {}).get(req.model, {})
+        if state.get("availability") != "AVAILABLE":
+            raise HTTPException(status_code=503, detail={
+                "error": "model_unavailable", "provider": req.provider,
+                "model": req.model, "message": state.get("reason", "Availability unverified"),
+                "classification": "PROVIDER_ERROR", "morrison_verdict": "NOT_EXERCISED",
+                "execution_reached": False,
+            })
 
 
 def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
@@ -392,12 +417,20 @@ def _run_sync(req: FrontierRunRequest, scenario: Scenario) -> dict[str, Any]:
         "evidence_bundle_downloads": evidence_bundle_downloads,
         "evidence_report_downloads": evidence_report_downloads,
         "summary": summary,
-        "stages": [
-            "scenario_prepared", "frontier_model_called",
-            "tool_trajectory_proposed", "morrison_evaluated",
-            "governance_verdict_issued", "execution_gate_checked",
-            "evidence_sealed",
-        ],
+        # Observations are scoped to these records, never inferred from config.
+        "inference_observations": {
+            item.record["run_id"]: {
+                "status": "FAILED" if item.record.get("provider_error") else "SUCCEEDED",
+                "model": item.record["model"],
+                "morrison_exercised": bool(item.record.get("governance_decisions")),
+                "evidence_hash": item.record["experiment_record_hash"],
+            } for item in results
+        },
+        "stages": ["scenario_prepared", "frontier_model_called"] + (
+            ["tool_trajectory_proposed", "morrison_evaluated",
+             "governance_verdict_issued", "execution_gate_checked"]
+            if any(item.record.get("governance_decisions") for item in results) else []
+        ) + ["evidence_sealed"],
     })
 
 
@@ -477,7 +510,7 @@ def _record_single_run(record: dict[str, Any], projection, req) -> None:
 
 async def run_frontier(req: FrontierRunRequest, request: Request) -> dict[str, Any]:
     _rate_limit(request)
-    _validate_config(req)
+    await asyncio.to_thread(_validate_config, req)
     scenario = _resolve_scenario(req)
     try:
         return await asyncio.wait_for(

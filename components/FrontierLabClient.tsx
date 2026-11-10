@@ -6,8 +6,8 @@ import GovernedEvidencePanels from "@/components/GovernedEvidencePanels";
 import type { GovernedResult } from "@/lib/governed-result";
 import { evidenceLabel } from "@/lib/evidence-status";
 
-type ProviderName = "anthropic" | "openai" | "huggingface";
-type Provider = { provider: ProviderName; status: "READY" | "NOT_CONFIGURED"; model: string | null; models: string[]; missing: string[] };
+import { modelSelectable, type Provider } from "@/lib/frontier-availability";
+type ProviderName = Provider["provider"];
 type Scenario = { id: string; version: string; title: string; user_task: string; untrusted_content: string; untrusted_content_type: string; safe_control: boolean };
 type Tool = { name: string; description: string };
 export type FrontierConfig = { providers: Provider[]; scenarios: Scenario[]; domains: string[]; tools: Tool[]; limits: { max_runs: number; max_content_chars: number; max_task_chars: number; timeout_seconds: number; session_default_steps?: number; session_max_steps?: number; session_default_runtime_seconds?: number; session_max_runtime_seconds?: number }; session_modes?: Array<{ id: "shadow" | "guarded_pilot" | "enforced"; title: string; description: string }>; regulatory_profiles?: Array<{ framework_id: string; framework_name: string; jurisdiction: string; profile_version: string; source: { authority: string; name: string; reference: string; url: string }; source_last_verified: string }> };
@@ -38,7 +38,7 @@ type Summary = {
   provider_model_latency: { p50_ms: number; p95_ms: number };
   governance_latency: { p50_ms: number; p95_ms: number };
 };
-type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; evidence_bundle_downloads?: Record<string, string>; evidence_v2_downloads?: Record<string, string>; evidence_report_downloads?: Record<string, string>; governed_results?: Record<string, GovernedResult>; summary: Summary; stages: string[] };
+type RunResponse = { ok: true; provider: string; model: string; domain: string; scenario: Scenario; results: RecordRow[]; evidence_downloads?: Record<string, string>; evidence_bundle_downloads?: Record<string, string>; evidence_v2_downloads?: Record<string, string>; evidence_report_downloads?: Record<string, string>; governed_results?: Record<string, GovernedResult>; summary: Summary; stages: string[]; inference_observations?: Record<string, { status: string; model: string; morrison_exercised: boolean; evidence_hash: string }> };
 type HistoryItem = { id: string; timestamp: string; provider: string; model: string; scenario: string; classification: string; verdict: string; reached: boolean; contained: boolean | null; row: RecordRow; governedResult?: GovernedResult };
 
 const STAGES = [
@@ -104,7 +104,7 @@ export default function FrontierLabClient() {
     try {
       const data = await api("/api/frontier/config") as FrontierConfig;
       setConfig(data); setAuthed(true);
-      const firstReady = data.providers.find((item) => item.status === "READY");
+      const firstReady = data.providers.find((item) => item.status !== "NOT_CONFIGURED");
       if (firstReady) { setProvider(firstReady.provider); setModel(firstReady.models?.[0] || firstReady.model || ""); }
     } catch (e) {
       setAuthed((e as Error & { status?: number }).status === 401 ? false : true);
@@ -148,7 +148,7 @@ export default function FrontierLabClient() {
   };
 
   const runTest = async () => {
-    if (!model || selectedProvider?.status !== "READY") return;
+    if (!model || !modelSelectable(selectedProvider, model)) return;
     setBusy(true); setError(""); setResponse(null); setActiveTrial(0); setCompletedStages([]);
     try {
       const body: Record<string, unknown> = { provider, model, scenario_id: scenarioId, runs, domain, safety_boundary_mutation: boundaryMutation };
@@ -203,17 +203,20 @@ export default function FrontierLabClient() {
         <div className="flab-panel flab-controls">
           <div className="flab-section-title">Experiment configuration</div>
           <label>Provider<select value={provider} onChange={(e) => { const next = e.target.value as ProviderName; setProvider(next); const entry = config?.providers.find((item) => item.provider === next); setModel(entry?.models?.[0] || entry?.model || ""); }}>
-            {config?.providers.map((item) => <option key={item.provider} value={item.provider}>{pretty(item.provider)} · {item.status === "READY" ? "READY" : "NOT CONFIGURED"}</option>)}
+            {config?.providers.map((item) => <option key={item.provider} value={item.provider}>{pretty(item.provider)} · {item.status !== "NOT_CONFIGURED" ? "CONFIGURED" : "NOT CONFIGURED"}</option>)}
           </select></label>
-          <div className={`flab-health ${selectedProvider?.status === "READY" ? "ready" : "off"}`}><span>{pretty(provider)}</span><strong>{selectedProvider?.status === "READY" ? "READY" : "NOT CONFIGURED"}</strong></div>
-          <label>Model<select value={model} disabled={!selectedProvider?.models?.length} onChange={(e) => setModel(e.target.value)}>{selectedProvider?.models?.length ? selectedProvider.models.map((item) => <option key={item} value={item}>{item}</option>) : <option>Provider not configured</option>}</select></label>
+          <div className={`flab-health ${selectedProvider && selectedProvider.status !== "NOT_CONFIGURED" ? "ready" : "off"}`}><span>{pretty(provider)}</span><strong>{selectedProvider && selectedProvider.status !== "NOT_CONFIGURED" ? "CONFIGURED" : "NOT CONFIGURED"}</strong></div>
+          <label>Model<select value={model} disabled={!selectedProvider?.models?.length} onChange={(e) => setModel(e.target.value)}>{selectedProvider?.models?.length ? selectedProvider.models.map((item) => <option key={item} value={item} disabled={!modelSelectable(selectedProvider, item)}>{item}{selectedProvider.provider === "huggingface" ? ` · ${selectedProvider.model_availability?.[item]?.availability || "UNKNOWN"}` : ""}</option>) : <option>Provider not configured</option>}</select></label>
+          <p className="flab-pending">Connectivity: {selectedProvider?.connectivity || "NOT_VERIFIED"} · Authentication: {selectedProvider?.authentication || "NOT_VERIFIED"} · Inference: {selectedProvider?.inference || "NOT_VERIFIED"}</p>
+          {provider === "huggingface" && <p className="flab-pending">{selectedProvider?.model_availability?.[model]?.reason || "Model availability unknown; run disabled."} A successful run verifies inference for that recorded request only.</p>}
+          <button disabled={busy} onClick={async () => { try { setConfig(await api("/api/frontier/config") as FrontierConfig); } catch (e) { setError((e as Error).message); } }}>Refresh availability</button>
           <label>Governance domain<select value={domain} onChange={(e) => setDomain(e.target.value)}>{config?.domains.map((item) => <option key={item} value={item}>{DOMAIN_LABEL[item] || pretty(item)}</option>)}</select></label>
           <label>Attack / scenario<select value={scenarioId} onChange={(e) => setScenarioId(e.target.value)}>{config?.scenarios.map((item) => <option key={item.id} value={item.id}>{item.title} · v{item.version}</option>)}</select></label>
           <label>Trials<select value={runs} onChange={(e) => setRuns(Number(e.target.value))}>{Array.from({ length: config?.limits.max_runs || 1 }, (_, i) => i + 1).map((n) => <option key={n}>{n}</option>)}</select></label>
           <label>Safety evidence operating point<select value={boundaryMutation} onChange={(e) => setBoundaryMutation(e.target.value)}><option value="none">Declared tested envelope</option><option value="agent_count_2">Boundary demo · 2 agents</option><option value="new_tool">Boundary demo · new tool</option><option value="horizon_expansion">Boundary demo · expanded horizon</option></select></label>
           {boundaryMutation !== "none" && <p className="flab-pending">Evidence-only boundary demonstration. Morrison still governs the trajectory independently.</p>}
           {isCustom && <><label>Custom synthetic task<textarea value={customTask} maxLength={config?.limits.max_task_chars} onChange={(e) => setCustomTask(e.target.value)} /></label><label>Custom untrusted content<textarea className="tall" value={customContent} maxLength={config?.limits.max_content_chars} onChange={(e) => setCustomContent(e.target.value)} placeholder="Paste synthetic untrusted content only…" /></label></>}
-          <button className="flab-run" disabled={busy || selectedProvider?.status !== "READY" || (isCustom && (!customTask.trim() || !customContent.trim()))} onClick={runTest}>{busy ? "RUNNING FRONTIER TEST…" : "RUN FRONTIER TEST"}</button>
+          <button className="flab-run" disabled={busy || !modelSelectable(selectedProvider, model) || (isCustom && (!customTask.trim() || !customContent.trim()))} onClick={runTest}>{busy ? "RUNNING FRONTIER TEST…" : "RUN FRONTIER TEST"}</button>
           {error && <div className="flab-error"><strong>FAIL CLOSED</strong>{error}<span>Execution reached: NO</span></div>}
         </div>
 
@@ -235,6 +238,7 @@ export default function FrontierLabClient() {
       {current && <>
         {response && response.results.length > 1 && <div className="flab-trials">{response.results.map((item, i) => <button key={item.run_id} className={i === activeTrial ? "active" : ""} onClick={() => setActiveTrial(i)}>Trial {i + 1}</button>)}</div>}
         <section className="flab-result">
+          <p>Recorded inference: {response?.inference_observations?.[current.run_id]?.status || "NOT_VERIFIED"} · Model: {current.model}</p>
           <div className={`flab-outcome ${current.model_compromised ? "compromised" : "resisted"}`}><span>MODEL BEHAVIOUR</span><strong>{current.model_compromised ? "MODEL COMPROMISED" : "MODEL RESISTED"}</strong><p>{current.model_compromised ? "The hosted model proposed an adversarial executable trajectory." : "No adversarial executable trajectory was proposed."}</p></div>
           {current.model_compromised
             ? <div className={`flab-outcome verdict ${(targetDecision?.verdict || current.final_verdict).toLowerCase()}`}><span>MORRISON VERDICT — ADVERSARIAL ACTION</span><strong>{targetDecision?.verdict || "NOT EVALUATED"}</strong><p>{targetDecision?.reason || "The model proposed this action but Morrison never ruled on it in this run; no containment is credited."}</p>{current.final_verdict !== targetDecision?.verdict && <p>Run-wide strictest verdict: {current.final_verdict}</p>}</div>
