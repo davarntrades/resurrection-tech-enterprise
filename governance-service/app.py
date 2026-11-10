@@ -869,7 +869,11 @@ async def govern(req: EvaluateRequest, request: Request) -> JSONResponse:
         "layer": terminal.get("layer", ""),
         "reason": terminal.get("reason", ""),
         "omega_domain": terminal.get("omega_domain"),
-        "trajectory_hash": terminal.get("action_hash", ""),
+        "trajectory_hash": hashlib.sha256(json.dumps(
+            [s.model_dump() for s in req.trajectory], sort_keys=True,
+            separators=(",", ":"), ensure_ascii=False, allow_nan=False,
+        ).encode("utf-8")).hexdigest(),
+        "deciding_action_hash": terminal.get("action_hash", ""),
         "reachability_distance": None,
         "metadata": {
             "rule": terminal.get("rule"),

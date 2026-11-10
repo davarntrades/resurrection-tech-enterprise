@@ -52,7 +52,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # image builds without it. kernel_config.py is imported by app.py at module
 # scope; attest.py is the offline evidence auditor, shipped so an operator can
 # verify an exported chain from inside the container.
-COPY app.py hf_availability.py frontier_api.py frontier_sessions.py vllm_frontier_planner.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py engine_compat.py ./
+COPY app.py openai_frontier.py hf_availability.py frontier_api.py frontier_sessions.py vllm_frontier_planner.py assess.py finance_rules.py coverage_rules.py domain_rules.py sector_rules.py cyber_rules.py healthcare_rules.py operations_rules.py dynamic_rules.py policy_bundle.py ed25519_verify.py escalation.py kernel_config.py attest.py engine_compat.py ./
 
 # BUILD GATE: the vendored engine must provide every interface this service
 # calls. An incompatible ENGINE_REF fails here, so it cannot produce an image
